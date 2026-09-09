@@ -69,13 +69,19 @@ function AppContent() {
         console.log('🔐 Checking authentication...')
         const userData = await call("/auth/me")
         console.log('✅ User authenticated:', userData)
-        setUser(userData)
-        if (userData) {
+        if (userData && (userData.id || userData.email)) {
+          setUser(userData)
           setView("dashboard")
           checkShopSetupNeeded(userData)
+        } else {
+          console.log('❌ Invalid user data returned:', userData)
+          setUser(null)
+          setView("landing")
         }
       } catch (err) {
         console.log('❌ Not authenticated:', err.message)
+        setUser(null)
+        setView("landing")
       } finally {
         setChecking(false)
       }

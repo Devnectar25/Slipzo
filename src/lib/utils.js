@@ -25,6 +25,13 @@ export const call = async (path, options = {}) => {
     
     console.log(`📡 Response status: ${response.status}`)
     
+    // Check if server returned HTML (e.g. Vercel SPA index.html fallback) instead of JSON
+    const contentType = response.headers.get("content-type") || ""
+    if (contentType.includes("text/html")) {
+      console.warn(`⚠️ API returned HTML instead of JSON for ${url}`)
+      throw new Error("API endpoint unavailable")
+    }
+
     // Handle empty responses
     let data
     const text = await response.text()
