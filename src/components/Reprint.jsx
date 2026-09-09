@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { ArrowLeft, Printer, User } from "lucide-react"
 import { call, money } from "../lib/utils"
 import { printReceiptElement } from "../lib/printReceipt"
+import { PrintModal } from "./PrintModal"
 import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 
@@ -10,6 +11,7 @@ export function Reprint({ billId, setView }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isPrinting, setIsPrinting] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
 
   const { success } = useToast()
 
@@ -37,12 +39,7 @@ export function Reprint({ billId, setView }) {
   }, [actualBillId])
 
   const printReceipt = () => {
-    setIsPrinting(true)
-    setTimeout(() => {
-      printReceiptElement("receipt-to-print", bill?.template_width || "58mm")
-      setIsPrinting(false)
-      success("Reprint sent to printer")
-    }, 300)
+    setShowPrintModal(true)
   }
 
   if (loading) {
@@ -208,6 +205,34 @@ export function Reprint({ billId, setView }) {
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .reprint-page .bill-header-actions {
+            width: 100% !important;
+            display: flex !important;
+            gap: 0.5rem !important;
+          }
+
+          .reprint-page .bill-header-actions button {
+            flex: 1 !important;
+            justify-content: center !important;
+            min-height: 44px !important;
+          }
+
+          .reprint-page .receipt-preview-panel {
+            maxWidth: 100% !important;
+          }
+        }
+      `}</style>
+
+      {/* Thermal Print Setup & Adjustment Modal */}
+      <PrintModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        defaultWidth={bill?.template_width || "58mm"}
+        elementId="receipt-to-print"
+      />
     </div>
   )
 }

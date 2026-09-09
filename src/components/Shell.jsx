@@ -7,35 +7,38 @@ import {
   FileText,
   Store,
   Settings,
-  Users,
   LogOut,
   Menu,
   X,
   PlusCircle,
   History,
   LayoutTemplate,
-  User
+  User,
+  Package,
+  Mail
 } from "lucide-react"
 
 const navItems = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard, protected: false },
   { id: "bills", label: "New bill", icon: Receipt, protected: true },
   { id: "templates", label: "Templates", icon: FileText, protected: true },
-  { id: "customers", label: "Customers", icon: Users, protected: true },
+  { id: "products", label: "Products", icon: Package, protected: true },
   { id: "history", label: "Bill history", icon: Store, protected: true },
-  { id: "shop", label: "Shop profile", icon: Settings, protected: true }
+  { id: "shop", label: "Shop profile", icon: Settings, protected: true },
+  { id: "contact", label: "Contact us", icon: Mail, protected: false }
 ]
 
 // Mobile bottom navigation items
 const mobileNavItems = [
+  { id: "dashboard", label: "Home", icon: LayoutDashboard },
   { id: "bills", label: "New Bill", icon: PlusCircle },
   { id: "templates", label: "Templates", icon: LayoutTemplate },
-  { id: "history", label: "History", icon: History },
-  { id: "dashboard", label: "Home", icon: LayoutDashboard }
+  { id: "history", label: "History", icon: History }
 ]
 
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
 
   const handleNavClick = (itemId) => {
     console.log('🔗 Nav click:', itemId)
@@ -59,7 +62,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   }
 
   const toggleSidebar = () => {
-    setIsOpen(!isOpen)
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setIsOpen((prev) => !prev)
+    } else {
+      setDesktopSidebarOpen((prev) => !prev)
+    }
   }
 
   const closeSidebar = () => {
@@ -69,7 +76,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   const isMobileNavActive = (id) => view === id
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${!desktopSidebarOpen ? 'desktop-collapsed' : ''}`}>
       {/* Mobile Drawer Backdrop */}
       {isOpen && (
         <div
@@ -97,19 +104,25 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           top: 0,
           right: 0,
           bottom: 0,
+          height: '100vh',
           width: '280px',
           background: 'white',
           borderLeft: '1px solid #e2e8f0',
-          padding: '1.5rem',
+          padding: '1rem 1.25rem 0.5rem 1.25rem',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 90,
           transition: 'transform 0.3s ease',
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-          overflowY: 'auto',
+          overflow: 'hidden',
         }}
       >
-        <div className="side-brand">
+        <div
+          className="side-brand"
+          onClick={() => setView("dashboard")}
+          style={{ cursor: 'pointer', paddingBottom: '0.5rem', marginBottom: '0.65rem', marginTop: 0 }}
+          title="Return to Home Dashboard"
+        >
           <img src="/logo.png" alt="Slipzo" className="side-logo" />
           <b>slipzo</b>
           <button
@@ -134,6 +147,10 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           style={{
             flex: 1,
             overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.25rem',
+            marginBottom: '0.5rem',
           }}
         >
           {navItems.map((item) => (
@@ -159,7 +176,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 width: '100%',
               }}
             >
-              <item.icon size={18} />
+              <item.icon size={22} />
               {item.label}
             </button>
           ))}
@@ -169,9 +186,10 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         <div
           className="side-bottom"
           style={{
-            padding: '1rem 0',
+            padding: '0.75rem 0 0 0',
             borderTop: '1px solid #f1f5f9',
             marginTop: 'auto',
+            marginBottom: 0,
             flexShrink: 0,
           }}
         >
@@ -181,7 +199,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             gap: '0.75rem',
             padding: '0.5rem',
             borderRadius: '10px',
-            marginBottom: '0.5rem',
+            marginBottom: '0.25rem',
           }}>
             <div className="avatar" style={{
               width: '36px',
@@ -217,7 +235,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              padding: '0.65rem 1rem',
+              padding: '0.55rem 0.75rem',
               border: 'none',
               background: 'transparent',
               borderRadius: '10px',
@@ -227,6 +245,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               cursor: 'pointer',
               transition: 'all 0.15s',
               width: '100%',
+              marginBottom: 0,
             }}
           >
             <LogOut size={16} /> Sign out
@@ -235,74 +254,32 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
       </aside>
 
       {/* Main Content */}
-      <div className="main" style={{ flex: 1, marginLeft: 0, padding: '1.5rem 2rem 2rem', minHeight: '100vh' }}>
-        <header style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingBottom: '1.5rem',
-          borderBottom: '1px solid #e2e8f0',
-          marginBottom: '2rem',
-        }}>
-          <div className="header-left" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-          }}>
-            <span className="live-dot" style={{
-              fontSize: '0.8rem',
-              color: '#22c55e',
-              fontWeight: '500',
-            }}>● Live</span>
+      <div className={`main ${!desktopSidebarOpen ? 'desktop-expanded' : ''}`} style={{ flex: 1, minHeight: '100vh', boxSizing: 'border-box' }}>
+        {/* Static Header with Slipzo Logo and Menu Icon */}
+        <header className="shell-static-header">
+          <div
+            className="shell-header-brand"
+            onClick={() => setView("dashboard")}
+            title="Slipzo Dashboard"
+          >
+            <img src="/logo.png" alt="Slipzo" className="shell-header-logo" />
+            <b className="shell-header-name">slipzo</b>
           </div>
 
-          <div className="header-right" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-          }}>
+          <div className="shell-header-right">
             <button
-              data-testid="mobile-menu-button"
-              className="mobile-menu"
+              data-testid="shell-menu-button"
+              className="shell-menu-btn"
               onClick={toggleSidebar}
-              aria-label="Toggle menu"
-              style={{
-                display: 'none',
-                background: 'none',
-                border: 'none',
-                padding: '0.5rem',
-                cursor: 'pointer',
-                color: '#0f172a',
-                borderRadius: '8px',
-                transition: 'background 0.2s',
-              }}
+              aria-label="Toggle navigation menu"
+              title="Menu"
             >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+              {isOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
-
-            <div className="header-actions" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-            }}>
-              <div className="avatar" style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                background: '#0f172a',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '600',
-                fontSize: '0.9rem',
-              }}>
-                {(user?.name || "S")[0].toUpperCase()}
-              </div>
-            </div>
           </div>
         </header>
-        <div className="main-content-scroll" style={{ paddingBottom: '80px' }}>
+
+        <div className="main-content-scroll">
           {children}
         </div>
       </div>
@@ -324,11 +301,88 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
 
       <style>{`
         /* ============================================
-           DESKTOP STYLES - UNCHANGED
+           STATIC HEADER STYLES
+           ============================================ */
+        .shell-static-header {
+          position: sticky !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          height: 56px !important;
+          background: #ffffff !important;
+          border-bottom: 1px solid #e2e8f0 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 0 1.25rem !important;
+          z-index: 70 !important;
+          box-sizing: border-box !important;
+          width: 100% !important;
+        }
+
+        .shell-header-brand {
+          display: flex !important;
+          align-items: center !important;
+          gap: 0.65rem !important;
+          cursor: pointer !important;
+          user-select: none !important;
+        }
+
+        .shell-header-logo {
+          height: 30px !important;
+          width: auto !important;
+          object-fit: contain !important;
+        }
+
+        .shell-header-name {
+          font-size: 1.25rem !important;
+          font-weight: 800 !important;
+          color: #0f172a !important;
+          letter-spacing: -0.02em !important;
+        }
+
+        .shell-header-right {
+          display: flex !important;
+          align-items: center !important;
+          gap: 0.75rem !important;
+        }
+
+        .shell-menu-btn {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 38px !important;
+          height: 38px !important;
+          background: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 10px !important;
+          color: #0f172a !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+        }
+
+        .shell-menu-btn:hover {
+          background: #f1f5f9 !important;
+          border-color: #cbd5e1 !important;
+          color: #0ea5e9 !important;
+        }
+
+        .shell-menu-btn:active {
+          transform: scale(0.96) !important;
+        }
+
+        /* ============================================
+           DESKTOP STYLES
            ============================================ */
         @media (min-width: 769px) {
           .app-shell .main {
             margin-left: 280px !important;
+            padding: 0 !important;
+            transition: margin-left 0.3s ease !important;
+          }
+
+          .app-shell.desktop-collapsed .main {
+            margin-left: 0 !important;
           }
           
           .sidebar-backdrop {
@@ -341,6 +395,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             left: 0 !important;
             border-left: none !important;
             border-right: 1px solid #e2e8f0 !important;
+            transition: transform 0.3s ease !important;
+          }
+
+          .app-shell.desktop-collapsed aside {
+            transform: translateX(-100%) !important;
           }
           
           .side-close-btn {
@@ -351,46 +410,26 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             display: none !important;
           }
 
-          .header-left .live-dot {
-            display: none !important;
-          }
-
-          .header-actions {
-            display: flex !important;
-          }
-
-          .mobile-menu {
-            display: none !important;
+          .main-content-scroll {
+            padding: 1.25rem 2rem 2rem !important;
           }
           
-          /* ✅ Desktop: Normal sidebar bottom padding (NO change) */
           .side-bottom {
             padding: 1rem 0 !important;
           }
         }
         
         /* ============================================
-           MOBILE STYLES - ONLY HERE THE FIX APPLIES
+           MOBILE STYLES
            ============================================ */
         @media (max-width: 768px) {
-          .app-shell .main header {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            padding: 0.5rem 0 !important;
-          }
-          
-          .app-shell .main header .mobile-menu {
-            display: flex !important;
-          }
-          
           .app-shell .main {
-            padding: 0.5rem 1rem 80px !important;
+            margin-left: 0 !important;
+            padding: 0 0 80px 0 !important;
           }
-          
-          .app-shell .main header {
-            margin-bottom: 1rem !important;
-            padding-bottom: 0.75rem !important;
+
+          .main-content-scroll {
+            padding: 1rem 1rem 0 1rem !important;
           }
           
           .sidebar-backdrop {
@@ -407,44 +446,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             border-left: 1px solid #e2e8f0 !important;
             border-right: none !important;
             transform: translateX(100%) !important;
+            transition: transform 0.3s ease !important;
           }
 
           .app-shell aside.open {
             transform: translateX(0) !important;
-          }
-
-          .header-actions {
-            display: none !important;
-          }
-
-          .header-left {
-            display: flex !important;
-          }
-
-          .header-left .live-dot {
-            display: flex !important;
-            font-size: 0.7rem !important;
-          }
-
-          .header-right {
-            display: flex !important;
-            align-items: center !important;
-          }
-
-          .header-right .mobile-menu {
-            display: flex !important;
-            padding: 0.4rem !important;
-          }
-
-          .header-right .mobile-menu svg {
-            width: 24px !important;
-            height: 24px !important;
-          }
-
-          .header-right .eyebrow,
-          .header-right h1,
-          .header-right > div:not(.mobile-menu):not(.header-actions) {
-            display: none !important;
           }
 
           /* ============================================

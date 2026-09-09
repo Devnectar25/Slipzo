@@ -1,7 +1,7 @@
 // Dashboard.jsx - Updated (removed bottom action buttons)
 
 import { useEffect, useState } from "react"
-import { Plus, Receipt, ArrowRight, Users, Store, FileText } from "lucide-react"
+import { Plus, Receipt, ArrowRight, Store, FileText, Package, Mail } from "lucide-react"
 import { call, money } from "../lib/utils"
 import { MetricSkeleton } from "./common/Skeleton"
 
@@ -11,16 +11,16 @@ export function Dashboard({ setView, requireAuth }) {
     count: 0
   })
   const [templateCount, setTemplateCount] = useState(0)
-  const [customerCount, setCustomerCount] = useState(0)
+  const [productCount, setProductCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const [statsData, templatesData, customersData] = await Promise.all([
+        const [statsData, templatesData, productsData] = await Promise.all([
           call("/bills/stats"),
           call("/templates"),
-          call("/customers").catch(() => [])
+          call("/products").catch(() => [])
         ])
 
         setStats({
@@ -32,8 +32,8 @@ export function Dashboard({ setView, requireAuth }) {
           Array.isArray(templatesData) ? templatesData.length : 0
         )
 
-        setCustomerCount(
-          Array.isArray(customersData) ? customersData.length : 0
+        setProductCount(
+          Array.isArray(productsData) ? productsData.length : 0
         )
       } catch (err) {
         console.error("Failed to load dashboard:", err)
@@ -86,11 +86,11 @@ export function Dashboard({ setView, requireAuth }) {
             </small>
           </div>
 
-          <div className="stat" onClick={() => setView("customers")} style={{ cursor: "pointer" }}>
-            <span>Customers</span>
-            <b>{customerCount}</b>
+          <div className="stat" onClick={() => setView("products")} style={{ cursor: "pointer" }}>
+            <span>Products</span>
+            <b>{productCount}</b>
             <small>
-              {customerCount > 0 ? "Registered clients" : "Add first customer"}
+              {productCount > 0 ? `${productCount} item${productCount === 1 ? "" : "s"} in inventory` : "Add first product"}
             </small>
           </div>
 
@@ -125,8 +125,8 @@ export function Dashboard({ setView, requireAuth }) {
             <div>
               <b>02</b>
               <span>
-                <strong>Add items or customer</strong>
-                <small>Quantity × rate, auto tax, and customer linking instantly.</small>
+                <strong>Add items</strong>
+                <small>Quick product lookup, quantity × rate, and auto tax calculation.</small>
               </span>
             </div>
             <div>
@@ -143,7 +143,7 @@ export function Dashboard({ setView, requireAuth }) {
           <p className="eyebrow">QUICK SHORTCUTS</p>
           <h3>Manage your workspace</h3>
           <p>
-            Organize reusable templates, maintain your customer contact book, and configure your invoice numbering.
+            Organize reusable templates, manage your product inventory, and configure your invoice numbering.
           </p>
           <div className="dashboard-shortcuts-row">
             <button
@@ -154,15 +154,21 @@ export function Dashboard({ setView, requireAuth }) {
             </button>
             <button
               className="secondary-button small"
-              onClick={() => setView("customers")}
+              onClick={() => setView("products")}
             >
-              <Users size={14} /> Customers
+              <Package size={14} /> Products
             </button>
             <button
               className="secondary-button small"
               onClick={() => setView("shop")}
             >
               <Store size={14} /> Shop Settings
+            </button>
+            <button
+              className="secondary-button small"
+              onClick={() => setView("contact")}
+            >
+              <Mail size={14} /> Contact Us
             </button>
           </div>
         </section>

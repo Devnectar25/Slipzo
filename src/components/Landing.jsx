@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   ArrowRight, Zap, Printer, Store, Shield, Sparkles, Users,
   Clock, Receipt, Eye, Edit, Copy, Printer as PrinterIcon,
@@ -15,11 +15,64 @@ import {
   getRemainingEdits,
   getRemainingPrints
 } from "../lib/utils"
+import { MiniReceiptPreview } from "./MiniReceiptPreview"
 
 export function Landing({ setView, setShowAuth, user }) {
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [activeTemplateIndex, setActiveTemplateIndex] = useState(0)
+  const [activeTestimonialIndex, setActiveTestimonialIndex] = useState(0)
+
+  const testimonials = [
+    {
+      id: 1,
+      rating: "4.9",
+      quote: "Slipzo changed how I bill. No more messy notebooks or complex POS systems. Just clean, professional receipts every time. My customers love the digital look!",
+      author: "Ramesh Kumar",
+      role: "Shop Owner, Delhi",
+      stats: "500+ receipts generated",
+      initials: "RK",
+      color: "#0ea5e9"
+    },
+    {
+      id: 2,
+      rating: "5.0",
+      quote: "As a small cafe owner, I needed something fast and reliable. Slipzo allows me to print WhatsApp and thermal receipts in under 10 seconds!",
+      author: "Priya Sharma",
+      role: "Cafe Owner, Mumbai",
+      stats: "1,200+ receipts generated",
+      initials: "PS",
+      color: "#10b981"
+    },
+    {
+      id: 3,
+      rating: "4.9",
+      quote: "Extremely easy to customize template headers and taxes. Saved us hours during rush sales. Best billing tool for small retailers!",
+      author: "Anish Patel",
+      role: "Boutique Owner, Ahmedabad",
+      stats: "850+ receipts generated",
+      initials: "AP",
+      color: "#0ea5e9"
+    },
+    {
+      id: 4,
+      rating: "5.0",
+      quote: "The thermal print layout is crisp and looks super professional. Our customers appreciate receiving digital PDF receipts directly on WhatsApp.",
+      author: "Vikram Singh",
+      role: "Electronics Store, Bengaluru",
+      stats: "2,000+ receipts generated",
+      initials: "VS",
+      color: "#f59e0b"
+    }
+  ]
+
+  // Auto-rotate testimonials every 4 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveTestimonialIndex((prev) => (prev + 1) % testimonials.length)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [testimonials.length])
 
   const templates = [
     {
@@ -27,9 +80,9 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Minimal Bill",
       description: "Simple and clean design focused on clarity and readability",
       category: "Modern",
-      color: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Layout size={20} />,
+      color: "#0ea5e9",
+      gradient: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+      icon: <Layout size={24} />,
       features: ["Clean layout", "Large text", "QR ready", "Mobile friendly"],
       isDefault: true,
       popularity: 98,
@@ -40,9 +93,9 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Classic Receipt",
       description: "Clean and professional receipt template with all essential details",
       category: "Standard",
-      color: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <FileText size={20} />,
+      color: "#0284c7",
+      gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
+      icon: <FileText size={24} />,
       features: ["Shop logo", "Itemized list", "Tax calculation", "Payment details"],
       isDefault: false,
       popularity: 92,
@@ -53,9 +106,9 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Shop Pro",
       description: "Professional template with enhanced branding options",
       category: "Business",
-      color: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Store size={20} />,
+      color: "#2563eb",
+      gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
+      icon: <Store size={24} />,
       features: ["Brand colors", "Item images", "Discount display", "Loyalty points"],
       isDefault: false,
       popularity: 87,
@@ -66,9 +119,9 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Eco Print",
       description: "Space-efficient template ideal for thermal printers",
       category: "Efficient",
-      color: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Printer size={20} />,
+      color: "#0d9488",
+      gradient: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)",
+      icon: <Printer size={24} />,
       features: ["Compact design", "Fast printing", "Less paper", "Minimal ink"],
       isDefault: false,
       popularity: 85,
@@ -79,9 +132,9 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Modern Shop",
       description: "Contemporary design with modern typography and spacing",
       category: "Trendy",
-      color: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Type size={20} />,
+      color: "#0ea5e9",
+      gradient: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
+      icon: <Type size={24} />,
       features: ["Modern fonts", "Clean spacing", "Color accent", "Social links"],
       isDefault: false,
       popularity: 90,
@@ -92,9 +145,9 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Business Elite",
       description: "Premium template for high-end retail and professional services",
       category: "Premium",
-      color: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Award size={20} />,
+      color: "#0284c7",
+      gradient: "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)",
+      icon: <Award size={24} />,
       features: ["Premium look", "Watermark", "Signature line", "Terms & conditions"],
       isDefault: false,
       popularity: 95,
@@ -102,17 +155,23 @@ export function Landing({ setView, setShowAuth, user }) {
     }
   ]
 
-  // Get visible templates (3 at a time)
+  // Get visible templates (3 at a time in circular order)
   const getVisibleTemplates = () => {
-    const start = activeTemplateIndex
-    const end = start + 3
-    const visible = templates.slice(start, end)
-    // If we don't have 3, wrap around
-    while (visible.length < 3) {
-      visible.push(templates[visible.length % templates.length])
+    const visible = []
+    for (let i = 0; i < 3; i++) {
+      const idx = (activeTemplateIndex + i) % templates.length
+      visible.push(templates[idx])
     }
     return visible
   }
+
+  // Auto-rotate carousel every 4 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveTemplateIndex((prev) => (prev + 1) % templates.length)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [templates.length])
 
   const nextTemplates = () => {
     setActiveTemplateIndex((prev) => (prev + 1) % templates.length)
@@ -131,16 +190,13 @@ export function Landing({ setView, setShowAuth, user }) {
   }
 
   const handleTemplateAction = (template, action) => {
-    // Check if user is logged in
     if (!user) {
-      // For non-logged-in users, check usage limits
       if (action === 'edit') {
         if (!canEditTemplate(template.id)) {
           alert(`You've used all 2 edits for this template. Please sign up to get unlimited access.`)
           setShowAuth(true)
           return
         }
-        // Increment edit count
         incrementTemplateEdit(template.id)
       }
 
@@ -150,13 +206,15 @@ export function Landing({ setView, setShowAuth, user }) {
           setShowAuth(true)
           return
         }
-        // Print will be incremented when actually printing
       }
     }
 
-    // Proceed with the action
     if (action === 'use') {
       sessionStorage.setItem("slipzo-template", template.id)
+      if (!user) {
+        setShowAuth(true)
+        return
+      }
       setView("bills")
     } else if (action === 'edit') {
       setSelectedTemplate(template)
@@ -167,7 +225,6 @@ export function Landing({ setView, setShowAuth, user }) {
     }
   }
 
-  // Render usage badge for non-logged-in users
   const renderUsageBadge = (templateId) => {
     if (user) return null
 
@@ -221,7 +278,13 @@ export function Landing({ setView, setShowAuth, user }) {
               <button className="cta-button primary" onClick={handleGetStarted}>
                 Start billing free <ArrowRight size={18} />
               </button>
-              <button className="cta-button secondary" onClick={() => setView("product")}>
+              <button 
+                className="cta-button secondary" 
+                onClick={() => {
+                  sessionStorage.setItem("slipzo-product-tab", "workflow")
+                  setView("product")
+                }}
+              >
                 <Play size={18} />
                 See how it works
               </button>
@@ -250,78 +313,52 @@ export function Landing({ setView, setShowAuth, user }) {
               <span className="carousel-badge">
                 <Star size={12} fill="#10b981" /> Popular Templates
               </span>
-              <div className="carousel-nav">
-                <button onClick={prevTemplates} className="carousel-nav-btn">
-                  <ChevronLeft size={18} />
-                </button>
-                <button onClick={nextTemplates} className="carousel-nav-btn">
-                  <ChevronRight size={18} />
-                </button>
-              </div>
             </div>
 
             <div className="carousel-templates">
-              {visibleTemplates.map((template) => (
-                <div
-                  key={template.id}
-                  className="carousel-template-card"
-                  style={{ '--card-gradient': template.gradient, '--accent-color': template.color }}
-                >
-                  <div className="carousel-template-preview">
-                    <div className="mini-receipt">
-                      <div className="mini-header">
-                        <span className="mini-logo" style={{ background: template.gradient }}>S</span>
-                        <span className="mini-shop">Shop Name</span>
+              {visibleTemplates.map((template, idx) => {
+                const isCenter = idx === 1
+                return (
+                  <div
+                    key={`${template.id}-${activeTemplateIndex}`}
+                    className={`carousel-template-card pos-${idx} ${isCenter ? 'featured-center' : 'side-card'}`}
+                    style={{
+                      '--card-gradient': template.gradient,
+                      '--accent-color': template.color,
+                      '--card-index': idx
+                    }}
+                  >
+                    <div className="carousel-template-preview">
+                      <MiniReceiptPreview template={template} />
+                    </div>
+                    <div className="carousel-template-info">
+                      <div className="carousel-template-name">
+                        <span className="template-icon-small" style={{ color: template.color }}>
+                          {template.icon}
+                        </span>
+                        {template.name}
                       </div>
-                      <div className="mini-divider"></div>
-                      <div className="mini-items">
-                        <div className="mini-item">
-                          <span>Item 1</span>
-                          <span>₹100</span>
-                        </div>
-                        <div className="mini-item">
-                          <span>Item 2</span>
-                          <span>₹50</span>
-                        </div>
-                        <div className="mini-item">
-                          <span>Item 3</span>
-                          <span>₹75</span>
-                        </div>
-                      </div>
-                      <div className="mini-divider"></div>
-                      <div className="mini-total">
-                        <span>Total</span>
-                        <span style={{ color: template.color }}>₹225</span>
-                      </div>
+                      <span className="carousel-template-category">{template.category}</span>
+                    </div>
+                    {renderUsageBadge(template.id)}
+                    <div className="carousel-template-actions">
+                      <button
+                        className="carousel-template-btn preview"
+                        onClick={() => handleTemplateAction(template, 'preview')}
+                      >
+                        <Eye size={12} /> Preview
+                      </button>
+                      <button
+                        className="carousel-template-btn use"
+                        style={{ background: template.gradient }}
+                        onClick={() => handleTemplateAction(template, 'use')}
+                      >
+                        <PrinterIcon size={12} /> Use
+                      </button>
                     </div>
                   </div>
-                  <div className="carousel-template-info">
-                    <div className="carousel-template-name">
-                      <span className="template-icon-small" style={{ color: template.color }}>
-                        {template.icon}
-                      </span>
-                      {template.name}
-                    </div>
-                    <span className="carousel-template-category">{template.category}</span>
-                  </div>
-                  {renderUsageBadge(template.id)}
-                  <div className="carousel-template-actions">
-                    <button
-                      className="carousel-template-btn preview"
-                      onClick={() => handleTemplateAction(template, 'preview')}
-                    >
-                      <Eye size={12} /> Preview
-                    </button>
-                    <button
-                      className="carousel-template-btn use"
-                      style={{ background: template.gradient }}
-                      onClick={() => handleTemplateAction(template, 'use')}
-                    >
-                      <PrinterIcon size={12} /> Use
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className="carousel-dots">
@@ -334,9 +371,17 @@ export function Landing({ setView, setShowAuth, user }) {
               ))}
             </div>
 
-            <button className="carousel-view-all" onClick={() => setView("templates")}>
-              View all templates <ArrowRight size={14} />
-            </button>
+            <div className="carousel-view-all-wrapper">
+              <button
+                className="carousel-view-all"
+                onClick={() => {
+                  setView("templates")
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }}
+              >
+                View all templates <ArrowRight size={14} />
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -370,32 +415,7 @@ export function Landing({ setView, setShowAuth, user }) {
               )}
 
               <div className="template-preview">
-                <div className="mini-receipt">
-                  <div className="mini-header">
-                    <span className="mini-logo" style={{ background: template.gradient }}>S</span>
-                    <span className="mini-shop">Shop Name</span>
-                  </div>
-                  <div className="mini-divider"></div>
-                  <div className="mini-items">
-                    <div className="mini-item">
-                      <span>Item 1</span>
-                      <span>₹100</span>
-                    </div>
-                    <div className="mini-item">
-                      <span>Item 2</span>
-                      <span>₹50</span>
-                    </div>
-                    <div className="mini-item">
-                      <span>Item 3</span>
-                      <span>₹75</span>
-                    </div>
-                  </div>
-                  <div className="mini-divider"></div>
-                  <div className="mini-total">
-                    <span>Total</span>
-                    <span style={{ color: template.color }}>₹225</span>
-                  </div>
-                </div>
+                <MiniReceiptPreview template={template} />
               </div>
 
               <div className="template-info">
@@ -476,32 +496,32 @@ export function Landing({ setView, setShowAuth, user }) {
         </div>
         <div className="features-grid">
           <div className="feature-card">
-            <div className="feature-icon"><Receipt size={24} /></div>
+            <div className="feature-icon" style={{ background: "#e0f2fe", color: "#0ea5e9" }}><Receipt size={28} /></div>
             <h3>Instant Receipts</h3>
             <p>Create and print receipts in seconds with our simple editor. Perfect for busy counters.</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon"><Store size={24} /></div>
+            <div className="feature-icon" style={{ background: "#dcfce7", color: "#10b981" }}><Store size={28} /></div>
             <h3>Shop Profile</h3>
             <p>Set up your shop once. Your name, address, and phone appear on every receipt automatically.</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon"><Printer size={24} /></div>
+            <div className="feature-icon" style={{ background: "#e0f2fe", color: "#0ea5e9" }}><Printer size={28} /></div>
             <h3>Any Printer</h3>
             <p>Works with thermal 58mm printers, standard A4, and everything in between.</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon"><Smartphone size={24} /></div>
+            <div className="feature-icon" style={{ background: "#fef3c7", color: "#f59e0b" }}><Smartphone size={28} /></div>
             <h3>Mobile Friendly</h3>
             <p>Works perfectly on phones and tablets. Bill from anywhere in your shop.</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon"><Cloud size={24} /></div>
+            <div className="feature-icon" style={{ background: "#e0f2fe", color: "#0284c7" }}><Cloud size={28} /></div>
             <h3>Cloud Backup</h3>
             <p>All your receipts are saved securely. Access your history anytime, anywhere.</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon"><Shield size={24} /></div>
+            <div className="feature-icon" style={{ background: "#ffe4e6", color: "#f43f5e" }}><Shield size={28} /></div>
             <h3>Secure & Free</h3>
             <p>Your data is safe. No credit card needed. Start billing with zero cost.</p>
           </div>
@@ -510,37 +530,49 @@ export function Landing({ setView, setShowAuth, user }) {
 
       {/* Testimonial Section */}
       <section className="testimonial-section">
+        <div className="section-header">
+          <div className="header-badge">
+            <Users size={16} />
+            <span>Customer Feedback</span>
+          </div>
+          <h2>Our Customer Feedback</h2>
+          <p className="section-description">
+            See how thousands of shop owners use Slipzo to transform their daily billing.
+          </p>
+        </div>
+
         <div className="testimonial-container">
-          <div className="testimonial-content">
-            <div className="testimonial-rating">
-              <span>★★★★★</span>
-              <span className="rating-text">4.9 out of 5</span>
-            </div>
-            <p className="testimonial-quote">
-              "Slipzo changed how I bill. No more messy notebooks or complex POS systems.
-              Just clean, professional receipts every time. My customers love the digital look!"
-            </p>
-            <div className="testimonial-author">
-              <div className="author-avatar">RK</div>
-              <div>
-                <strong>Ramesh Kumar</strong>
-                <span>Shop owner, Delhi • 500+ receipts</span>
+          <div className="testimonial-card-wrapper" key={activeTestimonialIndex}>
+            <div className="testimonial-content">
+              <div className="testimonial-rating">
+                <span className="stars">★★★★★</span>
+              </div>
+              <p className="testimonial-quote">
+                "{testimonials[activeTestimonialIndex].quote}"
+              </p>
+              <div className="testimonial-author">
+                <div
+                  className="author-avatar"
+                  style={{ background: testimonials[activeTestimonialIndex].color }}
+                >
+                  {testimonials[activeTestimonialIndex].initials}
+                </div>
+                <div>
+                  <strong>{testimonials[activeTestimonialIndex].author}</strong>
+                  <span>{testimonials[activeTestimonialIndex].role} • {testimonials[activeTestimonialIndex].stats}</span>
+                </div>
               </div>
             </div>
           </div>
-          <div className="testimonial-stats">
-            <div className="testimonial-stat">
-              <span className="stat-number">50k+</span>
-              <span>Receipts generated</span>
-            </div>
-            <div className="testimonial-stat">
-              <span className="stat-number">10k+</span>
-              <span>Happy shop owners</span>
-            </div>
-            <div className="testimonial-stat">
-              <span className="stat-number">4.9★</span>
-              <span>Average rating</span>
-            </div>
+
+          <div className="testimonial-dots">
+            {testimonials.map((_, index) => (
+              <button
+                key={index}
+                className={`testimonial-dot ${index === activeTestimonialIndex ? 'active' : ''}`}
+                onClick={() => setActiveTestimonialIndex(index)}
+              />
+            ))}
           </div>
         </div>
       </section>
@@ -577,50 +609,7 @@ export function Landing({ setView, setShowAuth, user }) {
             </div>
             <div className="modal-body">
               <div className="modal-preview-large">
-                <div className="receipt-preview-large" style={{ borderColor: selectedTemplate.color }}>
-                  <div className="receipt-header-large" style={{ borderColor: selectedTemplate.color }}>
-                    <div className="receipt-logo-large" style={{ backgroundColor: selectedTemplate.color }}>S</div>
-                    <div className="receipt-shop-details">
-                      <h3>Your Shop Name</h3>
-                      <p>123 Main Street, City</p>
-                      <p>Phone: 98765 43210</p>
-                    </div>
-                  </div>
-                  <div className="receipt-divider-large" style={{ borderColor: selectedTemplate.color }}></div>
-                  <div className="receipt-items-large">
-                    <div className="receipt-item-large">
-                      <span>Milk (2 × ₹60)</span>
-                      <span>₹120</span>
-                    </div>
-                    <div className="receipt-item-large">
-                      <span>Bread (1 × ₹40)</span>
-                      <span>₹40</span>
-                    </div>
-                    <div className="receipt-item-large">
-                      <span>Butter (1 × ₹80)</span>
-                      <span>₹80</span>
-                    </div>
-                  </div>
-                  <div className="receipt-divider-large" style={{ borderColor: selectedTemplate.color }}></div>
-                  <div className="receipt-total-large" style={{ color: selectedTemplate.color }}>
-                    <div className="receipt-total-row-large">
-                      <span>Subtotal</span>
-                      <span>₹240</span>
-                    </div>
-                    <div className="receipt-total-row-large">
-                      <span>Discount</span>
-                      <span>-₹20</span>
-                    </div>
-                    <div className="receipt-grand-total-large" style={{ borderColor: selectedTemplate.color }}>
-                      <span>Total</span>
-                      <span>₹220</span>
-                    </div>
-                  </div>
-                  <div className="receipt-footer-large">
-                    <p>Payment: Cash</p>
-                    <p style={{ color: selectedTemplate.color }}>Thank you for shopping!</p>
-                  </div>
-                </div>
+                <MiniReceiptPreview template={selectedTemplate} />
               </div>
               <div className="modal-info">
                 <h4>Template Features</h4>
@@ -657,12 +646,11 @@ export function Landing({ setView, setShowAuth, user }) {
                     className="modal-btn primary"
                     onClick={() => {
                       setShowTemplateModal(false)
-                      if (!user && !canPrintTemplate(selectedTemplate.id)) {
-                        alert(`You've used all 10 free prints. Please sign up for unlimited access.`)
+                      sessionStorage.setItem("slipzo-template", selectedTemplate.id)
+                      if (!user) {
                         setShowAuth(true)
                         return
                       }
-                      sessionStorage.setItem("slipzo-template", selectedTemplate.id)
                       setView("bills")
                     }}
                   >
