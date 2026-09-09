@@ -1,0 +1,17 @@
+{
+  "short_name": "Slipzo",
+  "name": "Slipzo · Digital Receipt Book",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f2",
+  "theme_color": "#16231f",
+  "description": "Simple billing for small shops",
+  "icons": [
+    {
+      "src": "/slipzo-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

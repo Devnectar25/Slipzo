@@ -1,0 +1,243 @@
+/* ============================================
+   PRINT.CSS - Robust Receipt Printing
+   ============================================ */
+
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  /* Reset all outer parent containers so receipt renders cleanly */
+  html,
+  body,
+  #root,
+  .app-shell,
+  .main,
+  .main-content-scroll,
+  .public-layout,
+  .public-main,
+  .page,
+  .bill-page,
+  .reprint-page,
+  .bill-grid,
+  .receipt-preview-panel {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    transform: none !important;
+    animation: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  /* Explicitly hide all non-receipt UI elements */
+  aside,
+  header,
+  nav,
+  footer,
+  .public-nav,
+  .public-footer,
+  .side-brand,
+  .side-bottom,
+  .bill-header,
+  .bill-editor-panel,
+  .preview-header,
+  .preview-actions,
+  .mobile-view-tabs,
+  .mobile-sticky-action-bar,
+  .sidebar-backdrop,
+  .modal-backdrop,
+  .toast-container,
+  .page-intro,
+  .bill-header-actions,
+  .usage-info-bar,
+  .error-message,
+  .success-message,
+  .table-controls-bar,
+  .filter-controls-group,
+  .pagination-bar,
+  .stats,
+  .hero-row,
+  .dashboard-grid,
+  .inline-form,
+  .templates-filter-bar,
+  .template-list,
+  .customer-table-wrapper {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Receipt container to print */
+  #receipt-to-print {
+    display: block !important;
+    visibility: visible !important;
+    position: relative !important;
+    margin: 0 auto !important;
+    padding: 4mm 3mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace, sans-serif !important;
+    width: 100% !important;
+    max-width: 58mm !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+  }
+
+  .width-80mm #receipt-to-print,
+  #receipt-to-print.width-80mm {
+    max-width: 80mm !important;
+  }
+
+  #receipt-to-print * {
+    visibility: visible !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+
+  /* Shop Header */
+  .receipt-shop {
+    text-align: center !important;
+    padding-bottom: 4px !important;
+    border-bottom: 1px dashed #000000 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .receipt-shop .receipt-logo {
+    display: none !important;
+  }
+
+  .receipt-shop .receipt-shop-name {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    margin: 0 0 2px 0 !important;
+    color: #000000 !important;
+  }
+
+  .receipt-shop p {
+    font-size: 9px !important;
+    margin: 1px 0 !important;
+    color: #000000 !important;
+  }
+
+  .receipt-shop p svg {
+    display: none !important;
+  }
+
+  /* Meta info & Customer line */
+  .receipt-meta,
+  .receipt-customer-line {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 9px !important;
+    color: #000000 !important;
+    padding: 2px 0 !important;
+  }
+
+  .receipt-divider {
+    border-top: 1px dashed #000000 !important;
+    margin: 4px 0 !important;
+  }
+
+  /* Items Table */
+  .receipt-items-header {
+    display: grid !important;
+    grid-template-columns: 2fr 0.6fr 0.8fr 1fr !important;
+    gap: 2px !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    padding: 2px 0 !important;
+    border-bottom: 1px solid #000000 !important;
+  }
+
+  .receipt-item-row {
+    display: grid !important;
+    grid-template-columns: 2fr 0.6fr 0.8fr 1fr !important;
+    gap: 2px !important;
+    font-size: 9px !important;
+    padding: 2px 0 !important;
+  }
+
+  .receipt-item-name {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-weight: 600 !important;
+  }
+
+  .receipt-item-qty {
+    text-align: center !important;
+  }
+
+  .receipt-item-rate,
+  .receipt-item-amount {
+    text-align: right !important;
+  }
+
+  .receipt-empty-items {
+    text-align: center !important;
+    padding: 10px 0 !important;
+    color: #666666 !important;
+  }
+
+  /* Totals */
+  .receipt-totals {
+    padding-top: 4px !important;
+  }
+
+  .receipt-total-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 9px !important;
+    padding: 1px 0 !important;
+  }
+
+  .receipt-total-row.discount {
+    color: #000000 !important;
+  }
+
+  .receipt-grand-total {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    padding-top: 4px !important;
+    margin-top: 4px !important;
+    border-top: 2px solid #000000 !important;
+  }
+
+  /* Footer */
+  .receipt-footer {
+    text-align: center !important;
+    padding-top: 4px !important;
+    border-top: 1px dashed #000000 !important;
+    margin-top: 4px !important;
+  }
+
+  .receipt-payment {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+  }
+
+  .receipt-thanks {
+    font-size: 9px !important;
+    color: #000000 !important;
+    margin: 3px 0 0 0 !important;
+  }
+}
