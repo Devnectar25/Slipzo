@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, useRef } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
+import { PrintModal } from "./PrintModal"
+import { BUILTIN_TEMPLATES } from "./Templates"
 import {
   Plus,
   Receipt,
@@ -81,6 +83,7 @@ export function Bill({ setView, user, requireAuth }) {
 
   const receiptRef = useRef(null)
   const [isPrinting, setIsPrinting] = useState(false)
+  const [showPrintModal, setShowPrintModal] = useState(false)
 
   const { success: toastSuccess, error: toastError } = useToast()
 
@@ -106,7 +109,11 @@ export function Bill({ setView, user, requireAuth }) {
           call("/customers").catch(() => [])
         ])
 
-        const templatesArray = Array.isArray(templatesData) ? templatesData : []
+        const dbTemplates = Array.isArray(templatesData) ? templatesData : []
+        const dbNames = new Set(dbTemplates.map(t => (t.name || "").toLowerCase()))
+        const extraBuiltins = BUILTIN_TEMPLATES.filter(b => !dbNames.has((b.name || "").toLowerCase()))
+        const templatesArray = [...dbTemplates, ...extraBuiltins]
+
         setTemplates(templatesArray)
         setShop(shopData || {})
         setCustomers(Array.isArray(customersData) ? customersData : [])
@@ -133,6 +140,21 @@ export function Bill({ setView, user, requireAuth }) {
             sessionStorage.removeItem("slipzo-selected-customer")
           } catch (e) {
             sessionStorage.removeItem("slipzo-selected-customer")
+          }
+        }
+
+        // Check if a product was pre-selected from session
+        const storedItem = sessionStorage.getItem("slipzo-quick-item")
+        if (storedItem) {
+          try {
+            const item = JSON.parse(storedItem)
+            if (item && item.name) {
+              setItems([{ id: Date.now(), name: item.name, rate: item.rate || 0, quantity: item.quantity || 1 }])
+              if (item.tax_rate !== undefined) setTax(item.tax_rate)
+            }
+            sessionStorage.removeItem("slipzo-quick-item")
+          } catch (e) {
+            sessionStorage.removeItem("slipzo-quick-item")
           }
         }
       } catch (err) {
@@ -280,12 +302,7 @@ export function Bill({ setView, user, requireAuth }) {
       incrementTemplatePrint(selected.id)
     }
 
-    setIsPrinting(true)
-    setTimeout(() => {
-      printReceiptElement("receipt-to-print", selected?.width || "58mm")
-      setIsPrinting(false)
-      toastSuccess("Receipt print initiated")
-    }, 300)
+    setShowPrintModal(true)
   }
 
   const resetForm = () => {
@@ -706,9 +723,17 @@ export function Bill({ setView, user, requireAuth }) {
           <div
             ref={receiptRef}
             id="receipt-to-print"
-            className="receipt-preview-content"
+            className={`receipt-preview-content tpl-style-${selected?.id || "2"}`}
             style={{ maxWidth: selected?.width === "80mm" ? "420px" : "320px" }}
           >
+            {/* Template Specific Header Badge */}
+            {(selected?.id === "6" || selected?.id === "elite") && (
+              <div className="receipt-tax-badge">TAX INVOICE</div>
+            )}
+            {(selected?.id === "5" || selected?.id === "modern") && (
+              <div className="receipt-boutique-badge">BOUTIQUE RECEIPT</div>
+            )}
+
             {/* Shop Header */}
             <div className="receipt-shop">
               <div className="receipt-logo">S</div>
@@ -803,10 +828,28 @@ export function Bill({ setView, user, requireAuth }) {
             {/* Divider */}
             <div className="receipt-divider"></div>
 
+            {/* Special Features per Template */}
+            {(selected?.id === "3" || selected?.id === "pro") && (
+              <div className="receipt-pro-extras">
+                <div className="receipt-qr-wrapper">
+                  <div className="receipt-qr-box">UPI QR</div>
+                  <span>Scan to pay with any UPI App</span>
+                </div>
+                <div className="receipt-loyalty-tag">★ Earned {Math.floor(total / 50)} Loyalty Points</div>
+              </div>
+            )}
+
+            {(selected?.id === "6" || selected?.id === "elite") && (
+              <div className="receipt-signatory-wrapper">
+                <div className="signatory-line" />
+                <span>Authorized Signatory</span>
+              </div>
+            )}
+
             {/* Footer */}
             <div className="receipt-footer">
               <div className="receipt-payment">
-                <span>Payment</span>
+                <span>Payment Mode</span>
                 <span>{payment}</span>
               </div>
               <p className="receipt-thanks">
@@ -827,6 +870,71 @@ export function Bill({ setView, user, requireAuth }) {
               View History
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Bottom Bill Actions */}
+      <div className="bill-bottom-actions">
+        <div className="bill-header-actions">
+          <button
+            data-testid="bottom-reset-bill-button"
+            className="secondary-button"
+            onClick={resetForm}
+          >
+            <X size={16} /> Reset
+          </button>
+          <button
+            data-testid="bottom-save-bill-button"
+            className="primary-button"
+            onClick={saveBill}
+            disabled={loading}
+          >
+            {loading ? (
+              <ButtonLoader text="Saving..." />
+            ) : (
+              <>
+                <Save size={16} /> {!user ? "Sign up to save" : "Save Bill"}
+              </>
+            )}
+          </button>
+          <button
+            data-testid="bottom-print-receipt-button"
+            className="print-button"
+            onClick={handlePrint}
+            disabled={isPrinting}
+          >
+            {isPrinting ? (
+              <ButtonLoader text="Printing..." />
+            ) : (
+              <>
+                <Printer size={16} /> Print
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Tab Switcher (Bottom) */}
+        <div className="mobile-view-tabs">
+          <button
+            data-testid="bottom-edit-tab-button"
+            className={`mobile-tab-btn ${activeMobileTab === "edit" ? "active" : ""}`}
+            onClick={() => {
+              setActiveMobileTab("edit")
+              window.scrollTo({ top: 0, behavior: "smooth" })
+            }}
+          >
+            <FileEdit size={16} /> Edit Bill ({items.length} items)
+          </button>
+          <button
+            data-testid="bottom-preview-tab-button"
+            className={`mobile-tab-btn ${activeMobileTab === "preview" ? "active" : ""}`}
+            onClick={() => {
+              setActiveMobileTab("preview")
+              window.scrollTo({ top: 0, behavior: "smooth" })
+            }}
+          >
+            <Eye size={16} /> Live Preview ({money(total)})
+          </button>
         </div>
       </div>
 
@@ -885,6 +993,14 @@ export function Bill({ setView, user, requireAuth }) {
           </div>
         </div>
       )}
+
+      {/* Thermal Print Setup & Adjustment Modal */}
+      <PrintModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        defaultWidth={selected?.width || "58mm"}
+        elementId="receipt-to-print"
+      />
     </div>
   )
 }

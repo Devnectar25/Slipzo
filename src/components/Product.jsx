@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   ArrowRight, Zap, Printer, Smartphone, ShoppingCart, Database, Cloud, 
   Store, Shield, Sparkles, Users, BarChart3, CreditCard, RefreshCw, 
@@ -6,7 +6,23 @@ import {
 } from "lucide-react"
 
 export function Product({ setView, setShowAuth }) {
-  const [activeTab, setActiveTab] = useState("features")
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem("slipzo-product-tab") || "all"
+  })
+
+  useEffect(() => {
+    const targetTab = sessionStorage.getItem("slipzo-product-tab")
+    if (targetTab) {
+      setActiveTab(targetTab)
+      sessionStorage.removeItem("slipzo-product-tab")
+      setTimeout(() => {
+        const el = document.getElementById("how-it-works-section")
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      }, 150)
+    }
+  }, [])
 
   const coreFeatures = [
     {
@@ -17,7 +33,7 @@ export function Product({ setView, setShowAuth }) {
     },
     {
       icon: <Printer size={24} />,
-      color: "#8b5cf6",
+      color: "#0ea5e9",
       title: "Universal Thermal Printer Support",
       description: "Plug-and-play compatibility with 58mm thermal rolls, 80mm POS receipt printers, Bluetooth handheld devices, and standard A4 laser printers."
     },
@@ -211,7 +227,7 @@ export function Product({ setView, setShowAuth }) {
 
       {/* Workflow: How it Works */}
       {(activeTab === "workflow" || activeTab === "all") && (
-        <section className="product-workflow-section">
+        <section className="product-workflow-section" id="how-it-works-section">
           <div className="section-header">
             <p className="eyebrow">SIMPLE 3-STEP SETUP</p>
             <h2>How Slipzo simplifies your billing counter</h2>

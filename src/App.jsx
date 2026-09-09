@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react"
+import { Home, LayoutTemplate, Sparkles, Tag, Mail, LogIn, Zap, ArrowRight, Menu, X, ShieldCheck, FileText, Globe } from "lucide-react"
 import { Auth } from "./components/Auth"
 import { Shell } from "./components/Shell"
 import { Dashboard } from "./components/Dashboard"
 import { Templates } from "./components/Templates"
 import { Bill } from "./components/Bill"
-import { Customers } from "./components/Customers"
 import { History } from "./components/History"
 import { Shop } from "./components/Shop"
+import { Products } from "./components/Products"
 import { Reprint } from "./components/Reprint"
 import { Landing } from "./components/Landing"
 import { PublicTemplates } from "./components/PublicTemplates"
 import { Pricing } from "./components/Pricing"
 import { Product } from "./components/Product"
 import { Contact } from "./components/Contact"
+import { ShopOnboardingModal } from "./components/ShopOnboardingModal"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider } from "./components/common/Toast"
 import { call } from "./lib/utils"
@@ -36,10 +38,29 @@ function AppContent() {
   const [selectedBillId, setSelectedBillId] = useState(null)
   const [showAuth, setShowAuth] = useState(false)
   const [authRegister, setAuthRegister] = useState(false)
+  const [showShopOnboarding, setShowShopOnboarding] = useState(false)
 
   const handleOpenAuth = (isRegister = false) => {
     setAuthRegister(isRegister)
     setShowAuth(true)
+  }
+
+  const checkShopSetupNeeded = async (currentUser) => {
+    if (!currentUser?.id) return
+    const setupDone = localStorage.getItem(`slipzo_shop_setup_${currentUser.id}`)
+    if (setupDone === "true") return
+
+    try {
+      const shop = await call("/shop")
+      // If user has not filled address or phone, or has default empty details
+      if (shop && (!shop.phone || !shop.address)) {
+        setShowShopOnboarding(true)
+      } else {
+        localStorage.setItem(`slipzo_shop_setup_${currentUser.id}`, "true")
+      }
+    } catch {
+      // Ignore errors if shop cannot be fetched
+    }
   }
 
   useEffect(() => {
@@ -51,6 +72,7 @@ function AppContent() {
         setUser(userData)
         if (userData) {
           setView("dashboard")
+          checkShopSetupNeeded(userData)
         }
       } catch (err) {
         console.log('❌ Not authenticated:', err.message)
@@ -62,20 +84,33 @@ function AppContent() {
     checkAuth()
   }, [])
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+    if (view === "customers") {
+      setView("dashboard")
+    }
+  }, [view])
+
   const handleLogout = async () => {
     try {
       await call("/auth/logout", { method: "POST" })
       setUser(null)
+      setShowShopOnboarding(false)
       setView("landing")
     } catch (err) {
       console.error("Logout failed:", err)
     }
   }
 
-  const handleLogin = (userData) => {
+  const handleLogin = (userData, isNewUser = false) => {
     setUser(userData)
     setView("dashboard")
     setShowAuth(false)
+    if (isNewUser) {
+      setShowShopOnboarding(true)
+    } else {
+      checkShopSetupNeeded(userData)
+    }
   }
 
   const requireAuth = (viewName) => {
@@ -100,41 +135,36 @@ function AppContent() {
   // Public pages (accessible without login)
   const publicPages = ["landing", "templates", "product", "pricing", "contact", "bills"]
 
-  if (!user && publicPages.includes(view) && !showAuth) {
+  if (!user) {
+    const activePublicView = publicPages.includes(view) ? view : "landing"
     return (
       <ErrorBoundary onGoHome={() => setView("landing")}>
         <PublicLayout
-          view={view}
+          view={activePublicView}
           setView={setView}
           setShowAuth={setShowAuth}
           handleOpenAuth={handleOpenAuth}
           user={user}
           requireAuth={requireAuth}
         />
-      </ErrorBoundary>
-    )
-  }
-
-  // Show auth modal or page
-  if (showAuth || (!user && !publicPages.includes(view))) {
-    return (
-      <ErrorBoundary onGoHome={() => setView("landing")}>
-        <Auth 
-          onLogin={handleLogin} 
-          onCancel={() => {
-            setShowAuth(false)
-            setAuthRegister(false)
-            setView("landing")
-          }} 
-          initialRegister={authRegister}
-        />
+        {showAuth && (
+          <Auth 
+            onLogin={handleLogin} 
+            onCancel={() => {
+              setShowAuth(false)
+              setAuthRegister(false)
+            }} 
+            initialRegister={authRegister}
+          />
+        )}
       </ErrorBoundary>
     )
   }
 
   // Protected routes - only accessible when logged in
   return (
-    <Shell
+    <>
+      <Shell
       user={user}
       view={view}
       setView={setView}
@@ -145,7 +175,7 @@ function AppContent() {
         {view === "dashboard" && <Dashboard setView={setView} requireAuth={requireAuth} />}
         {view === "templates" && <Templates setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "bills" && <Bill setView={setView} requireAuth={requireAuth} user={user} />}
-        {view === "customers" && <Customers setView={setView} requireAuth={requireAuth} />}
+        {view === "products" && <Products setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "history" && (
           <History
             setView={setView}
@@ -153,7 +183,8 @@ function AppContent() {
             requireAuth={requireAuth}
           />
         )}
-        {view === "shop" && <Shop requireAuth={requireAuth} />}
+        {view === "shop" && <Shop requireAuth={requireAuth} user={user} />}
+        {view === "contact" && <Contact setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "reprint" && (
           <Reprint
             billId={selectedBillId}
@@ -163,6 +194,13 @@ function AppContent() {
         )}
       </ErrorBoundary>
     </Shell>
+    <ShopOnboardingModal
+      isOpen={showShopOnboarding}
+      user={user}
+      onClose={() => setShowShopOnboarding(false)}
+      onComplete={() => setShowShopOnboarding(false)}
+    />
+  </>
   )
 }
 
@@ -170,12 +208,33 @@ function AppContent() {
 function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requireAuth }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  // Prevent body scrolling when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden"
+      document.documentElement.style.overflow = "hidden"
+      document.body.style.touchAction = "none"
+      document.documentElement.style.touchAction = "none"
+    } else {
+      document.body.style.overflow = ""
+      document.documentElement.style.overflow = ""
+      document.body.style.touchAction = ""
+      document.documentElement.style.touchAction = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+      document.documentElement.style.overflow = ""
+      document.body.style.touchAction = ""
+      document.documentElement.style.touchAction = ""
+    }
+  }, [mobileMenuOpen])
+
   const navItems = [
-    { id: "landing", label: "Home" },
-    { id: "templates", label: "Templates" },
-    { id: "product", label: "Product" },
-    { id: "pricing", label: "Pricing" },
-    { id: "contact", label: "Contact" }
+    { id: "landing", label: "Home", icon: Home },
+    { id: "templates", label: "Templates", icon: LayoutTemplate },
+    { id: "product", label: "Product", icon: Sparkles },
+    { id: "pricing", label: "Pricing", icon: Tag },
+    { id: "contact", label: "Contact", icon: Mail }
   ]
 
   const renderPage = () => {
@@ -199,15 +258,21 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
 
   return (
     <div className="public-layout">
+      {mobileMenuOpen && (
+        <div 
+          className="mobile-menu-backdrop" 
+          onClick={() => setMobileMenuOpen(false)}
+          onTouchMove={(e) => e.preventDefault()}
+        />
+      )}
       <nav className="public-nav">
         <div className="nav-container">
-          <div className="nav-brand" onClick={() => setView("landing")}>
+          <div className="nav-brand" onClick={() => setView(user ? "dashboard" : "landing")}>
             <img
               src="/logo.png"
               alt="Slipzo"
-              className="nav-logo"
+              className="public-nav-logo"
             />
-            <span>slipzo</span>
           </div>
 
           <button
@@ -215,22 +280,40 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle navigation menu"
           >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
           </button>
 
-          <div className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
-            {navItems.map(item => (
-              <button
-                key={item.id}
-                className={`nav-link ${view === item.id ? 'active' : ''}`}
-                onClick={() => {
-                  setView(item.id)
-                  setMobileMenuOpen(false)
-                }}
+          <div 
+            className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}
+            onTouchMove={(e) => e.preventDefault()}
+          >
+            <div className="mobile-menu-header">
+              <span className="mobile-menu-title">Menu</span>
+              <button 
+                className="mobile-menu-close" 
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
               >
-                {item.label}
+                <X size={18} />
               </button>
-            ))}
+            </div>
+
+            {navItems.map(item => {
+              const IconComp = item.icon
+              return (
+                <button
+                  key={item.id}
+                  className={`nav-link ${view === item.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setView(item.id)
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  <IconComp size={18} className="nav-item-icon" />
+                  <span>{item.label}</span>
+                </button>
+              )
+            })}
 
             {!user && (
               <button
@@ -244,7 +327,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                   setMobileMenuOpen(false)
                 }}
               >
-                Get Started
+                <Zap size={16} /> Get Started
               </button>
             )}
           </div>
@@ -255,7 +338,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                 className="nav-button primary"
                 onClick={() => setView("dashboard")}
               >
-                Dashboard
+                Dashboard <ArrowRight size={16} />
               </button>
             ) : (
               <>
@@ -263,13 +346,13 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                   className="nav-button secondary"
                   onClick={() => handleOpenAuth ? handleOpenAuth(false) : setShowAuth(true)}
                 >
-                  Log in
+                  <LogIn size={16} /> Log in
                 </button>
                 <button
                   className="nav-button primary"
                   onClick={() => handleOpenAuth ? handleOpenAuth(true) : setShowAuth(true)}
                 >
-                  Get Started
+                  <Zap size={16} /> Get Started
                 </button>
               </>
             )}
@@ -284,7 +367,12 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
       <footer className="public-footer">
         <div className="footer-container">
           <div className="footer-grid">
-            <div className="footer-brand">
+            <div
+              className="footer-brand"
+              onClick={() => setView(user ? "dashboard" : "landing")}
+              style={{ cursor: 'pointer' }}
+              title="Return to Home"
+            >
               <div className="footer-logo-box">
                 <img
                   src="/logo.png"
@@ -293,56 +381,64 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                 />
               </div>
               <p className="footer-tagline">Effortless digital billing & receipts for small businesses.</p>
+              
+              <div className="footer-social-icons">
+                <a href="https://devnectar.in" target="_blank" rel="noreferrer" title="Website"><Globe size={16} /></a>
+                <a href="mailto:support@slipzo.in" title="Email Us"><Mail size={16} /></a>
+                <button onClick={() => setView("product")} title="Features"><Sparkles size={16} /></button>
+                <button onClick={() => setView("templates")} title="Templates"><LayoutTemplate size={16} /></button>
+              </div>
             </div>
 
             <div className="footer-links-group">
               <div className="footer-links">
                 <h4>Product</h4>
-                <button onClick={() => setView("product")}>Features</button>
-                <button onClick={() => setView("templates")}>Templates</button>
-                <button onClick={() => setView("pricing")}>Pricing</button>
+                <button onClick={() => setView("product")}>
+                  <Sparkles size={13} /> Features
+                </button>
+                <button onClick={() => setView("templates")}>
+                  <LayoutTemplate size={13} /> Templates
+                </button>
+                <button onClick={() => setView("pricing")}>
+                  <Tag size={13} /> Pricing
+                </button>
               </div>
               <div className="footer-links">
                 <h4>Company</h4>
-                <button onClick={() => setView("contact")}>Contact Us</button>
-                <button onClick={() => setView("landing")}>About</button>
+                <button onClick={() => setView("contact")}>
+                  <Mail size={13} /> Contact Us
+                </button>
+                <button onClick={() => setView("landing")}>
+                  <Home size={13} /> About
+                </button>
               </div>
               <div className="footer-links">
                 <h4>Legal</h4>
-                <button onClick={() => setView("contact")}>Privacy Policy</button>
-                <button onClick={() => setView("contact")}>Terms of Service</button>
+                <button onClick={() => setView("contact")}>
+                  <ShieldCheck size={13} /> Privacy Policy
+                </button>
+                <button onClick={() => setView("contact")}>
+                  <FileText size={13} /> Terms of Service
+                </button>
               </div>
             </div>
           </div>
 
           <div className="footer-bottom">
-            <p>© 2026 Slipzo. All rights reserved.</p>
-            <div className="devnectar-block">
+            <p>© 2026 slipzo.com. All rights reserved.</p>
+            <a
+              href="https://devnectar.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="devnectar-block"
+              title="Visit devNectar.in"
+            >
               <span className="devnectar-label">Crafted by</span>
               <span className="devnectar-text">devNectar</span>
-            </div>
+            </a>
           </div>
         </div>
       </footer>
     </div>
-  )
-}
-
-function Menu({ size = 24 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  )
-}
-
-function X({ size = 24 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
   )
 }

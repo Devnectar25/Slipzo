@@ -1,17 +1,25 @@
 {
   "short_name": "Slipzo",
-  "name": "Slipzo · Digital Receipt Book",
+  "name": "Slipzo · Digital Receipt & Billing Solution",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f7f8f2",
-  "theme_color": "#16231f",
-  "description": "Simple billing for small shops",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "description": "Fast, clean thermal receipt maker and billing app for modern retail shops.",
+  "categories": ["business", "finance", "utilities", "productivity"],
   "icons": [
     {
       "src": "/slipzo-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

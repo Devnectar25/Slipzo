@@ -299,6 +299,68 @@ export function History({ setView, setSelectedBillId }) {
           )}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 640px) {
+          .history-page .table-controls-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.5rem !important;
+          }
+
+          .history-page .filter-controls-group {
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 0.5rem !important;
+          }
+
+          .history-page .select-wrapper,
+          .history-page .filter-select {
+            width: 100% !important;
+            min-height: 44px !important;
+          }
+
+          .history-page .history-row {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.5rem !important;
+            position: relative;
+            padding: 0.85rem !important;
+          }
+
+          .history-page .history-amount-col {
+            margin-top: 0.2rem;
+          }
+
+          .history-page .history-row .icon-button {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            min-width: 44px;
+            min-height: 44px;
+          }
+
+          .history-page .pagination-bar {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            align-items: center !important;
+            text-align: center;
+          }
+
+          .history-page .pagination-controls {
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 0.35rem !important;
+          }
+
+          .history-page .pagination-btn,
+          .history-page .page-num-btn {
+            min-width: 38px;
+            min-height: 38px;
+          }
+        }
+      `}</style>
     </div>
   )
 }

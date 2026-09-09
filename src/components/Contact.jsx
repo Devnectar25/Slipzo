@@ -1,13 +1,15 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   ArrowRight, Mail, MessageCircle, Phone, MapPin, Send, 
   CheckCircle2, Clock, HelpCircle, Sparkles, MessageSquare
 } from "lucide-react"
+import { useToast } from "./common/Toast"
 
-export function Contact({ setView, setShowAuth }) {
+export function Contact({ setView, setShowAuth, user }) {
+  const toast = useToast()
   const [form, setForm] = useState({ 
-    name: "", 
-    email: "", 
+    name: user?.name || "", 
+    email: user?.email || "", 
     phone: "", 
     topic: "general", 
     message: "" 
@@ -15,13 +17,24 @@ export function Contact({ setView, setShowAuth }) {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
+  useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        name: prev.name || user.name || "",
+        email: prev.email || user.email || ""
+      }))
+    }
+  }, [user])
+
   const handleSubmit = (e) => {
     e.preventDefault()
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
       setSubmitted(true)
-      setForm({ name: "", email: "", phone: "", topic: "general", message: "" })
+      toast?.show("Your message has been sent to Slipzo support!", "success")
+      setForm({ name: user?.name || "", email: user?.email || "", phone: "", topic: "general", message: "" })
     }, 800)
   }
 
@@ -50,7 +63,7 @@ export function Contact({ setView, setShowAuth }) {
       description: "Speak to our hardware and setup specialists over phone call.",
       actionText: "+91 98765 43210",
       actionLink: "tel:+919876543210",
-      accent: "#8b5cf6",
+      accent: "#0ea5e9",
       badge: "9 AM - 8 PM IST"
     },
     {

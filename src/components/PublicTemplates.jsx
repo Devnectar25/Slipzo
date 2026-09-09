@@ -3,6 +3,7 @@ import {
   ArrowRight, Printer, Star, CheckCircle, FileText, Layout, Store, 
   Award, Type, Eye, Check, Sparkles, SlidersHorizontal, QrCode, Shield, Zap
 } from "lucide-react"
+import { MiniReceiptPreview } from "./MiniReceiptPreview"
 
 export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
   const [activeCategory, setActiveCategory] = useState("all")
@@ -11,169 +12,165 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
   const templates = [
     {
       id: "minimal",
+      templateId: "2",
       name: "Minimal Clean Bill",
       category: "Minimal",
       badge: "Most Popular",
       paperSize: "58mm Thermal",
       description: "Streamlined layout engineered to reduce paper roll consumption while maintaining crystal clear readability.",
-      accentColor: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Layout size={20} />,
-      features: ["Ultra-compact height", "Bold total highlight", "Minimalist typography", "Fast thermal printing"],
+      gradient: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
+      accentColor: "#0ea5e9",
+      features: ["Compact receipt layout", "Large legible totals", "Zero-waste spacing", "Thermal optimized"],
       previewData: {
-        shopName: "THE DAILY CAFE & BAKE",
-        address: "Shop #4, Koramangala 5th Block, Bengaluru",
-        phone: "+91 91234 56789",
-        invoiceNo: "SLIP-8921",
-        date: "09 Mar 2026, 01:15 PM",
+        shopName: "MINIMAL CAFE & BAKERY",
+        address: "MG Road, Indiranagar, Bengaluru",
+        phone: "+91 98765 43210",
+        gst: "",
+        invoiceNo: "MC-INV-102",
+        date: "09 Mar 2026, 02:45 PM",
         items: [
-          { name: "Iced Caramel Macchiato", qty: 2, rate: 180, total: 360 },
-          { name: "Almond Croissant", qty: 1, rate: 140, total: 140 },
-          { name: "Sourdough Toast w/ Butter", qty: 1, rate: 110, total: 110 }
+          { name: "Espresso Single Shot", qty: 1, rate: 120, total: 120 },
+          { name: "Butter Croissant", qty: 1, rate: 100, total: 100 }
         ],
-        subtotal: 610,
-        tax: 30.50,
+        subtotal: 220,
+        tax: 0,
         discount: 0,
-        total: 640.50,
-        payment: "Cash",
-        footer: "Have a wonderful day! Wifi: DailyCafe_Guest"
+        total: 220,
+        payment: "UPI / PhonePe",
+        footer: "Thank you for visiting Minimal Cafe!"
       }
     },
     {
       id: "classic",
+      templateId: "1",
       name: "Classic Receipt",
       category: "Standard",
       badge: "Standard",
-      paperSize: "58mm / 80mm",
-      description: "Timeless and structured receipt template with essential shop details, itemized billing, and tax breakdown.",
-      accentColor: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <FileText size={20} />,
-      features: ["Shop header & logo", "Itemized table", "GST & tax breakdown", "Payment mode indicator"],
-      previewData: {
-        shopName: "METRO GENERAL STORE",
-        address: "124 Market Road, Connaught Place, New Delhi",
-        phone: "+91 98765 43210",
-        gst: "07AAAAA0000A1Z5",
-        invoiceNo: "INV-2026-0412",
-        date: "09 Mar 2026, 02:45 PM",
-        items: [
-          { name: "Organic Basmati Rice 1kg", qty: 2, rate: 120, total: 240 },
-          { name: "Cold Pressed Mustard Oil 1L", qty: 1, rate: 195, total: 195 },
-          { name: "Aashirvaad Atta 5kg", qty: 1, rate: 260, total: 260 },
-          { name: "Tata Salt Crystal 1kg", qty: 2, rate: 25, total: 50 }
-        ],
-        subtotal: 745,
-        tax: 37.25,
-        discount: 35,
-        total: 747.25,
-        payment: "UPI (Google Pay)",
-        footer: "Thank you for shopping with us! Visit again."
-      }
-    },
-    {
-      id: "shop-pro",
-      name: "Retail Pro Branded",
-      category: "Business",
-      badge: "High Conversion",
-      paperSize: "80mm Thermal / A4",
-      description: "Designed for premium retail outlets with loyalty points display, shop social handles, and QR codes.",
-      accentColor: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Store size={20} />,
-      features: ["Dynamic UPI QR code", "Loyalty points earned", "Return policy notes", "Custom brand banner"],
-      previewData: {
-        shopName: "URBAN STYLE APPAREL",
-        address: "Phoenix Palladium, Lower Parel, Mumbai",
-        phone: "+91 99887 76655",
-        gst: "27AABCS1429B1ZB",
-        invoiceNo: "USA-2026-10293",
-        date: "09 Mar 2026, 05:20 PM",
-        items: [
-          { name: "Slim Fit Linen Shirt (Navy - L)", qty: 1, rate: 1499, total: 1499 },
-          { name: "Chino Trousers (Olive - 32)", qty: 1, rate: 1899, total: 1899 },
-          { name: "Cotton Crew Socks (3-Pack)", qty: 2, rate: 299, total: 598 }
-        ],
-        subtotal: 3996,
-        tax: 199.80,
-        discount: 300,
-        total: 3895.80,
-        payment: "Card Ending 4821",
-        footer: "Earned 78 Slipzo Rewards points! Exchange within 14 days."
-      }
-    },
-    {
-      id: "eco-thermal",
-      name: "Eco Rapid 58",
-      category: "Thermal",
-      badge: "Super Fast",
       paperSize: "58mm Thermal",
-      description: "High-contrast monochrome blueprint tailored specifically for 58mm thermal portable Bluetooth printers.",
-      accentColor: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Printer size={20} />,
-      features: ["Optimized for ESC/POS", "Zero ink thermal friendly", "Instant cut support", "Tear-line alignment"],
+      description: "Clean and professional receipt template with itemized table, GST breakdown, and clear totals.",
+      gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
+      accentColor: "#0284c7",
+      features: ["Shop logo header", "Itemized list with quantity", "Tax / GST calculation", "Payment mode badge"],
       previewData: {
-        shopName: "KRISHNA FRUITS & JUICE",
-        address: "Opp. City Metro Station, Gate 2",
-        phone: "+91 98112 23344",
-        invoiceNo: "TXN-7734",
+        shopName: "CLASSIC MART & GROCERY",
+        address: "Shop 14, Main Market, Connaught Place, New Delhi",
+        phone: "+91 11 2341 5678",
+        gst: "07AAAA000A1Z5",
+        invoiceNo: "CM-2026-8821",
+        date: "09 Mar 2026, 01:15 PM",
+        items: [
+          { name: "Basmati Rice 1kg", qty: 2, rate: 120, total: 240 },
+          { name: "Refined Sunflower Oil 1L", qty: 1, rate: 195, total: 195 }
+        ],
+        subtotal: 435,
+        tax: 78.30,
+        discount: 0,
+        total: 513.30,
+        payment: "Cash",
+        footer: "Thank you for shopping with us! Please come again."
+      }
+    },
+    {
+      id: "pro",
+      templateId: "3",
+      name: "Shop Pro",
+      category: "Business",
+      badge: "Retail Choice",
+      paperSize: "80mm POS",
+      description: "Professional high-volume retail template with loyalty points display, item discounts, and payment QR code.",
+      gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
+      accentColor: "#2563eb",
+      features: ["Brand accent header", "Discount highlight tags", "Loyalty rewards counter", "Dynamic UPI QR code"],
+      previewData: {
+        shopName: "URBAN FASHION PRO",
+        address: "Level 2, Phoenix Marketcity, Mumbai",
+        phone: "+91 22 6789 0011",
+        gst: "27AAACU1234M1Z2",
+        invoiceNo: "UFP-INV-4401",
+        date: "09 Mar 2026, 04:30 PM",
+        items: [
+          { name: "Pure Linen Casual Shirt", qty: 1, rate: 1499, total: 1499 },
+          { name: "Slim Fit Chino Trousers", qty: 1, rate: 1899, total: 1899 }
+        ],
+        subtotal: 3398,
+        tax: 0,
+        discount: 300,
+        total: 3098,
+        payment: "Credit / Debit Card",
+        footer: "★ You earned 60 Loyalty Points with this purchase!"
+      }
+    },
+    {
+      id: "eco",
+      templateId: "4",
+      name: "Eco Print",
+      category: "Thermal",
+      badge: "Paper Saver",
+      paperSize: "58mm Ultra Compact",
+      description: "Ultra-compact monospace thermal bill layout engineered specifically to maximize speed and minimize roll paper consumption.",
+      gradient: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)",
+      accentColor: "#0d9488",
+      features: ["Fast thermal printing", "Monospace font alignment", "High-density item lines", "Less paper usage"],
+      previewData: {
+        shopName: "KRISHNA JUICE & SHAKES",
+        address: "Near Metro Station Gate 2, Hyderabad",
+        phone: "+91 40 5544 3322",
+        gst: "",
+        invoiceNo: "KJ-7734",
         date: "09 Mar 2026, 11:30 AM",
         items: [
           { name: "Fresh Pomegranate Juice", qty: 2, rate: 80, total: 160 },
-          { name: "Mixed Fruit Bowl (Large)", qty: 1, rate: 120, total: 120 },
-          { name: "Sugarcane Juice with Mint", qty: 2, rate: 40, total: 80 }
+          { name: "Special Fruit Salad Bowl", qty: 1, rate: 120, total: 120 }
         ],
-        subtotal: 360,
+        subtotal: 280,
         tax: 0,
         discount: 0,
-        total: 360,
-        payment: "PhonePe UPI",
-        footer: "100% Pure & Fresh. Thank you!"
+        total: 280,
+        payment: "UPI QR",
+        footer: "Save paper, save trees! Thank you."
       }
     },
     {
-      id: "modern-retail",
-      name: "Modern Boutique",
+      id: "modern",
+      templateId: "5",
+      name: "Modern Shop",
       category: "Modern",
-      badge: "Trending",
-      paperSize: "80mm / A4 / POS",
-      description: "Contemporary typography with geometric spacing, category grouping, and elegant customer details.",
-      accentColor: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Type size={20} />,
-      features: ["Customer name & contact", "Category subtotals", "Clean barcode section", "Digital copy link"],
+      badge: "Trendy",
+      paperSize: "58mm Thermal",
+      description: "Contemporary aesthetic for boutiques, cafes, and salons with pill badges, stylish spacing, and Instagram handle.",
+      gradient: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
+      accentColor: "#0ea5e9",
+      features: ["Modern typography", "Category pill badges", "Social media footer", "Clean spacing"],
       previewData: {
-        shopName: "LUMINA ORGANIC BEAUTY",
-        address: "Shop 12, Indiranagar 100ft Road, Bengaluru",
-        phone: "+91 97711 22334",
-        gst: "29AADCL9871F1ZS",
-        invoiceNo: "LUM-5094",
-        date: "09 Mar 2026, 04:10 PM",
+        shopName: "LUMINA BEAUTY & SPA",
+        address: "3rd Block, Koramangala, Bengaluru",
+        phone: "+91 80 9988 7766",
+        gst: "29AABCL5544R1Z8",
+        invoiceNo: "LUM-2026-55",
+        date: "09 Mar 2026, 05:15 PM",
         items: [
-          { name: "Rose Water Gentle Toner 200ml", qty: 1, rate: 450, total: 450 },
-          { name: "Hydrating Hyaluronic Serum", qty: 1, rate: 890, total: 890 },
-          { name: "Botanical Sunscreen SPF 50", qty: 1, rate: 620, total: 620 }
+          { name: "Organic Rose Water Toner 100ml", qty: 1, rate: 450, total: 450 },
+          { name: "Hydrating Facial Serum 50ml", qty: 1, rate: 890, total: 890 }
         ],
-        subtotal: 1960,
-        tax: 98,
-        discount: 100,
-        total: 1958,
-        payment: "HDFC Credit Card",
-        footer: "Tag us @luminabeauty on Instagram for 10% off next visit!"
+        subtotal: 1340,
+        tax: 0,
+        discount: 0,
+        total: 1340,
+        payment: "GPay",
+        footer: "Tag us on Instagram @luminabeauty for 10% off next visit!"
       }
     },
     {
-      id: "business-elite",
-      name: "Enterprise Tax Invoice",
+      id: "elite",
+      templateId: "6",
+      name: "Business Elite",
       category: "Business",
-      badge: "GST Ready",
-      paperSize: "80mm / A4 Standard",
-      description: "Comprehensive corporate bill template with detailed HSN/SAC codes, CGST/SGST separation, and signature lines.",
-      accentColor: "#0f172a",
-      gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-      icon: <Award size={20} />,
-      features: ["HSN / SAC Code column", "Split CGST / SGST", "Authorized signatory box", "Terms & conditions"],
+      badge: "Premium",
+      paperSize: "80mm Standard / A4",
+      description: "Formal tax invoice template designed for electronics, hardware, and B2B services requiring HSN, CGST/SGST & signature.",
+      gradient: "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)",
+      accentColor: "#0284c7",
+      features: ["HSN / SAC Code column", "Split CGST & SGST", "Authorized signatory box", "Terms & conditions"],
       previewData: {
         shopName: "TECHNO COMPUTERS & PERIPHERALS",
         address: "Plot 88, Electronic City Phase 1, Bengaluru",
@@ -182,16 +179,15 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         invoiceNo: "TC-INV-2026-904",
         date: "09 Mar 2026, 03:00 PM",
         items: [
-          { name: "Wireless Ergonomic Mouse [HSN 8471]", qty: 2, rate: 850, total: 1700 },
-          { name: "USB-C 7-in-1 Aluminum Hub [HSN 8471]", qty: 1, rate: 2200, total: 2200 },
-          { name: "Thermal Paper Roll 80mm (Pack of 10)", qty: 3, rate: 350, total: 1050 }
+          { name: "Wireless Ergonomic Mouse [HSN 8471]", qty: 1, rate: 850, total: 850 },
+          { name: "Mechanical RGB Keyboard [HSN 8471]", qty: 1, rate: 2400, total: 2400 }
         ],
-        subtotal: 4950,
-        tax: 445.50,
-        discount: 150,
-        total: 5245.50,
+        subtotal: 3250,
+        tax: 585,
+        discount: 0,
+        total: 3835,
         payment: "NEFT / Net Banking",
-        footer: "Warranty valid with original invoice. Goods once sold are covered under manufacturer warranty."
+        footer: "Warranty valid with original invoice. Goods once sold are subject to manufacturer terms."
       }
     }
   ]
@@ -203,8 +199,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
     : templates.filter(t => t.category.toLowerCase() === activeCategory.toLowerCase())
 
   const handleUseTemplate = (template) => {
+    sessionStorage.setItem("slipzo-template", template.templateId || template.id)
     if (user) {
-      // Direct logged-in user to bill creation
       setView("bills")
     } else {
       setShowAuth(true)
@@ -276,41 +272,16 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
                 <p className="template-desc">{template.description}</p>
               </div>
 
-              {/* Receipt Preview Preview Box */}
+              {/* Receipt Preview Box */}
               <div className="template-receipt-preview" onClick={() => setPreviewTemplate(template)}>
-                <div className="mock-receipt">
-                  <div className="mock-receipt-header">
-                    <div className="mock-receipt-logo" style={{ background: template.gradient }}>
-                      <FileText size={12} color="#fff" />
-                    </div>
-                    <div className="mock-receipt-title">{template.previewData.shopName}</div>
-                    <div className="mock-receipt-sub">{template.previewData.address.slice(0, 32)}...</div>
-                  </div>
-                  <div className="mock-receipt-divider" />
-                  <div className="mock-receipt-items">
-                    {template.previewData.items.slice(0, 3).map((item, i) => (
-                      <div className="mock-receipt-row" key={i}>
-                        <span className="mock-item-name">{item.name.slice(0, 18)}...</span>
-                        <span className="mock-item-price">₹{item.total}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mock-receipt-divider" />
-                  <div className="mock-receipt-row bold">
-                    <span>TOTAL</span>
-                    <span style={{ color: template.accentColor }}>₹{template.previewData.total}</span>
-                  </div>
-                  <div className="mock-receipt-view-overlay">
-                    <span><Eye size={16} /> Click for full preview</span>
-                  </div>
-                </div>
+                <MiniReceiptPreview template={template} />
               </div>
 
               {/* Features List */}
               <div className="template-features-list">
                 {template.features.map((feat, idx) => (
                   <div className="template-feat-item" key={idx}>
-                    <Check size={14} style={{ color: template.accentColor, flexShrink: 0 }} />
+                    <Check size={16} style={{ color: template.accentColor, flexShrink: 0 }} />
                     <span>{feat}</span>
                   </div>
                 ))}
@@ -322,14 +293,14 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
                   className="template-preview-btn"
                   onClick={() => setPreviewTemplate(template)}
                 >
-                  <Eye size={15} /> Preview
+                  <Eye size={16} /> Preview
                 </button>
                 <button
                   className="template-use-btn"
                   style={{ background: template.gradient }}
                   onClick={() => handleUseTemplate(template)}
                 >
-                  Use Template <ArrowRight size={15} />
+                  Use Template <ArrowRight size={16} />
                 </button>
               </div>
             </div>
@@ -348,32 +319,32 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
 
           <div className="specs-grid">
             <div className="spec-card">
-              <div className="spec-icon" style={{ color: "#0ea5e9" }}>
-                <Printer size={24} />
+              <div className="spec-icon" style={{ background: "#e0f2fe", color: "#0ea5e9" }}>
+                <Printer size={28} />
               </div>
               <h3>Universal Thermal Compatibility</h3>
               <p>Auto-formats for 58mm portable handheld printers, 80mm POS counters, and desktop A4 printers without cutting off margins.</p>
             </div>
 
             <div className="spec-card">
-              <div className="spec-icon" style={{ color: "#10b981" }}>
-                <QrCode size={24} />
+              <div className="spec-icon" style={{ background: "#dcfce7", color: "#10b981" }}>
+                <QrCode size={28} />
               </div>
               <h3>Dynamic Payment QR Codes</h3>
               <p>Print real-time UPI QR codes directly on the bill for fast customer scan-and-pay via PhonePe, Google Pay, or Paytm.</p>
             </div>
 
             <div className="spec-card">
-              <div className="spec-icon" style={{ color: "#8b5cf6" }}>
-                <Sparkles size={24} />
+              <div className="spec-icon" style={{ background: "#e0f2fe", color: "#0ea5e9" }}>
+                <Sparkles size={28} />
               </div>
               <h3>Instant Brand Customization</h3>
               <p>Add your shop name, logo, GSTIN, custom terms, social handles, and promotional thank-you notes in seconds.</p>
             </div>
 
             <div className="spec-card">
-              <div className="spec-icon" style={{ color: "#f59e0b" }}>
-                <Zap size={24} />
+              <div className="spec-icon" style={{ background: "#fef3c7", color: "#f59e0b" }}>
+                <Zap size={28} />
               </div>
               <h3>Sub-Second Printing</h3>
               <p>Lightweight vector rendering ensures your thermal printer starts printing instantly with zero lag during rush hours.</p>
