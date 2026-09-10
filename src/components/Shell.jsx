@@ -15,8 +15,11 @@ import {
   LayoutTemplate,
   User,
   Package,
-  Mail
+  Mail,
+  Tag,
+  Printer
 } from "lucide-react"
+import { getRemainingFreePrints } from "../lib/utils"
 
 const navItems = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard, protected: false },
@@ -24,6 +27,7 @@ const navItems = [
   { id: "templates", label: "Templates", icon: FileText, protected: true },
   { id: "products", label: "Products", icon: Package, protected: true },
   { id: "history", label: "Bill history", icon: Store, protected: true },
+  { id: "pricing", label: "Pricing", icon: Tag, protected: false, badge: "Plans", badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
   { id: "shop", label: "Shop profile", icon: Settings, protected: true },
   { id: "contact", label: "Contact us", icon: Mail, protected: false }
 ]
@@ -33,6 +37,7 @@ const mobileNavItems = [
   { id: "dashboard", label: "Home", icon: LayoutDashboard },
   { id: "bills", label: "New Bill", icon: PlusCircle },
   { id: "templates", label: "Templates", icon: LayoutTemplate },
+  { id: "pricing", label: "Pricing", icon: Tag },
   { id: "history", label: "History", icon: History }
 ]
 
@@ -123,8 +128,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           style={{ cursor: 'pointer', paddingBottom: '0.5rem', marginBottom: '0.65rem', marginTop: 0 }}
           title="Return to Home Dashboard"
         >
-          <img src="/logo.png" alt="Slipzo" className="side-logo" />
-          <b>slipzo</b>
+          <img src="/logo.png" alt="Slipzo" className="side-logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
           <button
             className="side-close-btn"
             onClick={closeSidebar}
@@ -147,10 +151,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           style={{
             flex: 1,
             overflowY: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.25rem',
-            marginBottom: '0.5rem',
+            gap: '0.2rem',
+            marginBottom: '0.35rem',
           }}
         >
           {navItems.map((item) => (
@@ -163,11 +169,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.75rem',
-                padding: '0.65rem 1rem',
+                padding: '0.55rem 0.85rem',
                 border: 'none',
                 background: view === item.id ? '#f1f5f9' : 'transparent',
                 borderRadius: '10px',
-                fontSize: '0.9rem',
+                fontSize: '0.88rem',
                 fontWeight: view === item.id ? '600' : '500',
                 color: view === item.id ? '#0f172a' : '#64748b',
                 cursor: 'pointer',
@@ -176,8 +182,20 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 width: '100%',
               }}
             >
-              <item.icon size={22} />
-              {item.label}
+              <item.icon size={19} />
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge && (
+                <span style={{
+                  background: item.badgeBg || '#e0f2fe',
+                  color: item.badgeColor || '#0284c7',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '0.15rem 0.5rem',
+                  borderRadius: '9999px'
+                }}>
+                  {item.badge}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -193,6 +211,32 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             flexShrink: 0,
           }}
         >
+          {/* Free Prints Quota Widget in Sidebar */}
+          <div 
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '0.65rem 0.75rem',
+              marginBottom: '0.65rem',
+              cursor: 'pointer'
+            }}
+            onClick={() => handleNavClick("pricing")}
+            title="Click to view pricing plans"
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Printer size={13} style={{ color: getRemainingFreePrints() > 2 ? '#0ea5e9' : '#ef4444' }} /> Free prints
+              </span>
+              <span style={{ color: getRemainingFreePrints() > 2 ? '#0ea5e9' : '#ef4444', fontWeight: 700 }}>
+                {getRemainingFreePrints()} / 10 left
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+              <div style={{ width: `${(getRemainingFreePrints() / 10) * 100}%`, height: '100%', background: getRemainingFreePrints() > 2 ? 'linear-gradient(90deg, #38bdf8, #0ea5e9)' : '#ef4444', transition: 'width 0.3s ease' }} />
+            </div>
+          </div>
+
           <div className="user-chip" style={{
             display: 'flex',
             alignItems: 'center',
@@ -262,11 +306,33 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             onClick={() => setView("dashboard")}
             title="Slipzo Dashboard"
           >
-            <img src="/logo.png" alt="Slipzo" className="shell-header-logo" />
-            <b className="shell-header-name">slipzo</b>
+            <img src="/logo.png" alt="Slipzo" className="shell-header-logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
           </div>
 
-          <div className="shell-header-right">
+          <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div 
+              className="header-prints-badge"
+              onClick={() => setView("pricing")}
+              title="Click to view pricing plans"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '9999px',
+                background: getRemainingFreePrints() > 2 ? '#f0fdf4' : '#fef2f2',
+                border: `1px solid ${getRemainingFreePrints() > 2 ? '#bbf7d0' : '#fecaca'}`,
+                color: getRemainingFreePrints() > 2 ? '#166534' : '#991b1b',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Printer size={14} />
+              <span>{getRemainingFreePrints()} free {getRemainingFreePrints() === 1 ? 'print' : 'prints'} left</span>
+            </div>
+
             <button
               data-testid="shell-menu-button"
               className="shell-menu-btn"

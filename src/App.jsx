@@ -47,21 +47,28 @@ function AppContent() {
 
   const checkShopSetupNeeded = async (currentUser) => {
     if (!currentUser?.id) return
-    const setupDone = localStorage.getItem(`slipzo_shop_setup_${currentUser.id}`)
-    if (setupDone === "true") return
 
     try {
       const shop = await call("/shop")
-      // If user has not filled address or phone, or has default empty details
-      if (shop && (!shop.phone || !shop.address)) {
+      // Check if user has filled in all essential shop details: name, phone, address
+      const isShopFilled = Boolean(
+        shop &&
+        shop.name && shop.name.trim() !== "" &&
+        shop.phone && shop.phone.trim() !== "" &&
+        shop.address && shop.address.trim() !== ""
+      )
+
+      if (!isShopFilled) {
+        // Keep showing the popup until the user fills in all shop details
         setShowShopOnboarding(true)
       } else {
         localStorage.setItem(`slipzo_shop_setup_${currentUser.id}`, "true")
       }
-    } catch {
-      // Ignore errors if shop cannot be fetched
+    } catch (err) {
+      setShowShopOnboarding(true)
     }
   }
+
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -190,6 +197,7 @@ function AppContent() {
           />
         )}
         {view === "shop" && <Shop requireAuth={requireAuth} user={user} />}
+        {view === "pricing" && <Pricing setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "contact" && <Contact setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "reprint" && (
           <Reprint

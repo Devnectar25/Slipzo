@@ -3,6 +3,7 @@ import {
   ArrowRight, Mail, MessageCircle, Phone, MapPin, Send, 
   CheckCircle2, Clock, HelpCircle, Sparkles, MessageSquare
 } from "lucide-react"
+import { call } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
 export function Contact({ setView, setShowAuth, user }) {
@@ -14,10 +15,26 @@ export function Contact({ setView, setShowAuth, user }) {
     topic: "general", 
     message: "" 
   })
+  const [fieldErrors, setFieldErrors] = useState({ name: "", email: "", phone: "", message: "" })
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submissions, setSubmissions] = useState([])
+  const [fetchingSubmissions, setFetchingSubmissions] = useState(false)
+
+  const fetchSubmissions = async () => {
+    try {
+      setFetchingSubmissions(true)
+      const data = await call("/contact")
+      setSubmissions(Array.isArray(data) ? data : [])
+    } catch (err) {
+      console.warn("Failed to fetch contact submissions:", err.message)
+    } finally {
+      setFetchingSubmissions(false)
+    }
+  }
 
   useEffect(() => {
+    fetchSubmissions()
     if (user) {
       setForm(prev => ({
         ...prev,
@@ -27,15 +44,93 @@ export function Contact({ setView, setShowAuth, user }) {
     }
   }, [user])
 
-  const handleSubmit = (e) => {
+  const handleChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }))
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => ({ ...prev, [field]: "" }))
+    }
+  }
+
+  const validateForm = () => {
+    const errors = { name: "", email: "", phone: "", message: "" }
+    let isValid = true
+
+    if (!form.name.trim()) {
+      errors.name = "Your name is required"
+      isValid = false
+    }
+
+    if (!form.email.trim()) {
+      errors.email = "Email address is required"
+      isValid = false
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(form.email.trim())) {
+        errors.email = "Please enter a valid email address (e.g. rahul@example.com)"
+        isValid = false
+      }
+    }
+
+    if (form.phone.trim()) {
+      const trimmedPhone = form.phone.trim()
+      const phoneDigits = trimmedPhone.replace(/\D/g, '')
+      const phoneFormatRegex = /^[\d\+\-\(\)\s]{7,20}$/
+      if (!phoneFormatRegex.test(trimmedPhone) || phoneDigits.length < 7 || phoneDigits.length > 15) {
+        errors.phone = "Please enter a valid phone number (7 to 15 digits, e.g. +91 98765 43210)"
+        isValid = false
+      }
+    }
+
+    if (!form.message.trim()) {
+      errors.message = "Message is required"
+      isValid = false
+    }
+
+    setFieldErrors(errors)
+    return { isValid, errors }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
+
+    const { isValid, errors } = validateForm()
+    if (!isValid) {
+      const firstError = errors.email || errors.phone || errors.name || errors.message
+      if (toast?.error) {
+        toast.error(firstError)
+      } else {
+        toast?.show?.(firstError, "error")
+      }
+      return
+    }
+
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      await call("/contact", {
+        method: "POST",
+        body: JSON.stringify(form)
+      })
       setSubmitted(true)
-      toast?.show("Your message has been sent to Slipzo support!", "success")
+      const successMsg = "🎉 Your message has been saved! Slipzo support will contact you shortly."
+      if (toast?.success) {
+        toast.success(successMsg)
+      } else {
+        toast?.show?.(successMsg, "success")
+      }
       setForm({ name: user?.name || "", email: user?.email || "", phone: "", topic: "general", message: "" })
-    }, 800)
+      setFieldErrors({ name: "", email: "", phone: "", message: "" })
+      fetchSubmissions()
+    } catch (err) {
+      console.error("Failed to submit contact form:", err)
+      const errMsg = err.message || "Failed to submit message. Please try again."
+      if (toast?.error) {
+        toast.error(errMsg)
+      } else {
+        toast?.show?.(errMsg, "error")
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const contactChannels = [
@@ -187,7 +282,7 @@ export function Contact({ setView, setShowAuth, user }) {
                 </button>
               </div>
             ) : (
-              <form className="contact-form" onSubmit={handleSubmit}>
+              <form className="contact-form" onSubmit={handleSubmit} noValidate>
                 <div className="form-group-row">
                   <div className="form-group">
                     <label htmlFor="name">Your Name *</label>
@@ -196,9 +291,15 @@ export function Contact({ setView, setShowAuth, user }) {
                       type="text"
                       placeholder="e.g. Rahul Sharma"
                       value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      onChange={(e) => handleChange("name", e.target.value)}
+                      style={fieldErrors.name ? { borderColor: "#ef4444" } : {}}
                       required
                     />
+                    {fieldErrors.name && (
+                      <span className="field-error-text" style={{ color: "#ef4444", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>
+                        {fieldErrors.name}
+                      </span>
+                    )}
                   </div>
                   <div className="form-group">
                     <label htmlFor="email">Email Address *</label>
@@ -207,9 +308,15 @@ export function Contact({ setView, setShowAuth, user }) {
                       type="email"
                       placeholder="rahul@example.com"
                       value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      onChange={(e) => handleChange("email", e.target.value)}
+                      style={fieldErrors.email ? { borderColor: "#ef4444" } : {}}
                       required
                     />
+                    {fieldErrors.email && (
+                      <span className="field-error-text" style={{ color: "#ef4444", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>
+                        {fieldErrors.email}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -221,15 +328,21 @@ export function Contact({ setView, setShowAuth, user }) {
                       type="tel"
                       placeholder="+91 98765 43210"
                       value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      onChange={(e) => handleChange("phone", e.target.value)}
+                      style={fieldErrors.phone ? { borderColor: "#ef4444" } : {}}
                     />
+                    {fieldErrors.phone && (
+                      <span className="field-error-text" style={{ color: "#ef4444", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>
+                        {fieldErrors.phone}
+                      </span>
+                    )}
                   </div>
                   <div className="form-group">
                     <label htmlFor="topic">Topic of Inquiry</label>
                     <select
                       id="topic"
                       value={form.topic}
-                      onChange={(e) => setForm({ ...form, topic: e.target.value })}
+                      onChange={(e) => handleChange("topic", e.target.value)}
                     >
                       <option value="general">General Question</option>
                       <option value="printer">Thermal Printer Setup</option>
@@ -247,9 +360,15 @@ export function Contact({ setView, setShowAuth, user }) {
                     rows={4}
                     placeholder="Tell us about your shop or what you need help with..."
                     value={form.message}
-                    onChange={(e) => setForm({ ...form, message: e.target.value })}
+                    onChange={(e) => handleChange("message", e.target.value)}
+                    style={fieldErrors.message ? { borderColor: "#ef4444" } : {}}
                     required
                   />
+                  {fieldErrors.message && (
+                    <span className="field-error-text" style={{ color: "#ef4444", fontSize: "0.75rem", marginTop: "4px", display: "block" }}>
+                      {fieldErrors.message}
+                    </span>
+                  )}
                 </div>
 
                 <button 
@@ -268,6 +387,8 @@ export function Contact({ setView, setShowAuth, user }) {
           </div>
         </div>
       </section>
+
+
 
       {/* FAQ Accordion */}
       <section className="contact-faq-section">

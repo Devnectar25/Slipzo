@@ -63,8 +63,37 @@ export const money = (n) => `₹${Number(n || 0).toFixed(2)}`
 
 export const now = () => new Date().toISOString()
 
-// ============ TEMPLATE USAGE TRACKING ============
-// Track template usage in localStorage for non-logged-in users
+// ============ TEMPLATE & GUEST PRINT USAGE TRACKING ============
+// Track total guest free prints in localStorage (10 free prints limit)
+
+export const getFreePrintCount = () => {
+  try {
+    const val = localStorage.getItem("slipzo_free_print_count")
+    return val ? parseInt(val, 10) || 0 : 0
+  } catch {
+    return 0
+  }
+}
+
+export const incrementFreePrintCount = () => {
+  try {
+    const current = getFreePrintCount()
+    const next = current + 1
+    localStorage.setItem("slipzo_free_print_count", String(next))
+    return next
+  } catch {
+    return 1
+  }
+}
+
+export const getRemainingFreePrints = () => {
+  const used = getFreePrintCount()
+  return Math.max(0, 10 - used)
+}
+
+export const canPrintFree = () => {
+  return getFreePrintCount() < 10
+}
 
 export const getTemplateUsage = (templateId) => {
   const key = `template_usage_${templateId}`
@@ -73,10 +102,10 @@ export const getTemplateUsage = (templateId) => {
     try {
       return JSON.parse(data)
     } catch {
-      return { edits: 0, prints: 0 }
+      return { edits: 0, prints: getFreePrintCount() }
     }
   }
-  return { edits: 0, prints: 0 }
+  return { edits: 0, prints: getFreePrintCount() }
 }
 
 export const incrementTemplateEdit = (templateId) => {
@@ -87,8 +116,9 @@ export const incrementTemplateEdit = (templateId) => {
 }
 
 export const incrementTemplatePrint = (templateId) => {
+  incrementFreePrintCount()
   const usage = getTemplateUsage(templateId)
-  usage.prints += 1
+  usage.prints = getFreePrintCount()
   localStorage.setItem(`template_usage_${templateId}`, JSON.stringify(usage))
   return usage
 }
@@ -99,8 +129,7 @@ export const canEditTemplate = (templateId) => {
 }
 
 export const canPrintTemplate = (templateId) => {
-  const usage = getTemplateUsage(templateId)
-  return usage.prints < 10
+  return canPrintFree()
 }
 
 export const getRemainingEdits = (templateId) => {
@@ -109,18 +138,17 @@ export const getRemainingEdits = (templateId) => {
 }
 
 export const getRemainingPrints = (templateId) => {
-  const usage = getTemplateUsage(templateId)
-  return Math.max(0, 10 - usage.prints)
+  return getRemainingFreePrints()
 }
 
 export const getTemplateUsageStatus = (templateId) => {
   const usage = getTemplateUsage(templateId)
   return {
     edits: usage.edits,
-    prints: usage.prints,
+    prints: getFreePrintCount(),
     remainingEdits: Math.max(0, 2 - usage.edits),
-    remainingPrints: Math.max(0, 10 - usage.prints),
+    remainingPrints: getRemainingFreePrints(),
     canEdit: usage.edits < 2,
-    canPrint: usage.prints < 10
+    canPrint: canPrintFree()
   }
 }
