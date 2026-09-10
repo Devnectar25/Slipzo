@@ -5,16 +5,31 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-const defaultApiUrl = import.meta.env.PROD 
-  ? 'https://slipzo-api.vercel.app/api'
-  : 'http://localhost:8000/api'
+let rawApi = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://slipzo-api.vercel.app/api' : 'http://localhost:8000/api')).trim()
 
-export const API = import.meta.env.VITE_API_URL || defaultApiUrl
+// Strip trailing slash
+if (rawApi.endsWith('/')) {
+  rawApi = rawApi.slice(0, -1)
+}
+
+// Ensure /api is at the end of external domain URLs if missing
+if (rawApi.startsWith('http') && !rawApi.endsWith('/api') && !rawApi.includes('/api/')) {
+  rawApi = `${rawApi}/api`
+}
+
+export const API = rawApi
 
 export const call = async (path, options = {}) => {
-  // Ensure path starts with slash if not full URL
+  // Ensure path starts with slash
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  const url = API.startsWith('http') ? `${API}${normalizedPath}` : `${API}${normalizedPath}`
+  
+  // Strip duplicate /api prefix if path already includes it
+  let cleanPath = normalizedPath
+  if (API.endsWith('/api') && cleanPath.startsWith('/api/')) {
+    cleanPath = cleanPath.substring(4)
+  }
+  
+  const url = `${API}${cleanPath}`
   console.log(`📡 API Call: ${options.method || 'GET'} ${url}`)
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('slipzo_token') : null
