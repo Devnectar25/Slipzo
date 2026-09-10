@@ -5,7 +5,11 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-export const API = import.meta.env.VITE_API_URL || '/api'
+const defaultApiUrl = import.meta.env.PROD 
+  ? 'https://slipzo-api.vercel.app/api'
+  : 'http://localhost:8000/api'
+
+export const API = import.meta.env.VITE_API_URL || defaultApiUrl
 
 export const call = async (path, options = {}) => {
   // Ensure path starts with slash if not full URL
@@ -13,11 +17,14 @@ export const call = async (path, options = {}) => {
   const url = API.startsWith('http') ? `${API}${normalizedPath}` : `${API}${normalizedPath}`
   console.log(`📡 API Call: ${options.method || 'GET'} ${url}`)
   
+  const token = typeof window !== 'undefined' ? localStorage.getItem('slipzo_token') : null
+
   try {
     const response = await fetch(url, {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...(options.headers || {})
       },
       ...options
@@ -29,7 +36,7 @@ export const call = async (path, options = {}) => {
     const contentType = response.headers.get("content-type") || ""
     if (contentType.includes("text/html")) {
       console.warn(`⚠️ API returned HTML instead of JSON for ${url}`)
-      throw new Error("API endpoint unavailable")
+      throw new Error("Unable to connect to Slipzo backend API server. Please check deployment URL.")
     }
 
     // Handle empty responses
@@ -50,11 +57,20 @@ export const call = async (path, options = {}) => {
       console.error(`❌ API Error (${response.status}):`, errorMsg)
       throw new Error(errorMsg)
     }
+
+    if (data && data.token) {
+      try {
+        localStorage.setItem('slipzo_token', data.token)
+      } catch (e) {}
+    }
     
     console.log(`✅ API Success:`, data)
     return data
   } catch (err) {
     console.error(`❌ API Call Failed:`, err)
+    if (err.message === 'Failed to fetch') {
+      throw new Error("Failed to connect to backend server. Please verify https://slipzo-api.vercel.app is online.")
+    }
     throw err
   }
 }
