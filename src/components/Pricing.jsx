@@ -424,7 +424,7 @@ export function Pricing({ setView, setShowAuth, user }) {
 
       {/* Pricing Comparison Table */}
       <section className="pricing-comparison" style={{ 
-        padding: '1rem 2rem 3rem',
+        padding: '1rem 2rem 1rem',
         maxWidth: '1200px',
         margin: '0 auto'
       }}>

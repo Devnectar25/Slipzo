@@ -333,19 +333,34 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
             })}
 
             {!user && (
-              <button
-                className="mobile-get-started-btn"
-                onClick={() => {
-                  if (handleOpenAuth) {
-                    handleOpenAuth(true)
-                  } else {
-                    setShowAuth(true)
-                  }
-                  setMobileMenuOpen(false)
-                }}
-              >
-                <Zap size={16} /> Get Started
-              </button>
+              <div className="mobile-menu-actions">
+                <button
+                  className="mobile-login-btn"
+                  onClick={() => {
+                    if (handleOpenAuth) {
+                      handleOpenAuth(false)
+                    } else {
+                      setShowAuth(true)
+                    }
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  <LogIn size={16} /> Login
+                </button>
+                <button
+                  className="mobile-get-started-btn"
+                  onClick={() => {
+                    if (handleOpenAuth) {
+                      handleOpenAuth(true)
+                    } else {
+                      setShowAuth(true)
+                    }
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  <Zap size={16} /> Get Started
+                </button>
+              </div>
             )}
           </div>
 
@@ -392,7 +407,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
             >
               <div className="footer-logo-box">
                 <img
-                  src="/logo.png"
+                  src="/Footer_Logo.png"
                   alt="Slipzo"
                   className="footer-logo"
                 />
