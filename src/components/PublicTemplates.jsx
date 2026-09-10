@@ -219,7 +219,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
             Pick a template, add your logo and shop details, and print in seconds.
           </p>
           <div className="templates-header-actions">
-            <button className="cta-button primary" onClick={() => (user ? setView("bills") : setShowAuth(true))}>
+            <button className="cta-button primary large" onClick={() => (user ? setView("bills") : setShowAuth(true))}>
               Start billing free <ArrowRight size={18} />
             </button>
             <button className="cta-button secondary" onClick={() => setView("pricing")}>

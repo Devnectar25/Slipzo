@@ -409,14 +409,16 @@ export function Contact({ setView, setShowAuth, user }) {
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="contact-bottom-cta">
-        <div className="bottom-cta-content">
-          <h2>Ready to get started?</h2>
-          <p>Create receipts in seconds. No credit card required.</p>
-          <button className="cta-button primary large" onClick={() => setShowAuth(true)}>
-            Start Billing Free <ArrowRight size={18} />
-          </button>
+      {/* Bottom CTA Section */}
+      <section className="contact-cta-wrapper-section">
+        <div className="contact-bottom-cta">
+          <div className="bottom-cta-content">
+            <h2>Ready to get started?</h2>
+            <p>Create receipts in seconds. No credit card required.</p>
+            <button className="cta-button primary large" onClick={() => setShowAuth(true)}>
+              Start Billing Free <ArrowRight size={18} />
+            </button>
+          </div>
         </div>
       </section>
     </div>

@@ -46,6 +46,19 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     setForm({ email: "", password: "", confirmPassword: "", name: "" })
   }, [initialRegister])
 
+  useEffect(() => {
+    const originalBodyOverflow = document.body.style.overflow
+    const originalHtmlOverflow = document.documentElement.style.overflow
+
+    document.body.style.overflow = "hidden"
+    document.documentElement.style.overflow = "hidden"
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow
+      document.documentElement.style.overflow = originalHtmlOverflow
+    }
+  }, [])
+
   const submit = async (e) => {
     e.preventDefault()
     setError("")
@@ -154,20 +167,22 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         </section>
 
         <section className="auth-form">
-          <div className="mobile-brand">
-            <img 
-              src="/logo.png" 
-              alt="Slipzo" 
-              className="mobile-auth-logo"
-            />
+          <div className="auth-header-block">
+            <div className="mobile-brand">
+              <img 
+                src="/logo.png" 
+                alt="Slipzo" 
+                className="mobile-auth-logo"
+              />
+            </div>
+            <p className="eyebrow">{isRegister ? "CREATE ACCOUNT" : "WELCOME BACK"}</p>
+            <h2>{isRegister ? "Create your account" : "Sign in to Slipzo"}</h2>
+            <p className="subtle">
+              {isRegister
+                ? "Set up your digital receipt desk in a minute."
+                : "Your shop, your templates, ready when you are."}
+            </p>
           </div>
-          <p className="eyebrow">{isRegister ? "CREATE ACCOUNT" : "WELCOME BACK"}</p>
-          <h2>{isRegister ? "Create your account" : "Sign in to Slipzo"}</h2>
-          <p className="subtle">
-            {isRegister
-              ? "Set up your digital receipt desk in a minute."
-              : "Your shop, your templates, ready when you are."}
-          </p>
 
           <form onSubmit={submit} noValidate>
             {isRegister && (
