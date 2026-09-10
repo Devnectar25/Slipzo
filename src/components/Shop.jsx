@@ -174,8 +174,13 @@ export function Shop({ user } = {}) {
         body: JSON.stringify(shop)
       })
       if (user?.id) {
-        localStorage.setItem(`slipzo_shop_setup_${user.id}`, "true")
+        if (shop.name && shop.phone && shop.phone.trim() && shop.address && shop.address.trim()) {
+          localStorage.setItem(`slipzo_shop_setup_${user.id}`, "true")
+        } else {
+          localStorage.removeItem(`slipzo_shop_setup_${user.id}`)
+        }
       }
+
       setSaved(true)
       success("Shop profile and invoice settings saved!")
       setTimeout(() => setSaved(false), 3000)

@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, ShieldCheck, HelpCircle } from "lucide-react"
 
-export function Pricing({ setView, setShowAuth }) {
+export function Pricing({ setView, setShowAuth, user }) {
   const [customPrints, setCustomPrints] = useState(2500)
 
   // Preset plans: 1,000, 2,000, 5,000
@@ -180,7 +180,7 @@ export function Pricing({ setView, setShowAuth }) {
               </div>
               <button 
                 className={`plan-cta ${plan.popular ? 'primary' : 'secondary'}`}
-                onClick={() => setShowAuth(true)}
+                onClick={() => user ? setView?.("contact") : (setShowAuth ? setShowAuth(true) : setView?.("contact"))}
               >
                 {plan.cta}
                 <ArrowRight size={16} />
@@ -390,7 +390,7 @@ export function Pricing({ setView, setShowAuth }) {
               )}
 
               <button
-                onClick={() => setShowAuth(true)}
+                onClick={() => user ? setView?.("contact") : (setShowAuth ? setShowAuth(true) : setView?.("contact"))}
                 style={{
                   width: '100%',
                   background: '#0ea5e9',
@@ -561,7 +561,7 @@ export function Pricing({ setView, setShowAuth }) {
         <div className="cta-content">
           <h2>Start billing with Slipzo today</h2>
           <p>Join thousands of retail shop owners across India. Quick 1-minute setup.</p>
-          <button className="cta-button primary large" onClick={() => setShowAuth(true)}>
+          <button className="cta-button primary large" onClick={() => user ? setView?.("bills") : (setShowAuth ? setShowAuth(true) : setView?.("bills"))}>
             Get Started Now <ArrowRight size={18} />
           </button>
         </div>

@@ -84,7 +84,7 @@
     visibility: visible !important;
     position: relative !important;
     margin: 0 auto !important;
-    padding: 4mm 3mm !important;
+    padding: 1mm 1mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
@@ -123,14 +123,15 @@
   }
 
   .receipt-shop .receipt-shop-name {
-    font-size: 15px !important;
-    font-weight: 800 !important;
+    font-size: 17px !important;
+    font-weight: 900 !important;
     margin: 0 0 2px 0 !important;
     color: #000000 !important;
   }
 
   .receipt-shop p {
-    font-size: 9px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
     margin: 1px 0 !important;
     color: #000000 !important;
   }
@@ -144,7 +145,8 @@
   .receipt-customer-line {
     display: flex !important;
     justify-content: space-between !important;
-    font-size: 9px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
     color: #000000 !important;
     padding: 2px 0 !important;
   }
@@ -159,8 +161,8 @@
     display: grid !important;
     grid-template-columns: 2fr 0.6fr 0.8fr 1fr !important;
     gap: 2px !important;
-    font-size: 9px !important;
-    font-weight: 800 !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
     padding: 2px 0 !important;
     border-bottom: 1px solid #000000 !important;
   }
@@ -169,7 +171,8 @@
     display: grid !important;
     grid-template-columns: 2fr 0.6fr 0.8fr 1fr !important;
     gap: 2px !important;
-    font-size: 9px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
     padding: 2px 0 !important;
   }
 
@@ -177,7 +180,7 @@
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
   }
 
   .receipt-item-qty {
@@ -203,7 +206,8 @@
   .receipt-total-row {
     display: flex !important;
     justify-content: space-between !important;
-    font-size: 9px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
     padding: 1px 0 !important;
   }
 
@@ -214,8 +218,8 @@
   .receipt-grand-total {
     display: flex !important;
     justify-content: space-between !important;
-    font-size: 13px !important;
-    font-weight: 800 !important;
+    font-size: 15px !important;
+    font-weight: 900 !important;
     padding-top: 4px !important;
     margin-top: 4px !important;
     border-top: 2px solid #000000 !important;
@@ -232,12 +236,13 @@
   .receipt-payment {
     display: flex !important;
     justify-content: space-between !important;
-    font-size: 9px !important;
-    font-weight: 700 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
   }
 
   .receipt-thanks {
-    font-size: 9px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
     color: #000000 !important;
     margin: 3px 0 0 0 !important;
   }

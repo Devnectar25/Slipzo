@@ -6,6 +6,7 @@ import { useToast } from "./common/Toast"
 export function PrintModal({
   isOpen,
   onClose,
+  onPrinted,
   defaultWidth = "58mm",
   elementId = "receipt-to-print"
 }) {
@@ -42,7 +43,7 @@ export function PrintModal({
         if (parsed.fontSize) return Number(parsed.fontSize)
       } catch (_) {}
     }
-    return defaultWidth === "80mm" ? 11.5 : 10
+    return defaultWidth === "80mm" ? 13.5 : (defaultWidth === "a4" ? 14 : 12)
   })
 
   const [density, setDensity] = useState(() => {
@@ -84,6 +85,9 @@ export function PrintModal({
       showFooter
     })
     onClose()
+    if (onPrinted) {
+      onPrinted()
+    }
   }
 
   const handleSaveDefaults = () => {
@@ -239,24 +243,24 @@ export function PrintModal({
               <div className="button-group-row">
                 <button
                   type="button"
-                  className={`segment-btn ${fontSize <= 9.5 ? "active" : ""}`}
-                  onClick={() => setFontSize(9)}
-                >
-                  Small (9px)
-                </button>
-                <button
-                  type="button"
-                  className={`segment-btn ${fontSize > 9.5 && fontSize <= 11.5 ? "active" : ""}`}
+                  className={`segment-btn ${fontSize <= 11 ? "active" : ""}`}
                   onClick={() => setFontSize(10.5)}
                 >
-                  Standard (10.5px)
+                  Compact (10.5px)
                 </button>
                 <button
                   type="button"
-                  className={`segment-btn ${fontSize > 11.5 ? "active" : ""}`}
-                  onClick={() => setFontSize(12.5)}
+                  className={`segment-btn ${fontSize > 11 && fontSize <= 13 ? "active" : ""}`}
+                  onClick={() => setFontSize(12)}
                 >
-                  Large (12.5px)
+                  Standard (12px)
+                </button>
+                <button
+                  type="button"
+                  className={`segment-btn ${fontSize > 13 ? "active" : ""}`}
+                  onClick={() => setFontSize(14)}
+                >
+                  Large (14px)
                 </button>
               </div>
             </div>

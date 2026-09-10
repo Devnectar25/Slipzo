@@ -20,13 +20,23 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const isA4 = rawWidth === "a4" || rawWidth === "full"
   const pageWidth = isA4 ? "210mm" : (rawWidth === "80mm" ? "80mm" : (rawWidth.endsWith("mm") ? rawWidth : "58mm"))
   const scale = Number(config.scale) || 1
-  const fontSize = Number(config.fontSize) || (pageWidth === "80mm" ? 11.5 : (isA4 ? 13 : 10))
+  const fontSize = Number(config.fontSize) || (pageWidth === "80mm" ? 13.5 : (isA4 ? 14 : 12))
   const density = config.density || "normal" // "tight" | "normal" | "relaxed"
   const highContrast = config.highContrast !== false
   const showShopDetails = config.showShopDetails !== false
   const showCustomer = config.showCustomer !== false
   const showTax = config.showTax !== false
   const showFooter = config.showFooter !== false
+
+  // Legible font sizes for thermal paper needles
+  const shopTitleSize = isA4 ? "22px" : (pageWidth === "80mm" ? "19px" : "17px")
+  const shopSubSize = isA4 ? "13px" : (pageWidth === "80mm" ? "12px" : "11px")
+  const metaSize = isA4 ? "12px" : (pageWidth === "80mm" ? "11.5px" : "10.5px")
+  const itemHeaderSize = isA4 ? "13px" : (pageWidth === "80mm" ? "12px" : "11px")
+  const itemRowSize = isA4 ? "13px" : (pageWidth === "80mm" ? "12px" : "11px")
+  const totalRowSize = isA4 ? "13px" : (pageWidth === "80mm" ? "12px" : "11px")
+  const grandTotalSize = isA4 ? "18px" : (pageWidth === "80mm" ? "16px" : "14.5px")
+  const footerSize = isA4 ? "12px" : (pageWidth === "80mm" ? "11px" : "10.5px")
 
   // Clone element to manipulate without affecting original
   const clone = el.cloneNode(true)
@@ -57,15 +67,15 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     if (footer) footer.remove()
   }
 
-  // Measure content height (at 96 DPI: 1px = 0.264583 mm)
-  const scrollH = el.scrollHeight || el.offsetHeight || 420
+  // Measure content height accurately (at 96 DPI: 1px = 0.264583 mm)
+  // Deduct screen wrapper padding (~30px) to get exact text height
+  const scrollH = Math.max(150, (el.scrollHeight || el.offsetHeight || 250) - 30)
   const estimatedHeightMm = isA4 
     ? 297 
-    : Math.max(70, Math.ceil(scrollH * 0.264583 * scale) + 14)
+    : Math.max(25, Math.ceil(scrollH * 0.264583 * scale) + 2)
 
-  // Valid W3C CSS Paged Media `@page` size declaration:
-  // For thermal, explicitly declaring `<width> <height>` (e.g. `58mm 165mm`)
-  // forces Chrome / Edge print preview to render an exact thermal roll preview rather than A4!
+  // Use valid Chromium `@page` size syntax `<width> <height>` (e.g. `58mm 42mm`)
+  // Chrome/Edge discard `<width> auto` as invalid CSS and fall back to giant A4!
   const pageCssSize = isA4 ? "A4 portrait" : `${pageWidth} ${estimatedHeightMm}mm`
   const paperLabel = isA4 ? "A4 Standard" : `${pageWidth} Thermal Roll`
 
@@ -211,10 +221,19 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       line-height: ${lineHeight};
       width: 100%;
       margin: 0 auto;
-      padding: ${isA4 ? "12mm 15mm" : "3mm 2mm 8mm 2mm"};
+      padding: ${isA4 ? "10mm 12mm" : "1.5mm 1mm 1.5mm 1mm"};
       box-sizing: border-box;
       transform: scale(${scale});
       transform-origin: top center;
+    }
+
+    /* Override screen preview padding on cloned receipt element */
+    .receipt-preview-content {
+      padding: ${isA4 ? "0" : "1mm 0.5mm"} !important;
+      margin: 0 auto !important;
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
     }
 
     /* ===== THERMAL RECEIPT STYLING ===== */
@@ -230,7 +249,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     }
 
     .receipt-shop-name {
-      font-size: ${isA4 ? "20px" : (pageWidth === "80mm" ? "17px" : "15px")};
+      font-size: ${shopTitleSize};
       font-weight: 900;
       letter-spacing: 0.3px;
       color: #000000;
@@ -241,12 +260,12 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     .receipt-shop p,
     .receipt-shop-address,
     .receipt-shop-phone {
-      font-size: ${isA4 ? "12px" : (pageWidth === "80mm" ? "10.5px" : "9.5px")};
-      color: #111111;
+      font-size: ${shopSubSize};
+      color: #000000;
       display: block;
       text-align: center;
       margin: 1px 0;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     svg { display: none !important; }
@@ -254,7 +273,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     .receipt-meta {
       display: flex;
       justify-content: space-between;
-      font-size: ${isA4 ? "11px" : (pageWidth === "80mm" ? "10px" : "9px")};
+      font-size: ${metaSize};
       font-weight: 700;
       color: #000000;
       padding: 3px 0;
@@ -265,7 +284,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     .receipt-customer-line {
       display: flex;
       justify-content: space-between;
-      font-size: 9.5px;
+      font-size: ${metaSize};
       font-weight: 700;
       color: #000000;
       padding: 2px 0;
@@ -286,7 +305,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       display: grid !important;
       grid-template-columns: 2fr 0.5fr 1fr 1fr;
       gap: 2px;
-      font-size: ${isA4 ? "12px" : (pageWidth === "80mm" ? "10.5px" : "9.5px")};
+      font-size: ${itemHeaderSize};
       font-weight: 900;
       padding: 2px 0;
       border-bottom: 1.5px solid #000000;
@@ -297,9 +316,9 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       display: grid !important;
       grid-template-columns: 2fr 0.5fr 1fr 1fr;
       gap: 2px;
-      font-size: ${isA4 ? "11.5px" : (pageWidth === "80mm" ? "10px" : "9px")};
+      font-size: ${itemRowSize};
       padding: ${itemPadding};
-      font-weight: ${highContrast ? "700" : "600"};
+      font-weight: ${highContrast ? "800" : "700"};
       color: #000000;
     }
 
@@ -326,7 +345,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       text-align: center;
       padding: 8px 0;
       color: #000000;
-      font-size: 10px;
+      font-size: ${itemRowSize};
     }
 
     .receipt-totals {
@@ -336,7 +355,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     .receipt-total-row {
       display: flex;
       justify-content: space-between;
-      font-size: ${isA4 ? "12px" : (pageWidth === "80mm" ? "10.5px" : "9.5px")};
+      font-size: ${totalRowSize};
       padding: 1.5px 0;
       font-weight: 700;
       color: #000000;
@@ -345,7 +364,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     .receipt-grand-total {
       display: flex;
       justify-content: space-between;
-      font-size: ${isA4 ? "16px" : (pageWidth === "80mm" ? "14px" : "12.5px")};
+      font-size: ${grandTotalSize};
       font-weight: 900;
       padding: 4px 0 3px;
       margin-top: 3px;
@@ -363,15 +382,15 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     .receipt-payment {
       display: flex;
       justify-content: space-between;
-      font-size: 9.5px;
+      font-size: ${footerSize};
       font-weight: 800;
       color: #000000;
       margin-bottom: 2px;
     }
 
     .receipt-thanks {
-      font-size: 9px;
-      font-weight: 600;
+      font-size: ${footerSize};
+      font-weight: 700;
       color: #000000;
       margin-top: 2px;
     }
@@ -412,9 +431,14 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       body {
         width: ${isA4 ? "100%" : pageWidth} !important;
         max-width: ${isA4 ? "100%" : pageWidth} !important;
-        padding: ${isA4 ? "0" : "1mm 1.5mm 3mm 1.5mm"} !important;
+        padding: ${isA4 ? "0" : "0.5mm 0.5mm 1mm 0.5mm"} !important;
         transform: scale(${scale});
         transform-origin: top center;
+      }
+
+      .receipt-preview-content {
+        padding: 0 !important;
+        margin: 0 !important;
       }
     }
   </style>
@@ -440,11 +464,28 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   </div>
 
   <script>
-    // Automatically trigger print dialog
+    function adjustThermalPageSize() {
+      const isA4 = ${isA4};
+      if (isA4) return;
+
+      const wrapper = document.querySelector('.screen-receipt-wrapper') || document.body;
+      const receiptNode = wrapper.firstElementChild || wrapper;
+      const rect = receiptNode.getBoundingClientRect();
+      const pixelH = Math.max(rect.height || receiptNode.offsetHeight || 150, 80);
+      const scaleVal = Number(${scale}) || 1;
+      const mmH = Math.max(25, Math.ceil(pixelH * 0.264583 * scaleVal) + 2);
+
+      const styleEl = document.createElement('style');
+      styleEl.innerHTML = '@media print { @page { size: ${pageWidth} ' + mmH + 'mm !important; margin: 0 !important; } }';
+      document.head.appendChild(styleEl);
+    }
+
+    // Measure exact rendered height and adjust print page size right before printing
     window.addEventListener('load', function () {
+      adjustThermalPageSize();
       setTimeout(function () {
         window.print();
-      }, 400);
+      }, 350);
     });
 
     // Close window after printing if desired

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle } from "lucide-react"
+import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle, FileText, Percent } from "lucide-react"
 import { call } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -25,26 +25,32 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
+  const [gstin, setGstin] = useState("")
+  const [showTax, setShowTax] = useState(1) // 1 = Tax Included, 2 = Tax Extra, 0 = No Tax
+  const [taxRate, setTaxRate] = useState(18)
   const [prefix, setPrefix] = useState("SLP")
   const [sequence, setSequence] = useState(1001)
   const [format, setFormat] = useState("PREFIX-DATE-SEQ")
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
+  const [shake, setShake] = useState(false)
 
-  const { success, error: toastError } = useToast()
+  const { success, error: toastError, warning: toastWarning } = useToast()
 
   // Preload any existing shop data or default name
   useEffect(() => {
     if (isOpen && user) {
       setName(user.name ? `${user.name}'s Shop` : "My Shop")
-      // Fetch current shop if exists
       call("/shop")
         .then((data) => {
           if (data) {
             if (data.name && !data.name.endsWith("'s Shop")) setName(data.name)
             if (data.phone) setPhone(data.phone)
             if (data.address) setAddress(data.address)
+            if (data.gstin) setGstin(data.gstin)
+            if (data.show_tax !== undefined) setShowTax(Number(data.show_tax))
+            if (data.tax_rate !== undefined) setTaxRate(Number(data.tax_rate))
             if (data.invoice_prefix) setPrefix(data.invoice_prefix)
             if (data.invoice_sequence) setSequence(data.invoice_sequence)
             if (data.invoice_format) setFormat(data.invoice_format)
@@ -53,6 +59,31 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         .catch(() => {})
     }
   }, [isOpen, user])
+
+  // Lock background scrolling when onboarding modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalBodyOverflow = document.body.style.overflow
+      const originalDocOverflow = document.documentElement.style.overflow
+
+      document.body.style.overflow = "hidden"
+      document.documentElement.style.overflow = "hidden"
+
+      const elementsToLock = document.querySelectorAll(".shell-content, .shell-main, .app, .public-layout, .main-content")
+      elementsToLock.forEach(el => {
+        el.dataset.origOverflow = el.style.overflow
+        el.style.overflow = "hidden"
+      })
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow
+        document.documentElement.style.overflow = originalDocOverflow
+        elementsToLock.forEach(el => {
+          el.style.overflow = el.dataset.origOverflow || ""
+        })
+      }
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -65,7 +96,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
       if (val.length > 100) return "Shop name cannot exceed 100 characters."
     }
 
-    if (key === "phone" && val) {
+    if (key === "phone") {
+      if (!val) return "Phone number is required for your shop profile."
       const phoneRegex = /^(\+?[0-9]{1,4}[ -]?)?[0-9]{7,15}$/
       const digitsOnly = val.replace(/[^0-9]/g, "")
       if (!phoneRegex.test(val) || digitsOnly.length < 7 || digitsOnly.length > 15) {
@@ -73,7 +105,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
       }
     }
 
-    if (key === "address" && val) {
+    if (key === "address") {
+      if (!val) return "Shop address is required for your shop profile."
       if (val.length > 300) return "Address cannot exceed 300 characters."
     }
 
@@ -123,7 +156,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
     setTouched({ name: true, phone: true, address: true, prefix: true, sequence: true })
 
     if (Object.values(newErrors).some(Boolean)) {
-      toastError("Please fix the highlighted errors before continuing.")
+      toastError("Please complete your shop profile (Name, Phone & Address).")
       return
     }
 
@@ -135,6 +168,9 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           name: name.trim(),
           phone: phone.trim(),
           address: address.trim(),
+          gstin: gstin.trim().toUpperCase(),
+          show_tax: Number(showTax),
+          tax_rate: Number(taxRate) || 18,
           invoice_prefix: prefix.trim().toUpperCase(),
           invoice_sequence: Number(sequence),
           invoice_format: format
@@ -156,18 +192,53 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
     }
   }
 
-  const handleSkip = () => {
-    if (user?.id) {
-      localStorage.setItem(`slipzo_shop_setup_${user.id}`, "true")
+  const handleBackdropClick = (e) => {
+    e.stopPropagation()
+    setShake(true)
+    setTimeout(() => setShake(false), 500)
+    if (toastWarning) {
+      toastWarning("Please complete your shop profile (Name, Phone & Address) to continue.")
     }
-    onClose()
   }
 
   const liveInvoiceNo = previewInvoiceNumber(prefix, sequence, format)
 
+  // Live Tax calculation for preview
+  const sampleItemsTotal = 350.00
+  const rateNum = Number(taxRate) || 18
+  let previewSubtotal = sampleItemsTotal
+  let previewTaxAmount = 0
+  let previewTotalPaid = sampleItemsTotal
+
+  if (showTax === 1) { // Tax Included
+    const base = sampleItemsTotal / (1 + (rateNum / 100))
+    previewTaxAmount = sampleItemsTotal - base
+    previewTotalPaid = sampleItemsTotal
+  } else if (showTax === 2) { // Tax Extra
+    previewSubtotal = sampleItemsTotal
+    previewTaxAmount = sampleItemsTotal * (rateNum / 100)
+    previewTotalPaid = sampleItemsTotal + previewTaxAmount
+  } else { // No Tax
+    previewTotalPaid = sampleItemsTotal
+    previewTaxAmount = 0
+  }
+
   return (
-    <div className="modal-backdrop shop-onboarding-backdrop fade-in" onClick={handleSkip}>
-      <div className="modal-card shop-onboarding-card" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="modal-backdrop shop-onboarding-backdrop fade-in" 
+      onClick={handleBackdropClick}
+      onWheel={(e) => {
+        if (e.target.classList.contains("shop-onboarding-backdrop")) {
+          e.preventDefault()
+        }
+      }}
+      onTouchMove={(e) => {
+        if (e.target.classList.contains("shop-onboarding-backdrop")) {
+          e.preventDefault()
+        }
+      }}
+    >
+      <div className={`modal-card shop-onboarding-card ${shake ? "shake-card" : ""}`} onClick={(e) => e.stopPropagation()}>
         {/* Header Banner */}
         <div className="onboarding-header">
           <div className="onboarding-header-content">
@@ -179,9 +250,6 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               Your shop name, address, and contact number will appear at the top of every receipt you print.
             </p>
           </div>
-          <button className="modal-close-btn" onClick={handleSkip} aria-label="Close setup modal">
-            <X size={18} />
-          </button>
         </div>
 
         {/* Modal Body: Form on Left, Live Thermal Preview on Right */}
@@ -217,7 +285,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
             <div className="onboarding-field">
               <label className="onboarding-label">
                 <Phone size={14} className="field-icon" />
-                <span>Phone / WhatsApp Number</span>
+                <span>Phone / WhatsApp Number <b className="req-star">*</b></span>
               </label>
               <input
                 type="text"
@@ -241,7 +309,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
             <div className="onboarding-field">
               <label className="onboarding-label">
                 <MapPin size={14} className="field-icon" />
-                <span>Shop Address / City</span>
+                <span>Shop Address / City <b className="req-star">*</b></span>
               </label>
               <textarea
                 rows={2}
@@ -256,8 +324,75 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 onBlur={() => handleBlur("address")}
                 className={`onboarding-input textarea ${touched.address && errors.address ? "input-error" : ""}`}
               />
+
               {touched.address && errors.address && (
                 <span className="error-text"><AlertCircle size={12} /> {errors.address}</span>
+              )}
+            </div>
+
+            {/* GSTIN / Tax ID */}
+            <div className="onboarding-field">
+              <label className="onboarding-label">
+                <FileText size={14} className="field-icon" />
+                <span>GSTIN / Tax ID <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>(Optional)</span></span>
+              </label>
+              <input
+                type="text"
+                maxLength={15}
+                placeholder="e.g. 29ABCDE1234F1ZH"
+                value={gstin}
+                onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                className="onboarding-input"
+              />
+            </div>
+
+            {/* Tax / GST Settings */}
+            <div className="onboarding-field">
+              <label className="onboarding-label">
+                <Percent size={14} className="field-icon" />
+                <span>Tax / GST Inclusion</span>
+              </label>
+              <div className="tax-toggle-group">
+                <button
+                  type="button"
+                  className={`tax-btn ${showTax === 1 ? "active" : ""}`}
+                  onClick={() => setShowTax(1)}
+                >
+                  Tax Included
+                </button>
+                <button
+                  type="button"
+                  className={`tax-btn ${showTax === 2 ? "active" : ""}`}
+                  onClick={() => setShowTax(2)}
+                >
+                  Tax Extra
+                </button>
+                <button
+                  type="button"
+                  className={`tax-btn ${showTax === 0 ? "active" : ""}`}
+                  onClick={() => setShowTax(0)}
+                >
+                  No Tax
+                </button>
+              </div>
+
+              {showTax !== 0 && (
+                <div style={{ marginTop: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>Default Tax Rate:</span>
+                  <div style={{ position: 'relative', width: '100px' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.5"
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(e.target.value)}
+                      className="onboarding-input"
+                      style={{ paddingRight: '1.6rem', paddingLeft: '0.6rem' }}
+                    />
+                    <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>%</span>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -328,6 +463,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                   <h3>{name || "Your Shop Name"}</h3>
                   {address ? <p className="mock-addr">{address}</p> : <p className="mock-placeholder-addr">Shop address will appear here</p>}
                   {phone ? <p className="mock-phone">Tel: {phone}</p> : <p className="mock-placeholder-phone">Tel: +91 00000 00000</p>}
+                  {gstin ? <p className="mock-phone" style={{ marginTop: '0.15rem', color: '#1e293b' }}>GSTIN: {gstin}</p> : null}
                 </div>
 
                 <div className="onboarding-mock-meta">
@@ -357,10 +493,29 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
                 <div className="onboarding-mock-divider" />
 
+                {showTax === 2 && (
+                  <div style={{ fontSize: '0.78em', color: '#334155', display: 'flex', flexDirection: 'column', gap: '0.15rem', marginBottom: '0.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>SUBTOTAL</span>
+                      <span>₹{previewSubtotal.toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>GST ({rateNum}%)</span>
+                      <span>₹{previewTaxAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="onboarding-mock-total">
                   <span>TOTAL PAID</span>
-                  <span>₹350.00</span>
+                  <span>₹{previewTotalPaid.toFixed(2)}</span>
                 </div>
+
+                {showTax === 1 && (
+                  <div style={{ textAlign: 'right', fontSize: '0.68em', color: '#475569', marginTop: '0.2rem' }}>
+                    (Includes {rateNum}% GST: ₹{previewTaxAmount.toFixed(2)})
+                  </div>
+                )}
 
                 <div className="onboarding-mock-footer">
                   <p>Thank you for shopping with us!</p>
@@ -374,19 +529,154 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
         {/* Modal Footer */}
         <div className="onboarding-footer">
-          <button type="button" className="onboarding-skip-btn" onClick={handleSkip}>
-            I'll do this later
-          </button>
+          <div className="required-info-badge" style={{ fontSize: "0.8rem", color: "#64748b", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <AlertCircle size={14} style={{ color: "#38bdf8" }} />
+            <span>Complete shop profile is required to print receipts</span>
+          </div>
           <button
             type="button"
             className="primary-button onboarding-save-btn"
             onClick={handleSubmit}
             disabled={loading}
+            style={{ width: "fit-content", minWidth: "220px" }}
           >
             {loading ? <ButtonLoader text="Saving details..." /> : <>Save & Start Billing <ArrowRight size={16} /></>}
           </button>
         </div>
       </div>
+
+      <style>{`
+        .shop-onboarding-backdrop {
+          overscroll-behavior: contain !important;
+          touch-action: none !important;
+        }
+
+        .shop-onboarding-card {
+          overscroll-behavior: contain !important;
+          display: flex !important;
+          flex-direction: column !important;
+          max-height: 88vh !important;
+          height: auto !important;
+          overflow: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+
+        .shop-onboarding-card::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
+
+        .onboarding-header {
+          flex-shrink: 0 !important;
+        }
+
+        .onboarding-body {
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          overflow: hidden !important;
+          display: grid !important;
+          grid-template-columns: 1.2fr 1fr !important;
+        }
+
+        @media (max-width: 820px) {
+          .onboarding-body {
+            grid-template-columns: 1fr !important;
+            overflow-y: auto !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+          .onboarding-body::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+        }
+
+        .onboarding-form {
+          overflow-y: auto !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+          padding-bottom: 2rem !important;
+        }
+
+        .onboarding-form::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
+
+        .onboarding-preview-col {
+          overflow-y: auto !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+
+        .onboarding-preview-col::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
+
+        .onboarding-footer {
+          flex-shrink: 0 !important;
+          position: sticky !important;
+          bottom: 0 !important;
+          z-index: 30 !important;
+          background: #ffffff !important;
+          border-top: 1px solid #e2e8f0 !important;
+          box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .tax-toggle-group {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.35rem;
+          background: #f1f5f9;
+          padding: 0.3rem;
+          border-radius: 10px;
+          border: 1px solid #cbd5e1;
+        }
+
+        .tax-btn {
+          background: transparent;
+          border: none;
+          padding: 0.45rem 0.3rem;
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #475569;
+          border-radius: 7px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: center;
+        }
+
+        .tax-btn:hover {
+          color: #0f172a;
+          background: rgba(255, 255, 255, 0.5);
+        }
+
+        .tax-btn.active {
+          background: #ffffff;
+          color: #0284c7;
+          box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.1);
+          font-weight: 700;
+        }
+
+        @keyframes modalShake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-8px); }
+          50% { transform: translateX(8px); }
+          75% { transform: translateX(-4px); }
+        }
+        .shake-card {
+          animation: modalShake 0.4s ease-in-out !important;
+        }
+      `}</style>
     </div>
   )
 }
+
+
+

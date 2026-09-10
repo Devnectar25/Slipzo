@@ -28,7 +28,10 @@ import {
   money,
   incrementTemplatePrint,
   canPrintTemplate,
-  getRemainingPrints
+  getRemainingPrints,
+  canPrintFree,
+  getRemainingFreePrints,
+  incrementFreePrintCount
 } from "../lib/utils"
 import { ReceiptSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -66,8 +69,8 @@ export function Bill({ setView, user, requireAuth }) {
   const [shop, setShop] = useState({})
   const [customers, setCustomers] = useState([])
   const [selectedCustomer, setSelectedCustomer] = useState(null)
-  const [items, setItems] = useState([{ id: 1, name: "", quantity: 1, rate: 0 }])
-  const [discount, setDiscount] = useState(0)
+  const [items, setItems] = useState([{ id: 1, name: "", quantity: 1, rate: "" }])
+  const [discount, setDiscount] = useState("")
   const [tax, setTax] = useState(0)
   const [payment, setPayment] = useState("Cash")
   const [saved, setSaved] = useState(null)
@@ -168,16 +171,31 @@ export function Bill({ setView, user, requireAuth }) {
     loadData()
   }, [user])
 
+  const shopTaxMode = useMemo(() => {
+    if (!shop || shop.show_tax === undefined || shop.show_tax === null) return 1
+    if (shop.show_tax === false || shop.show_tax === 0 || shop.show_tax === "0") return 0
+    return Number(shop.show_tax) || 1
+  }, [shop])
+
+  const isTaxEnabled = shopTaxMode !== 0
+
   const selected = useMemo(() => {
     if (!Array.isArray(templates) || templates.length === 0) return null
     return templates.find((t) => t.id === selectedId) || templates[0] || null
   }, [templates, selectedId])
 
-  // Auto-set tax from template
+  // Auto-set tax from shop settings / template
   useEffect(() => {
-    if (!selected) return
-    setTax(selected.show_tax ? Number(selected.tax_rate) || 0 : 0)
-  }, [selected])
+    if (!isTaxEnabled) {
+      setTax(0)
+      return
+    }
+    if (shop && shop.tax_rate !== undefined && shop.tax_rate !== null) {
+      setTax(Number(shop.tax_rate) || 0)
+    } else if (selected) {
+      setTax(selected.show_tax ? Number(selected.tax_rate) || 0 : 0)
+    }
+  }, [selected, shop, isTaxEnabled])
 
   const subtotal = useMemo(
     () =>
@@ -189,10 +207,24 @@ export function Bill({ setView, user, requireAuth }) {
   )
 
   const discountAmount = useMemo(() => Number(discount) || 0, [discount])
-  const taxRate = useMemo(() => Number(tax) || 0, [tax])
+  const taxRate = useMemo(() => (isTaxEnabled ? Number(tax) || 0 : 0), [tax, isTaxEnabled])
   const taxable = useMemo(() => Math.max(0, subtotal - discountAmount), [subtotal, discountAmount])
-  const taxAmount = useMemo(() => taxable * (taxRate / 100), [taxable, taxRate])
-  const total = useMemo(() => taxable + taxAmount, [taxable, taxAmount])
+
+  const taxAmount = useMemo(() => {
+    if (!isTaxEnabled || shopTaxMode === 0 || taxRate <= 0) return 0
+    if (shopTaxMode === 1) {
+      const base = taxable / (1 + taxRate / 100)
+      return taxable - base
+    }
+    return taxable * (taxRate / 100)
+  }, [taxable, taxRate, isTaxEnabled, shopTaxMode])
+
+  const total = useMemo(() => {
+    if (!isTaxEnabled || shopTaxMode === 0 || shopTaxMode === 1) {
+      return taxable
+    }
+    return taxable + taxAmount
+  }, [taxable, taxAmount, isTaxEnabled, shopTaxMode])
 
   const updateItem = (index, key, value) => {
     setItems(items.map((item, i) => (i === index ? { ...item, [key]: value } : item)))
@@ -200,7 +232,7 @@ export function Bill({ setView, user, requireAuth }) {
 
   const addItem = () => {
     const newId = Math.max(...items.map((i) => i.id), 0) + 1
-    setItems([...items, { id: newId, name: "", quantity: 1, rate: 0 }])
+    setItems([...items, { id: newId, name: "", quantity: 1, rate: "" }])
   }
 
   const removeItem = (index) => {
@@ -209,7 +241,7 @@ export function Bill({ setView, user, requireAuth }) {
   }
 
   const clearAllItems = () => {
-    setItems([{ id: 1, name: "", quantity: 1, rate: 0 }])
+    setItems([{ id: 1, name: "", quantity: 1, rate: "" }])
   }
 
   const handleQuickAddCustomer = async (e) => {
@@ -292,22 +324,37 @@ export function Bill({ setView, user, requireAuth }) {
   }
 
   const handlePrint = () => {
-    if (!user && selected) {
-      if (!canPrintTemplate(selected.id)) {
-        alert(
-          "You've used all 10 free prints for this template. Please sign up to get unlimited access."
-        )
+    if (!user) {
+      if (!canPrintFree()) {
+        const msg = "⚠️ You have reached your limit of 10 free prints. Redirecting to pricing plans..."
+        if (toastError) toastError(msg)
+        else alert(msg)
+        setView("pricing")
         return
       }
-      incrementTemplatePrint(selected.id)
     }
 
     setShowPrintModal(true)
   }
 
+  const handlePrintComplete = () => {
+    if (!user) {
+      incrementFreePrintCount()
+      if (selected?.id) {
+        incrementTemplatePrint(selected.id)
+      }
+      if (!canPrintFree()) {
+        const msg = "🎉 You have completed your 10 free prints! Check out our Pricing Plans to upgrade."
+        if (toastSuccess) toastSuccess(msg)
+        else alert(msg)
+        setView("pricing")
+      }
+    }
+  }
+
   const resetForm = () => {
-    setItems([{ id: 1, name: "", quantity: 1, rate: 0 }])
-    setDiscount(0)
+    setItems([{ id: 1, name: "", quantity: 1, rate: "" }])
+    setDiscount("")
     setPayment("Cash")
     setSelectedCustomer(null)
     setSaved(null)
@@ -323,9 +370,9 @@ export function Bill({ setView, user, requireAuth }) {
 
   // Render usage info for non-logged-in users
   const renderUsageInfo = () => {
-    if (user || !selected) return null
+    if (user) return null
 
-    const remaining = getRemainingPrints(selected.id)
+    const remaining = getRemainingFreePrints()
     const hasRemaining = remaining > 0
 
     return (
@@ -341,31 +388,30 @@ export function Bill({ setView, user, requireAuth }) {
           background: hasRemaining ? "#f8fafc" : "#fef2f2",
           border: `1px solid ${hasRemaining ? "#e2e8f0" : "#fecaca"}`,
           color: hasRemaining ? "#64748b" : "#dc2626",
-          marginTop: "0.5rem"
+          marginTop: "0.5rem",
+          marginBottom: "0.5rem"
         }}
       >
         <span>
-          🖨️ {remaining} free {remaining === 1 ? "print" : "prints"} remaining
+          🖨️ {hasRemaining ? `${remaining} free ${remaining === 1 ? "print" : "prints"} remaining (10 free prints limit)` : "0 free prints remaining. Limit reached!"}
         </span>
-        {!hasRemaining && (
-          <button
-            className="usage-cta"
-            onClick={() => requireAuth?.("dashboard")}
-            style={{
-              marginLeft: "auto",
-              padding: "0.15rem 0.75rem",
-              background: "#0f172a",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              fontSize: "0.7rem",
-              fontWeight: 500,
-              cursor: "pointer"
-            }}
-          >
-            Sign up
-          </button>
-        )}
+        <button
+          className="usage-cta"
+          onClick={() => setView("pricing")}
+          style={{
+            marginLeft: "auto",
+            padding: "0.2rem 0.75rem",
+            background: hasRemaining ? "#0ea5e9" : "#0f172a",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            fontSize: "0.7rem",
+            fontWeight: 600,
+            cursor: "pointer"
+          }}
+        >
+          {hasRemaining ? "View Pricing Plans" : "Upgrade / View Plans"}
+        </button>
       </div>
     )
   }
@@ -449,6 +495,8 @@ export function Bill({ setView, user, requireAuth }) {
           </button>
         </div>
       </div>
+
+      {renderUsageInfo()}
 
       {/* Mobile Tab Switcher */}
       <div className="mobile-view-tabs">
@@ -593,13 +641,23 @@ export function Bill({ setView, user, requireAuth }) {
                       <label className="mobile-only-field-label">Qty</label>
                       <input
                         data-testid={`bill-item-${index}-quantity-input`}
-                        type="number"
-                        min="1"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateItem(index, "quantity", Number(e.target.value) || 0)
-                        }
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="1"
+                        value={item.quantity === 0 || item.quantity === "0" ? "" : item.quantity}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9]/g, "");
+                          if (val.length > 1 && val.startsWith("0")) {
+                            val = val.replace(/^0+/, "");
+                          }
+                          updateItem(index, "quantity", val);
+                        }}
+                        onBlur={() => {
+                          if (!item.quantity || Number(item.quantity) <= 0) {
+                            updateItem(index, "quantity", 1);
+                          }
+                        }}
                         className="item-input number-input"
                       />
                     </div>
@@ -607,20 +665,39 @@ export function Bill({ setView, user, requireAuth }) {
                       <label className="mobile-only-field-label">Rate (₹)</label>
                       <input
                         data-testid={`bill-item-${index}-rate-input`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="Rate"
-                        value={item.rate}
-                        onChange={(e) =>
-                          updateItem(index, "rate", Number(e.target.value) || 0)
-                        }
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0"
+                        value={item.rate === 0 || item.rate === "0" ? "" : item.rate}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9.]/g, "");
+                          const parts = val.split(".");
+                          if (parts.length > 2) {
+                            val = parts[0] + "." + parts.slice(1).join("");
+                          }
+                          if (val.length > 1 && val.startsWith("0") && !val.startsWith("0.")) {
+                            val = val.replace(/^0+/, "");
+                            if (val.startsWith(".")) val = "0" + val;
+                          }
+                          updateItem(index, "rate", val);
+                        }}
+                        onBlur={() => {
+                          if (item.rate) {
+                            const num = parseFloat(item.rate);
+                            if (isNaN(num) || num === 0) {
+                              updateItem(index, "rate", "");
+                            } else {
+                              updateItem(index, "rate", String(num));
+                            }
+                          }
+                        }}
                         className="item-input number-input"
                       />
                     </div>
                     <div className="item-field item-amount-field">
                       <span className="item-amount">
-                        {money((item.quantity || 0) * (item.rate || 0))}
+                        {money((Number(item.quantity) || 0) * (Number(item.rate) || 0))}
                       </span>
                     </div>
                     <button
@@ -652,31 +729,75 @@ export function Bill({ setView, user, requireAuth }) {
                 <span>Discount (₹)</span>
                 <input
                   data-testid="bill-discount-input"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={discount}
-                  onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                  type="text"
+                  inputMode="decimal"
+                  value={discount === 0 || discount === "0" ? "" : discount}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^0-9.]/g, "");
+                    const parts = val.split(".");
+                    if (parts.length > 2) {
+                      val = parts[0] + "." + parts.slice(1).join("");
+                    }
+                    if (val.length > 1 && val.startsWith("0") && !val.startsWith("0.")) {
+                      val = val.replace(/^0+/, "");
+                      if (val.startsWith(".")) val = "0" + val;
+                    }
+                    setDiscount(val);
+                  }}
+                  onBlur={() => {
+                    if (discount) {
+                      const num = parseFloat(discount);
+                      if (isNaN(num) || num === 0) {
+                        setDiscount("");
+                      } else {
+                        setDiscount(String(num));
+                      }
+                    }
+                  }}
                   placeholder="0"
                   className="option-input"
                 />
               </label>
             </div>
-            <div className="option-group">
-              <label className="field-label">
-                <span>Tax Rate (%)</span>
-                <input
-                  data-testid="bill-tax-input"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={tax}
-                  onChange={(e) => setTax(Number(e.target.value) || 0)}
-                  placeholder="0"
-                  className="option-input"
-                />
-              </label>
-            </div>
+            {isTaxEnabled && (
+              <div className="option-group">
+                <label className="field-label">
+                  <span>Tax Rate (%)</span>
+                  <input
+                    data-testid="bill-tax-input"
+                    type="text"
+                    inputMode="decimal"
+                    value={tax === 0 || tax === "0" ? "" : tax}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      let val = e.target.value.replace(/[^0-9.]/g, "");
+                      const parts = val.split(".");
+                      if (parts.length > 2) {
+                        val = parts[0] + "." + parts.slice(1).join("");
+                      }
+                      if (val.length > 1 && val.startsWith("0") && !val.startsWith("0.")) {
+                        val = val.replace(/^0+/, "");
+                        if (val.startsWith(".")) val = "0" + val;
+                      }
+                      setTax(val);
+                    }}
+                    onBlur={() => {
+                      if (tax) {
+                        const num = parseFloat(tax);
+                        if (isNaN(num) || num === 0) {
+                          setTax("");
+                        } else {
+                          setTax(String(num));
+                        }
+                      }
+                    }}
+                    placeholder="0"
+                    className="option-input"
+                  />
+                </label>
+              </div>
+            )}
             <div className="option-group">
               <label className="field-label">
                 <span>Payment Mode</span>
@@ -688,9 +809,6 @@ export function Bill({ setView, user, requireAuth }) {
                 >
                   <option value="Cash">Cash</option>
                   <option value="UPI">UPI / QR</option>
-                  <option value="Card">Card / POS</option>
-                  <option value="Credit">Credit / Khata</option>
-                  <option value="Online">Online Transfer</option>
                 </select>
               </label>
             </div>
@@ -746,6 +864,11 @@ export function Bill({ setView, user, requireAuth }) {
               {shop?.phone && (
                 <p className="receipt-shop-phone">
                   <Phone size={12} /> {shop.phone}
+                </p>
+              )}
+              {shop?.gstin && (
+                <p className="receipt-shop-phone" style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>
+                  GSTIN: {shop.gstin}
                 </p>
               )}
             </div>
@@ -813,7 +936,7 @@ export function Bill({ setView, user, requireAuth }) {
                   <span>-{money(discountAmount)}</span>
                 </div>
               )}
-              {taxRate > 0 && (
+              {isTaxEnabled && shopTaxMode === 2 && taxRate > 0 && (
                 <div className="receipt-total-row">
                   <span>Tax ({taxRate}%)</span>
                   <span>{money(taxAmount)}</span>
@@ -823,6 +946,11 @@ export function Bill({ setView, user, requireAuth }) {
                 <span>Grand Total</span>
                 <span>{money(total)}</span>
               </div>
+              {isTaxEnabled && shopTaxMode === 1 && taxRate > 0 && (
+                <div style={{ textAlign: "right", fontSize: "0.72rem", color: "#64748b", marginTop: "0.2rem" }}>
+                  (Includes {taxRate}% GST: {money(taxAmount)})
+                </div>
+              )}
             </div>
 
             {/* Divider */}
@@ -875,43 +1003,6 @@ export function Bill({ setView, user, requireAuth }) {
 
       {/* Bottom Bill Actions */}
       <div className="bill-bottom-actions">
-        <div className="bill-header-actions">
-          <button
-            data-testid="bottom-reset-bill-button"
-            className="secondary-button"
-            onClick={resetForm}
-          >
-            <X size={16} /> Reset
-          </button>
-          <button
-            data-testid="bottom-save-bill-button"
-            className="primary-button"
-            onClick={saveBill}
-            disabled={loading}
-          >
-            {loading ? (
-              <ButtonLoader text="Saving..." />
-            ) : (
-              <>
-                <Save size={16} /> {!user ? "Sign up to save" : "Save Bill"}
-              </>
-            )}
-          </button>
-          <button
-            data-testid="bottom-print-receipt-button"
-            className="print-button"
-            onClick={handlePrint}
-            disabled={isPrinting}
-          >
-            {isPrinting ? (
-              <ButtonLoader text="Printing..." />
-            ) : (
-              <>
-                <Printer size={16} /> Print
-              </>
-            )}
-          </button>
-        </div>
 
         {/* Mobile Tab Switcher (Bottom) */}
         <div className="mobile-view-tabs">
@@ -998,6 +1089,7 @@ export function Bill({ setView, user, requireAuth }) {
       <PrintModal
         isOpen={showPrintModal}
         onClose={() => setShowPrintModal(false)}
+        onPrinted={handlePrintComplete}
         defaultWidth={selected?.width || "58mm"}
         elementId="receipt-to-print"
       />
