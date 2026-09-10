@@ -48,7 +48,29 @@ export function Products({ setView, requireAuth, user }) {
   const defaultProducts = [
     { 
       id: "p1", 
-      name: "Bluetooth POS Receipt Printer (58mm)", 
+      name: "NIYAMA Portable Bluetooth POS Printer (58mm)", 
+      price: 2699, 
+      category: "Hardware", 
+      sku: "NIYAMA-58BT", 
+      tax_rate: 18, 
+      stock: 18, 
+      image: "/products/niyama_printer.jpg",
+      description: "Rechargeable 58mm Bluetooth handheld mobile thermal printer with battery indicator and high-speed receipt printing" 
+    },
+    { 
+      id: "p2", 
+      name: "Hansol SUPERMAX Thermal POS Paper Rolls (Pack of 10)", 
+      price: 420, 
+      category: "Hardware", 
+      sku: "HANSOL-SMAX-10", 
+      tax_rate: 18, 
+      stock: 95, 
+      image: "/products/hansol_rolls.jpg",
+      description: "Premium grade Hansol SUPERMAX smooth, jam-free thermal receipt rolls for clear dark printing" 
+    },
+    { 
+      id: "p3", 
+      name: "Bluetooth POS Receipt Printer (80mm)", 
       price: 2850, 
       category: "Hardware", 
       sku: "POS-BT200", 
@@ -58,7 +80,7 @@ export function Products({ setView, requireAuth, user }) {
       description: "Portable 58mm wireless thermal printer for Android & iOS with rechargeable battery" 
     },
     { 
-      id: "p2", 
+      id: "p4", 
       name: "80mm POS Thermal Paper Rolls (10 Rolls)", 
       price: 450, 
       category: "Hardware", 
@@ -69,18 +91,7 @@ export function Products({ setView, requireAuth, user }) {
       description: "ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals" 
     },
     { 
-      id: "p3", 
-      name: "58mm Thermal Receipt Paper (10 Rolls)", 
-      price: 250, 
-      category: "Hardware", 
-      sku: "ROLL-58MM-10", 
-      tax_rate: 18, 
-      stock: 120, 
-      image: "/products/paper_rolls.jpg",
-      description: "BPA-free high sensitivity 58mm thermal paper rolls for handheld printers" 
-    },
-    { 
-      id: "p4", 
+      id: "p5", 
       name: "Customer Bill Folder & Stand", 
       price: 180, 
       category: "Stationery", 
