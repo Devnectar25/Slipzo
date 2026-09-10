@@ -3,15 +3,21 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-// Unregister any stale service workers that may intercept and break API calls on localhost
+// Register Service Worker in production for PWA (WebAPK) installability
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (const registration of registrations) {
-      registration.unregister().then((unregistered) => {
-        if (unregistered) console.log('🧹 Successfully unregistered stale service worker:', registration.scope)
-      })
-    }
-  }).catch((err) => console.log('Service worker cleanup info:', err))
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('📱 Slipzo PWA Service Worker active:', reg.scope))
+        .catch((err) => console.warn('PWA registration info:', err));
+    });
+  } else {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    }).catch(() => {});
+  }
 }
 
 createRoot(document.getElementById('root')).render(

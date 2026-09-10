@@ -15,6 +15,7 @@ import { Pricing } from "./components/Pricing"
 import { Product } from "./components/Product"
 import { Contact } from "./components/Contact"
 import { ShopOnboardingModal } from "./components/ShopOnboardingModal"
+import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider } from "./components/common/Toast"
 import { call } from "./lib/utils"
@@ -170,6 +171,7 @@ function AppContent() {
             initialRegister={authRegister}
           />
         )}
+        <PwaInstallPrompt />
       </ErrorBoundary>
     )
   }
@@ -214,6 +216,7 @@ function AppContent() {
       onClose={() => setShowShopOnboarding(false)}
       onComplete={() => setShowShopOnboarding(false)}
     />
+    <PwaInstallPrompt />
   </>
   )
 }
