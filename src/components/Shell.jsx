@@ -1,6 +1,6 @@
 // Shell.jsx - Complete file with mobile-only fix
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   LayoutDashboard,
   Receipt,
@@ -45,6 +45,40 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   const [isOpen, setIsOpen] = useState(false)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
 
+  // Lock background page scroll when mobile menu is open
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    if (isOpen) {
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+      const scrollX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft || 0
+
+      const originalBodyOverflow = document.body.style.overflow
+      const originalBodyPosition = document.body.style.position
+      const originalBodyTop = document.body.style.top
+      const originalBodyLeft = document.body.style.left
+      const originalBodyWidth = document.body.style.width
+      const originalDocOverflow = document.documentElement.style.overflow
+
+      document.body.style.overflow = "hidden"
+      document.body.style.position = "fixed"
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.left = `-${scrollX}px`
+      document.body.style.width = "100%"
+      document.documentElement.style.overflow = "hidden"
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow
+        document.body.style.position = originalBodyPosition
+        document.body.style.top = originalBodyTop
+        document.body.style.left = originalBodyLeft
+        document.body.style.width = originalBodyWidth
+        document.documentElement.style.overflow = originalDocOverflow
+        window.scrollTo(scrollX, scrollY)
+      }
+    }
+  }, [isOpen])
+
   const handleNavClick = (itemId) => {
     console.log('🔗 Nav click:', itemId)
     const item = navItems.find((n) => n.id === itemId)
@@ -87,6 +121,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         <div
           className="sidebar-backdrop"
           onClick={closeSidebar}
+          onTouchMove={(e) => e.preventDefault()}
+          onWheel={(e) => e.preventDefault()}
           aria-hidden="true"
           style={{
             position: 'fixed',
@@ -96,12 +132,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             bottom: 0,
             background: 'rgba(15, 23, 42, 0.4)',
             backdropFilter: 'blur(2px)',
-            zIndex: 80,
+            zIndex: 998,
           }}
         />
       )}
 
-      {/* ✅ SIDEBAR - Desktop unchanged, Mobile gets padding fix */}
+      {/* ✅ SIDEBAR - Compact, zero internal scrolling, all categories visible */}
       <aside
         className={isOpen ? "open" : ""}
         style={{
@@ -113,10 +149,10 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           width: '280px',
           background: 'white',
           borderLeft: '1px solid #e2e8f0',
-          padding: '1rem 1.25rem 0.5rem 1.25rem',
+          padding: '0.85rem 1.15rem 0.65rem 1.15rem',
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 90,
+          zIndex: 999,
           transition: 'transform 0.3s ease',
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           overflow: 'hidden',
@@ -125,10 +161,10 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         <div
           className="side-brand"
           onClick={() => setView("dashboard")}
-          style={{ cursor: 'pointer', paddingBottom: '0.5rem', marginBottom: '0.65rem', marginTop: 0 }}
+          style={{ cursor: 'pointer', paddingBottom: '0.35rem', marginBottom: '0.45rem', marginTop: 0 }}
           title="Return to Home Dashboard"
         >
-          <img src="/logo.png" alt="Slipzo" className="side-logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+          <img src="/logo.png" alt="Slipzo" className="side-logo" style={{ height: '30px', width: 'auto', objectFit: 'contain' }} />
           <button
             className="side-close-btn"
             onClick={closeSidebar}
@@ -150,13 +186,15 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         <nav
           style={{
             flex: 1,
+            minHeight: 0,
             overflowY: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 transparent',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.2rem',
-            marginBottom: '0.35rem',
+            marginBottom: '0.25rem',
+            paddingRight: '3px',
           }}
         >
           {navItems.map((item) => (
@@ -168,12 +206,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.55rem 0.85rem',
+                gap: '0.7rem',
+                padding: '0.4rem 0.75rem',
                 border: 'none',
                 background: view === item.id ? '#f1f5f9' : 'transparent',
-                borderRadius: '10px',
-                fontSize: '0.88rem',
+                borderRadius: '8px',
+                fontSize: '0.84rem',
                 fontWeight: view === item.id ? '600' : '500',
                 color: view === item.id ? '#0f172a' : '#64748b',
                 cursor: 'pointer',
@@ -182,7 +220,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 width: '100%',
               }}
             >
-              <item.icon size={19} />
+              <item.icon size={17} />
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge && (
                 <span style={{
@@ -190,7 +228,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                   color: item.badgeColor || '#0284c7',
                   fontSize: '0.65rem',
                   fontWeight: 700,
-                  padding: '0.15rem 0.5rem',
+                  padding: '0.1rem 0.45rem',
                   borderRadius: '9999px'
                 }}>
                   {item.badge}
@@ -200,31 +238,34 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           ))}
         </nav>
 
-        {/* ✅ SIDE BOTTOM - Desktop: normal padding, Mobile: extra bottom padding */}
+        {/* ✅ SIDE BOTTOM - Spaced cleanly below navigation categories */}
         <div
           className="side-bottom"
           style={{
-            padding: '0.75rem 0 0 0',
+            padding: '0.6rem 0 0 0',
             borderTop: '1px solid #f1f5f9',
-            marginTop: 'auto',
+            marginTop: '0.5rem',
             marginBottom: 0,
             flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           {/* Free Prints Quota Widget in Sidebar */}
           <div 
+            className="sidebar-quota-widget"
             style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
               borderRadius: '10px',
-              padding: '0.65rem 0.75rem',
-              marginBottom: '0.65rem',
+              padding: '0.45rem 0.65rem',
+              marginBottom: '0.55rem',
               cursor: 'pointer'
             }}
             onClick={() => handleNavClick("pricing")}
             title="Click to view pricing plans"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Printer size={13} style={{ color: getRemainingFreePrints() > 2 ? '#0ea5e9' : '#ef4444' }} /> Free prints
               </span>
@@ -240,14 +281,14 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           <div className="user-chip" style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.75rem',
-            padding: '0.5rem',
+            gap: '0.65rem',
+            padding: '0.35rem 0.5rem',
             borderRadius: '10px',
-            marginBottom: '0.25rem',
+            marginBottom: '0.5rem',
           }}>
             <div className="avatar" style={{
-              width: '36px',
-              height: '36px',
+              width: '32px',
+              height: '32px',
               borderRadius: '50%',
               background: '#0ea5e9',
               color: 'white',
@@ -255,16 +296,16 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: '600',
-              fontSize: '0.9rem',
+              fontSize: '0.85rem',
               flexShrink: 0,
             }}>
               {(user?.name || "S")[0].toUpperCase()}
             </div>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <b style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a' }}>
+              <b style={{ display: 'block', fontSize: '0.82rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name || "User"}
               </b>
-              <small style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>
+              <small style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.email || ""}
               </small>
             </span>
@@ -279,12 +320,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              padding: '0.55rem 0.75rem',
+              padding: '0.45rem 0.65rem',
               border: 'none',
               background: 'transparent',
               borderRadius: '10px',
               color: '#ef4444',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
               fontWeight: '500',
               cursor: 'pointer',
               transition: 'all 0.15s',
@@ -292,7 +333,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               marginBottom: 0,
             }}
           >
-            <LogOut size={16} /> Sign out
+            <LogOut size={15} /> Sign out
           </button>
         </div>
       </aside>
@@ -310,29 +351,6 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           </div>
 
           <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div 
-              className="header-prints-badge"
-              onClick={() => setView("pricing")}
-              title="Click to view pricing plans"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.35rem 0.75rem',
-                borderRadius: '9999px',
-                background: getRemainingFreePrints() > 2 ? '#f0fdf4' : '#fef2f2',
-                border: `1px solid ${getRemainingFreePrints() > 2 ? '#bbf7d0' : '#fecaca'}`,
-                color: getRemainingFreePrints() > 2 ? '#166534' : '#991b1b',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <Printer size={14} />
-              <span>{getRemainingFreePrints()} free {getRemainingFreePrints() === 1 ? 'print' : 'prints'} left</span>
-            </div>
-
             <button
               data-testid="shell-menu-button"
               className="shell-menu-btn"
@@ -491,15 +509,17 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         @media (max-width: 768px) {
           .app-shell .main {
             margin-left: 0 !important;
-            padding: 0 0 80px 0 !important;
+            padding: 0 !important;
           }
 
           .main-content-scroll {
-            padding: 1rem 1rem 0 1rem !important;
+            padding: 0.75rem 0.65rem calc(72px + env(safe-area-inset-bottom, 0px)) 0.65rem !important;
+            margin-bottom: 0 !important;
           }
           
           .sidebar-backdrop {
             display: block !important;
+            z-index: 998 !important;
           }
           
           .side-close-btn {
@@ -513,17 +533,74 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             border-right: none !important;
             transform: translateX(100%) !important;
             transition: transform 0.3s ease !important;
+            z-index: 999 !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+            overflow: hidden !important;
+            padding: 0.75rem 1rem max(0.65rem, env(safe-area-inset-bottom, 0.65rem)) 1rem !important;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12) !important;
+            width: 280px !important;
+            max-width: 85vw !important;
           }
 
           .app-shell aside.open {
             transform: translateX(0) !important;
           }
 
-          /* ============================================
-             ✅ MOBILE ONLY: Extra bottom padding for sidebar
-             ============================================ */
+          .app-shell aside nav {
+            flex: 1 !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            scrollbar-width: thin !important;
+            scrollbar-color: #cbd5e1 transparent !important;
+            gap: 0.2rem !important;
+            margin-bottom: 0.25rem !important;
+            padding-right: 3px !important;
+          }
+
+          .app-shell aside nav::-webkit-scrollbar {
+            width: 4px !important;
+            display: block !important;
+          }
+
+          .app-shell aside nav::-webkit-scrollbar-track {
+            background: transparent !important;
+          }
+
+          .app-shell aside nav::-webkit-scrollbar-thumb {
+            background: #cbd5e1 !important;
+            border-radius: 4px !important;
+          }
+
+          .app-shell aside nav::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8 !important;
+          }
+
+          .app-shell aside nav button {
+            padding: 0.38rem 0.65rem !important;
+            font-size: 0.83rem !important;
+            gap: 0.65rem !important;
+            border-radius: 8px !important;
+          }
+
+          .app-shell aside nav button svg {
+            width: 17px !important;
+            height: 17px !important;
+            flex-shrink: 0 !important;
+          }
+
+          /* Remove prints badge from mobile header */
+          .header-prints-badge {
+            display: none !important;
+          }
+
+          /* Clean, compact side-bottom without extra 80px scroll overflow */
           .side-bottom {
-            padding-bottom: calc(1rem + 80px) !important;
+            padding-bottom: 0 !important;
+            padding-top: 0.55rem !important;
+            margin-top: 0.45rem !important;
+            border-top: 1px solid #f1f5f9 !important;
           }
 
           /* Mobile Bottom Navigation */
@@ -634,12 +711,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           
           @media (max-width: 768px) {
             .side-bottom {
-              padding-bottom: calc(1rem + 80px + env(safe-area-inset-bottom)) !important;
+              padding-bottom: 0 !important;
             }
           }
           
           .main-content-scroll {
-            padding-bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+            padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
           }
         }
       `}</style>

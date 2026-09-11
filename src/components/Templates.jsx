@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react"
 import { Plus, Receipt, Copy, Trash2, ArrowRight, Search, X, Edit, SlidersHorizontal, Check, Sparkles, Printer, Eye } from "lucide-react"
-import { call } from "../lib/utils"
+import { call, getCachedData } from "../lib/utils"
 import { CardSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
@@ -220,11 +220,17 @@ export const BUILTIN_TEMPLATES = [
 ]
 
 export function Templates({ setView, user }) {
-  const [items, setItems] = useState([])
+  const [items, setItems] = useState(() => {
+    const cached = getCachedData("/templates")
+    return Array.isArray(cached) ? cached : []
+  })
   const [name, setName] = useState("")
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(() => {
+    const cached = getCachedData("/templates")
+    return !(Array.isArray(cached) && cached.length > 0)
+  })
   const [actionLoadingId, setActionLoadingId] = useState(null)
   const [editMode, setEditMode] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState(null)
@@ -539,7 +545,7 @@ export function Templates({ setView, user }) {
       </div>
 
       {/* Templates Showcase Grid */}
-      {initialLoading ? (
+      {initialLoading && filteredTemplates.length === 0 ? (
         <CardSkeleton count={4} />
       ) : filteredTemplates.length > 0 ? (
         <div className="dashboard-templates-grid">

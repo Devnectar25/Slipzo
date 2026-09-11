@@ -84,20 +84,7 @@ export function PwaInstallPrompt() {
 
   return (
     <>
-      {/* Floating Install App Badge for Mobile */}
-      {!showModal && (
-        <button
-          className="pwa-float-btn"
-          onClick={() => setShowModal(true)}
-          title="Install Slipzo Mobile App"
-          aria-label="Install Slipzo App"
-        >
-          <div className="pwa-float-icon">
-            <Smartphone size={18} />
-          </div>
-          <span>Install App</span>
-        </button>
-      )}
+      {/* Floating Install App Badge removed per requirement */}
 
       {/* Main Installation Modal */}
       {showModal && (

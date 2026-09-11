@@ -5,13 +5,81 @@ import {
   RefreshCw, Layers, Printer, Zap, Store, ChevronRight, X,
   Truck, CreditCard, Check
 } from "lucide-react"
-import { call } from "../lib/utils"
+import { call, getCachedData } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
+const defaultProducts = [
+  { 
+    id: "p1", 
+    name: "NIYAMA Portable Bluetooth POS Printer (58mm)", 
+    price: 2699, 
+    category: "Hardware", 
+    sku: "NIYAMA-58BT", 
+    tax_rate: 18, 
+    stock: 18, 
+    image: "/products/niyama_printer.jpg",
+    description: "Rechargeable 58mm Bluetooth handheld mobile thermal printer with battery indicator and high-speed receipt printing" 
+  },
+  { 
+    id: "p2", 
+    name: "Hansol SUPERMAX Thermal POS Paper Rolls (Pack of 10)", 
+    price: 420, 
+    category: "Hardware", 
+    sku: "HANSOL-SMAX-10", 
+    tax_rate: 18, 
+    stock: 95, 
+    image: "/products/hansol_rolls.jpg",
+    description: "Premium grade Hansol SUPERMAX smooth, jam-free thermal receipt rolls for clear dark printing" 
+  },
+  { 
+    id: "p3", 
+    name: "Bluetooth POS Receipt Printer (80mm)", 
+    price: 2850, 
+    category: "Hardware", 
+    sku: "POS-BT200", 
+    tax_rate: 18, 
+    stock: 12, 
+    image: "/products/pos_printer.jpg",
+    description: "Portable 58mm wireless thermal printer for Android & iOS with rechargeable battery" 
+  },
+  { 
+    id: "p4", 
+    name: "80mm POS Thermal Paper Rolls (10 Rolls)", 
+    price: 450, 
+    category: "Hardware", 
+    sku: "ROLL-80MM-10", 
+    tax_rate: 18, 
+    stock: 85, 
+    image: "/products/paper_rolls.jpg",
+    description: "ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals" 
+  },
+  { 
+    id: "p5", 
+    name: "Customer Bill Folder & Stand", 
+    price: 180, 
+    category: "Stationery", 
+    sku: "STAT-FLD", 
+    tax_rate: 12, 
+    stock: 40, 
+    image: "",
+    description: "Leatherette receipt holder for retail billing counters" 
+  }
+]
+
 export function Products({ setView, requireAuth, user }) {
-  const [products, setProducts] = useState([])
-  const [stats, setStats] = useState({ totalProducts: 0, totalCategories: 0, lowStockProducts: 0 })
-  const [loading, setLoading] = useState(true)
+  const [products, setProducts] = useState(() => {
+    const cached = getCachedData("/products")
+    return (Array.isArray(cached) && cached.length > 0) ? cached : defaultProducts
+  })
+  const [stats, setStats] = useState(() => {
+    const initial = (Array.isArray(getCachedData("/products")) && getCachedData("/products").length > 0)
+      ? getCachedData("/products")
+      : defaultProducts
+    const catSet = new Set(initial.map(p => p.category || 'General'))
+    const lowStock = initial.filter(p => (p.stock || 0) < 10).length
+    return { totalProducts: initial.length, totalCategories: catSet.size, lowStockProducts: lowStock }
+  })
+  const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [activeTab, setActiveTab] = useState("catalog") // "catalog" | "features"
@@ -45,67 +113,9 @@ export function Products({ setView, requireAuth, user }) {
 
   const categories = ["Hardware", "Stationery", "Groceries", "Electronics", "Apparel", "Services", "General"]
 
-  const defaultProducts = [
-    { 
-      id: "p1", 
-      name: "NIYAMA Portable Bluetooth POS Printer (58mm)", 
-      price: 2699, 
-      category: "Hardware", 
-      sku: "NIYAMA-58BT", 
-      tax_rate: 18, 
-      stock: 18, 
-      image: "/products/niyama_printer.jpg",
-      description: "Rechargeable 58mm Bluetooth handheld mobile thermal printer with battery indicator and high-speed receipt printing" 
-    },
-    { 
-      id: "p2", 
-      name: "Hansol SUPERMAX Thermal POS Paper Rolls (Pack of 10)", 
-      price: 420, 
-      category: "Hardware", 
-      sku: "HANSOL-SMAX-10", 
-      tax_rate: 18, 
-      stock: 95, 
-      image: "/products/hansol_rolls.jpg",
-      description: "Premium grade Hansol SUPERMAX smooth, jam-free thermal receipt rolls for clear dark printing" 
-    },
-    { 
-      id: "p3", 
-      name: "Bluetooth POS Receipt Printer (80mm)", 
-      price: 2850, 
-      category: "Hardware", 
-      sku: "POS-BT200", 
-      tax_rate: 18, 
-      stock: 12, 
-      image: "/products/pos_printer.jpg",
-      description: "Portable 58mm wireless thermal printer for Android & iOS with rechargeable battery" 
-    },
-    { 
-      id: "p4", 
-      name: "80mm POS Thermal Paper Rolls (10 Rolls)", 
-      price: 450, 
-      category: "Hardware", 
-      sku: "ROLL-80MM-10", 
-      tax_rate: 18, 
-      stock: 85, 
-      image: "/products/paper_rolls.jpg",
-      description: "ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals" 
-    },
-    { 
-      id: "p5", 
-      name: "Customer Bill Folder & Stand", 
-      price: 180, 
-      category: "Stationery", 
-      sku: "STAT-FLD", 
-      tax_rate: 12, 
-      stock: 40, 
-      image: "",
-      description: "Leatherette receipt holder for retail billing counters" 
-    }
-  ]
-
   const fetchProducts = async () => {
     try {
-      setLoading(true)
+      if (products.length === 0) setLoading(true)
       const data = await call("/products")
       if (Array.isArray(data) && data.length > 0) {
         setProducts(data)
@@ -304,28 +314,27 @@ export function Products({ setView, requireAuth, user }) {
   })
 
   return (
-    <div className="products-view fade-in" style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '2rem' }}>
+    <div className="page products-page products-view fade-in">
       {/* Header Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div style={{ background: '#e0f2fe', color: '#0ea5e9', padding: '0.45rem', borderRadius: '10px', display: 'flex' }}>
+      <div className="products-header-bar">
+        <div className="products-title-col">
+          <div className="products-title-row">
+            <div className="products-title-icon">
               <Package size={22} />
             </div>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0, letterSpacing: '-0.02em' }}>
+            <h1 className="products-title">
               Hardware & Products Store
             </h1>
           </div>
-          <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0.2rem 0 0 0' }}>
+          <p className="products-description">
             Buy thermal receipt printers, paper rolls & accessories, or add custom products for billing.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.55rem', alignItems: 'center' }}>
+        <div className="products-header-actions">
           <button
             onClick={handleOpenAdd}
-            className="primary-button"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 600 }}
+            className="primary-button add-product-btn"
           >
             <Plus size={16} /> Add Product
           </button>
@@ -333,40 +342,16 @@ export function Products({ setView, requireAuth, user }) {
       </div>
 
       {/* Navigation Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '1.25rem', gap: '1.5rem' }}>
+      <div className="products-nav-tabs">
         <button
           onClick={() => setActiveTab("catalog")}
-          style={{
-            padding: '0.65rem 0.2rem',
-            border: 'none',
-            background: 'none',
-            color: activeTab === "catalog" ? '#0ea5e9' : '#64748b',
-            borderBottom: activeTab === "catalog" ? '2.5px solid #0ea5e9' : '2.5px solid transparent',
-            fontWeight: activeTab === "catalog" ? 700 : 500,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem'
-          }}
+          className={`products-tab-btn ${activeTab === "catalog" ? 'active' : ''}`}
         >
           <Layers size={16} /> Products Catalog ({products.length})
         </button>
         <button
           onClick={() => setActiveTab("features")}
-          style={{
-            padding: '0.65rem 0.2rem',
-            border: 'none',
-            background: 'none',
-            color: activeTab === "features" ? '#0ea5e9' : '#64748b',
-            borderBottom: activeTab === "features" ? '2.5px solid #0ea5e9' : '2.5px solid transparent',
-            fontWeight: activeTab === "features" ? 700 : 500,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem'
-          }}
+          className={`products-tab-btn ${activeTab === "features" ? 'active' : ''}`}
         >
           <Sparkles size={16} /> Printer Compatibility & Specs
         </button>
@@ -375,44 +360,27 @@ export function Products({ setView, requireAuth, user }) {
       {activeTab === "catalog" ? (
         <>
           {/* Search and Filters Bar */}
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-              <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          <div className="products-controls-bar">
+            <div className="products-search-box">
+              <Search size={16} className="products-search-icon" />
               <input
                 type="text"
                 placeholder="Search products by name, SKU, or category..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.85rem 0.55rem 2.4rem',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.88rem',
-                  outline: 'none',
-                  background: '#ffffff'
-                }}
+                className="products-search-input"
               />
               {search && (
-                <button onClick={() => setSearch("")} style={{ position: 'absolute', right: '0.65rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                <button onClick={() => setSearch("")} className="products-search-clear">
                   <X size={14} />
                 </button>
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '0.2rem' }}>
+            <div className="products-category-filters">
               <button
                 onClick={() => setSelectedCategory("all")}
-                style={{
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: '20px',
-                  border: '1px solid #e2e8f0',
-                  background: selectedCategory === "all" ? '#0f172a' : '#ffffff',
-                  color: selectedCategory === "all" ? '#ffffff' : '#475569',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
+                className={`products-cat-btn ${selectedCategory === "all" ? 'active' : ''}`}
               >
                 All
               </button>
@@ -420,17 +388,7 @@ export function Products({ setView, requireAuth, user }) {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  style={{
-                    padding: '0.4rem 0.85rem',
-                    borderRadius: '20px',
-                    border: '1px solid #e2e8f0',
-                    background: selectedCategory === cat ? '#0f172a' : '#ffffff',
-                    color: selectedCategory === cat ? '#ffffff' : '#475569',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
+                  className={`products-cat-btn ${selectedCategory === cat ? 'active' : ''}`}
                 >
                   {cat}
                 </button>
@@ -445,176 +403,89 @@ export function Products({ setView, requireAuth, user }) {
               <p>Loading products catalog...</p>
             </div>
           ) : filteredProducts.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '1rem' }}>
+            <div className="products-cards-grid">
               {filteredProducts.map(product => (
                 <div
                   key={product.id}
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '14px',
-                    padding: '1rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-                  }}
-                  className="product-card-hover"
+                  className="product-card product-card-hover"
                 >
                   <div>
                     {/* Product Image */}
                     {product.image ? (
-                      <div style={{
-                        width: '100%',
-                        height: '160px',
-                        background: '#f8fafc',
-                        borderRadius: '10px',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '0.75rem',
-                        border: '1px solid #f1f5f9'
-                      }}>
+                      <div className="product-image-box">
                         <img 
                           src={product.image} 
                           alt={product.name} 
-                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', padding: '0.4rem' }} 
                         />
                       </div>
                     ) : (
-                      <div style={{
-                        width: '100%',
-                        height: '110px',
-                        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-                        borderRadius: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: '0.75rem',
-                        color: '#94a3b8'
-                      }}>
+                      <div className="product-image-box placeholder">
                         <Package size={36} />
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', padding: '0.15rem 0.5rem', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    <div className="product-card-meta">
+                      <span className="product-category-tag">
                         {product.category || "Hardware"}
                       </span>
                       {product.sku && (
-                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                        <span className="product-sku-tag">
                           #{product.sku}
                         </span>
                       )}
                     </div>
 
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.3rem 0', lineHeight: 1.3 }}>
+                    <h3 className="product-card-title">
                       {product.name}
                     </h3>
 
                     {product.description && (
-                      <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 0.6rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.35 }}>
+                      <p className="product-card-desc">
                         {product.description}
                       </p>
                     )}
 
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', margin: '0.4rem 0' }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>
+                    <div className="product-card-price-row">
+                      <span className="product-price-val">
                         ₹{product.price}
                       </span>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      <span className="product-gst-note">
                         +{product.tax_rate || 18}% GST
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: (product.stock || 0) < 10 ? '#ef4444' : '#10b981', fontWeight: 600 }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: (product.stock || 0) < 10 ? '#ef4444' : '#10b981', display: 'inline-block' }}></span>
+                    <div className="product-card-stock" style={{ color: (product.stock || 0) < 10 ? '#ef4444' : '#10b981' }}>
+                      <span className="stock-indicator-dot" style={{ background: (product.stock || 0) < 10 ? '#ef4444' : '#10b981' }}></span>
                       {product.stock || 0} units in stock
                     </div>
                   </div>
 
                   {/* Card Actions */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
+                  <div className="product-card-actions">
                     <button
                       onClick={() => handleOpenBuy(product)}
-                      style={{
-                        width: '100%',
-                        background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
-                        color: '#ffffff',
-                        border: 'none',
-                        padding: '0.5rem 0.75rem',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.4rem',
-                        boxShadow: '0 2px 6px rgba(14, 165, 233, 0.25)',
-                        transition: 'all 0.15s'
-                      }}
+                      className="product-buy-now-btn"
                     >
                       <ShoppingBag size={14} /> Buy Now
                     </button>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div className="product-card-secondary-actions">
                       <button
                         onClick={() => handleQuickAddToBill(product)}
-                        style={{
-                          flex: 1,
-                          background: '#f8fafc',
-                          color: '#334155',
-                          border: '1px solid #cbd5e1',
-                          padding: '0.35rem 0.5rem',
-                          borderRadius: '6px',
-                          fontSize: '0.74rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.3rem'
-                        }}
-                        title="Add as line item in bill draft"
+                        className="product-add-bill-btn"
                       >
-                        <Plus size={12} /> Add to Bill
+                        + Add to Bill
                       </button>
-
                       <button
                         onClick={() => handleOpenEdit(product)}
-                        style={{
-                          background: '#ffffff',
-                          color: '#475569',
-                          border: '1px solid #e2e8f0',
-                          width: '30px',
-                          height: '30px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer'
-                        }}
+                        className="product-action-icon-btn"
                         title="Edit Product"
                       >
                         <Edit size={13} />
                       </button>
                       <button
                         onClick={() => handleDelete(product.id)}
-                        style={{
-                          background: '#ffffff',
-                          color: '#ef4444',
-                          border: '1px solid #fee2e2',
-                          width: '30px',
-                          height: '30px',
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer'
-                        }}
+                        className="product-action-icon-btn delete"
                         title="Delete Product"
                       >
                         <Trash2 size={13} />
@@ -639,46 +510,46 @@ export function Products({ setView, requireAuth, user }) {
         </>
       ) : (
         /* Features Showcase Tab */
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '2rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ textAlign: 'center', maxWidth: '650px', margin: '0 auto 2rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0ea5e9', background: '#e0f2fe', padding: '0.25rem 0.75rem', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+        <div className="products-features-box">
+          <div className="products-features-header">
+            <span className="products-features-badge">
               Hardware & POS Supplies
             </span>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+            <h2>
               Tested & Certified for Slipzo
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.92rem' }}>
+            <p>
               All thermal receipt printers and paper rolls sold on Slipzo are pre-tested for plug-and-play speed with our thermal engine.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <div style={{ padding: '1.25rem', border: '1px solid #f1f5f9', borderRadius: '12px', background: '#f8fafc' }}>
-              <div style={{ background: '#e0f2fe', color: '#0ea5e9', width: '42px', height: '42px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.85rem' }}>
+          <div className="products-features-grid">
+            <div className="feature-item-card">
+              <div className="feature-item-icon blue">
                 <Zap size={22} />
               </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>Instant Bluetooth Connectivity</h3>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
+              <h3>Instant Bluetooth Connectivity</h3>
+              <p>
                 Pair portable 58mm/80mm Bluetooth printers in seconds directly from mobile or desktop browsers.
               </p>
             </div>
 
-            <div style={{ padding: '1.25rem', border: '1px solid #f1f5f9', borderRadius: '12px', background: '#f8fafc' }}>
-              <div style={{ background: '#fef3c7', color: '#f59e0b', width: '42px', height: '42px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.85rem' }}>
+            <div className="feature-item-card">
+              <div className="feature-item-icon amber">
                 <Printer size={22} />
               </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>ATPOS Dark Crisp Thermal Paper</h3>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
+              <h3>ATPOS Dark Crisp Thermal Paper</h3>
+              <p>
                 High-density BPA-free thermal rolls designed for crisp text, QR codes, and long-lasting receipts without fading.
               </p>
             </div>
 
-            <div style={{ padding: '1.25rem', border: '1px solid #f1f5f9', borderRadius: '12px', background: '#f8fafc' }}>
-              <div style={{ background: '#dcfce7', color: '#10b981', width: '42px', height: '42px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.85rem' }}>
+            <div className="feature-item-card">
+              <div className="feature-item-icon green">
                 <Truck size={22} />
               </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>Fast Express Delivery</h3>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
+              <h3>Fast Express Delivery</h3>
+              <p>
                 Delivered across all Indian pincodes with GST invoices and full replacement warranty.
               </p>
             </div>
@@ -689,7 +560,7 @@ export function Products({ setView, requireAuth, user }) {
       {/* Buy Product Checkout Modal */}
       {buyProduct && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(3px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShoppingBag size={18} style={{ color: '#0ea5e9' }} />
@@ -867,7 +738,7 @@ export function Products({ setView, requireAuth, user }) {
       {/* Add / Edit Product Modal */}
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(3px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                 {editingProduct ? "Edit Product" : "Add New Product"}
