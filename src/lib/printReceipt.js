@@ -1,16 +1,15 @@
-/**
- * printReceipt.js
- * High-precision thermal receipt printing with dynamic page sizing and adjustable settings.
- *
- * @param {string} elementId - ID of the receipt DOM element (default "receipt-to-print")
- * @param {string|object} options - Paper width ("58mm" | "80mm" | "a4") or full configuration object
- */
+import Swal from "sweetalert2"
 
 export function printReceiptElement(elementId = "receipt-to-print", options = {}) {
   const el = document.getElementById(elementId)
   if (!el) {
     console.error(`[printReceipt] Element #${elementId} not found`)
-    alert("Could not find receipt to print. Please try again.")
+    Swal.fire({
+      title: "Element Not Found",
+      text: "Could not find receipt to print. Please try again.",
+      icon: "error",
+      confirmButtonColor: "#0ea5e9"
+    })
     return
   }
 
@@ -20,7 +19,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const isA4 = rawWidth === "a4" || rawWidth === "full"
   const pageWidth = isA4 ? "210mm" : (rawWidth === "80mm" ? "80mm" : (rawWidth.endsWith("mm") ? rawWidth : "58mm"))
   const scale = Number(config.scale) || 1
-  const fontSize = Number(config.fontSize) || (pageWidth === "80mm" ? 13.5 : (isA4 ? 14 : 12))
+  const fontSize = Number(config.fontSize) || (pageWidth === "80mm" ? 12 : (isA4 ? 14 : 11))
   const density = config.density || "normal" // "tight" | "normal" | "relaxed"
   const highContrast = config.highContrast !== false
   const showShopDetails = config.showShopDetails !== false
@@ -28,15 +27,15 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const showTax = config.showTax !== false
   const showFooter = config.showFooter !== false
 
-  // Legible font sizes for thermal paper needles
-  const shopTitleSize = isA4 ? "22px" : (pageWidth === "80mm" ? "19px" : "17px")
-  const shopSubSize = isA4 ? "13px" : (pageWidth === "80mm" ? "12px" : "11px")
-  const metaSize = isA4 ? "12px" : (pageWidth === "80mm" ? "11.5px" : "10.5px")
-  const itemHeaderSize = isA4 ? "13px" : (pageWidth === "80mm" ? "12px" : "11px")
-  const itemRowSize = isA4 ? "13px" : (pageWidth === "80mm" ? "12px" : "11px")
-  const totalRowSize = isA4 ? "13px" : (pageWidth === "80mm" ? "12px" : "11px")
-  const grandTotalSize = isA4 ? "18px" : (pageWidth === "80mm" ? "16px" : "14.5px")
-  const footerSize = isA4 ? "12px" : (pageWidth === "80mm" ? "11px" : "10.5px")
+  // Balanced, highly legible font sizes for thermal printing
+  const shopTitleSize = isA4 ? "20px" : (pageWidth === "80mm" ? "18px" : "15px")
+  const shopSubSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : "11px")
+  const metaSize = isA4 ? "13px" : (pageWidth === "80mm" ? "11.5px" : "10.5px")
+  const itemHeaderSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : "11px")
+  const itemRowSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : "11px")
+  const totalRowSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : "11px")
+  const grandTotalSize = isA4 ? "18px" : (pageWidth === "80mm" ? "16px" : "14px")
+  const footerSize = isA4 ? "13px" : (pageWidth === "80mm" ? "11.5px" : "10.5px")
 
   // Clone element to manipulate without affecting original
   const clone = el.cloneNode(true)
@@ -97,7 +96,12 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   )
 
   if (!printWindow) {
-    alert("Popup blocked! Please allow popups for localhost to enable thermal printing.")
+    Swal.fire({
+      title: "Popup Blocked",
+      text: "Please allow popups in your browser to enable thermal receipt printing.",
+      icon: "warning",
+      confirmButtonColor: "#0ea5e9"
+    })
     return
   }
 
@@ -106,8 +110,8 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     printWindow.resizeTo(availW, availH)
   } catch (_) { /* browser restricted */ }
 
-  const lineHeight = density === "tight" ? 1.25 : (density === "relaxed" ? 1.55 : 1.4)
-  const itemPadding = density === "tight" ? "1px 0" : (density === "relaxed" ? "3px 0" : "2px 0")
+  const lineHeight = density === "tight" ? 1.4 : (density === "relaxed" ? 1.75 : 1.55)
+  const itemPadding = density === "tight" ? "3px 0" : (density === "relaxed" ? "6px 0" : "4.5px 0")
 
   printWindow.document.write(`<!DOCTYPE html>
 <html lang="en">
@@ -221,7 +225,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       line-height: ${lineHeight};
       width: 100%;
       margin: 0 auto;
-      padding: ${isA4 ? "10mm 12mm" : "1.5mm 1mm 1.5mm 1mm"};
+      padding: ${isA4 ? "12mm 15mm" : "4mm 2mm 8mm 2mm"};
       box-sizing: border-box;
       transform: scale(${scale});
       transform-origin: top center;
@@ -235,13 +239,12 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       box-shadow: none !important;
       border-radius: 0 !important;
     }
-
     /* ===== THERMAL RECEIPT STYLING ===== */
     .receipt-shop {
       text-align: center;
-      padding-bottom: 4px;
+      padding-bottom: 8px;
       border-bottom: 1.5px dashed #000000;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
     }
 
     .receipt-logo {
@@ -253,8 +256,9 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       font-weight: 900;
       letter-spacing: 0.3px;
       color: #000000;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
       text-transform: uppercase;
+      line-height: 1.25;
     }
 
     .receipt-shop p,
@@ -264,8 +268,9 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       color: #000000;
       display: block;
       text-align: center;
-      margin: 1px 0;
+      margin: 2px 0;
       font-weight: 700;
+      line-height: 1.3;
     }
 
     svg { display: none !important; }
@@ -273,12 +278,22 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     .receipt-meta {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
       font-size: ${metaSize};
       font-weight: 700;
       color: #000000;
-      padding: 3px 0;
-      border-bottom: 1px dashed #000000;
-      margin-bottom: 4px;
+      padding: 5px 0;
+      border-bottom: 1.5px dashed #000000;
+      margin-bottom: 6px;
+    }
+
+    .receipt-meta .receipt-number,
+    .receipt-meta .receipt-date,
+    .receipt-number,
+    .receipt-date {
+      white-space: nowrap !important;
     }
 
     .receipt-customer-line {
@@ -287,35 +302,35 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       font-size: ${metaSize};
       font-weight: 700;
       color: #000000;
-      padding: 2px 0;
-      margin-bottom: 2px;
+      padding: 4px 0;
+      margin-bottom: 4px;
     }
 
     .receipt-divider {
       border: none;
       border-top: 1.5px dashed #000000;
-      margin: 4px 0;
+      margin: 6px 0;
     }
 
     .receipt-items {
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .receipt-items-header {
       display: grid !important;
       grid-template-columns: 2fr 0.5fr 1fr 1fr;
-      gap: 2px;
+      gap: 3px;
       font-size: ${itemHeaderSize};
       font-weight: 900;
-      padding: 2px 0;
+      padding: 4px 0;
       border-bottom: 1.5px solid #000000;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
     .receipt-item-row {
       display: grid !important;
       grid-template-columns: 2fr 0.5fr 1fr 1fr;
-      gap: 2px;
+      gap: 3px;
       font-size: ${itemRowSize};
       padding: ${itemPadding};
       font-weight: ${highContrast ? "800" : "700"};
@@ -343,20 +358,20 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
 
     .receipt-empty-items {
       text-align: center;
-      padding: 8px 0;
+      padding: 12px 0;
       color: #000000;
       font-size: ${itemRowSize};
     }
 
     .receipt-totals {
-      padding-top: 3px;
+      padding-top: 6px;
     }
 
     .receipt-total-row {
       display: flex;
       justify-content: space-between;
       font-size: ${totalRowSize};
-      padding: 1.5px 0;
+      padding: 3px 0;
       font-weight: 700;
       color: #000000;
     }
@@ -366,17 +381,17 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       justify-content: space-between;
       font-size: ${grandTotalSize};
       font-weight: 900;
-      padding: 4px 0 3px;
-      margin-top: 3px;
-      border-top: 2px solid #000000;
+      padding: 8px 0 6px;
+      margin-top: 6px;
+      border-top: 2.5px solid #000000;
       color: #000000;
     }
 
     .receipt-footer {
       text-align: center;
-      padding-top: 4px;
+      padding-top: 8px;
       border-top: 1.5px dashed #000000;
-      margin-top: 4px;
+      margin-top: 8px;
     }
 
     .receipt-payment {
@@ -385,15 +400,15 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       font-size: ${footerSize};
       font-weight: 800;
       color: #000000;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
     .receipt-thanks {
       font-size: ${footerSize};
       font-weight: 700;
       color: #000000;
-      margin-top: 2px;
-    }
+      margin-top: 4px;
+    } }
 
     /* ===== EXACT PRINT MEDIA ===== */
     @media print {

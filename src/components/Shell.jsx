@@ -1,5 +1,3 @@
-// Shell.jsx - Complete file with mobile-only fix
-
 import { useState, useEffect } from "react"
 import {
   LayoutDashboard,
@@ -19,7 +17,7 @@ import {
   Tag,
   Printer
 } from "lucide-react"
-import { getRemainingFreePrints } from "../lib/utils"
+import { getRemainingFreePrints, getActivePlanDetails } from "../lib/utils"
 
 const navItems = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard, protected: false },
@@ -44,6 +42,19 @@ const mobileNavItems = [
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const [isOpen, setIsOpen] = useState(false)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
+  const [activePlan, setActivePlan] = useState(getActivePlanDetails())
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setActivePlan(getActivePlanDetails())
+    }
+    window.addEventListener("slipzo-quota-update", handleUpdate)
+    window.addEventListener("storage", handleUpdate)
+    return () => {
+      window.removeEventListener("slipzo-quota-update", handleUpdate)
+      window.removeEventListener("storage", handleUpdate)
+    }
+  }, [])
 
   // Lock background page scroll when mobile menu is open
   useEffect(() => {
@@ -251,7 +262,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             flexDirection: 'column',
           }}
         >
-          {/* Free Prints Quota Widget in Sidebar */}
+          {/* Active Prints Quota Widget in Sidebar */}
           <div 
             className="sidebar-quota-widget"
             style={{
@@ -267,14 +278,14 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Printer size={13} style={{ color: getRemainingFreePrints() > 2 ? '#0ea5e9' : '#ef4444' }} /> Free prints
+                <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444' }} /> {activePlan.isFreeTier ? 'Free prints' : 'Subscription'}
               </span>
-              <span style={{ color: getRemainingFreePrints() > 2 ? '#0ea5e9' : '#ef4444', fontWeight: 700 }}>
-                {getRemainingFreePrints()} / 10 left
+              <span style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444', fontWeight: 700 }}>
+                {(activePlan.printsRemaining || 0).toLocaleString()} / {(activePlan.totalPrints || 10).toLocaleString()} left
               </span>
             </div>
             <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
-              <div style={{ width: `${(getRemainingFreePrints() / 10) * 100}%`, height: '100%', background: getRemainingFreePrints() > 2 ? 'linear-gradient(90deg, #38bdf8, #0ea5e9)' : '#ef4444', transition: 'width 0.3s ease' }} />
+              <div style={{ width: `${Math.min(100, Math.max(0, ((activePlan.printsRemaining || 0) / (activePlan.totalPrints || 10)) * 100))}%`, height: '100%', background: (activePlan.printsRemaining || 0) > 2 ? 'linear-gradient(90deg, #38bdf8, #0ea5e9)' : '#ef4444', transition: 'width 0.3s ease' }} />
             </div>
           </div>
 
@@ -351,6 +362,28 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           </div>
 
           <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div 
+              className="header-prints-badge"
+              onClick={() => setView("pricing")}
+              title="Click to view pricing plans"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '9999px',
+                background: (activePlan.printsRemaining || 0) > 2 ? '#f0fdf4' : '#fef2f2',
+                border: `1px solid ${(activePlan.printsRemaining || 0) > 2 ? '#bbf7d0' : '#fecaca'}`,
+                color: (activePlan.printsRemaining || 0) > 2 ? '#166534' : '#991b1b',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Printer size={14} />
+              <span>{(activePlan.printsRemaining || 0).toLocaleString()} {activePlan.isFreeTier ? 'free ' : ''}{(activePlan.printsRemaining || 0) === 1 ? 'print' : 'prints'} left</span>
+            </div>
             <button
               data-testid="shell-menu-button"
               className="shell-menu-btn"

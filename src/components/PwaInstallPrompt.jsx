@@ -60,7 +60,24 @@ export function PwaInstallPrompt() {
     localStorage.setItem('slipzo_pwa_dismissed', Date.now().toString())
   }
 
+  const triggerApkDownload = () => {
+    try {
+      const link = document.createElement('a')
+      link.href = '/slipzo.apk'
+      link.download = 'Slipzo.apk'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (e) {
+      console.warn('APK download error:', e)
+    }
+  }
+
   const handleInstall = async () => {
+    // 1. Directly trigger APK download
+    triggerApkDownload()
+
+    // 2. Trigger native PWA WebAPK install prompt if supported
     if (deferredPrompt) {
       try {
         deferredPrompt.prompt()
@@ -103,9 +120,9 @@ export function PwaInstallPrompt() {
                 <h3>Slipzo Mobile App</h3>
                 <div className="pwa-badge-row">
                   <span className="pwa-safe-badge">
-                    <ShieldCheck size={13} /> Official PWA
+                    <ShieldCheck size={13} /> Official PWA & APK
                   </span>
-                  <span className="pwa-free-badge">Zero Warning · Fast</span>
+                  <span className="pwa-free-badge">Fast · Safe</span>
                 </div>
               </div>
             </div>
@@ -113,7 +130,7 @@ export function PwaInstallPrompt() {
             {!showGuide ? (
               <>
                 <p className="pwa-desc">
-                  Install the official Slipzo App directly to your Android or iPhone home screen. <b>No APK risk, no Google Play Protect errors!</b>
+                  Install the official Slipzo App directly to your phone. <b>Fast 1-tap setup with offline thermal billing!</b>
                 </p>
 
                 {/* Key Benefits */}
@@ -123,8 +140,8 @@ export function PwaInstallPrompt() {
                       <CheckCircle2 size={16} />
                     </div>
                     <div>
-                      <b>100% Safe & Play Protect Approved</b>
-                      <p>Built using Google WebAPK & PWA standard. Never blocked by Play Protect.</p>
+                      <b>Direct APK & Google WebAPK Install</b>
+                      <p>Instant download and 1-tap installation directly to your mobile home screen.</p>
                     </div>
                   </div>
 
@@ -133,7 +150,7 @@ export function PwaInstallPrompt() {
                       <Zap size={16} />
                     </div>
                     <div>
-                      <b>Lightning Fast & 1-Tap Offline Billing</b>
+                      <b>Lightning Fast & Offline Receipt Billing</b>
                       <p>Instant print receipts, Bluetooth printer support, and stores your bills locally.</p>
                     </div>
                   </div>
@@ -145,10 +162,18 @@ export function PwaInstallPrompt() {
                     <Download size={18} />
                     <span>Install Slipzo App (1-Tap)</span>
                   </button>
-                  <button className="pwa-guide-link" onClick={() => setShowGuide(true)}>
-                    <span>How it works & manual install guide</span>
-                    <ChevronRight size={14} />
-                  </button>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.2rem' }}>
+                    <button className="pwa-guide-link" onClick={triggerApkDownload} style={{ color: '#0f172a' }}>
+                      <Download size={14} />
+                      <span>Download APK File (.apk)</span>
+                    </button>
+                    <span style={{ color: '#cbd5e1' }}>•</span>
+                    <button className="pwa-guide-link" onClick={() => setShowGuide(true)}>
+                      <span>Install guide</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </>
             ) : (

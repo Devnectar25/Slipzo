@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Printer, X, Sliders, Check, ZoomIn, ZoomOut, CheckCircle, RefreshCw, Scissors, Sparkles } from "lucide-react"
 import { printReceiptElement } from "../lib/printReceipt"
+import { incrementFreePrintCount } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
 export function PrintModal({
@@ -43,7 +44,7 @@ export function PrintModal({
         if (parsed.fontSize) return Number(parsed.fontSize)
       } catch (_) {}
     }
-    return defaultWidth === "80mm" ? 13.5 : (defaultWidth === "a4" ? 14 : 12)
+    return defaultWidth === "80mm" ? 12 : (defaultWidth === "a4" ? 14 : 11)
   })
 
   const [density, setDensity] = useState(() => {
@@ -73,6 +74,10 @@ export function PrintModal({
   if (!isOpen) return null
 
   const handlePrint = () => {
+    // 1. Deduct 1 print from active subscription (2000 -> 1999) or free tier
+    incrementFreePrintCount()
+
+    // 2. Launch receipt thermal printer window
     printReceiptElement(elementId, {
       pageWidth,
       scale: scale / 100,

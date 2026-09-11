@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { ArrowLeft, Printer, User } from "lucide-react"
-import { call, money } from "../lib/utils"
+import { call, money, cleanTextLines } from "../lib/utils"
 import { printReceiptElement } from "../lib/printReceipt"
 import { PrintModal } from "./PrintModal"
 import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
@@ -104,9 +104,17 @@ export function Reprint({ billId, setView }) {
           {/* Shop Header */}
           <div className="receipt-shop">
             <div className="receipt-logo">S</div>
-            <h2 className="receipt-shop-name">{bill.shop_name || "Slipzo Shop"}</h2>
-            {bill.shop_address && (
-              <p className="receipt-shop-address">{bill.shop_address}</p>
+            <h2 className="receipt-shop-name">
+              {cleanTextLines(bill.shop_name || "Slipzo Shop").map((line, idx) => (
+                <div key={idx}>{line}</div>
+              ))}
+            </h2>
+            {bill.shop_address && cleanTextLines(bill.shop_address).length > 0 && (
+              <div className="receipt-shop-address">
+                {cleanTextLines(bill.shop_address).map((line, idx) => (
+                  <div key={idx}>{line}</div>
+                ))}
+              </div>
             )}
             {bill.shop_phone && (
               <p className="receipt-shop-phone">{bill.shop_phone}</p>
@@ -115,8 +123,8 @@ export function Reprint({ billId, setView }) {
 
           {/* Receipt Meta */}
           <div className="receipt-meta">
-            <span className="receipt-number">#{bill.number}</span>
-            <span className="receipt-date">
+            <span className="receipt-number" style={{ whiteSpace: 'nowrap' }}>#{bill.number}</span>
+            <span className="receipt-date" style={{ whiteSpace: 'nowrap' }}>
               {new Date(bill.created_at).toLocaleDateString("en-IN", {
                 day: "2-digit",
                 month: "short",

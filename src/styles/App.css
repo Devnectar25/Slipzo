@@ -5223,20 +5223,22 @@ body,
 }
 
 .receipt-shop .receipt-shop-name {
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0 0 0.25rem 0;
   color: #0f172a;
+  letter-spacing: 0.2px;
 }
 
 .receipt-shop p {
-  font-size: 0.65rem;
-  color: #94a3b8;
-  margin: 0.1rem 0;
+  font-size: 0.78rem;
+  color: #475569;
+  margin: 0.2rem 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
+  font-weight: 600;
 }
 
 .receipt-shop p svg {
@@ -5246,35 +5248,39 @@ body,
 .receipt-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 0.6rem;
-  color: #94a3b8;
-  margin-bottom: 0.5rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.65rem;
+  padding: 0.35rem 0;
 }
 
 .receipt-divider {
-  border-top: 1px dashed #e2e8f0;
-  margin: 0.5rem 0;
+  border-top: 1.5px dashed #cbd5e1;
+  margin: 0.65rem 0;
 }
 
 .receipt-items-header {
   display: grid;
   grid-template-columns: 2fr 0.6fr 0.8fr 1fr;
   gap: 4px;
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: #94a3b8;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #0f172a;
   text-transform: uppercase;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 0.25rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1.5px solid #0f172a;
+  margin-bottom: 0.35rem;
 }
 
 .receipt-item-row {
   display: grid;
   grid-template-columns: 2fr 0.6fr 0.8fr 1fr;
   gap: 4px;
-  font-size: 0.7rem;
-  padding: 0.15rem 0;
+  font-size: 0.82rem;
+  padding: 0.35rem 0;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .receipt-item-name {
@@ -5290,68 +5296,73 @@ body,
 }
 
 .receipt-item-amount {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .receipt-empty-items {
   text-align: center;
-  padding: 1rem 0;
+  padding: 1.25rem 0;
   color: #94a3b8;
 }
 
 .receipt-empty-items p {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.88rem;
 }
 
 .receipt-empty-items small {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
 }
 
 .receipt-totals {
-  padding-top: 0.5rem;
+  padding-top: 0.65rem;
 }
 
 .receipt-total-row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.65rem;
-  padding: 0.1rem 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0;
+  color: #334155;
 }
 
 .receipt-total-row.discount {
-  color: #94a3b8;
+  color: #0284c7;
 }
 
 .receipt-grand-total {
   display: flex;
   justify-content: space-between;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding-top: 0.5rem;
-  margin-top: 0.25rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  padding-top: 0.65rem;
+  margin-top: 0.5rem;
   border-top: 2px solid #0f172a;
+  color: #0f172a;
 }
 
 .receipt-footer {
   text-align: center;
-  padding-top: 0.5rem;
-  border-top: 1px dashed #e2e8f0;
-  margin-top: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1.5px dashed #cbd5e1;
+  margin-top: 0.65rem;
 }
 
 .receipt-payment {
   display: flex;
   justify-content: space-between;
-  font-size: 0.6rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
 }
 
 .receipt-thanks {
-  font-size: 0.6rem;
-  color: #94a3b8;
-  margin: 0;
+  font-size: 0.76rem;
+  color: #475569;
+  font-weight: 600;
+  margin: 0.25rem 0 0 0;
 }
 
 /* Preview Actions */

@@ -210,8 +210,48 @@ export const money = (n) => `₹${Number(n || 0).toFixed(2)}`
 
 export const now = () => new Date().toISOString()
 
-// ============ TEMPLATE & GUEST PRINT USAGE TRACKING ============
-// Track total guest free prints in localStorage (10 free prints limit)
+export const getActivePlanDetails = () => {
+  try {
+    const raw = localStorage.getItem("slipzo_active_plan")
+    if (raw) {
+      return JSON.parse(raw)
+    }
+  } catch (e) {}
+
+  const freeUsed = getFreePrintCount()
+  const remaining = Math.max(0, 10 - freeUsed)
+  return {
+    name: "Free Starter Tier",
+    printsRemaining: remaining,
+    totalPrints: 10,
+    usedPrints: freeUsed,
+    isFreeTier: true
+  }
+}
+
+export const activatePlan = (planName, printCount) => {
+  try {
+    const current = getActivePlanDetails()
+    const currentRemaining = current.printsRemaining || 0
+    const newTotal = (current.totalPrints || 10) + printCount
+    const newRemaining = currentRemaining + printCount
+    const planData = {
+      name: planName,
+      printsRemaining: newRemaining,
+      totalPrints: newTotal,
+      usedPrints: current.usedPrints || 0,
+      isFreeTier: false,
+      activatedAt: new Date().toISOString()
+    }
+    localStorage.setItem("slipzo_active_plan", JSON.stringify(planData))
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+    }
+    return planData
+  } catch (e) {
+    console.error("Failed to activate plan:", e)
+  }
+}
 
 export const getFreePrintCount = () => {
   try {
@@ -224,22 +264,41 @@ export const getFreePrintCount = () => {
 
 export const incrementFreePrintCount = () => {
   try {
-    const current = getFreePrintCount()
-    const next = current + 1
-    localStorage.setItem("slipzo_free_print_count", String(next))
-    return next
+    const current = getActivePlanDetails()
+    if (current.isFreeTier) {
+      const freeUsed = getFreePrintCount()
+      const next = freeUsed + 1
+      localStorage.setItem("slipzo_free_print_count", String(next))
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+      }
+      return next
+    } else {
+      const updatedRemaining = Math.max(0, current.printsRemaining - 1)
+      const updatedUsed = (current.usedPrints || 0) + 1
+      const updatedPlan = {
+        ...current,
+        printsRemaining: updatedRemaining,
+        usedPrints: updatedUsed
+      }
+      localStorage.setItem("slipzo_active_plan", JSON.stringify(updatedPlan))
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+      }
+      return updatedRemaining
+    }
   } catch {
     return 1
   }
 }
 
 export const getRemainingFreePrints = () => {
-  const used = getFreePrintCount()
-  return Math.max(0, 10 - used)
+  const plan = getActivePlanDetails()
+  return plan.printsRemaining
 }
 
 export const canPrintFree = () => {
-  return getFreePrintCount() < 10
+  return getRemainingFreePrints() > 0
 }
 
 export const getTemplateUsage = (templateId) => {
@@ -298,4 +357,27 @@ export const getTemplateUsageStatus = (templateId) => {
     canEdit: usage.edits < 2,
     canPrint: canPrintFree()
   }
+}
+
+export function cleanTextLines(text) {
+  if (!text) return []
+  return String(text)
+    .split(/\r?\n/)
+    .map(line => {
+      let cleaned = line.trim()
+      // Remove leading commas or symbols e.g. ", CHOPDA" -> "CHOPDA"
+      cleaned = cleaned.replace(/^[\s,]+/, '')
+      // Remove trailing commas
+      cleaned = cleaned.replace(/[\s,]+$/, '')
+      // Clean spaces before commas: "Shop no:12 , Hated" -> "Shop no:12, Hated"
+      cleaned = cleaned.replace(/\s+,/g, ', ')
+      // Fix multiple spaces
+      cleaned = cleaned.replace(/\s{2,}/g, ' ')
+      return cleaned
+    })
+    .filter(Boolean)
+}
+
+export function cleanTextString(text) {
+  return cleanTextLines(text).join(', ')
 }
