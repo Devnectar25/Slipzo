@@ -1,15 +1,129 @@
-import { useState } from "react"
-import { ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, ShieldCheck, HelpCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, ShieldCheck, HelpCircle, Printer, RefreshCw } from "lucide-react"
+import Swal from "sweetalert2"
+import { getActivePlanDetails, activatePlan } from "../lib/utils"
 
 export function Pricing({ setView, setShowAuth, user }) {
   const [customPrints, setCustomPrints] = useState(2500)
+  const [activePlan, setActivePlan] = useState(getActivePlanDetails())
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setActivePlan(getActivePlanDetails())
+    }
+    window.addEventListener("slipzo-quota-update", handleUpdate)
+    window.addEventListener("storage", handleUpdate)
+    return () => {
+      window.removeEventListener("slipzo-quota-update", handleUpdate)
+      window.removeEventListener("storage", handleUpdate)
+    }
+  }, [])
+
+  const handleBuyPlan = async (planName, amountInRupees, printCount) => {
+    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SIPp9QznVVM48W'
+
+    const loadRazorpay = () => {
+      return new Promise((resolve) => {
+        if (window.Razorpay) return resolve(true)
+        const script = document.createElement("script")
+        script.src = "https://checkout.razorpay.com/v1/checkout.js"
+        script.onload = () => resolve(true)
+        script.onerror = () => resolve(false)
+        document.body.appendChild(script)
+      })
+    }
+
+    const isLoaded = await loadRazorpay()
+    if (!isLoaded) {
+      Swal.fire({
+        title: "Connection Error",
+        text: "Razorpay SDK failed to load. Please check your internet connection.",
+        icon: "warning",
+        confirmButtonColor: "#0ea5e9"
+      })
+      return
+    }
+
+    const options = {
+      key: razorpayKey,
+      amount: amountInRupees * 100, // Amount in paise
+      currency: "INR",
+      name: "Slipzo Print Credits",
+      description: `${planName} (${printCount.toLocaleString()} prints)`,
+      image: "/logo.png",
+      prefill: {
+        name: user?.name || "",
+        email: user?.email || "",
+        contact: user?.shop_phone || ""
+      },
+      notes: {
+        plan_name: planName,
+        prints: printCount
+      },
+      theme: {
+        color: "#0f172a"
+      },
+      handler: function (response) {
+        console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
+        const updated = activatePlan(planName, printCount)
+        if (updated) setActivePlan(updated)
+        
+        Swal.fire({
+          title: "🎉 Payment Successful!",
+          html: `
+            <div style="text-align: center; font-size: 0.95rem; line-height: 1.6; color: #334155; padding: 0.5rem 0;">
+              <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
+                <strong>Payment ID:</strong> <code style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${response.razorpay_payment_id}</code>
+              </p>
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.85rem 1rem; border-radius: 12px; color: #166534; font-weight: 600;">
+                Your <strong>${printCount.toLocaleString()} print quota</strong> has been activated for <strong>${planName}</strong>!
+              </div>
+            </div>
+          `,
+          icon: "success",
+          confirmButtonText: "Great, Let's Print!",
+          confirmButtonColor: "#0ea5e9",
+          background: "#ffffff",
+          borderRadius: "20px"
+        })
+      },
+      modal: {
+        ondismiss: function () {
+          console.log("Razorpay modal closed")
+        }
+      }
+    }
+
+    try {
+      const rzp = new window.Razorpay(options)
+      rzp.on('payment.failed', function (response) {
+        Swal.fire({
+          title: "Payment Declined",
+          text: response.error?.description || "Transaction failed or was declined.",
+          icon: "error",
+          confirmButtonColor: "#ef4444"
+        })
+      })
+      rzp.open()
+    } catch (err) {
+      console.error("Razorpay launch error:", err)
+      Swal.fire({
+        title: "Razorpay Error",
+        text: err.message || "Failed to initialize payment gateway.",
+        icon: "error",
+        confirmButtonColor: "#ef4444"
+      })
+    }
+  }
 
   // Preset plans: 1,000, 2,000, 5,000
   const plans = [
     {
       name: "Starter Pack",
       prints: "1,000 prints",
+      numericPrints: 1000,
       price: "₹250",
+      numericPrice: 250,
       originalPrice: null,
       description: "Ideal for small shops and new merchants getting started with digital billing.",
       features: [
@@ -28,7 +142,9 @@ export function Pricing({ setView, setShowAuth, user }) {
     {
       name: "Pro Growth",
       prints: "2,000 prints",
+      numericPrints: 2000,
       price: "₹450",
+      numericPrice: 450,
       originalPrice: "₹500",
       description: "Our most popular pack for active daily checkout counters.",
       features: [
@@ -48,7 +164,9 @@ export function Pricing({ setView, setShowAuth, user }) {
     {
       name: "Business Super",
       prints: "5,000 prints",
+      numericPrints: 5000,
       price: "₹1,000",
+      numericPrice: 1000,
       originalPrice: "₹1,250",
       description: "Maximum savings for high-volume retail stores & multi-counter setups.",
       features: [
@@ -118,6 +236,81 @@ export function Pricing({ setView, setShowAuth, user }) {
         </div>
       </section>
 
+      {/* Active Subscription & Print Quota Manager Banner */}
+      <section style={{ maxWidth: '1200px', margin: '0 auto 2.5rem', padding: '0 1.5rem' }}>
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          borderRadius: '20px',
+          padding: '1.75rem 2rem',
+          border: '1.5px solid #e2e8f0',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.25rem'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <span style={{
+                  background: activePlan.isFreeTier ? '#fef3c7' : '#dcfce7',
+                  color: activePlan.isFreeTier ? '#d97706' : '#15803d',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  <ShieldCheck size={14} /> {activePlan.name || "Free Starter Tier"}
+                </span>
+                <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Active Plan</span>
+              </div>
+              <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Printer size={22} style={{ color: '#0ea5e9' }} />
+                {activePlan.printsRemaining?.toLocaleString()} prints remaining
+              </h2>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', flexWrap: 'wrap' }}>
+              <div>
+                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>TOTAL QUOTA</span>
+                <strong style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
+                  {(activePlan.totalPrints || 10).toLocaleString()} prints
+                </strong>
+              </div>
+              <div>
+                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>PRINTS USED</span>
+                <strong style={{ fontSize: '1.15rem', color: '#0ea5e9', fontWeight: 800 }}>
+                  {(activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString()} prints
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginBottom: '0.4rem' }}>
+              <span>Print Quota Consumption</span>
+              <span>
+                {Math.round(((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100)}% Used
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+              <div style={{
+                width: `${Math.min(100, Math.max(0, ((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%)',
+                borderRadius: '9999px',
+                transition: 'width 0.4s ease'
+              }} />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Preset Plans (1,000, 2,000, 5,000) */}
       <section className="pricing-plans">
         <div className="plans-grid">
@@ -179,8 +372,8 @@ export function Pricing({ setView, setShowAuth, user }) {
                 ))}
               </div>
               <button 
-                className="plan-cta primary"
-                onClick={() => user ? setView?.("contact") : (setShowAuth ? setShowAuth(true) : setView?.("contact"))}
+                className={`plan-cta ${plan.popular ? 'primary' : 'secondary'}`}
+                onClick={() => handleBuyPlan(plan.name, plan.numericPrice, plan.numericPrints)}
               >
                 {plan.cta}
                 <ArrowRight size={16} />
@@ -367,8 +560,25 @@ export function Pricing({ setView, setShowAuth, user }) {
               )}
 
               <button
-                onClick={() => user ? setView?.("contact") : (setShowAuth ? setShowAuth(true) : setView?.("contact"))}
+                onClick={() => handleBuyPlan("Custom Print Pack", calc.finalPrice, calc.count)}
                 className="custom-price-buy-btn"
+                style={{
+                  width: '100%',
+                  background: '#0ea5e9',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '12px',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 6px 20px rgba(14, 165, 233, 0.4)'
+                }}
               >
                 Buy {calc.count.toLocaleString()} Prints for ₹{calc.finalPrice.toLocaleString()}
                 <ArrowRight size={15} />

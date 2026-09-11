@@ -145,10 +145,20 @@
   .receipt-customer-line {
     display: flex !important;
     justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
     font-size: 11px !important;
     font-weight: 700 !important;
     color: #000000 !important;
     padding: 2px 0 !important;
+  }
+
+  .receipt-meta .receipt-number,
+  .receipt-meta .receipt-date,
+  .receipt-number,
+  .receipt-date {
+    white-space: nowrap !important;
   }
 
   .receipt-divider {

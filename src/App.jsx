@@ -198,7 +198,7 @@ function AppContent() {
             requireAuth={requireAuth}
           />
         )}
-        {view === "shop" && <Shop requireAuth={requireAuth} user={user} />}
+        {view === "shop" && <Shop requireAuth={requireAuth} user={user} setView={setView} />}
         {view === "pricing" && <Pricing setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "contact" && <Contact setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "reprint" && (

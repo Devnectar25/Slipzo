@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
 import { PrintModal } from "./PrintModal"
 import { BUILTIN_TEMPLATES } from "./Templates"
+import Swal from "sweetalert2"
 import {
   Plus,
   Receipt,
@@ -26,6 +27,7 @@ import {
 import {
   call,
   money,
+  cleanTextLines,
   incrementTemplatePrint,
   canPrintTemplate,
   getRemainingPrints,
@@ -342,10 +344,17 @@ export function Bill({ setView, user, requireAuth }) {
   const handlePrint = () => {
     if (!user) {
       if (!canPrintFree()) {
-        const msg = "⚠️ You have reached your limit of 10 free prints. Redirecting to pricing plans..."
+        const msg = "⚠️ You have reached your limit of 10 free prints."
         if (toastError) toastError(msg)
-        else alert(msg)
-        setView("pricing")
+        Swal.fire({
+          title: "Free Prints Limit Reached",
+          text: "You have completed your 10 free trial prints. Please choose a plan to continue printing unlimited receipts.",
+          icon: "warning",
+          confirmButtonText: "View Pricing Plans",
+          confirmButtonColor: "#0ea5e9"
+        }).then(() => {
+          setView("pricing")
+        })
         return
       }
     }
@@ -354,17 +363,22 @@ export function Bill({ setView, user, requireAuth }) {
   }
 
   const handlePrintComplete = () => {
-    if (!user) {
-      incrementFreePrintCount()
-      if (selected?.id) {
-        incrementTemplatePrint(selected.id)
-      }
-      if (!canPrintFree()) {
-        const msg = "🎉 You have completed your 10 free prints! Check out our Pricing Plans to upgrade."
-        if (toastSuccess) toastSuccess(msg)
-        else alert(msg)
+    if (selected?.id) {
+      incrementTemplatePrint(selected.id)
+    }
+    const remaining = getRemainingFreePrints()
+    if (remaining <= 0) {
+      const msg = "⚠️ You have used all prints in your quota!"
+      if (toastError) toastError(msg)
+      Swal.fire({
+        title: "Print Quota Exhausted",
+        text: "You have 0 prints remaining in your subscription. Please top up your print quota to continue printing.",
+        icon: "warning",
+        confirmButtonText: "Explore Plans",
+        confirmButtonColor: "#0ea5e9"
+      }).then(() => {
         setView("pricing")
-      }
+      })
     }
   }
 
@@ -859,11 +873,19 @@ export function Bill({ setView, user, requireAuth }) {
             {/* Shop Header */}
             <div className="receipt-shop">
               <div className="receipt-logo">S</div>
-              <h2 className="receipt-shop-name">{shop?.name || "Slipzo Shop"}</h2>
-              {shop?.address && (
-                <p className="receipt-shop-address">
-                  <MapPin size={12} /> {shop.address}
-                </p>
+              <h2 className="receipt-shop-name">
+                {cleanTextLines(shop?.name || "Slipzo Shop").map((line, idx) => (
+                  <div key={idx}>{line}</div>
+                ))}
+              </h2>
+              {shop?.address && cleanTextLines(shop.address).length > 0 && (
+                <div className="receipt-shop-address">
+                  {cleanTextLines(shop.address).map((line, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                      {idx === 0 && <MapPin size={12} />} <span>{line}</span>
+                    </div>
+                  ))}
+                </div>
               )}
               {shop?.phone && (
                 <p className="receipt-shop-phone">
@@ -879,8 +901,8 @@ export function Bill({ setView, user, requireAuth }) {
 
             {/* Receipt Meta */}
             <div className="receipt-meta">
-              <span className="receipt-number">#{customBillNumber || "SLP-DRAFT"}</span>
-              <span className="receipt-date">
+              <span className="receipt-number" style={{ whiteSpace: 'nowrap' }}>#{customBillNumber || "SLP-DRAFT"}</span>
+              <span className="receipt-date" style={{ whiteSpace: 'nowrap' }}>
                 {formattedDate} {formattedTime}
               </span>
             </div>

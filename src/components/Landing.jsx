@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import Swal from "sweetalert2"
 import {
   ArrowRight, Zap, Printer, Store, Shield, Sparkles, Users,
   Clock, Receipt, Eye, Edit, Copy, Printer as PrinterIcon,
@@ -193,8 +194,13 @@ export function Landing({ setView, setShowAuth, user }) {
     if (!user) {
       if (action === 'edit') {
         if (!canEditTemplate(template.id)) {
-          alert(`You've used all 2 edits for this template. Please sign up to get unlimited access.`)
-          setShowAuth(true)
+          Swal.fire({
+            title: "Template Edit Limit",
+            text: "You've used all 2 free edits for this template. Please sign up to get unlimited access.",
+            icon: "warning",
+            confirmButtonText: "Sign Up Free",
+            confirmButtonColor: "#0ea5e9"
+          }).then(() => setShowAuth(true))
           return
         }
         incrementTemplateEdit(template.id)
@@ -202,8 +208,13 @@ export function Landing({ setView, setShowAuth, user }) {
 
       if (action === 'use' || action === 'print') {
         if (!canPrintTemplate(template.id)) {
-          alert(`You've used all 10 prints for this template. Please sign up to get unlimited access.`)
-          setShowAuth(true)
+          Swal.fire({
+            title: "Free Prints Limit",
+            text: "You've used all 10 free prints. Please sign up to get unlimited access.",
+            icon: "warning",
+            confirmButtonText: "Sign Up Free",
+            confirmButtonColor: "#0ea5e9"
+          }).then(() => setShowAuth(true))
           return
         }
       }
@@ -662,8 +673,13 @@ export function Landing({ setView, setShowAuth, user }) {
                       setShowTemplateModal(false)
                       if (!user) {
                         if (!canEditTemplate(selectedTemplate.id)) {
-                          alert(`You've used all 2 free edits. Please sign up for unlimited access.`)
-                          setShowAuth(true)
+                          Swal.fire({
+                            title: "Edit Limit Reached",
+                            text: "You've used all 2 free edits. Please sign up for unlimited access.",
+                            icon: "warning",
+                            confirmButtonText: "Sign Up Free",
+                            confirmButtonColor: "#0ea5e9"
+                          }).then(() => setShowAuth(true))
                           return
                         }
                         incrementTemplateEdit(selectedTemplate.id)

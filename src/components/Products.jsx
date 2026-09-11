@@ -117,7 +117,7 @@ export function Products({ setView, requireAuth, user }) {
     try {
       if (products.length === 0) setLoading(true)
       const data = await call("/products")
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setProducts(data)
         const catSet = new Set(data.map(p => p.category || 'General'))
         const lowStock = data.filter(p => (p.stock || 0) < 10).length
@@ -126,14 +126,11 @@ export function Products({ setView, requireAuth, user }) {
           totalCategories: catSet.size,
           lowStockProducts: lowStock
         })
-      } else {
-        setProducts(defaultProducts)
-        setStats({ totalProducts: defaultProducts.length, totalCategories: 2, lowStockProducts: 0 })
       }
     } catch (err) {
-      console.warn("⚠️ Error fetching products, using defaults:", err.message)
-      setProducts(defaultProducts)
-      setStats({ totalProducts: defaultProducts.length, totalCategories: 2, lowStockProducts: 0 })
+      console.warn("⚠️ Error fetching products from database:", err.message)
+      setProducts([])
+      setStats({ totalProducts: 0, totalCategories: 0, lowStockProducts: 0 })
     } finally {
       setLoading(false)
     }
@@ -263,44 +260,128 @@ export function Products({ setView, requireAuth, user }) {
     setBuyerName(user?.name || "")
     setBuyerPhone(user?.shop_phone || "")
     setBuyerAddress(user?.address || "")
-    setPaymentMethod("UPI")
+    setPaymentMethod("Razorpay")
     setOrderPlaced(null)
   }
 
-  // Handle Buyer Placing Product Order
-  const handlePlaceOrder = (e) => {
+  // Handle Buyer Placing Product Order with Razorpay Integration
+  const handlePlaceOrder = async (e) => {
     e.preventDefault()
     if (!buyerName.trim() || !buyerPhone.trim()) {
       toast?.show("Please enter your name and phone number for delivery", "error")
       return
     }
 
-    setPlacingOrder(true)
-    setTimeout(() => {
-      const orderId = `ORD-SLP-${Math.floor(100000 + Math.random() * 900000)}`
-      const basePrice = buyProduct.price * buyQty
-      const taxAmount = (basePrice * (buyProduct.tax_rate || 0)) / 100
-      const totalAmount = basePrice + taxAmount
+    const basePrice = buyProduct.price * buyQty
+    const taxAmount = (basePrice * (buyProduct.tax_rate || 0)) / 100
+    const totalAmount = Math.round(basePrice + taxAmount)
+    const orderId = `ORD-SLP-${Math.floor(100000 + Math.random() * 900000)}`
 
-      const orderDetails = {
-        orderId,
-        productName: buyProduct.name,
-        quantity: buyQty,
-        unitPrice: buyProduct.price,
-        totalAmount: Math.round(totalAmount),
-        buyerName: buyerName.trim(),
-        buyerPhone: buyerPhone.trim(),
-        buyerAddress: buyerAddress.trim(),
-        paymentMethod
+    if (paymentMethod === "Razorpay" || paymentMethod === "UPI") {
+      setPlacingOrder(true)
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SIPp9QznVVM48W'
+
+      const loadRazorpay = () => {
+        return new Promise((resolve) => {
+          if (window.Razorpay) return resolve(true)
+          const script = document.createElement("script")
+          script.src = "https://checkout.razorpay.com/v1/checkout.js"
+          script.onload = () => resolve(true)
+          script.onerror = () => resolve(false)
+          document.body.appendChild(script)
+        })
       }
 
-      setOrderPlaced(orderDetails)
-      setPlacingOrder(false)
-      
-      // Update local product stock
-      setProducts(prev => prev.map(p => p.id === buyProduct.id ? { ...p, stock: Math.max(0, (p.stock || 0) - buyQty) } : p))
-      toast?.show(`🎉 Order placed successfully! Order #${orderId}`, "success")
-    }, 600)
+      const isLoaded = await loadRazorpay()
+      if (!isLoaded) {
+        toast?.show("Razorpay SDK failed to load. Please check your network.", "error")
+        setPlacingOrder(false)
+        return
+      }
+
+      const options = {
+        key: razorpayKey,
+        amount: totalAmount * 100, // Amount in paise
+        currency: "INR",
+        name: "Slipzo Receipts & POS Store",
+        description: `${buyProduct.name} (Qty: ${buyQty})`,
+        image: "/logo.png",
+        prefill: {
+          name: buyerName.trim(),
+          email: user?.email || "customer@slipzo.in",
+          contact: buyerPhone.trim()
+        },
+        notes: {
+          product_id: buyProduct.id,
+          product_name: buyProduct.name,
+          address: buyerAddress.trim()
+        },
+        theme: {
+          color: "#0f172a"
+        },
+        handler: function (response) {
+          console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
+          const orderDetails = {
+            orderId,
+            paymentId: response.razorpay_payment_id,
+            productName: buyProduct.name,
+            quantity: buyQty,
+            unitPrice: buyProduct.price,
+            totalAmount,
+            buyerName: buyerName.trim(),
+            buyerPhone: buyerPhone.trim(),
+            buyerAddress: buyerAddress.trim(),
+            paymentMethod: "Razorpay Online (UPI / Card / NetBanking)"
+          }
+
+          setOrderPlaced(orderDetails)
+          setPlacingOrder(false)
+          setProducts(prev => prev.map(p => p.id === buyProduct.id ? { ...p, stock: Math.max(0, (p.stock || 0) - buyQty) } : p))
+          toast?.show(`Payment successful! ID: ${response.razorpay_payment_id}`, "success")
+        },
+        modal: {
+          ondismiss: function () {
+            setPlacingOrder(false)
+            toast?.show("Razorpay payment modal closed", "info")
+          }
+        }
+      }
+
+      try {
+        const rzp = new window.Razorpay(options)
+        rzp.on('payment.failed', function (response) {
+          setPlacingOrder(false)
+          toast?.show(`Payment failed: ${response.error?.description || 'Transaction declined'}`, "error")
+        })
+        rzp.open()
+      } catch (err) {
+        setPlacingOrder(false)
+        console.error("Razorpay launcher error:", err)
+        toast?.show(`Razorpay launch error: ${err.message}`, "error")
+      }
+    } else {
+      // Cash on Delivery
+      setPlacingOrder(true)
+      setTimeout(() => {
+        const orderDetails = {
+          orderId,
+          paymentId: `COD-${Date.now().toString().slice(-8)}`,
+          productName: buyProduct.name,
+          quantity: buyQty,
+          unitPrice: buyProduct.price,
+          totalAmount,
+          buyerName: buyerName.trim(),
+          buyerPhone: buyerPhone.trim(),
+          buyerAddress: buyerAddress.trim(),
+          paymentMethod: "Cash on Delivery (COD)"
+        }
+
+        setOrderPlaced(orderDetails)
+        setPlacingOrder(false)
+        setProducts(prev => prev.map(p => p.id === buyProduct.id ? { ...p, stock: Math.max(0, (p.stock || 0) - buyQty) } : p))
+        toast?.show("Order placed successfully with Cash on Delivery!", "success")
+      }, 800)
+    }
   }
 
   const filteredProducts = products.filter(p => {
@@ -682,8 +763,9 @@ export function Products({ setView, requireAuth, user }) {
                       onChange={(e) => setPaymentMethod(e.target.value)}
                       style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', outline: 'none' }}
                     >
-                      <option value="UPI">UPI / QR Code</option>
-                      <option value="Cash on Delivery">Cash on Delivery (COD)</option>
+                      <option value="Razorpay">💳 Razorpay Online Gateway (UPI, Cards, NetBanking)</option>
+                      <option value="UPI">📱 UPI Direct / GPay / PhonePe</option>
+                      <option value="Cash on Delivery">📦 Cash on Delivery (COD)</option>
                     </select>
                   </div>
                 </div>

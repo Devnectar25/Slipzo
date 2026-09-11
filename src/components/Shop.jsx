@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react"
-import { ArrowRight, Store, Hash, Check, Save, AlertCircle } from "lucide-react"
-import { call, getCachedData } from "../lib/utils"
+import { ArrowRight, Store, Hash, Check, Save, AlertCircle, Printer, Zap, ShieldCheck } from "lucide-react"
+import { call, getCachedData, getActivePlanDetails } from "../lib/utils"
 import { ButtonLoader, Skeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 
@@ -21,7 +21,20 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
   return `${cleanPrefix}-${dateStr}-${seqStr}`
 }
 
-export function Shop({ user } = {}) {
+export function Shop({ user, setView } = {}) {
+  const [activePlan, setActivePlan] = useState(getActivePlanDetails())
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setActivePlan(getActivePlanDetails())
+    }
+    window.addEventListener("slipzo-quota-update", handleUpdate)
+    window.addEventListener("storage", handleUpdate)
+    return () => {
+      window.removeEventListener("slipzo-quota-update", handleUpdate)
+      window.removeEventListener("storage", handleUpdate)
+    }
+  }, [])
   const [shop, setShop] = useState(() => {
     const data = getCachedData("/shop")
     return {
@@ -232,6 +245,69 @@ export function Shop({ user } = {}) {
             These details and numbering patterns appear on every receipt you print.
           </p>
         </div>
+      </div>
+
+      {/* Active Plan & Print Quota Summary Card */}
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '1.25rem 1.5rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            background: activePlan.isFreeTier ? '#fef3c7' : '#e0f2fe',
+            color: activePlan.isFreeTier ? '#d97706' : '#0284c7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Printer size={22} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.15rem' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: activePlan.isFreeTier ? '#d97706' : '#15803d', background: activePlan.isFreeTier ? '#fef3c7' : '#dcfce7', padding: '0.15rem 0.5rem', borderRadius: '12px', textTransform: 'uppercase' }}>
+                {activePlan.name || "Free Starter Tier"}
+              </span>
+              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Active Plan</span>
+            </div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              {activePlan.printsRemaining?.toLocaleString()} / {(activePlan.totalPrints || 10).toLocaleString()} prints available
+            </h3>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setView?.("pricing")}
+          style={{
+            background: '#0f172a',
+            color: '#ffffff',
+            border: 'none',
+            padding: '0.55rem 1rem',
+            borderRadius: '10px',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            transition: 'all 0.15s'
+          }}
+        >
+          <Zap size={14} style={{ color: '#38bdf8' }} /> Manage Plan & Top Up
+        </button>
       </div>
 
       <form className="profile-form" onSubmit={saveShop} noValidate>
