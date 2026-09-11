@@ -12,15 +12,20 @@ import {
   User,
   Calendar
 } from "lucide-react"
-import { call, money } from "../lib/utils"
+import { call, money, getCachedData } from "../lib/utils"
 import { TableSkeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 
 export function History({ setView, setSelectedBillId }) {
-  const [bills, setBills] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [totalRecords, setTotalRecords] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
+  const cachedData = getCachedData("/bills?page=1&limit=10")
+  const [bills, setBills] = useState(() => {
+    if (cachedData?.bills) return cachedData.bills
+    if (Array.isArray(cachedData)) return cachedData
+    return []
+  })
+  const [loading, setLoading] = useState(() => !cachedData)
+  const [totalRecords, setTotalRecords] = useState(() => cachedData?.total || (Array.isArray(cachedData) ? cachedData.length : 0))
+  const [totalPages, setTotalPages] = useState(() => cachedData?.totalPages || 1)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
   const [search, setSearch] = useState("")
@@ -30,7 +35,7 @@ export function History({ setView, setSelectedBillId }) {
 
   const loadBills = async () => {
     try {
-      setLoading(true)
+      if (bills.length === 0) setLoading(true)
       const queryParams = new URLSearchParams({
         page: String(page),
         limit: String(limit)

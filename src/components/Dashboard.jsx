@@ -2,17 +2,27 @@
 
 import { useEffect, useState } from "react"
 import { Plus, Receipt, ArrowRight, Store, FileText, Package, Mail } from "lucide-react"
-import { call, money } from "../lib/utils"
+import { call, money, getRemainingFreePrints, getCachedData } from "../lib/utils"
 import { MetricSkeleton } from "./common/Skeleton"
 
-export function Dashboard({ setView, requireAuth }) {
-  const [stats, setStats] = useState({
-    total: 0,
-    count: 0
+export function Dashboard({ setView, requireAuth, user }) {
+  const remainingPrints = user?.prints_remaining ?? user?.remaining_prints ?? getRemainingFreePrints()
+  const [stats, setStats] = useState(() => {
+    const cachedStats = getCachedData("/bills/stats")
+    return {
+      total: Number(cachedStats?.total || 0),
+      count: Number(cachedStats?.count || 0)
+    }
   })
-  const [templateCount, setTemplateCount] = useState(0)
-  const [productCount, setProductCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [templateCount, setTemplateCount] = useState(() => {
+    const cachedTemplates = getCachedData("/templates")
+    return Array.isArray(cachedTemplates) ? cachedTemplates.length : 6
+  })
+  const [productCount, setProductCount] = useState(() => {
+    const cachedProducts = getCachedData("/products")
+    return Array.isArray(cachedProducts) ? cachedProducts.length : 5
+  })
+  const [loading, setLoading] = useState(() => !getCachedData("/bills/stats"))
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -86,11 +96,11 @@ export function Dashboard({ setView, requireAuth }) {
             </small>
           </div>
 
-          <div className="stat" onClick={() => setView("products")} style={{ cursor: "pointer" }}>
-            <span>Products</span>
-            <b>{productCount}</b>
+          <div className="stat" onClick={() => setView("pricing")} style={{ cursor: "pointer" }}>
+            <span>Total Print</span>
+            <b>{remainingPrints}</b>
             <small>
-              {productCount > 0 ? `${productCount} item${productCount === 1 ? "" : "s"} in inventory` : "Add first product"}
+              {remainingPrints > 0 ? `${remainingPrints} remaining` : "Plan limit reached"}
             </small>
           </div>
 

@@ -179,7 +179,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 ))}
               </div>
               <button 
-                className={`plan-cta ${plan.popular ? 'primary' : 'secondary'}`}
+                className="plan-cta primary"
                 onClick={() => user ? setView?.("contact") : (setShowAuth ? setShowAuth(true) : setView?.("contact"))}
               >
                 {plan.cta}
@@ -191,21 +191,8 @@ export function Pricing({ setView, setShowAuth, user }) {
       </section>
 
       {/* Interactive Custom Self-Pricing Calculator */}
-      <section className="custom-pricing-section" style={{
-        maxWidth: '1200px',
-        margin: '0 auto 3rem',
-        padding: '0 1.5rem'
-      }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-          borderRadius: '24px',
-          padding: '2.5rem 2rem',
-          color: 'white',
-          boxShadow: '0 20px 50px rgba(15, 23, 42, 0.25)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
+      <section className="custom-pricing-section">
+        <div className="custom-pricing-box">
           <div style={{
             position: 'absolute',
             top: '-60px',
@@ -250,28 +237,18 @@ export function Pricing({ setView, setShowAuth, user }) {
             {/* Controls */}
             <div>
               {/* Preset Buttons */}
-              <div style={{ marginBottom: '1.5rem' }}>
+              <div className="quick-presets-container" style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>
                   QUICK PRESETS
                 </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div className="quick-presets-grid">
                   {quickPresets.map(preset => (
                     <button
                       key={preset}
                       onClick={() => setCustomPrints(preset)}
-                      style={{
-                        background: customPrints === preset ? '#0ea5e9' : 'rgba(255, 255, 255, 0.08)',
-                        color: 'white',
-                        border: customPrints === preset ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.12)',
-                        padding: '0.45rem 0.85rem',
-                        borderRadius: '10px',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
+                      className={`preset-card-btn ${customPrints === preset ? 'active' : ''}`}
                     >
-                      {preset.toLocaleString()} prints
+                      <span className="preset-count-text">{preset.toLocaleString()} prints</span>
                     </button>
                   ))}
                 </div>
@@ -323,7 +300,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   }}
                 />
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                <div className="slider-marks" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem', gap: '0.25rem', flexWrap: 'wrap' }}>
                   <span>100 prints</span>
                   <span>5,000 prints</span>
                   <span>10,000 prints</span>
@@ -333,7 +310,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             </div>
 
             {/* Self Price Output Card */}
-            <div style={{
+            <div className="self-price-card" style={{
               background: 'rgba(255, 255, 255, 0.07)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '20px',
@@ -345,7 +322,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 YOUR SELF PRICE
               </p>
               
-              <div style={{ fontSize: '3rem', fontWeight: 800, color: 'white', lineHeight: 1, margin: '0.25rem 0' }}>
+              <div className="self-price-amount" style={{ fontSize: '3rem', fontWeight: 800, color: 'white', lineHeight: 1, margin: '0.25rem 0' }}>
                 ₹{calc.finalPrice.toLocaleString()}
               </div>
 
@@ -361,7 +338,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               </div>
 
               {calc.savings > 0 ? (
-                <div style={{
+                <div className="self-price-savings-badge" style={{
                   background: 'rgba(16, 185, 129, 0.18)',
                   border: '1px solid rgba(16, 185, 129, 0.35)',
                   color: '#34d399',
@@ -391,26 +368,10 @@ export function Pricing({ setView, setShowAuth, user }) {
 
               <button
                 onClick={() => user ? setView?.("contact") : (setShowAuth ? setShowAuth(true) : setView?.("contact"))}
-                style={{
-                  width: '100%',
-                  background: '#0ea5e9',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.85rem 1.25rem',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 6px 20px rgba(14, 165, 233, 0.4)'
-                }}
+                className="custom-price-buy-btn"
               >
                 Buy {calc.count.toLocaleString()} Prints for ₹{calc.finalPrice.toLocaleString()}
-                <ArrowRight size={18} />
+                <ArrowRight size={15} />
               </button>
 
               <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
@@ -423,19 +384,8 @@ export function Pricing({ setView, setShowAuth, user }) {
       </section>
 
       {/* Pricing Comparison Table */}
-      <section className="pricing-comparison" style={{ 
-        padding: '1rem 2rem 1rem',
-        maxWidth: '1200px',
-        margin: '0 auto'
-      }}>
-        <div style={{ 
-          background: 'white', 
-          borderRadius: '20px', 
-          border: '1px solid #e2e8f0',
-          overflow: 'hidden',
-          padding: '1.75rem',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.03)'
-        }}>
+      <section className="pricing-comparison">
+        <div className="pricing-comparison-box">
           <h3 style={{ 
             textAlign: 'center', 
             fontSize: '1.35rem', 

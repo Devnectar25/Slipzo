@@ -187,7 +187,7 @@ function AppContent() {
       requireAuth={requireAuth}
     >
       <ErrorBoundary onGoHome={() => setView("dashboard")} onReset={() => setView("dashboard")}>
-        {view === "dashboard" && <Dashboard setView={setView} requireAuth={requireAuth} />}
+        {view === "dashboard" && <Dashboard setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "templates" && <Templates setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "bills" && <Bill setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "products" && <Products setView={setView} requireAuth={requireAuth} user={user} />}

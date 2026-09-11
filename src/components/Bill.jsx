@@ -31,7 +31,8 @@ import {
   getRemainingPrints,
   canPrintFree,
   getRemainingFreePrints,
-  incrementFreePrintCount
+  incrementFreePrintCount,
+  getCachedData
 } from "../lib/utils"
 import { ReceiptSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -64,10 +65,16 @@ function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PRE
 }
 
 export function Bill({ setView, user, requireAuth }) {
-  const [templates, setTemplates] = useState([])
-  const [selectedId, setSelectedId] = useState(() => sessionStorage.getItem("slipzo-template") || "")
-  const [shop, setShop] = useState({})
-  const [customers, setCustomers] = useState([])
+  const cachedTemplates = getCachedData("/templates")
+  const cachedShop = getCachedData("/shop")
+
+  const [templates, setTemplates] = useState(() => {
+    if (Array.isArray(cachedTemplates) && cachedTemplates.length > 0) return cachedTemplates
+    return user ? [] : GUEST_TEMPLATES
+  })
+  const [selectedId, setSelectedId] = useState(() => sessionStorage.getItem("slipzo-template") || (cachedTemplates?.[0]?.id || ""))
+  const [shop, setShop] = useState(() => cachedShop || {})
+  const [customers, setCustomers] = useState(() => getCachedData("/customers") || [])
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [items, setItems] = useState([{ id: 1, name: "", quantity: 1, rate: "" }])
   const [discount, setDiscount] = useState("")
@@ -75,9 +82,18 @@ export function Bill({ setView, user, requireAuth }) {
   const [payment, setPayment] = useState("Cash")
   const [saved, setSaved] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [initialLoading, setInitialLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(() => !(cachedTemplates && cachedShop))
   const [error, setError] = useState(null)
-  const [customBillNumber, setCustomBillNumber] = useState("")
+  const [customBillNumber, setCustomBillNumber] = useState(() => {
+    if (cachedShop) {
+      return generateClientBillNumber(
+        cachedShop.invoice_prefix || "SLP",
+        cachedShop.invoice_sequence || 1001,
+        cachedShop.invoice_format || "PREFIX-DATE-SEQ"
+      )
+    }
+    return ""
+  })
   const [editingBillNumber, setEditingBillNumber] = useState(false)
   const [activeMobileTab, setActiveMobileTab] = useState("edit") // "edit" | "preview"
   const [showQuickCustomerModal, setShowQuickCustomerModal] = useState(false)
@@ -93,7 +109,7 @@ export function Bill({ setView, user, requireAuth }) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        setInitialLoading(true)
+        if (!cachedTemplates && !cachedShop) setInitialLoading(true)
         setError(null)
 
         if (!user) {
@@ -457,130 +473,78 @@ export function Bill({ setView, user, requireAuth }) {
           <h2>Create Bill</h2>
           <p className="subtle">Add items and generate a professional receipt</p>
         </div>
-        <div className="bill-header-actions">
-          <button
-            data-testid="reset-bill-button"
-            className="secondary-button"
-            onClick={resetForm}
-          >
-            <X size={16} /> Reset
-          </button>
-          <button
-            data-testid="save-bill-button"
-            className="primary-button"
-            onClick={saveBill}
-            disabled={loading}
-          >
-            {loading ? (
-              <ButtonLoader text="Saving..." />
-            ) : (
-              <>
-                <Save size={16} /> {!user ? "Sign up to save" : "Save Bill"}
-              </>
-            )}
-          </button>
-          <button
-            data-testid="print-receipt-button"
-            className="print-button"
-            onClick={handlePrint}
-            disabled={isPrinting}
-          >
-            {isPrinting ? (
-              <ButtonLoader text="Printing..." />
-            ) : (
-              <>
-                <Printer size={16} /> Print
-              </>
-            )}
-          </button>
-        </div>
       </div>
 
       {renderUsageInfo()}
 
-      {/* Mobile Tab Switcher */}
-      <div className="mobile-view-tabs">
-        <button
-          className={`mobile-tab-btn ${activeMobileTab === "edit" ? "active" : ""}`}
-          onClick={() => setActiveMobileTab("edit")}
-        >
-          <FileEdit size={16} /> Edit Bill ({items.length} items)
-        </button>
-        <button
-          className={`mobile-tab-btn ${activeMobileTab === "preview" ? "active" : ""}`}
-          onClick={() => setActiveMobileTab("preview")}
-        >
-          <Eye size={16} /> Live Preview ({money(total)})
-        </button>
-      </div>
-
       <div className={`bill-grid ${activeMobileTab === "preview" ? "show-mobile-preview" : "show-mobile-edit"}`}>
-        {/* LEFT - Bill Editor */}
-        <div className="bill-editor-panel">
-          {/* Top Row: Template & Customer & Bill # */}
-          <div className="editor-section-row">
-            {/* Template Selector */}
-            <div className="editor-section flex-1">
-              <label className="field-label">
-                <span>Receipt Template</span>
-                <select
-                  data-testid="bill-template-select"
-                  value={selected?.id || ""}
-                  onChange={(e) => setSelectedId(e.target.value)}
-                  className="template-select"
-                >
-                  {Array.isArray(templates) &&
-                    templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} {t.is_default ? "(Default)" : ""} ({t.width})
-                      </option>
-                    ))}
-                </select>
-              </label>
-            </div>
-
-            {/* Customer Selector */}
-            {user && (
+        {/* LEFT - Bill Editor Column */}
+        <div className="bill-editor-column">
+          <div className="bill-editor-panel">
+            {/* Top Row: Template & Customer */}
+            <div className="editor-section-row">
+              {/* Template Selector */}
               <div className="editor-section flex-1">
-                <div className="customer-field-header">
-                  <span className="field-label-text">Customer (Optional)</span>
-                  <button
-                    type="button"
-                    className="ghost-text-btn"
-                    onClick={() => setShowQuickCustomerModal(true)}
-                  >
-                    <Plus size={13} /> Quick Add
-                  </button>
-                </div>
-                <div className="customer-select-row">
+                <label className="field-label">
+                  <span>Receipt Template</span>
                   <select
+                    data-testid="bill-template-select"
+                    value={selected?.id || ""}
+                    onChange={(e) => setSelectedId(e.target.value)}
                     className="template-select"
-                    value={selectedCustomer?.id || ""}
-                    onChange={(e) => {
-                      const cust = customers.find((c) => c.id === e.target.value) || null
-                      setSelectedCustomer(cust)
-                    }}
                   >
-                    <option value="">-- Walk-in / Unassigned --</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} {c.phone ? `(${c.phone})` : ""}
-                      </option>
-                    ))}
+                    {Array.isArray(templates) &&
+                      templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} {t.is_default ? "(Default)" : ""} ({t.width})
+                        </option>
+                      ))}
                   </select>
-                  {selectedCustomer && (
-                    <button
-                      className="icon-button small"
-                      title="Clear customer"
-                      onClick={() => setSelectedCustomer(null)}
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
+                </label>
               </div>
-            )}
-          </div>
+
+              {/* Customer Selector */}
+              {user && (
+                <div className="editor-section flex-1">
+                  <div className="customer-field-header">
+                    <span className="field-label-text">Customer (Optional)</span>
+                    <button
+                      type="button"
+                      className="ghost-text-btn"
+                      onClick={() => setShowQuickCustomerModal(true)}
+                    >
+                      <Plus size={13} /> Quick Add
+                    </button>
+                  </div>
+                  <div className="customer-select-row">
+                    <select
+                      className="template-select"
+                      value={selectedCustomer?.id || ""}
+                      onChange={(e) => {
+                        const cust = customers.find((c) => c.id === e.target.value) || null
+                        setSelectedCustomer(cust)
+                      }}
+                    >
+                      <option value="">-- Walk-in / Unassigned --</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} {c.phone ? `(${c.phone})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedCustomer && (
+                      <button
+                        className="icon-button small"
+                        title="Clear customer"
+                        onClick={() => setSelectedCustomer(null)}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
           {/* Invoice Numbering Strip */}
           <div className="invoice-number-strip">
@@ -831,6 +795,46 @@ export function Bill({ setView, user, requireAuth }) {
           )}
         </div>
 
+        {/* Action Buttons: Reset, Save Bill, Print */}
+        <div className="bill-actions-bar">
+          <button
+            data-testid="reset-bill-button"
+            className="secondary-button"
+            onClick={resetForm}
+          >
+            <X size={15} /> Reset
+          </button>
+          <button
+            data-testid="save-bill-button"
+            className="primary-button"
+            onClick={saveBill}
+            disabled={loading}
+          >
+            {loading ? (
+              <ButtonLoader text="Saving..." />
+            ) : (
+              <>
+                <Save size={15} /> {!user ? "Sign up to save" : "Save Bill"}
+              </>
+            )}
+          </button>
+          <button
+            data-testid="print-receipt-button"
+            className="print-button"
+            onClick={handlePrint}
+            disabled={isPrinting}
+          >
+            {isPrinting ? (
+              <ButtonLoader text="Printing..." />
+            ) : (
+              <>
+                <Printer size={15} /> Print
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
         {/* RIGHT - Receipt Preview */}
         <div className="receipt-preview-panel">
           <div className="preview-header">
@@ -1001,33 +1005,7 @@ export function Bill({ setView, user, requireAuth }) {
         </div>
       </div>
 
-      {/* Bottom Bill Actions */}
-      <div className="bill-bottom-actions">
 
-        {/* Mobile Tab Switcher (Bottom) */}
-        <div className="mobile-view-tabs">
-          <button
-            data-testid="bottom-edit-tab-button"
-            className={`mobile-tab-btn ${activeMobileTab === "edit" ? "active" : ""}`}
-            onClick={() => {
-              setActiveMobileTab("edit")
-              window.scrollTo({ top: 0, behavior: "smooth" })
-            }}
-          >
-            <FileEdit size={16} /> Edit Bill ({items.length} items)
-          </button>
-          <button
-            data-testid="bottom-preview-tab-button"
-            className={`mobile-tab-btn ${activeMobileTab === "preview" ? "active" : ""}`}
-            onClick={() => {
-              setActiveMobileTab("preview")
-              window.scrollTo({ top: 0, behavior: "smooth" })
-            }}
-          >
-            <Eye size={16} /> Live Preview ({money(total)})
-          </button>
-        </div>
-      </div>
 
       {/* Quick Add Customer Modal */}
       {showQuickCustomerModal && (

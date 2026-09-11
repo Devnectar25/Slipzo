@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react"
 import { ArrowRight, Store, Hash, Check, Save, AlertCircle } from "lucide-react"
-import { call } from "../lib/utils"
+import { call, getCachedData } from "../lib/utils"
 import { ButtonLoader, Skeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 
@@ -16,23 +16,26 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
   const seqStr = String(sequence || 1001).padStart(4, "0")
 
   if (format === "PREFIX-SEQ") return `${cleanPrefix}-${seqStr}`
-  if (format === "PREFIX-SHORTDATE-SEQ") return `${cleanPrefix}-${shortDateStr}-${seqStr}`
+  if (format === "PREFIX-YEAR-SEQ") return `${cleanPrefix}-${shortYear}-${seqStr}`
   if (format === "SEQ") return seqStr
   return `${cleanPrefix}-${dateStr}-${seqStr}`
 }
 
 export function Shop({ user } = {}) {
-  const [shop, setShop] = useState({
-    name: "",
-    address: "",
-    phone: "",
-    invoice_prefix: "SLP",
-    invoice_sequence: 1001,
-    invoice_format: "PREFIX-DATE-SEQ"
+  const [shop, setShop] = useState(() => {
+    const data = getCachedData("/shop")
+    return {
+      name: data?.name || "",
+      address: data?.address || "",
+      phone: data?.phone || "",
+      invoice_prefix: data?.invoice_prefix || "SLP",
+      invoice_sequence: data?.invoice_sequence || 1001,
+      invoice_format: data?.invoice_format || "PREFIX-DATE-SEQ"
+    }
   })
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(() => Boolean(getCachedData("/shop")))
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
   const edited = useRef(false)
