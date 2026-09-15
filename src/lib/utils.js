@@ -92,7 +92,10 @@ export const call = async (path, options = {}) => {
       invalidateApiCache('/bills')
       invalidateApiCache('/bills/stats')
     }
-    else if (cleanPath.startsWith('/products')) invalidateApiCache('/products')
+    else if (cleanPath.startsWith('/products') || cleanPath.startsWith('/menu')) {
+      invalidateApiCache('/products')
+      invalidateApiCache('/menu')
+    }
     else if (cleanPath.startsWith('/shop')) invalidateApiCache('/shop')
     else if (cleanPath.startsWith('/customers')) invalidateApiCache('/customers')
     else if (cleanPath.startsWith('/auth/logout')) clearApiCache()
@@ -127,14 +130,23 @@ export const call = async (path, options = {}) => {
     }
   }
 
-  return executeFetch(cleanPath, options)
+  try {
+    return await executeFetch(cleanPath, options)
+  } catch (err) {
+    throw err
+  }
 }
 
 const revalidateInBackground = async (cleanPath, options) => {
   try {
     await executeFetch(cleanPath, { ...options, isRevalidation: true })
   } catch (e) {
-    // Ignore background revalidation errors
+    if (cleanPath.startsWith('/menu')) {
+      try {
+        const fallbackPath = cleanPath.replace('/menu', '/products')
+        await executeFetch(fallbackPath, { ...options, isRevalidation: true })
+      } catch (e2) {}
+    }
   }
 }
 
@@ -210,15 +222,43 @@ export const money = (n) => `₹${Number(n || 0).toFixed(2)}`
 
 export const now = () => new Date().toISOString()
 
-export const getCurrentUserKey = () => {
+export const getCurrentUserKey = (user) => {
+  if (typeof user === 'string' && user.trim()) return user.trim()
+  if (user && typeof user === 'object') {
+    if (user.email) return String(user.email).trim()
+    if (user.id) return String(user.id).trim()
+  }
   try {
     const userRaw = typeof window !== 'undefined' ? localStorage.getItem('slipzo_user_info') : null
     if (userRaw) {
       const u = JSON.parse(userRaw)
-      if (u?.email || u?.id) return u.email || u.id
+      if (u?.email) return String(u.email).trim()
+      if (u?.id) return String(u.id).trim()
     }
   } catch (e) {}
   return "guest"
+}
+
+export const getStoredMenuItems = (user) => {
+  const key = getCurrentUserKey(user)
+  try {
+    const raw = localStorage.getItem(`slipzo_menu_items_${key}`)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed
+    }
+  } catch (e) {}
+  return []
+}
+
+export const saveStoredMenuItems = (items, user) => {
+  const key = getCurrentUserKey(user)
+  try {
+    localStorage.setItem(`slipzo_menu_items_${key}`, JSON.stringify(items || []))
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { userKey: key } }))
+    }
+  } catch (e) {}
 }
 
 export const getActivePlanDetails = (userKey) => {
@@ -420,4 +460,50 @@ export function cleanTextLines(text) {
 
 export function cleanTextString(text) {
   return cleanTextLines(text).join(', ')
+}
+
+export function findTemplateMatch(templatesList, targetId) {
+  if (!Array.isArray(templatesList) || templatesList.length === 0 || !targetId) return null
+  const targetStr = String(targetId).trim().toLowerCase()
+
+  // 1. Direct ID match or templateId match
+  let matched = templatesList.find(t => t.id === targetId || String(t.templateId) === String(targetId))
+  if (matched) return matched
+
+  // 2. Name exact match
+  matched = templatesList.find(t => (t.name || "").trim().toLowerCase() === targetStr)
+  if (matched) return matched
+
+  // 3. Known aliases / key mappings between builtin template keys & DB template names/IDs
+  const aliasMap = {
+    "classic": ["classic", "1", "classic receipt"],
+    "1": ["classic", "1", "classic receipt"],
+    "minimal": ["minimal", "2", "minimal clean bill"],
+    "2": ["minimal", "2", "minimal clean bill"],
+    "pro": ["pro", "3", "shop pro"],
+    "3": ["pro", "3", "shop pro"],
+    "eco": ["eco", "4", "eco print"],
+    "4": ["eco", "4", "eco print"],
+    "modern": ["modern", "5", "modern shop"],
+    "5": ["modern", "5", "modern shop"],
+    "elite": ["elite", "6", "business elite"],
+    "6": ["elite", "6", "business elite"]
+  }
+
+  const aliases = aliasMap[targetStr]
+  if (aliases) {
+    matched = templatesList.find(t => {
+      const tId = String(t.id || "").toLowerCase()
+      const tTplId = String(t.templateId || "").toLowerCase()
+      const tName = String(t.name || "").toLowerCase()
+      return aliases.some(a => tId === a || tTplId === a || tName.includes(a))
+    })
+    if (matched) return matched
+  }
+
+  // 4. Partial name match
+  matched = templatesList.find(t => (t.name || "").toLowerCase().includes(targetStr))
+  if (matched) return matched
+
+  return null
 }

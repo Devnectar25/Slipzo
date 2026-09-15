@@ -64,12 +64,19 @@ export function PrintModal({
   const [showTax, setShowTax] = useState(true)
   const [showFooter, setShowFooter] = useState(true)
 
-  // Update width if defaultWidth prop changes and no saved setting
+  // Update width if defaultWidth prop changes or when modal opens
   useEffect(() => {
-    if (defaultWidth && !localStorage.getItem("slipzo_print_settings")) {
+    if (defaultWidth) {
       setPageWidth(defaultWidth)
+      if (defaultWidth === "a4") {
+        setFontSize(13.5)
+      } else if (defaultWidth === "55mm") {
+        setFontSize(10)
+      } else if (defaultWidth === "80mm") {
+        setFontSize(11.5)
+      }
     }
-  }, [defaultWidth])
+  }, [defaultWidth, isOpen])
 
   if (!isOpen) return null
 
@@ -119,7 +126,7 @@ export function PrintModal({
     setShowFooter(true)
   }
 
-  const previewWidthStyle = pageWidth === "a4" ? "100%" : (pageWidth === "80mm" ? "320px" : "240px")
+  const previewWidthStyle = pageWidth === "a4" ? "100%" : (pageWidth === "80mm" ? "320px" : (pageWidth === "55mm" ? "220px" : "240px"))
 
   return (
     <div className="modal-backdrop print-modal-backdrop fade-in" onClick={onClose}>
@@ -163,10 +170,21 @@ export function PrintModal({
               <div className="paper-format-pills">
                 <button
                   type="button"
+                  className={`paper-format-btn ${pageWidth === "55mm" ? "active" : ""}`}
+                  onClick={() => {
+                    setPageWidth("55mm")
+                    if (fontSize > 10.5) setFontSize(10)
+                  }}
+                >
+                  <span className="format-name">55mm Thermal</span>
+                  <span className="format-desc">2-inch Compact Roll</span>
+                </button>
+                <button
+                  type="button"
                   className={`paper-format-btn ${pageWidth === "58mm" ? "active" : ""}`}
                   onClick={() => {
                     setPageWidth("58mm")
-                    if (fontSize > 11) setFontSize(10)
+                    if (fontSize > 11) setFontSize(10.5)
                   }}
                 >
                   <span className="format-name">58mm Thermal</span>

@@ -15,13 +15,16 @@ import {
   Package,
   Mail,
   Tag,
-  Printer
+  Printer,
+  Utensils,
+  List
 } from "lucide-react"
 import { getRemainingFreePrints, getActivePlanDetails } from "../lib/utils"
 
 const navItems = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard, protected: false },
   { id: "bills", label: "New bill", icon: Receipt, protected: true },
+  { id: "menu", label: "Menu", icon: List, protected: true },
   { id: "templates", label: "Templates", icon: FileText, protected: true },
   { id: "products", label: "Products", icon: Package, protected: true },
   { id: "history", label: "Bill history", icon: Store, protected: true },
@@ -35,7 +38,6 @@ const mobileNavItems = [
   { id: "dashboard", label: "Home", icon: LayoutDashboard },
   { id: "bills", label: "New Bill", icon: PlusCircle },
   { id: "templates", label: "Templates", icon: LayoutTemplate },
-  { id: "pricing", label: "Pricing", icon: Tag },
   { id: "history", label: "History", icon: History }
 ]
 

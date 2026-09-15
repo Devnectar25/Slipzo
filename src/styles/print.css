@@ -4,8 +4,38 @@
 
 @media print {
   @page {
+    size: 80mm 297mm;
     margin: 0;
-    size: auto;
+  }
+
+  body.width-80mm @page,
+  .width-80mm @page,
+  body.format-80mm @page,
+  .format-80mm @page {
+    size: 80mm 297mm;
+    margin: 0;
+  }
+
+  body.width-55mm @page,
+  .width-55mm @page,
+  body.format-55mm @page,
+  .format-55mm @page {
+    size: 55mm 297mm;
+    margin: 0;
+  }
+
+  body.width-58mm @page,
+  .width-58mm @page,
+  body.format-58mm @page,
+  .format-58mm @page {
+    size: 58mm 297mm;
+    margin: 0;
+  }
+
+  body.format-a4 @page,
+  .format-a4 @page {
+    size: A4 portrait;
+    margin: 8mm;
   }
 
   /* Reset all outer parent containers so receipt renders cleanly */
@@ -27,7 +57,8 @@
     position: static !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
@@ -36,6 +67,28 @@
     border: none !important;
     box-shadow: none !important;
     background: #ffffff !important;
+  }
+
+  body.width-55mm,
+  body.format-55mm,
+  .width-55mm html,
+  .format-55mm html {
+    width: 55mm !important;
+    max-width: 55mm !important;
+  }
+
+  body.width-58mm,
+  body.format-58mm,
+  .width-58mm html,
+  .format-58mm html {
+    width: 58mm !important;
+    max-width: 58mm !important;
+  }
+
+  body.format-a4,
+  .format-a4 html {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   /* Explicitly hide all non-receipt UI elements */
@@ -83,8 +136,8 @@
     display: block !important;
     visibility: visible !important;
     position: relative !important;
-    margin: 0 auto !important;
-    padding: 1mm 1mm !important;
+    margin: 0 !important;
+    padding: 0.5mm 0.5mm 1mm 0.5mm !important;
     background: #ffffff !important;
     color: #000000 !important;
     box-shadow: none !important;
@@ -93,15 +146,42 @@
     font-size: 11px !important;
     line-height: 1.35 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace, sans-serif !important;
-    width: 100% !important;
-    max-width: 58mm !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    height: auto !important;
+    min-height: 0 !important;
     box-sizing: border-box !important;
-    page-break-inside: avoid !important;
+    page-break-inside: auto !important;
+  }
+
+  .width-55mm #receipt-to-print,
+  #receipt-to-print.width-55mm,
+  .format-55mm #receipt-to-print,
+  #receipt-to-print.format-55mm {
+    width: 55mm !important;
+    max-width: 55mm !important;
+  }
+
+  .width-58mm #receipt-to-print,
+  #receipt-to-print.width-58mm,
+  .format-58mm #receipt-to-print,
+  #receipt-to-print.format-58mm {
+    width: 58mm !important;
+    max-width: 58mm !important;
   }
 
   .width-80mm #receipt-to-print,
-  #receipt-to-print.width-80mm {
+  #receipt-to-print.width-80mm,
+  .format-80mm #receipt-to-print,
+  #receipt-to-print.format-80mm {
+    width: 80mm !important;
     max-width: 80mm !important;
+  }
+
+  .format-a4 #receipt-to-print,
+  #receipt-to-print.format-a4 {
+    width: 100% !important;
+    max-width: 190mm !important;
   }
 
   #receipt-to-print * {
@@ -127,6 +207,8 @@
     font-weight: 900 !important;
     margin: 0 0 2px 0 !important;
     color: #000000 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
   }
 
   .receipt-shop p {
@@ -134,6 +216,8 @@
     font-weight: 700 !important;
     margin: 1px 0 !important;
     color: #000000 !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
   }
 
   .receipt-shop p svg {
@@ -152,6 +236,7 @@
     font-weight: 700 !important;
     color: #000000 !important;
     padding: 2px 0 !important;
+    word-break: break-word !important;
   }
 
   .receipt-meta .receipt-number,
@@ -175,6 +260,8 @@
     font-weight: 900 !important;
     padding: 2px 0 !important;
     border-bottom: 1px solid #000000 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .receipt-item-row {
@@ -184,22 +271,31 @@
     font-size: 11px !important;
     font-weight: 700 !important;
     padding: 2px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    align-items: start !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .receipt-item-name {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
     font-weight: 700 !important;
   }
 
   .receipt-item-qty {
     text-align: center !important;
+    white-space: nowrap !important;
   }
 
   .receipt-item-rate,
   .receipt-item-amount {
     text-align: right !important;
+    white-space: nowrap !important;
   }
 
   .receipt-empty-items {
@@ -211,6 +307,8 @@
   /* Totals */
   .receipt-totals {
     padding-top: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .receipt-total-row {
@@ -219,6 +317,10 @@
     font-size: 11px !important;
     font-weight: 700 !important;
     padding: 1px 0 !important;
+  }
+
+  .receipt-total-row span:last-child {
+    white-space: nowrap !important;
   }
 
   .receipt-total-row.discount {
@@ -233,6 +335,12 @@
     padding-top: 4px !important;
     margin-top: 4px !important;
     border-top: 2px solid #000000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .receipt-grand-total span:last-child {
+    white-space: nowrap !important;
   }
 
   /* Footer */
@@ -241,6 +349,8 @@
     padding-top: 4px !important;
     border-top: 1px dashed #000000 !important;
     margin-top: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   .receipt-payment {

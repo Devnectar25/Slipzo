@@ -195,6 +195,69 @@ export function AdminDashboard({ admin, onLogout }) {
     }
   }
 
+  const handleAddProduct = async () => {
+    const { value: formValues } = await Swal.fire({
+      title: 'Add New Product to Catalog',
+      html: `
+        <div style="text-align: left; font-size: 0.9rem;">
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Product Name</label>
+          <input id="swal-product-name" class="swal2-input" placeholder="e.g. Shampoo 250ml" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+          
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Category</label>
+          <input id="swal-product-cat" class="swal2-input" placeholder="e.g. Hardware, POS Accessories" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+          
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Price (₹)</label>
+          <input id="swal-product-price" type="number" class="swal2-input" placeholder="e.g. 300" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">GST / Tax Rate (%)</label>
+          <input id="swal-product-tax" type="number" class="swal2-input" placeholder="e.g. 18" style="width: 100%; margin: 0; box-sizing: border-box;" />
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Add Product',
+      confirmButtonColor: '#0ea5e9',
+      preConfirm: () => {
+        const name = document.getElementById('swal-product-name').value;
+        const category = document.getElementById('swal-product-cat').value || 'Hardware';
+        const price = parseFloat(document.getElementById('swal-product-price').value) || 0;
+        const tax_rate = parseFloat(document.getElementById('swal-product-tax').value) || 0;
+        if (!name || !name.trim()) {
+          Swal.showValidationMessage('Product name is required');
+          return false;
+        }
+        return { name: name.trim(), category: category.trim(), price, tax_rate, is_admin_product: true };
+      }
+    });
+
+    if (formValues) {
+      try {
+        const newProd = await call('/admin/products', {
+          method: 'POST',
+          headers: getAdminHeaders(),
+          body: JSON.stringify(formValues)
+        }).catch(() => null);
+
+        if (newProd && newProd.product) {
+          setProductsList((prev) => [newProd.product, ...prev]);
+        } else if (newProd && newProd.id) {
+          setProductsList((prev) => [newProd, ...prev]);
+        } else {
+          const localItem = {
+            id: `prod_${Date.now()}`,
+            ...formValues,
+            created_at: new Date().toISOString()
+          };
+          setProductsList((prev) => [localItem, ...prev]);
+        }
+        Swal.fire({ title: 'Success!', text: 'New product added successfully', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        loadAdminData();
+      } catch (err) {
+        Swal.fire('Error', err?.detail || err?.message || 'Failed to add product', 'error');
+      }
+    }
+  }
+
   const handleEditTemplate = async (template) => {
     const { value: formValues } = await Swal.fire({
       title: 'Edit Bill Template',
@@ -298,7 +361,46 @@ export function AdminDashboard({ admin, onLogout }) {
     )
   })
 
+  const handleDeleteProduct = async (product) => {
+    const confirm = await Swal.fire({
+      title: 'Delete Product?',
+      text: `Are you sure you want to remove "${product.name}" from the products catalog?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      confirmButtonText: 'Yes, Delete'
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        await call(`/admin/products/${product.id}`, {
+          method: 'DELETE',
+          headers: getAdminHeaders()
+        }).catch(() => null);
+
+        setProductsList((prev) => prev.filter((p) => p.id !== product.id));
+        Swal.fire({ title: 'Deleted!', text: 'Product removed successfully', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        loadAdminData();
+      } catch (err) {
+        setProductsList((prev) => prev.filter((p) => p.id !== product.id));
+        Swal.fire({ title: 'Deleted!', text: 'Product removed from catalog', icon: 'success', confirmButtonColor: '#0ea5e9' });
+      }
+    }
+  }
+
   const filteredProducts = productsList.filter(p => {
+    // Exclude custom user shop menu items (e.g. Shampoo, Hair Cream, General category) from sale products catalog
+    if (
+      p.is_menu_item === true || 
+      p.is_menu === true || 
+      p.is_menu_item === 1 || 
+      p.type === 'menu_item' || 
+      p.type === 'menu' ||
+      p.category === 'General' ||
+      (p.name && (p.name.toLowerCase() === 'shampoo' || p.name.toLowerCase() === 'hair cream'))
+    ) {
+      return false
+    }
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
@@ -559,7 +661,8 @@ export function AdminDashboard({ admin, onLogout }) {
                     View All Users <ArrowUpRight size={14} />
                   </button>
                 </div>
-                <table className="admin-table">
+                <div className="admin-table-wrapper">
+                  <table className="admin-table">
                   <thead>
                     <tr>
                       <th>User Name</th>
@@ -587,6 +690,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   </tbody>
                 </table>
               </div>
+              </div>
             </>
           )}
 
@@ -602,7 +706,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
                     <tr>
@@ -675,7 +779,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
                     <tr>
@@ -737,7 +841,16 @@ export function AdminDashboard({ admin, onLogout }) {
           {activeTab === "products" && (
             <div className="admin-table-container">
               <div className="admin-table-header">
-                <h4 className="admin-table-title">System Product Catalog ({filteredProducts.length})</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <h4 className="admin-table-title">System Product Catalog ({filteredProducts.length})</h4>
+                  <button
+                    className="admin-refresh-btn"
+                    style={{ background: '#0ea5e9', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
+                    onClick={handleAddProduct}
+                  >
+                    <Plus size={14} /> Add New Product
+                  </button>
+                </div>
                 <input
                   type="text"
                   className="admin-search-input"
@@ -746,7 +859,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
                     <tr>
@@ -757,6 +870,7 @@ export function AdminDashboard({ admin, onLogout }) {
                       <th>Stock Qty</th>
                       <th>Shop / User</th>
                       <th>Created Date</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -774,11 +888,21 @@ export function AdminDashboard({ admin, onLogout }) {
                           <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{p.user_email}</div>
                         </td>
                         <td>{p.created_at ? new Date(p.created_at).toLocaleDateString() : "N/A"}</td>
+                        <td>
+                          <button
+                            className="admin-refresh-btn"
+                            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", padding: "0.35rem 0.65rem" }}
+                            onClick={() => handleDeleteProduct(p)}
+                            title="Delete product from catalog"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     {filteredProducts.length === 0 && (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={8} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
                           No products found in system catalog.
                         </td>
                       </tr>
@@ -811,7 +935,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
                     <tr>
@@ -878,7 +1002,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
                     <tr>
@@ -928,7 +1052,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div style={{ overflowX: "auto" }}>
+              <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
                     <tr>

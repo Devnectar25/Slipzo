@@ -38,6 +38,32 @@ export function Reprint({ billId, setView }) {
     loadBill()
   }, [actualBillId])
 
+  const [printFormat, setPrintFormat] = useState(() => {
+    const saved = localStorage.getItem("slipzo_print_settings")
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed.pageWidth) {
+          if (parsed.pageWidth === "55mm" || parsed.pageWidth === "55") return "55mm"
+          if (parsed.pageWidth === "80mm" || parsed.pageWidth === "80") return "80mm"
+          if (parsed.pageWidth === "a4") return "a4"
+        }
+      } catch (_) {}
+    }
+    return "80mm"
+  })
+
+  const handleFormatChange = (fmt) => {
+    setPrintFormat(fmt)
+    const saved = localStorage.getItem("slipzo_print_settings")
+    let settings = {}
+    if (saved) {
+      try { settings = JSON.parse(saved) } catch (_) {}
+    }
+    settings.pageWidth = fmt
+    localStorage.setItem("slipzo_print_settings", JSON.stringify(settings))
+  }
+
   const printReceipt = () => {
     setShowPrintModal(true)
   }
@@ -99,8 +125,41 @@ export function Reprint({ billId, setView }) {
         </div>
       </div>
 
-      <div className="receipt-preview-panel" style={{ maxWidth: "400px", margin: "0 auto" }}>
-        <div id="receipt-to-print" className="receipt-preview-content">
+      <div className="receipt-preview-panel" style={{ maxWidth: printFormat === "a4" ? "600px" : (printFormat === "80mm" ? "400px" : "280px"), margin: "0 auto", transition: "max-width 0.2s ease" }}>
+        <div className="preview-header" style={{ marginBottom: "0.75rem" }}>
+          <div className="preview-title-wrap">
+            <span className="preview-badge">
+              {printFormat === "a4" ? "A4 Sheet" : `${printFormat} Thermal`}
+            </span>
+          </div>
+          <div className="print-format-toggle-group" role="group" aria-label="Print Size">
+            <button
+              type="button"
+              className={`format-toggle-btn ${printFormat === "55mm" ? "active" : ""}`}
+              onClick={() => handleFormatChange("55mm")}
+              title="55mm Thermal Roll"
+            >
+              55mm
+            </button>
+            <button
+              type="button"
+              className={`format-toggle-btn ${printFormat === "80mm" ? "active" : ""}`}
+              onClick={() => handleFormatChange("80mm")}
+              title="80mm Thermal Roll"
+            >
+              80mm
+            </button>
+            <button
+              type="button"
+              className={`format-toggle-btn ${printFormat === "a4" ? "active" : ""}`}
+              onClick={() => handleFormatChange("a4")}
+              title="A4 Standard Document"
+            >
+              A4
+            </button>
+          </div>
+        </div>
+        <div id="receipt-to-print" className={`receipt-preview-content format-${printFormat}`}>
           {/* Shop Header */}
           <div className="receipt-shop">
             <div className="receipt-logo">S</div>
@@ -238,7 +297,7 @@ export function Reprint({ billId, setView }) {
       <PrintModal
         isOpen={showPrintModal}
         onClose={() => setShowPrintModal(false)}
-        defaultWidth={bill?.template_width || "58mm"}
+        defaultWidth={printFormat}
         elementId="receipt-to-print"
       />
     </div>

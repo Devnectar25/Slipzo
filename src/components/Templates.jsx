@@ -258,7 +258,9 @@ export function Templates({ setView, user }) {
       }
     } catch (err) {
       console.error("Failed to load templates:", err)
-      toastError("Failed to load templates")
+      if (!getCachedData("/templates")) {
+        toastError("Failed to load templates")
+      }
       setItems([])
     } finally {
       setInitialLoading(false)

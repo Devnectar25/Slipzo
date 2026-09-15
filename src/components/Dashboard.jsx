@@ -28,8 +28,8 @@ export function Dashboard({ setView, requireAuth, user }) {
     const loadDashboard = async () => {
       try {
         const [statsData, templatesData, productsData] = await Promise.all([
-          call("/bills/stats"),
-          call("/templates"),
+          call("/bills/stats").catch(() => null),
+          call("/templates").catch(() => []),
           call("/products").catch(() => [])
         ])
 
