@@ -22,11 +22,12 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
 }
 
 export function Shop({ user, setView } = {}) {
-  const [activePlan, setActivePlan] = useState(getActivePlanDetails())
+  const userKey = user?.email || user?.id
+  const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
 
   useEffect(() => {
     const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails())
+      setActivePlan(getActivePlanDetails(user?.email || user?.id))
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)
@@ -34,7 +35,7 @@ export function Shop({ user, setView } = {}) {
       window.removeEventListener("slipzo-quota-update", handleUpdate)
       window.removeEventListener("storage", handleUpdate)
     }
-  }, [])
+  }, [user])
   const [shop, setShop] = useState(() => {
     const data = getCachedData("/shop")
     return {

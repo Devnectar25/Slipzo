@@ -474,7 +474,9 @@ export function PrintModal({
               Cancel
             </button>
             <button type="button" className="primary-button print-main-cta" onClick={handlePrint}>
-              <Printer size={16} /> Print {pageWidth} Receipt
+              <Printer size={15} />
+              <span className="cta-full-text">Print {pageWidth} Receipt</span>
+              <span className="cta-short-text">Print {pageWidth}</span>
             </button>
           </div>
         </div>

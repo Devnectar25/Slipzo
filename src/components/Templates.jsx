@@ -655,17 +655,7 @@ export function Templates({ setView, user }) {
                     >
                       {actionLoadingId === template.id ? <Spinner size={12} /> : <Copy size={13} />} Duplicate
                     </button>
-                    {!template.is_builtin && (
-                      <button
-                        data-testid={`delete-template-${template.id}-button`}
-                        className="template-sub-btn danger"
-                        title="Delete template"
-                        onClick={() => remove(template.id)}
-                        disabled={actionLoadingId === template.id}
-                      >
-                        <Trash2 size={13} /> Delete
-                      </button>
-                    )}
+
                   </div>
                 </div>
               </div>

@@ -142,51 +142,75 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     }
 
     /* Screen top toolbar */
+    /* Screen top toolbar */
     .screen-control-bar {
       width: 100%;
       max-width: 520px;
       background: #1e293b;
       border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 12px 16px;
+      border-radius: 14px;
+      padding: 14px 16px;
       margin-bottom: 20px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
       color: #f8fafc;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    }
+
+    .screen-control-bar *, .screen-control-bar button, .screen-control-bar span {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
     }
 
     .screen-control-bar .bar-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
+    }
+
+    .screen-control-bar .bar-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
     }
 
     .screen-control-bar .paper-pill {
       background: #0ea5e9;
-      color: white;
+      color: #ffffff;
       font-size: 11px;
       font-weight: 700;
-      padding: 3px 8px;
+      padding: 3px 9px;
       border-radius: 6px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
+      display: inline-block;
+    }
+
+    .screen-control-bar .stats-pill {
+      font-size: 11.5px;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-top: 2px;
     }
 
     .screen-control-bar .print-trigger-btn {
       background: #10b981;
       color: #ffffff;
       border: none;
-      padding: 6px 16px;
-      border-radius: 8px;
+      padding: 8px 18px;
+      border-radius: 10px;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 13.5px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
+      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+      flex-shrink: 0;
     }
 
     .screen-control-bar .print-trigger-btn:hover {
@@ -195,11 +219,11 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     }
 
     .screen-control-bar .bar-tips {
-      font-size: 11px;
-      color: #94a3b8;
-      line-height: 1.4;
+      font-size: 11.5px;
+      color: #cbd5e1;
+      line-height: 1.5;
       border-top: 1px solid #334155;
-      padding-top: 8px;
+      padding-top: 10px;
     }
 
     .screen-control-bar .bar-tips strong {
@@ -220,7 +244,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     body {
       background: #ffffff;
       color: #000000;
-      font-family: 'Courier New', Courier, monospace;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
       font-size: ${fontSize}px;
       line-height: ${lineHeight};
       width: 100%;
@@ -229,6 +253,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       box-sizing: border-box;
       transform: scale(${scale});
       transform-origin: top center;
+      letter-spacing: normal;
     }
 
     /* Override screen preview padding on cloned receipt element */
@@ -461,9 +486,9 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
 <body>
   <div class="screen-control-bar">
     <div class="bar-top">
-      <div>
+      <div class="bar-info">
         <span class="paper-pill">${paperLabel}</span>
-        <span style="font-size: 11px; margin-left: 8px; color: #94a3b8;">Scale: ${Math.round(scale * 100)}% · Font: ${fontSize}px</span>
+        <span class="stats-pill">Scale: ${Math.round(scale * 100)}% · Font: ${fontSize}px</span>
       </div>
       <button class="print-trigger-btn" onclick="window.print()">
         🖨️ Print Now

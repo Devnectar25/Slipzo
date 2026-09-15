@@ -42,11 +42,12 @@ const mobileNavItems = [
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const [isOpen, setIsOpen] = useState(false)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
-  const [activePlan, setActivePlan] = useState(getActivePlanDetails())
+  const userKey = user?.email || user?.id
+  const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
 
   useEffect(() => {
     const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails())
+      setActivePlan(getActivePlanDetails(user?.email || user?.id))
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)
@@ -54,7 +55,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
       window.removeEventListener("slipzo-quota-update", handleUpdate)
       window.removeEventListener("storage", handleUpdate)
     }
-  }, [])
+  }, [user])
 
   // Lock background page scroll when mobile menu is open
   useEffect(() => {

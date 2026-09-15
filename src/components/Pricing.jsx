@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react"
 import { ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, ShieldCheck, HelpCircle, Printer, RefreshCw } from "lucide-react"
 import Swal from "sweetalert2"
-import { getActivePlanDetails, activatePlan } from "../lib/utils"
+import { getActivePlanDetails, activatePlan, syncUserQuota, call } from "../lib/utils"
 
 export function Pricing({ setView, setShowAuth, user }) {
   const [customPrints, setCustomPrints] = useState(2500)
-  const [activePlan, setActivePlan] = useState(getActivePlanDetails())
+  const userKey = user?.email || user?.id
+  const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
 
   useEffect(() => {
     const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails())
+      setActivePlan(getActivePlanDetails(user?.email || user?.id))
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)
@@ -17,7 +18,7 @@ export function Pricing({ setView, setShowAuth, user }) {
       window.removeEventListener("slipzo-quota-update", handleUpdate)
       window.removeEventListener("storage", handleUpdate)
     }
-  }, [])
+  }, [user])
 
   const handleBuyPlan = async (planName, amountInRupees, printCount) => {
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SIPp9QznVVM48W'
@@ -63,10 +64,33 @@ export function Pricing({ setView, setShowAuth, user }) {
       theme: {
         color: "#0f172a"
       },
-      handler: function (response) {
+      handler: async function (response) {
         console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
-        const updated = activatePlan(planName, printCount)
+        const currentUserKey = user?.email || user?.id
+        const updated = activatePlan(planName, printCount, currentUserKey)
         if (updated) setActivePlan(updated)
+        
+        // Persist purchase data into backend subscriptions database table
+        try {
+          const subRes = await call('/subscriptions', {
+            method: 'POST',
+            body: JSON.stringify({
+              plan_name: planName,
+              amount: amountInRupees,
+              prints_count: printCount,
+              payment_id: response.razorpay_payment_id || `PAY_${Date.now()}`,
+              payment_status: 'completed',
+              user_name: user?.name || 'Slipzo Member',
+              user_email: user?.email || ''
+            })
+          })
+          if (subRes && subRes.quota) {
+            syncUserQuota(subRes.quota, currentUserKey)
+          }
+          console.log('✅ Subscription saved to database!')
+        } catch (subErr) {
+          console.warn('⚠️ Could not persist subscription to DB backend:', subErr)
+        }
         
         Swal.fire({
           title: "🎉 Payment Successful!",
