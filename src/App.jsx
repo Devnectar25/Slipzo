@@ -15,6 +15,8 @@ import { Pricing } from "./components/Pricing"
 import { Product } from "./components/Product"
 import { Contact } from "./components/Contact"
 import { ShopOnboardingModal } from "./components/ShopOnboardingModal"
+import { Menu as ShopMenu } from "./components/Menu"
+import { AddYourItemsModal } from "./components/AddYourItemsModal"
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider } from "./components/common/Toast"
@@ -45,6 +47,7 @@ function AppContent() {
   const [adminToken, setAdminToken] = useState(null)
   const [isAdminChecking, setIsAdminChecking] = useState(true)
   const [selectedBillId, setSelectedBillId] = useState(null)
+  const [showAddItemsModal, setShowAddItemsModal] = useState(false)
 
   const handleOpenAuth = (register = false) => {
     setIsRegister(register)
@@ -245,9 +248,9 @@ function AppContent() {
             onLogin={handleLogin} 
             onCancel={() => {
               setShowAuth(false)
-              setAuthRegister(false)
+              setIsRegister(false)
             }} 
-            initialRegister={authRegister}
+            initialRegister={isRegister}
           />
         )}
         <PwaInstallPrompt />
@@ -269,6 +272,7 @@ function AppContent() {
         {view === "dashboard" && <Dashboard setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "templates" && <Templates setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "bills" && <Bill setView={setView} requireAuth={requireAuth} user={user} />}
+        {view === "menu" && <ShopMenu setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "products" && <Products setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "history" && (
           <History
@@ -293,7 +297,18 @@ function AppContent() {
       isOpen={showShopOnboarding}
       user={user}
       onClose={() => setShowShopOnboarding(false)}
-      onComplete={() => setShowShopOnboarding(false)}
+      onComplete={() => {
+        setShowShopOnboarding(false)
+        if (user?.id && localStorage.getItem(`slipzo_items_setup_${user.id}`) !== "true") {
+          setShowAddItemsModal(true)
+        }
+      }}
+    />
+    <AddYourItemsModal
+      isOpen={showAddItemsModal}
+      user={user}
+      onClose={() => setShowAddItemsModal(false)}
+      onContinue={() => setView("bills")}
     />
     <PwaInstallPrompt />
   </>

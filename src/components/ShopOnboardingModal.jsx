@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react"
 import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle, FileText, Percent } from "lucide-react"
-import { call } from "../lib/utils"
+import { call, findTemplateMatch } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
+import { BUILTIN_TEMPLATES } from "./Templates"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -31,6 +32,9 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   const [prefix, setPrefix] = useState("SLP")
   const [sequence, setSequence] = useState(1001)
   const [format, setFormat] = useState("PREFIX-DATE-SEQ")
+  const [templates, setTemplates] = useState(() => BUILTIN_TEMPLATES)
+  const [defaultTemplateId, setDefaultTemplateId] = useState("")
+  const [defaultDiscount, setDefaultDiscount] = useState("0")
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
@@ -42,21 +46,36 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   useEffect(() => {
     if (isOpen && user) {
       setName(user.name ? `${user.name}'s Shop` : "My Shop")
-      call("/shop")
-        .then((data) => {
-          if (data) {
-            if (data.name && !data.name.endsWith("'s Shop")) setName(data.name)
-            if (data.phone) setPhone(data.phone)
-            if (data.address) setAddress(data.address)
-            if (data.gstin) setGstin(data.gstin)
-            if (data.show_tax !== undefined) setShowTax(Number(data.show_tax))
-            if (data.tax_rate !== undefined) setTaxRate(Number(data.tax_rate))
-            if (data.invoice_prefix) setPrefix(data.invoice_prefix)
-            if (data.invoice_sequence) setSequence(data.invoice_sequence)
-            if (data.invoice_format) setFormat(data.invoice_format)
-          }
-        })
-        .catch(() => {})
+      Promise.all([
+        call("/shop").catch(() => null),
+        call("/templates").catch(() => [])
+      ]).then(([data, templatesData]) => {
+        const dbTemplates = Array.isArray(templatesData) ? templatesData : []
+        const dbNames = new Set(dbTemplates.map(t => (t.name || "").toLowerCase()))
+        const extraBuiltins = BUILTIN_TEMPLATES.filter(b => !dbNames.has((b.name || "").toLowerCase()))
+        const tplList = dbTemplates.length > 0 || extraBuiltins.length > 0 ? [...dbTemplates, ...extraBuiltins] : BUILTIN_TEMPLATES
+
+        setTemplates(tplList)
+
+        if (data) {
+          if (data.name && !data.name.endsWith("'s Shop")) setName(data.name)
+          if (data.phone) setPhone(data.phone)
+          if (data.address) setAddress(data.address)
+          if (data.gstin) setGstin(data.gstin)
+          if (data.show_tax !== undefined) setShowTax(Number(data.show_tax))
+          if (data.tax_rate !== undefined) setTaxRate(Number(data.tax_rate))
+          if (data.invoice_prefix) setPrefix(data.invoice_prefix)
+          if (data.invoice_sequence) setSequence(data.invoice_sequence)
+          if (data.invoice_format) setFormat(data.invoice_format)
+          if (data.default_template_id) {
+            const matchedDefault = findTemplateMatch(tplList, data.default_template_id)
+            setDefaultTemplateId(matchedDefault ? matchedDefault.id : data.default_template_id)
+          } else if (tplList[0]?.id) setDefaultTemplateId(tplList[0].id)
+          if (data.default_discount !== undefined) setDefaultDiscount(String(data.default_discount))
+        } else if (tplList[0]?.id) {
+          setDefaultTemplateId(tplList[0].id)
+        }
+      })
     }
   }, [isOpen, user])
 
@@ -173,7 +192,9 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           tax_rate: Number(taxRate) || 18,
           invoice_prefix: prefix.trim().toUpperCase(),
           invoice_sequence: Number(sequence),
-          invoice_format: format
+          invoice_format: format,
+          default_template_id: defaultTemplateId,
+          default_discount: parseFloat(defaultDiscount) || 0
         })
       })
 
@@ -447,6 +468,49 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 )}
               </div>
             </div>
+
+            <div className="onboarding-row">
+              <div className="onboarding-field">
+                <label className="onboarding-label">
+                  <span>Receipt Template</span>
+                </label>
+                <select
+                  value={defaultTemplateId}
+                  onChange={(e) => setDefaultTemplateId(e.target.value)}
+                  className="onboarding-input"
+                  style={{ background: "#ffffff" }}
+                >
+                  {Array.isArray(templates) && templates.length > 0 ? (
+                    templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.width || "58mm"})
+                      </option>
+                    ))
+                  ) : (
+                    BUILTIN_TEMPLATES.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.width || "58mm"})
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div className="onboarding-field">
+                <label className="onboarding-label">
+                  <span>Default Discount (₹)</span>
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="0"
+                  value={defaultDiscount}
+                  onChange={(e) => setDefaultDiscount(e.target.value)}
+                  className="onboarding-input"
+                />
+              </div>
+            </div>
           </form>
 
           {/* Live Thermal Receipt Preview Column */}
@@ -560,6 +624,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           overflow: hidden !important;
           scrollbar-width: none !important;
           -ms-overflow-style: none !important;
+          box-sizing: border-box !important;
         }
 
         .shop-onboarding-card::-webkit-scrollbar {
@@ -580,18 +645,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           grid-template-columns: 1.2fr 1fr !important;
         }
 
-        @media (max-width: 820px) {
-          .onboarding-body {
-            grid-template-columns: 1fr !important;
-            overflow-y: auto !important;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-          }
-          .onboarding-body::-webkit-scrollbar {
-            display: none !important;
-            width: 0 !important;
-            height: 0 !important;
-          }
+        .onboarding-row {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 0.75rem !important;
         }
 
         .onboarding-form {
@@ -662,6 +719,94 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           color: #0284c7;
           box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.1);
           font-weight: 700;
+        }
+
+        @media (max-width: 820px) {
+          .shop-onboarding-backdrop {
+            padding: 0.5rem !important;
+          }
+
+          .shop-onboarding-card {
+            width: calc(100vw - 1rem) !important;
+            max-width: 100% !important;
+            max-height: 90vh !important;
+            max-height: 90dvh !important;
+            border-radius: 16px !important;
+            margin: 0 auto !important;
+          }
+
+          .onboarding-header {
+            padding: 1rem 1.15rem 0.85rem !important;
+          }
+
+          .onboarding-header-content h2 {
+            font-size: 1.15rem !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+          }
+
+          .onboarding-header-content p {
+            font-size: 0.8rem !important;
+            line-height: 1.35 !important;
+          }
+
+          .onboarding-body {
+            grid-template-columns: 1fr !important;
+            overflow-y: auto !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+
+          .onboarding-body::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+
+          .onboarding-form {
+            padding: 1rem 1.15rem 1.25rem !important;
+            border-right: none !important;
+            gap: 0.85rem !important;
+            overflow-y: visible !important;
+          }
+
+          .onboarding-row {
+            grid-template-columns: 1fr !important;
+            gap: 0.85rem !important;
+          }
+
+          .onboarding-preview-col {
+            padding: 1.15rem 1rem !important;
+          }
+
+          .onboarding-footer {
+            padding: 0.75rem 1rem !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.6rem !important;
+          }
+
+          .required-info-badge {
+            justify-content: center !important;
+            text-align: center !important;
+            font-size: 0.75rem !important;
+          }
+
+          .onboarding-save-btn {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+            padding: 0.75rem 1rem !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .onboarding-grid-two {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0.5rem !important;
+          }
         }
 
         @keyframes modalShake {

@@ -29,12 +29,16 @@ import {
   CheckSquare,
   Square,
   PackageX,
-  Sparkles
+  Sparkles,
+  Utensils,
+  Search,
+  Edit2
 } from "lucide-react"
 import {
   call,
   money,
   cleanTextLines,
+  findTemplateMatch,
   incrementTemplatePrint,
   canPrintTemplate,
   getRemainingPrints,
@@ -43,7 +47,9 @@ import {
   incrementFreePrintCount,
   getCachedData,
   syncUserQuota,
-  getActivePlanDetails
+  getActivePlanDetails,
+  getStoredMenuItems,
+  saveStoredMenuItems
 } from "../lib/utils"
 import { ReceiptSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -92,7 +98,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     if (initialShop) setShopState(initialShop)
   }, [initialShop])
 
-  const { toastSuccess, toastError } = useToast()
+  const { success: toastSuccess, error: toastError } = useToast()
 
   const cachedTemplates = getCachedData("/templates")
   const cachedShop = getCachedData("/shop")
@@ -104,6 +110,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   const [selectedId, setSelectedId] = useState(() => sessionStorage.getItem("slipzo-template") || (cachedTemplates?.[0]?.id || ""))
   const [customers, setCustomers] = useState(() => getCachedData("/customers") || [])
   const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [customerName, setCustomerName] = useState("")
   const [items, setItems] = useState([{ id: 1, name: "", quantity: 1, rate: "" }])
   const [discount, setDiscount] = useState("")
   const [tax, setTax] = useState(0)
@@ -128,17 +135,46 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   const [quickCustomerForm, setQuickCustomerForm] = useState({ name: "", phone: "" })
   const [quickCustomerLoading, setQuickCustomerLoading] = useState(false)
 
+  // Shop Menu Items State
+  const [menuItems, setMenuItems] = useState(() => getCachedData("/menu") || [])
+  const [showItemPickerModal, setShowItemPickerModal] = useState(false)
+  const [itemPickerSearch, setItemPickerSearch] = useState("")
+  const [showAddNewItemModal, setShowAddNewItemModal] = useState(false)
+  const [newItemName, setNewItemName] = useState("")
+  const [newItemPrice, setNewItemPrice] = useState("")
+  const [newItemSaving, setNewItemSaving] = useState(false)
+
   const receiptRef = useRef(null)
   const [isPrinting, setIsPrinting] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
-
-  // New Bill Flow State: "popup" | "existing_items" | "form"
-  const [flowState, setFlowState] = useState(() => {
-    if (sessionStorage.getItem("slipzo-quick-item") || sessionStorage.getItem("slipzo-selected-customer")) {
-      return "form"
+  const [printFormat, setPrintFormat] = useState(() => {
+    const saved = localStorage.getItem("slipzo_print_settings")
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (parsed.pageWidth) {
+          if (parsed.pageWidth === "55mm" || parsed.pageWidth === "55") return "55mm"
+          if (parsed.pageWidth === "80mm" || parsed.pageWidth === "80") return "80mm"
+          if (parsed.pageWidth === "a4") return "a4"
+        }
+      } catch (_) {}
     }
-    return "popup"
+    return "80mm"
   })
+
+  const handleFormatChange = (fmt) => {
+    setPrintFormat(fmt)
+    const saved = localStorage.getItem("slipzo_print_settings")
+    let settings = {}
+    if (saved) {
+      try { settings = JSON.parse(saved) } catch (_) {}
+    }
+    settings.pageWidth = fmt
+    localStorage.setItem("slipzo_print_settings", JSON.stringify(settings))
+  }
+
+  // New Bill Flow State: "form" | "existing_items"
+  const [flowState, setFlowState] = useState("form")
   const [recentItems, setRecentItems] = useState([])
   const [loadingRecentItems, setLoadingRecentItems] = useState(false)
   const [selectedRecentIndices, setSelectedRecentIndices] = useState([])
@@ -214,24 +250,58 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           return
         }
 
-        const [templatesData, shopData, customersData] = await Promise.all([
-          call("/templates"),
-          call("/shop"),
-          call("/customers").catch(() => [])
+        const [templatesData, shopData, customersData, menuData] = await Promise.all([
+          call("/templates").catch(() => []),
+          call("/shop").catch(() => ({})),
+          call("/customers").catch(() => []),
+          call("/menu").catch(() => [])
         ])
 
         const dbTemplates = Array.isArray(templatesData) ? templatesData : []
         const dbNames = new Set(dbTemplates.map(t => (t.name || "").toLowerCase()))
         const extraBuiltins = BUILTIN_TEMPLATES.filter(b => !dbNames.has((b.name || "").toLowerCase()))
-        const templatesArray = [...dbTemplates, ...extraBuiltins]
+        let templatesArray = [...dbTemplates, ...extraBuiltins]
+        if (templatesArray.length === 0) templatesArray = BUILTIN_TEMPLATES
+
+        let menuItemsList = Array.isArray(menuData) && menuData.length > 0 ? menuData : getStoredMenuItems(user)
+        if (menuItemsList.length > 0) {
+          saveStoredMenuItems(menuItemsList, user)
+        }
 
         setTemplates(templatesArray)
         setShop(shopData || {})
         setCustomers(Array.isArray(customersData) ? customersData : [])
+        setMenuItems(menuItemsList)
 
-        if (!selectedId && templatesArray.length > 0) {
-          const defaultTpl = templatesArray.find((t) => t.is_default) || templatesArray[0]
-          setSelectedId(defaultTpl.id)
+        // Auto-apply saved receipt template from session or shop profile using findTemplateMatch
+        const sessionTplId = sessionStorage.getItem("slipzo-template")
+        let resolvedTpl = null
+
+        if (sessionTplId) {
+          resolvedTpl = findTemplateMatch(templatesArray, sessionTplId)
+        }
+        if (!resolvedTpl && shopData?.default_template_id) {
+          resolvedTpl = findTemplateMatch(templatesArray, shopData.default_template_id)
+        }
+        if (!resolvedTpl && templatesArray.length > 0) {
+          resolvedTpl = templatesArray.find((t) => t.is_default) || templatesArray[0]
+        }
+
+        if (resolvedTpl) {
+          setSelectedId(resolvedTpl.id)
+        }
+
+        // Auto-populate default discount and tax from shop profile
+        if (shopData?.default_discount !== undefined && shopData?.default_discount !== null) {
+          setDiscount(String(shopData.default_discount))
+        } else {
+          setDiscount("0")
+        }
+
+        if (shopData?.tax_rate !== undefined && shopData?.tax_rate !== null) {
+          setTax(String(shopData.tax_rate))
+        } else {
+          setTax("0")
         }
 
         // Generate live invoice number
@@ -261,7 +331,6 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             const item = JSON.parse(storedItem)
             if (item && item.name) {
               setItems([{ id: Date.now(), name: item.name, rate: item.rate || 0, quantity: item.quantity || 1 }])
-              if (item.tax_rate !== undefined) setTax(item.tax_rate)
             }
             sessionStorage.removeItem("slipzo-quick-item")
           } catch (e) {
@@ -270,8 +339,10 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         }
       } catch (err) {
         console.error("Failed to load bill setup data:", err)
-        setError(err.message)
-        setTemplates([])
+        setTemplates(BUILTIN_TEMPLATES)
+        if (!selectedId && BUILTIN_TEMPLATES.length > 0) {
+          setSelectedId(BUILTIN_TEMPLATES[0].id)
+        }
       } finally {
         setInitialLoading(false)
       }
@@ -280,30 +351,37 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   }, [user])
 
   const shopTaxMode = useMemo(() => {
-    if (!shop || shop.show_tax === undefined || shop.show_tax === null) return 1
+    if (!shop || shop.show_tax === undefined || shop.show_tax === null) return 2
     if (shop.show_tax === false || shop.show_tax === 0 || shop.show_tax === "0") return 0
-    return Number(shop.show_tax) || 1
+    if (shop.show_tax === true) return 2
+    return Number(shop.show_tax)
   }, [shop])
 
   const isTaxEnabled = shopTaxMode !== 0
 
   const selected = useMemo(() => {
-    if (!Array.isArray(templates) || templates.length === 0) return null
-    return templates.find((t) => t.id === selectedId) || templates[0] || null
+    const list = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
+    return findTemplateMatch(list, selectedId) || list.find((t) => t.is_default) || list[0] || null
   }, [templates, selectedId])
 
-  // Auto-set tax from shop settings / template
+  // Sync tax and discount from shop profile as the single source of truth
   useEffect(() => {
-    if (!isTaxEnabled) {
-      setTax(0)
-      return
+    if (shop) {
+      if (shop.default_discount !== undefined && shop.default_discount !== null) {
+        setDiscount(String(shop.default_discount))
+      } else {
+        setDiscount("0")
+      }
+
+      if (!isTaxEnabled) {
+        setTax("0")
+      } else if (shop.tax_rate !== undefined && shop.tax_rate !== null) {
+        setTax(String(shop.tax_rate))
+      } else {
+        setTax("0")
+      }
     }
-    if (shop && shop.tax_rate !== undefined && shop.tax_rate !== null) {
-      setTax(Number(shop.tax_rate) || 0)
-    } else if (selected) {
-      setTax(selected.show_tax ? Number(selected.tax_rate) || 0 : 0)
-    }
-  }, [selected, shop, isTaxEnabled])
+  }, [shop, isTaxEnabled])
 
   const subtotal = useMemo(
     () =>
@@ -314,28 +392,130 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     [items]
   )
 
-  const discountAmount = useMemo(() => Number(discount) || 0, [discount])
-  const taxRate = useMemo(() => (isTaxEnabled ? Number(tax) || 0 : 0), [tax, isTaxEnabled])
+  const discountAmount = useMemo(() => {
+    const val = Number(discount)
+    return isNaN(val) ? 0 : Math.max(0, val)
+  }, [discount])
+
   const taxable = useMemo(() => Math.max(0, subtotal - discountAmount), [subtotal, discountAmount])
 
+  const taxRate = useMemo(() => {
+    if (!isTaxEnabled || shopTaxMode === 0) return 0
+    const val = Number(tax)
+    return isNaN(val) ? 0 : Math.max(0, val)
+  }, [tax, isTaxEnabled, shopTaxMode])
+
   const taxAmount = useMemo(() => {
-    if (!isTaxEnabled || shopTaxMode === 0 || taxRate <= 0) return 0
+    if (!isTaxEnabled || shopTaxMode === 0 || taxRate <= 0 || taxable <= 0) return 0
     if (shopTaxMode === 1) {
+      // TAX INCLUDED (prices contain tax): Extract tax portion for display
       const base = taxable / (1 + taxRate / 100)
       return taxable - base
     }
+    // TAX EXTRA (shopTaxMode === 2): Tax is added on top of discounted subtotal
     return taxable * (taxRate / 100)
   }, [taxable, taxRate, isTaxEnabled, shopTaxMode])
 
   const total = useMemo(() => {
-    if (!isTaxEnabled || shopTaxMode === 0 || shopTaxMode === 1) {
-      return taxable
+    if (isTaxEnabled && shopTaxMode === 2 && taxRate > 0) {
+      // TAX EXTRA: Payable Grand Total = Taxable Subtotal + Tax Amount
+      return taxable + taxAmount
     }
-    return taxable + taxAmount
-  }, [taxable, taxAmount, isTaxEnabled, shopTaxMode])
+    // TAX INCLUDED (shopTaxMode === 1) or NO TAX (shopTaxMode === 0): Payable Grand Total = Taxable Subtotal
+    return taxable
+  }, [taxable, taxAmount, taxRate, isTaxEnabled, shopTaxMode])
+
+  const updateItemRow = (index, updates) => {
+    setItems((prevItems) =>
+      prevItems.map((item, i) => (i === index ? { ...item, ...updates } : item))
+    )
+  }
 
   const updateItem = (index, key, value) => {
-    setItems(items.map((item, i) => (i === index ? { ...item, [key]: value } : item)))
+    setItems((prevItems) =>
+      prevItems.map((item, i) => {
+        if (i !== index) return item
+        const updated = { ...item, [key]: value }
+        if (key === "name") {
+          const matched = Array.isArray(menuItems) ? menuItems.find(
+            (m) => (m.name || "").toLowerCase() === String(value || "").trim().toLowerCase()
+          ) : null
+          if (matched && matched.price !== undefined) {
+            updated.rate = String(matched.price)
+            updated.isSaved = true
+          } else {
+            updated.isSaved = false
+          }
+        }
+        return updated
+      })
+    )
+  }
+
+  const handleSelectMenuItem = (menuItem) => {
+    if (!menuItem) return
+    const newRate = String(menuItem.price !== undefined ? menuItem.price : 0)
+    setItems((prevItems) => {
+      const lastItem = prevItems[prevItems.length - 1]
+      if (prevItems.length === 1 && !lastItem?.name?.trim() && (!lastItem?.rate || lastItem?.rate === "0" || lastItem?.rate === 0)) {
+        return [{ id: lastItem.id, name: menuItem.name, quantity: 1, rate: newRate, isSaved: true }]
+      }
+      const newId = Math.max(...prevItems.map((i) => i.id), 0) + 1
+      return [...prevItems, { id: newId, name: menuItem.name, quantity: 1, rate: newRate, isSaved: true }]
+    })
+    setShowItemPickerModal(false)
+    if (toastSuccess) toastSuccess(`Added ${menuItem.name} (₹${menuItem.price})`)
+  }
+
+  const handleSaveNewItemFromBill = async (e) => {
+    e?.preventDefault()
+    if (!newItemName.trim()) {
+      if (toastError) toastError("Please enter an item name")
+      return
+    }
+    const numPrice = parseFloat(newItemPrice) || 0
+
+    setNewItemSaving(true)
+    try {
+      let savedItem = { name: newItemName.trim(), price: numPrice }
+      if (user) {
+        savedItem = await call("/menu", {
+          method: "POST",
+          body: JSON.stringify({ name: newItemName.trim(), price: numPrice })
+        }).catch(() => ({
+          id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          name: newItemName.trim(),
+          price: numPrice,
+          created_at: new Date().toISOString()
+        }))
+        setMenuItems((prev) => {
+          const next = [savedItem, ...prev]
+          saveStoredMenuItems(next, user)
+          return next
+        })
+      }
+      handleSelectMenuItem(savedItem)
+      setShowAddNewItemModal(false)
+      setNewItemName("")
+      setNewItemPrice("")
+    } catch (err) {
+      if (toastError) toastError(err.message || "Failed to save menu item")
+    } finally {
+      setNewItemSaving(false)
+    }
+  }
+
+  const handleAddItemClick = () => {
+    if (user && Array.isArray(menuItems) && menuItems.length > 0) {
+      setItemPickerSearch("")
+      setShowItemPickerModal(true)
+    } else if (user) {
+      setNewItemName("")
+      setNewItemPrice("")
+      setShowAddNewItemModal(true)
+    } else {
+      addItem()
+    }
   }
 
   const addItem = () => {
@@ -417,11 +597,15 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           quantity: Number(item.quantity) || 0,
           rate: Number(item.rate) || 0
         })),
+        subtotal: subtotal,
         discount: Number(discount) || 0,
         tax_rate: Number(tax) || 0,
+        tax_mode: shopTaxMode,
+        tax_amount: taxAmount,
+        total: total,
         payment_mode: payment,
         customer_id: selectedCustomer?.id || null,
-        customer_name: selectedCustomer?.name || "",
+        customer_name: customerName ? customerName.trim() : (selectedCustomer?.name || ""),
         customer_phone: selectedCustomer?.phone || "",
         number: customBillNumber || ""
       }
@@ -506,12 +690,26 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
 
   const resetForm = () => {
     setItems([{ id: 1, name: "", quantity: 1, rate: "" }])
-    setDiscount("")
+    if (shop?.default_discount !== undefined && shop?.default_discount !== null) {
+      setDiscount(String(shop.default_discount))
+    } else {
+      setDiscount("0")
+    }
+
+    if (!isTaxEnabled) {
+      setTax("0")
+    } else if (shop?.tax_rate !== undefined && shop?.tax_rate !== null) {
+      setTax(String(shop.tax_rate))
+    } else {
+      setTax("0")
+    }
+
     setPayment("Cash")
+    setCustomerName("")
     setSelectedCustomer(null)
     setSaved(null)
     setError(null)
-    setFlowState("popup")
+    setFlowState("form")
 
     const nextNum = generateClientBillNumber(
       shop?.invoice_prefix || "SLP",
@@ -764,102 +962,78 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         {/* LEFT - Bill Editor Column */}
         <div className="bill-editor-column">
           <div className="bill-editor-panel">
-            {/* Top Row: Template & Customer */}
-            <div className="editor-section-row">
-              {/* Template Selector */}
-              <div className="editor-section flex-1">
-                <label className="field-label">
-                  <span>Receipt Template</span>
-                  <select
-                    data-testid="bill-template-select"
-                    value={selected?.id || ""}
-                    onChange={(e) => setSelectedId(e.target.value)}
-                    className="template-select"
+            {/* Top Section: Compact Top-Right Invoice Number */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
+              {/* Compact Top-Right Invoice Number */}
+              <div className="compact-invoice-container" style={{ flexShrink: 0, textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  INVOICE NO.
+                </span>
+                {editingBillNumber ? (
+                  <input
+                    type="text"
+                    className="inline-bill-num-input"
+                    value={customBillNumber}
+                    onChange={(e) => setCustomBillNumber(e.target.value)}
+                    onBlur={() => setEditingBillNumber(false)}
+                    onKeyDown={(e) => { if (e.key === "Enter") setEditingBillNumber(false) }}
+                    autoFocus
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', fontWeight: '700', borderRadius: '6px', border: '1.5px solid #0284c7', maxWidth: '140px', textAlign: 'right', outline: 'none' }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="compact-invoice-btn"
+                    onClick={() => setEditingBillNumber(true)}
+                    title="Click to edit invoice number"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '0.25rem 0.55rem',
+                      background: '#f0f9ff',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '6px',
+                      color: '#0284c7',
+                      fontWeight: '700',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
                   >
-                    {Array.isArray(templates) &&
-                      templates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} {t.is_default ? "(Default)" : ""} ({t.width})
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                    <Hash size={12} style={{ color: '#0284c7' }} />
+                    <span>{customBillNumber || "SLP-1001"}</span>
+                  </button>
+                )}
               </div>
+            </div>
 
-              {/* Customer Selector */}
-              {user && (
-                <div className="editor-section flex-1">
-                  <div className="customer-field-header">
-                    <span className="field-label-text">Customer (Optional)</span>
+            {/* Customer Section - Text Input */}
+            <div className="editor-section" style={{ marginBottom: '1.5rem' }}>
+              <label className="field-label">
+                <span>CUSTOMER (OPTIONAL)</span>
+                <div style={{ position: 'relative', marginTop: '0.35rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter customer name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="item-input"
+                    style={{ width: '100%', paddingRight: customerName ? '32px' : '0.8rem' }}
+                  />
+                  {customerName && (
                     <button
                       type="button"
-                      className="ghost-text-btn"
-                      onClick={() => setShowQuickCustomerModal(true)}
+                      onClick={() => setCustomerName("")}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                      title="Clear customer name"
                     >
-                      <Plus size={13} /> Quick Add
+                      <X size={14} />
                     </button>
-                  </div>
-                  <div className="customer-select-row">
-                    <select
-                      className="template-select"
-                      value={selectedCustomer?.id || ""}
-                      onChange={(e) => {
-                        const cust = customers.find((c) => c.id === e.target.value) || null
-                        setSelectedCustomer(cust)
-                      }}
-                    >
-                      <option value="">-- Walk-in / Unassigned --</option>
-                      {customers.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} {c.phone ? `(${c.phone})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedCustomer && (
-                      <button
-                        className="icon-button small"
-                        title="Clear customer"
-                        onClick={() => setSelectedCustomer(null)}
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
-              )}
+              </label>
             </div>
-
-          {/* Invoice Numbering Strip */}
-          <div className="invoice-number-strip">
-            <div className="invoice-strip-left">
-              <Hash size={14} className="text-accent" />
-              <span>Invoice #:</span>
-              {editingBillNumber ? (
-                <input
-                  type="text"
-                  className="inline-bill-num-input"
-                  value={customBillNumber}
-                  onChange={(e) => setCustomBillNumber(e.target.value)}
-                  onBlur={() => setEditingBillNumber(false)}
-                  autoFocus
-                />
-              ) : (
-                <strong
-                  className="editable-bill-number"
-                  onClick={() => setEditingBillNumber(true)}
-                  title="Click to customize invoice number"
-                >
-                  {customBillNumber || "SLP-DRAFT"}
-                </strong>
-              )}
-            </div>
-            <button
-              className="ghost-text-btn small"
-              onClick={() => setEditingBillNumber(!editingBillNumber)}
-            >
-              {editingBillNumber ? "Done" : "Customize"}
-            </button>
-          </div>
 
           {/* Items Section */}
           <div className="editor-section items-section">
@@ -874,15 +1048,81 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
               {items.map((item, index) => (
                 <div className="item-card" key={item.id}>
                   <div className="item-row">
-                    <div className="item-field item-name-field">
-                      <input
-                        data-testid={`bill-item-${index}-name-input`}
-                        placeholder="Item name / description"
-                        value={item.name}
-                        onChange={(e) => updateItem(index, "name", e.target.value)}
-                        className="item-input"
-                        autoComplete="off"
-                      />
+                    <div className="item-field item-name-field" style={{ minWidth: 0, maxWidth: "100%", width: "100%", boxSizing: "border-box" }}>
+                      {user && Array.isArray(menuItems) && menuItems.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, maxWidth: '100%', width: '100%', boxSizing: 'border-box' }}>
+                          <select
+                            data-testid={`bill-item-${index}-select`}
+                            value={item.isSaved ? item.name : (item.name ? "__CUSTOM__" : "")}
+                            onChange={(e) => {
+                              const selectedVal = e.target.value
+                              if (selectedVal === "__ADD_NEW__") {
+                                setNewItemName("")
+                                setNewItemPrice("")
+                                setShowAddNewItemModal(true)
+                                return
+                              }
+                              if (selectedVal === "" || selectedVal === "__CUSTOM__") {
+                                updateItemRow(index, { isSaved: false })
+                                return
+                              }
+                              const matched = menuItems.find(m => m.name === selectedVal)
+                              if (matched) {
+                                updateItemRow(index, {
+                                  name: matched.name,
+                                  rate: String(matched.price),
+                                  isSaved: true
+                                })
+                              }
+                            }}
+                            className="item-input option-select"
+                            style={{
+                              fontSize: '0.88rem',
+                              fontWeight: item.isSaved ? '600' : '400',
+                              background: item.isSaved ? '#f0f9ff' : '#ffffff',
+                              borderColor: item.isSaved ? '#0ea5e9' : '#e2e8f0',
+                              width: '100%',
+                              maxWidth: '100%',
+                              minWidth: 0,
+                              boxSizing: 'border-box',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <option value="">-- Select Saved Shop Item --</option>
+                            {menuItems.map((m) => (
+                              <option key={m.id} value={m.name}>
+                                {m.name} — ₹{m.price}
+                              </option>
+                            ))}
+                            {item.name && !item.isSaved && (
+                              <option value="__CUSTOM__">Custom: {item.name}</option>
+                            )}
+                            <option value="__ADD_NEW__">+ Add New Item to Menu...</option>
+                          </select>
+                          {(!item.isSaved || !item.name) && (
+                            <input
+                              data-testid={`bill-item-${index}-name-input`}
+                              placeholder="Or type custom item name..."
+                              value={item.name}
+                              onChange={(e) => updateItem(index, "name", e.target.value)}
+                              className="item-input"
+                              style={{ fontSize: '0.82rem' }}
+                              autoComplete="off"
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <input
+                          data-testid={`bill-item-${index}-name-input`}
+                          placeholder="Item name / description"
+                          value={item.name}
+                          onChange={(e) => updateItem(index, "name", e.target.value)}
+                          className="item-input"
+                          autoComplete="off"
+                        />
+                      )}
                     </div>
                     <div className="item-field item-qty-field">
                       <label className="mobile-only-field-label">Qty</label>
@@ -916,8 +1156,12 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                         inputMode="decimal"
                         placeholder="0"
                         value={item.rate === 0 || item.rate === "0" ? "" : item.rate}
-                        onFocus={(e) => e.target.select()}
+                        readOnly={Boolean(item.isSaved)}
+                        onFocus={(e) => {
+                          if (!item.isSaved) e.target.select()
+                        }}
                         onChange={(e) => {
+                          if (item.isSaved) return
                           let val = e.target.value.replace(/[^0-9.]/g, "");
                           const parts = val.split(".");
                           if (parts.length > 2) {
@@ -930,6 +1174,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                           updateItem(index, "rate", val);
                         }}
                         onBlur={() => {
+                          if (item.isSaved) return
                           if (item.rate) {
                             const num = parseFloat(item.rate);
                             if (isNaN(num) || num === 0) {
@@ -939,7 +1184,14 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                             }
                           }
                         }}
-                        className="item-input number-input"
+                        className={`item-input number-input ${item.isSaved ? "read-only-rate" : ""}`}
+                        style={{
+                          background: item.isSaved ? "#f8fafc" : "#ffffff",
+                          color: item.isSaved ? "#0f172a" : "inherit",
+                          fontWeight: item.isSaved ? "700" : "inherit",
+                          cursor: item.isSaved ? "not-allowed" : "text"
+                        }}
+                        title={item.isSaved ? "Rate auto-populated from saved Shop Item" : undefined}
                       />
                     </div>
                     <div className="item-field item-amount-field">
@@ -963,7 +1215,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             <button
               data-testid="add-bill-item-button"
               className="add-item-button"
-              onClick={addItem}
+              onClick={handleAddItemClick}
             >
               <Plus size={16} /> Add Item
             </button>
@@ -973,78 +1225,42 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           <div className="editor-section options-grid">
             <div className="option-group">
               <label className="field-label">
-                <span>Discount (₹)</span>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Discount (₹)</span>
+                  <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Fixed in Shop Profile)</small>
+                </span>
                 <input
                   data-testid="bill-discount-input"
                   type="text"
-                  inputMode="decimal"
-                  value={discount === 0 || discount === "0" ? "" : discount}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => {
-                    let val = e.target.value.replace(/[^0-9.]/g, "");
-                    const parts = val.split(".");
-                    if (parts.length > 2) {
-                      val = parts[0] + "." + parts.slice(1).join("");
-                    }
-                    if (val.length > 1 && val.startsWith("0") && !val.startsWith("0.")) {
-                      val = val.replace(/^0+/, "");
-                      if (val.startsWith(".")) val = "0" + val;
-                    }
-                    setDiscount(val);
-                  }}
-                  onBlur={() => {
-                    if (discount) {
-                      const num = parseFloat(discount);
-                      if (isNaN(num) || num === 0) {
-                        setDiscount("");
-                      } else {
-                        setDiscount(String(num));
-                      }
-                    }
-                  }}
+                  readOnly
+                  disabled
+                  value={discount}
                   placeholder="0"
                   className="option-input"
+                  style={{ background: "#f8fafc", cursor: "not-allowed", color: "#334155", fontWeight: 600 }}
+                  title="Fixed default discount set in Shop Profile"
                 />
               </label>
             </div>
-            {isTaxEnabled && (
-              <div className="option-group">
-                <label className="field-label">
+            <div className="option-group">
+              <label className="field-label">
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Tax Rate (%)</span>
-                  <input
-                    data-testid="bill-tax-input"
-                    type="text"
-                    inputMode="decimal"
-                    value={tax === 0 || tax === "0" ? "" : tax}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => {
-                      let val = e.target.value.replace(/[^0-9.]/g, "");
-                      const parts = val.split(".");
-                      if (parts.length > 2) {
-                        val = parts[0] + "." + parts.slice(1).join("");
-                      }
-                      if (val.length > 1 && val.startsWith("0") && !val.startsWith("0.")) {
-                        val = val.replace(/^0+/, "");
-                        if (val.startsWith(".")) val = "0" + val;
-                      }
-                      setTax(val);
-                    }}
-                    onBlur={() => {
-                      if (tax) {
-                        const num = parseFloat(tax);
-                        if (isNaN(num) || num === 0) {
-                          setTax("");
-                        } else {
-                          setTax(String(num));
-                        }
-                      }
-                    }}
-                    placeholder="0"
-                    className="option-input"
-                  />
-                </label>
-              </div>
-            )}
+                  <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Fixed in Shop Profile)</small>
+                </span>
+                <input
+                  data-testid="bill-tax-input"
+                  type="text"
+                  readOnly
+                  disabled
+                  value={!isTaxEnabled ? "0" : tax}
+                  placeholder="0"
+                  className="option-input"
+                  style={{ background: "#f8fafc", cursor: "not-allowed", color: "#334155", fontWeight: 600 }}
+                  title="Fixed default tax rate set in Shop Profile"
+                />
+              </label>
+            </div>
             <div className="option-group">
               <label className="field-label">
                 <span>Payment Mode</span>
@@ -1121,15 +1337,45 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         {/* RIGHT - Receipt Preview */}
         <div className="receipt-preview-panel">
           <div className="preview-header">
-            <h3>Receipt Preview</h3>
-            <span className="preview-badge">{selected?.width || "58mm"}</span>
+            <div className="preview-title-wrap">
+              <h3>Receipt Preview</h3>
+              <span className="preview-badge">
+                {printFormat === "a4" ? "A4 Sheet" : `${printFormat} Thermal`}
+              </span>
+            </div>
+            {/* Print Size Selection: 55mm Thermal, 80mm Thermal, A4 */}
+            <div className="print-format-toggle-group" role="group" aria-label="Print Size">
+              <button
+                type="button"
+                className={`format-toggle-btn ${printFormat === "55mm" ? "active" : ""}`}
+                onClick={() => handleFormatChange("55mm")}
+                title="55mm Thermal Roll (Compact POS)"
+              >
+                55mm Thermal
+              </button>
+              <button
+                type="button"
+                className={`format-toggle-btn ${printFormat === "80mm" ? "active" : ""}`}
+                onClick={() => handleFormatChange("80mm")}
+                title="80mm Thermal Roll (Standard Retail POS)"
+              >
+                80mm Thermal
+              </button>
+              <button
+                type="button"
+                className={`format-toggle-btn ${printFormat === "a4" ? "active" : ""}`}
+                onClick={() => handleFormatChange("a4")}
+                title="A4 Standard Document"
+              >
+                A4
+              </button>
+            </div>
           </div>
 
           <div
             ref={receiptRef}
             id="receipt-to-print"
-            className={`receipt-preview-content tpl-style-${selected?.id || "2"}`}
-            style={{ maxWidth: selected?.width === "80mm" ? "420px" : "320px" }}
+            className={`receipt-preview-content format-${printFormat} tpl-style-${selected?.id || "2"}`}
           >
             {/* Template Specific Header Badge */}
             {(selected?.id === "6" || selected?.id === "elite") && (
@@ -1221,19 +1467,26 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
 
             {/* Totals */}
             <div className="receipt-totals">
-              <div className="receipt-total-row">
-                <span>Subtotal</span>
-                <span>{money(subtotal)}</span>
-              </div>
+              {isTaxEnabled && shopTaxMode === 1 && taxRate > 0 ? (
+                <div className="receipt-total-row">
+                  <span>Taxable Subtotal</span>
+                  <span>{money(taxable - taxAmount)}</span>
+                </div>
+              ) : (
+                <div className="receipt-total-row">
+                  <span>Subtotal</span>
+                  <span>{money(subtotal)}</span>
+                </div>
+              )}
               {discountAmount > 0 && (
                 <div className="receipt-total-row discount">
                   <span>Discount</span>
                   <span>-{money(discountAmount)}</span>
                 </div>
               )}
-              {isTaxEnabled && shopTaxMode === 2 && taxRate > 0 && (
+              {isTaxEnabled && taxRate > 0 && (
                 <div className="receipt-total-row">
-                  <span>Tax ({taxRate}%)</span>
+                  <span>{shopTaxMode === 1 ? `GST (${taxRate}%)` : `Tax (${taxRate}%)`}</span>
                   <span>{money(taxAmount)}</span>
                 </div>
               )}
@@ -1241,11 +1494,6 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                 <span>Grand Total</span>
                 <span>{money(total)}</span>
               </div>
-              {isTaxEnabled && shopTaxMode === 1 && taxRate > 0 && (
-                <div style={{ textAlign: "right", fontSize: "0.72rem", color: "#64748b", marginTop: "0.2rem" }}>
-                  (Includes {taxRate}% GST: {money(taxAmount)})
-                </div>
-              )}
             </div>
 
             {/* Divider */}
@@ -1359,9 +1607,282 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         isOpen={showPrintModal}
         onClose={() => setShowPrintModal(false)}
         onPrinted={handlePrintComplete}
-        defaultWidth={selected?.width || "58mm"}
+        defaultWidth={printFormat}
         elementId="receipt-to-print"
       />
+
+      {/* Saved Shop Items Picker Modal */}
+      {showItemPickerModal && (
+        <div
+          className="modal-backdrop fade-in"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.55)",
+            backdropFilter: "blur(4px)",
+            zIndex: 1100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem"
+          }}
+          onClick={() => setShowItemPickerModal(false)}
+        >
+          <div
+            className="modal-card scale-in"
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "460px",
+              maxHeight: "85vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+              overflow: "hidden"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                padding: "1.25rem 1.5rem",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#f8fafc"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Utensils size={18} />
+                </div>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#0f172a" }}>Select Saved Shop Item</h3>
+              </div>
+              <button
+                onClick={() => setShowItemPickerModal(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: "4px" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: "1.25rem 1.5rem", flex: 1, overflowY: "auto" }}>
+              {/* Search Bar */}
+              <div style={{ position: "relative", marginBottom: "1rem" }}>
+                <Search size={15} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
+                <input
+                  type="text"
+                  placeholder="Search shop items..."
+                  value={itemPickerSearch}
+                  onChange={(e) => setItemPickerSearch(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem 0.8rem 0.6rem 34px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "0.9rem",
+                    outline: "none"
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              {/* List of Saved Menu Items */}
+              {menuItems.filter(m => (m.name || "").toLowerCase().includes(itemPickerSearch.trim().toLowerCase())).length === 0 ? (
+                <div style={{ textAlign: "center", padding: "1.5rem 1rem", color: "#64748b", fontSize: "0.88rem" }}>
+                  No saved items matching "{itemPickerSearch}".
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
+                  {menuItems
+                    .filter(m => (m.name || "").toLowerCase().includes(itemPickerSearch.trim().toLowerCase()))
+                    .map((menuItem) => (
+                      <button
+                        key={menuItem.id}
+                        type="button"
+                        onClick={() => handleSelectMenuItem(menuItem)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "0.75rem 1rem",
+                          borderRadius: "10px",
+                          border: "1px solid #e2e8f0",
+                          background: "#ffffff",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          transition: "all 0.15s ease"
+                        }}
+                        className="table-row-hover"
+                      >
+                        <span style={{ fontWeight: "600", color: "#0f172a", fontSize: "0.92rem" }}>
+                          {menuItem.name}
+                        </span>
+                        <span style={{ fontWeight: "700", color: "#0ea5e9", fontSize: "0.95rem" }}>
+                          {money(menuItem.price)}
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: "1rem 1.5rem",
+                background: "#f8fafc",
+                borderTop: "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}
+            >
+              <button
+                type="button"
+                className="ghost-button small"
+                onClick={() => {
+                  setShowItemPickerModal(false)
+                  addItem()
+                }}
+              >
+                Add Blank Line
+              </button>
+              <button
+                type="button"
+                className="primary-button small"
+                onClick={() => {
+                  setShowItemPickerModal(false)
+                  setNewItemName("")
+                  setNewItemPrice("")
+                  setShowAddNewItemModal(true)
+                }}
+              >
+                <Plus size={14} /> Add New Item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Item Modal */}
+      {showAddNewItemModal && (
+        <div
+          className="modal-backdrop fade-in"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.55)",
+            backdropFilter: "blur(4px)",
+            zIndex: 1110,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem"
+          }}
+          onClick={() => setShowAddNewItemModal(false)}
+        >
+          <div
+            className="modal-card scale-in"
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "420px",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+              overflow: "hidden"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc" }}>
+              <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#0f172a" }}>Add New Item</h3>
+              <button onClick={() => setShowAddNewItemModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}><X size={18} /></button>
+            </div>
+
+            <form onSubmit={handleSaveNewItemFromBill} style={{ padding: "1.25rem 1.5rem" }}>
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#475569", marginBottom: "0.3rem" }}>Item Name *</label>
+                <input
+                  type="text"
+                  placeholder="Item name"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  style={{ width: "100%", padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.9rem", outline: "none" }}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#475569", marginBottom: "0.3rem" }}>Price / Rate (₹) *</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="0.00"
+                  value={newItemPrice}
+                  onChange={(e) => setNewItemPrice(e.target.value)}
+                  style={{ width: "100%", padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.9rem", outline: "none" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                <button type="button" className="secondary-button" onClick={() => setShowAddNewItemModal(false)} disabled={newItemSaving}>Cancel</button>
+                <button type="submit" className="primary-button" disabled={newItemSaving}>
+                  {newItemSaving ? <ButtonLoader text="Saving..." /> : "Add to Bill & Save to Menu"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Scoped Responsive Fix for Saved Item Dropdown Overflow */}
+      <style>{`
+        @media (max-width: 768px) {
+          .bill-page .bill-editor-column,
+          .bill-page .bill-editor-panel,
+          .bill-page .editor-section,
+          .bill-page .items-section,
+          .bill-page .items-list,
+          .bill-page .item-card,
+          .bill-page .item-row,
+          .bill-page .item-field,
+          .bill-page .item-name-field {
+            min-width: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+          }
+
+          .bill-page .option-select {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            display: block !important;
+          }
+
+          .bill-page .option-select option {
+            max-width: 100% !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }

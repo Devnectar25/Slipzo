@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef, useMemo } from "react"
-import { ArrowRight, Store, Hash, Check, Save, AlertCircle, Printer, Zap, ShieldCheck } from "lucide-react"
-import { call, getCachedData, getActivePlanDetails } from "../lib/utils"
+import { ArrowRight, Store, Hash, Check, Save, AlertCircle, Printer, Zap, ShieldCheck, FileText, Tag } from "lucide-react"
+import { call, getCachedData, getActivePlanDetails, findTemplateMatch } from "../lib/utils"
 import { ButtonLoader, Skeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
+import { BUILTIN_TEMPLATES } from "./Templates"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -36,6 +37,7 @@ export function Shop({ user, setView } = {}) {
       window.removeEventListener("storage", handleUpdate)
     }
   }, [user])
+  const [templates, setTemplates] = useState(() => BUILTIN_TEMPLATES)
   const [shop, setShop] = useState(() => {
     const data = getCachedData("/shop")
     return {
@@ -44,7 +46,11 @@ export function Shop({ user, setView } = {}) {
       phone: data?.phone || "",
       invoice_prefix: data?.invoice_prefix || "SLP",
       invoice_sequence: data?.invoice_sequence || 1001,
-      invoice_format: data?.invoice_format || "PREFIX-DATE-SEQ"
+      invoice_format: data?.invoice_format || "PREFIX-DATE-SEQ",
+      default_template_id: data?.default_template_id || "",
+      default_discount: data?.default_discount !== undefined && data?.default_discount !== null ? String(data.default_discount) : "0",
+      show_tax: data?.show_tax !== undefined && data?.show_tax !== null ? Number(data.show_tax) : 2,
+      tax_rate: data?.tax_rate !== undefined && data?.tax_rate !== null ? String(data.tax_rate) : "18"
     }
   })
   const [errors, setErrors] = useState({})
@@ -124,15 +130,33 @@ export function Shop({ user, setView } = {}) {
   useEffect(() => {
     const loadShop = async () => {
       try {
-        const data = await call("/shop")
+        const [data, templatesData] = await Promise.all([
+          call("/shop").catch(() => null),
+          call("/templates").catch(() => [])
+        ])
+
+        const dbTemplates = Array.isArray(templatesData) ? templatesData : []
+        const dbNames = new Set(dbTemplates.map(t => (t.name || "").toLowerCase()))
+        const extraBuiltins = BUILTIN_TEMPLATES.filter(b => !dbNames.has((b.name || "").toLowerCase()))
+        const tplList = dbTemplates.length > 0 || extraBuiltins.length > 0 ? [...dbTemplates, ...extraBuiltins] : BUILTIN_TEMPLATES
+
+        setTemplates(tplList)
+
         if (!edited.current && data) {
+          const matchedDefault = findTemplateMatch(tplList, data.default_template_id)
+          const resolvedDefaultTplId = matchedDefault ? matchedDefault.id : (data.default_template_id || tplList[0]?.id || "")
+
           const loadedShop = {
             name: data.name || "",
             address: data.address || "",
             phone: data.phone || "",
             invoice_prefix: data.invoice_prefix || "SLP",
             invoice_sequence: data.invoice_sequence || 1001,
-            invoice_format: data.invoice_format || "PREFIX-DATE-SEQ"
+            invoice_format: data.invoice_format || "PREFIX-DATE-SEQ",
+            default_template_id: resolvedDefaultTplId,
+            default_discount: data.default_discount !== undefined && data.default_discount !== null ? String(data.default_discount) : "0",
+            show_tax: data.show_tax !== undefined && data.show_tax !== null ? Number(data.show_tax) : 1,
+            tax_rate: data.tax_rate !== undefined && data.tax_rate !== null ? String(data.tax_rate) : "18"
           }
           setShop(loadedShop)
         }
@@ -383,6 +407,92 @@ export function Shop({ user, setView } = {}) {
               </span>
             )}
           </label>
+        </div>
+
+        {/* Receipt Defaults & Billing Configuration */}
+        <div className="form-section-card">
+          <h3 className="section-title-sm"><FileText size={16} /> Receipt Defaults & Billing</h3>
+          <p className="subtle" style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>
+            Set your shop's default receipt template and discount applied to new bills.
+          </p>
+
+          <div className="form-row">
+            <label className="flex-1 form-group-label">
+              RECEIPT TEMPLATE
+              <select
+                value={shop.default_template_id}
+                onChange={(e) => handleChange("default_template_id", e.target.value)}
+                className="option-select"
+              >
+                {Array.isArray(templates) && templates.length > 0 ? (
+                  templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.width || "58mm"})
+                    </option>
+                  ))
+                ) : (
+                  BUILTIN_TEMPLATES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.width || "58mm"})
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <label className="flex-1 form-group-label">
+              DEFAULT DISCOUNT (₹)
+              <input
+                type="number"
+                step="any"
+                min="0"
+                placeholder="0"
+                value={shop.default_discount === 0 || shop.default_discount === "0" ? "" : shop.default_discount}
+                onChange={(e) => handleChange("default_discount", e.target.value)}
+                className="item-input"
+              />
+              <small style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "0.2rem", display: "block" }}>
+                Auto-populated when creating new bills
+              </small>
+            </label>
+          </div>
+
+          <div className="form-row" style={{ marginTop: "1rem" }}>
+            <label className="flex-1 form-group-label">
+              TAX INCLUSION MODE
+              <select
+                value={shop.show_tax}
+                onChange={(e) => handleChange("show_tax", Number(e.target.value))}
+                className="option-select"
+              >
+                <option value={0}>No Tax (0% / Tax Disabled)</option>
+                <option value={1}>Tax Included (Prices contain tax)</option>
+                <option value={2}>Tax Extra (Added on top of bill)</option>
+              </select>
+              <small style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "0.2rem", display: "block" }}>
+                Controls how GST/tax is applied to new bills
+              </small>
+            </label>
+
+            <label className="flex-1 form-group-label">
+              DEFAULT TAX RATE (%)
+              <input
+                type="number"
+                step="any"
+                min="0"
+                max="100"
+                placeholder="0"
+                disabled={Number(shop.show_tax) === 0}
+                value={Number(shop.show_tax) === 0 ? "0" : (shop.tax_rate === undefined || shop.tax_rate === null ? "0" : String(shop.tax_rate))}
+                onChange={(e) => handleChange("tax_rate", e.target.value)}
+                className="item-input"
+                style={{ opacity: Number(shop.show_tax) === 0 ? 0.6 : 1 }}
+              />
+              <small style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "0.2rem", display: "block" }}>
+                Auto-populated on new bills (e.g. 5%, 12%, 18%)
+              </small>
+            </label>
+          </div>
         </div>
 
         {/* Invoice Numbering Configuration */}

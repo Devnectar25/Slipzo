@@ -11,11 +11,13 @@ import {
   Filter,
   User,
   Calendar,
-  Plus
+  Plus,
+  Trash2
 } from "lucide-react"
 import { call, money, getCachedData } from "../lib/utils"
-import { TableSkeleton } from "./common/Skeleton"
+import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
+import Swal from "sweetalert2"
 
 export function History({ setView, setSelectedBillId }) {
   const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10")
@@ -39,8 +41,9 @@ export function History({ setView, setSelectedBillId }) {
   const [limit, setLimit] = useState(10)
   const [search, setSearch] = useState("")
   const [paymentMode, setPaymentMode] = useState("All")
+  const [deletingId, setDeletingId] = useState(null)
 
-  const { error: toastError } = useToast()
+  const { success: toastSuccess, error: toastError } = useToast()
 
   const loadBills = async () => {
     try {
@@ -92,6 +95,46 @@ export function History({ setView, setSelectedBillId }) {
     setSelectedBillId(billId)
     sessionStorage.setItem("slipzo-reprint-id", billId)
     setView("reprint")
+  }
+
+  const handleDeleteBill = async (bill) => {
+    if (deletingId) return
+    const result = await Swal.fire({
+      title: "Delete this bill?",
+      html: `<div style="font-size: 0.95rem; color: #475569; margin-top: 0.35rem;">
+        Are you sure you want to delete bill <b style="color: #0f172a;">${bill.number}</b> (${money(bill.total)})?
+      </div>
+      <div style="font-size: 0.82rem; color: #ef4444; margin-top: 0.5rem; font-weight: 600;">
+        This action cannot be undone.
+      </div>`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+      focusCancel: true
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      setDeletingId(bill.id)
+      await call(`/bills/${bill.id}`, { method: "DELETE" })
+
+      toastSuccess(`Bill #${bill.number} deleted successfully`)
+
+      if (bills.length === 1 && page > 1) {
+        setPage((p) => p - 1)
+      } else {
+        await loadBills()
+      }
+    } catch (err) {
+      console.error("Failed to delete bill:", err)
+      toastError(err?.detail || err?.message || "Failed to delete bill")
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const startRecord = (page - 1) * limit + 1
@@ -210,14 +253,25 @@ export function History({ setView, setSelectedBillId }) {
                   <strong>{money(bill.total)}</strong>
                 </div>
 
-                <button
-                  data-testid={`reprint-bill-${bill.id}-button`}
-                  className="icon-button"
-                  title="Reprint Receipt"
-                  onClick={() => handleReprint(bill.id)}
-                >
-                  <Printer size={16} />
-                </button>
+                <div className="history-actions-col">
+                  <button
+                    data-testid={`reprint-bill-${bill.id}-button`}
+                    className="icon-button"
+                    title="Reprint Receipt"
+                    onClick={() => handleReprint(bill.id)}
+                  >
+                    <Printer size={16} />
+                  </button>
+                  <button
+                    data-testid={`delete-bill-${bill.id}-button`}
+                    className="icon-button delete-button"
+                    title="Delete Receipt"
+                    disabled={deletingId === bill.id}
+                    onClick={() => handleDeleteBill(bill)}
+                  >
+                    {deletingId === bill.id ? <Spinner size="sm" /> : <Trash2 size={16} />}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -410,6 +464,22 @@ export function History({ setView, setSelectedBillId }) {
             min-height: 44px !important;
           }
 
+          .history-actions-col {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .history-page .history-row .delete-button {
+            color: #ef4444;
+            background: #fef2f2;
+          }
+
+          .history-page .history-row .delete-button:hover:not(:disabled) {
+            background: #fee2e2;
+            color: #dc2626;
+          }
+
           .history-page .history-row {
             display: flex !important;
             flex-direction: column !important;
@@ -423,12 +493,18 @@ export function History({ setView, setSelectedBillId }) {
             margin-top: 0.2rem;
           }
 
-          .history-page .history-row .icon-button {
+          .history-page .history-actions-col {
             position: absolute;
             top: 0.75rem;
             right: 0.75rem;
-            min-width: 44px;
-            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+          }
+
+          .history-page .history-actions-col .icon-button {
+            min-width: 38px;
+            min-height: 38px;
           }
 
           .history-page .pagination-bar {
