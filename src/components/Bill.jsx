@@ -22,7 +22,14 @@ import {
   Eye,
   FileEdit,
   SlidersHorizontal,
-  CheckCircle2
+  CheckCircle2,
+  History,
+  PlusCircle,
+  ChevronRight,
+  CheckSquare,
+  Square,
+  PackageX,
+  Sparkles
 } from "lucide-react"
 import {
   call,
@@ -34,7 +41,9 @@ import {
   canPrintFree,
   getRemainingFreePrints,
   incrementFreePrintCount,
-  getCachedData
+  getCachedData,
+  syncUserQuota,
+  getActivePlanDetails
 } from "../lib/utils"
 import { ReceiptSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -51,22 +60,40 @@ const GUEST_TEMPLATES = [
 
 function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
-  const date = new Date()
-  const fullYear = date.getFullYear().toString()
-  const shortYear = fullYear.slice(-2)
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  const dateStr = `${fullYear}${month}${day}`
-  const shortDateStr = `${shortYear}${month}${day}`
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, "0")
+  const day = String(today.getDate()).padStart(2, "0")
+  const dateStr = `${year}${month}${day}`
   const seqStr = String(sequence || 1001).padStart(4, "0")
 
-  if (format === "PREFIX-SEQ") return `${cleanPrefix}-${seqStr}`
-  if (format === "PREFIX-SHORTDATE-SEQ") return `${cleanPrefix}-${shortDateStr}-${seqStr}`
-  if (format === "SEQ") return seqStr
-  return `${cleanPrefix}-${dateStr}-${seqStr}`
+  if (format === "PREFIX-SEQ") {
+    return `${cleanPrefix}-${seqStr}`
+  } else if (format === "DATE-SEQ") {
+    return `${dateStr}-${seqStr}`
+  } else {
+    return `${cleanPrefix}-${dateStr}-${seqStr}`
+  }
 }
 
-export function Bill({ setView, user, requireAuth }) {
+export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: parentSetShop }) {
+  const userKey = user?.email || user?.id
+  const [shop, setShopState] = useState(initialShop || {})
+
+  const setShop = (updater) => {
+    setShopState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater
+      if (parentSetShop) parentSetShop(next)
+      return next
+    })
+  }
+
+  useEffect(() => {
+    if (initialShop) setShopState(initialShop)
+  }, [initialShop])
+
+  const { toastSuccess, toastError } = useToast()
+
   const cachedTemplates = getCachedData("/templates")
   const cachedShop = getCachedData("/shop")
 
@@ -75,7 +102,6 @@ export function Bill({ setView, user, requireAuth }) {
     return user ? [] : GUEST_TEMPLATES
   })
   const [selectedId, setSelectedId] = useState(() => sessionStorage.getItem("slipzo-template") || (cachedTemplates?.[0]?.id || ""))
-  const [shop, setShop] = useState(() => cachedShop || {})
   const [customers, setCustomers] = useState(() => getCachedData("/customers") || [])
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [items, setItems] = useState([{ id: 1, name: "", quantity: 1, rate: "" }])
@@ -106,7 +132,71 @@ export function Bill({ setView, user, requireAuth }) {
   const [isPrinting, setIsPrinting] = useState(false)
   const [showPrintModal, setShowPrintModal] = useState(false)
 
-  const { success: toastSuccess, error: toastError } = useToast()
+  // New Bill Flow State: "popup" | "existing_items" | "form"
+  const [flowState, setFlowState] = useState(() => {
+    if (sessionStorage.getItem("slipzo-quick-item") || sessionStorage.getItem("slipzo-selected-customer")) {
+      return "form"
+    }
+    return "popup"
+  })
+  const [recentItems, setRecentItems] = useState([])
+  const [loadingRecentItems, setLoadingRecentItems] = useState(false)
+  const [selectedRecentIndices, setSelectedRecentIndices] = useState([])
+
+  const fetchRecentBillItems = async () => {
+    if (!user) {
+      setRecentItems([])
+      return
+    }
+    setLoadingRecentItems(true)
+    try {
+      // Fetch latest 3 bills for the logged-in user
+      const res = await call("/bills?limit=3")
+      const billsList = Array.isArray(res?.bills) ? res.bills : (Array.isArray(res) ? res : [])
+      const latest3 = billsList.slice(0, 3)
+
+      // Deduplicate items across the last 3 bills by item name (case-insensitive)
+      const itemMap = new Map()
+      latest3.forEach((b) => {
+        const billItems = Array.isArray(b.items) ? b.items : (typeof b.items === 'string' ? JSON.parse(b.items) : [])
+        if (Array.isArray(billItems)) {
+          billItems.forEach((item) => {
+            if (item && item.name && item.name.trim()) {
+              const key = item.name.trim().toLowerCase()
+              if (!itemMap.has(key)) {
+                itemMap.set(key, {
+                  id: item.id || `rec_${Date.now()}_${Math.random()}`,
+                  name: item.name.trim(),
+                  quantity: Number(item.quantity) || 1,
+                  rate: Number(item.rate) || 0,
+                  billNumber: b.number || ''
+                })
+              }
+            }
+          })
+        }
+      })
+
+      const extracted = Array.from(itemMap.values())
+      setRecentItems(extracted)
+      setSelectedRecentIndices([])
+    } catch (err) {
+      console.warn("Could not fetch recent bill items:", err)
+      setRecentItems([])
+    } finally {
+      setLoadingRecentItems(false)
+    }
+  }
+
+  const toggleRecentItemSelection = (index) => {
+    setSelectedRecentIndices((prev) => {
+      if (prev.includes(index)) {
+        return prev.filter((i) => i !== index)
+      } else {
+        return [...prev, index]
+      }
+    })
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -289,6 +379,24 @@ export function Bill({ setView, user, requireAuth }) {
       return
     }
 
+    const userKey = user?.email || user?.id
+    const currentQuota = getActivePlanDetails(userKey)
+    if (currentQuota && currentQuota.printsRemaining <= 0) {
+      const msg = "⚠️ Print quota limit reached. You have 0 prints remaining."
+      setError(msg)
+      toastError(msg)
+      Swal.fire({
+        title: "Print Quota Reached",
+        text: "You have 0 prints remaining in your subscription balance. Please purchase a plan to add print credits and continue creating bills.",
+        icon: "warning",
+        confirmButtonText: "View Pricing Plans",
+        confirmButtonColor: "#0ea5e9"
+      }).then(() => {
+        setView("pricing")
+      })
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -323,6 +431,10 @@ export function Bill({ setView, user, requireAuth }) {
         body: JSON.stringify(billData)
       })
 
+      if (bill && bill.quota) {
+        syncUserQuota(bill.quota, userKey)
+      }
+
       setSaved(bill)
       setCustomBillNumber(bill.number)
       toastSuccess(`Bill #${bill.number} saved successfully!`)
@@ -336,27 +448,37 @@ export function Bill({ setView, user, requireAuth }) {
       const msg = err.message || "Failed to save bill. Please try again."
       setError(msg)
       toastError(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePrint = () => {
-    if (!user) {
-      if (!canPrintFree()) {
-        const msg = "⚠️ You have reached your limit of 10 free prints."
-        if (toastError) toastError(msg)
+      if (msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("0 prints")) {
         Swal.fire({
-          title: "Free Prints Limit Reached",
-          text: "You have completed your 10 free trial prints. Please choose a plan to continue printing unlimited receipts.",
+          title: "Print Quota Limit Reached",
+          text: msg,
           icon: "warning",
           confirmButtonText: "View Pricing Plans",
           confirmButtonColor: "#0ea5e9"
         }).then(() => {
           setView("pricing")
         })
-        return
       }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePrint = () => {
+    const userKey = user?.email || user?.id
+    if (!canPrintFree(userKey)) {
+      const msg = "⚠️ You have reached your print quota limit."
+      if (toastError) toastError(msg)
+      Swal.fire({
+        title: "Print Quota Reached",
+        text: "You have used all available prints in your plan. Please select a plan to add print credits and continue.",
+        icon: "warning",
+        confirmButtonText: "View Pricing Plans",
+        confirmButtonColor: "#0ea5e9"
+      }).then(() => {
+        setView("pricing")
+      })
+      return
     }
 
     setShowPrintModal(true)
@@ -389,6 +511,7 @@ export function Bill({ setView, user, requireAuth }) {
     setSelectedCustomer(null)
     setSaved(null)
     setError(null)
+    setFlowState("popup")
 
     const nextNum = generateClientBillNumber(
       shop?.invoice_prefix || "SLP",
@@ -480,6 +603,152 @@ export function Bill({ setView, user, requireAuth }) {
 
   return (
     <div className="page bill-page fade-in">
+      {/* 1. SELECTION POPUP MODAL */}
+      {flowState === "popup" && (
+        <div className="new-bill-popup-backdrop fade-in">
+          <div className="new-bill-popup-card">
+            <span className="popup-badge">New Bill Workflow</span>
+            <h2>Choose how you want to create your bill</h2>
+            <p className="popup-sub">Select an option to start adding items</p>
+
+            <div className="popup-options-grid">
+              <button
+                type="button"
+                className="popup-option-btn primary-option"
+                onClick={() => {
+                  fetchRecentBillItems()
+                  setFlowState("existing_items")
+                }}
+              >
+                <div className="option-icon-box">
+                  <History size={22} />
+                </div>
+                <div className="option-text">
+                  <strong>Use Existing Item</strong>
+                  <small>Use items from your latest 3 bills</small>
+                </div>
+                <ChevronRight size={18} className="option-arrow" />
+              </button>
+
+              <button
+                type="button"
+                className="popup-option-btn secondary-option"
+                onClick={() => setFlowState("form")}
+              >
+                <div className="option-icon-box accent">
+                  <PlusCircle size={22} />
+                </div>
+                <div className="option-text">
+                  <strong>Create New Bill</strong>
+                  <small>Start with a fresh empty bill</small>
+                </div>
+                <ChevronRight size={18} className="option-arrow" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. EXISTING ITEMS SELECTION INTERFACE */}
+      {flowState === "existing_items" && (
+        <div className="existing-items-container fade-in">
+          <div className="existing-items-header">
+            <div>
+              <h3>Select Items from Recent Bills</h3>
+              <p>Showing deduplicated items from your latest 3 previous bills</p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button small"
+              onClick={() => setFlowState("form")}
+            >
+              <Plus size={14} /> Add New Item
+            </button>
+          </div>
+
+          {loadingRecentItems ? (
+            <div style={{ padding: "3rem 0", textAlign: "center" }}>
+              <Spinner size={26} />
+              <p style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.75rem" }}>
+                Loading items from your last 3 bills...
+              </p>
+            </div>
+          ) : recentItems.length === 0 ? (
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "2.5rem 1.5rem", textAlign: "center", marginBottom: "1.25rem" }}>
+              <PackageX size={42} style={{ color: "#cbd5e1", margin: "0 auto 0.75rem" }} />
+              <h4 style={{ fontSize: "1.1rem", color: "#0f172a", margin: "0 0 0.25rem 0" }}>No previous items available</h4>
+              <p style={{ color: "#64748b", fontSize: "0.85rem", margin: "0 0 1.25rem 0" }}>
+                You have no items saved in your last 3 bills yet.
+              </p>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => setFlowState("form")}
+              >
+                <Plus size={16} /> Add New Item
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="recent-items-grid">
+                {recentItems.map((item, idx) => {
+                  const isSelected = selectedRecentIndices.includes(idx)
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className={`recent-item-card ${isSelected ? "selected" : ""}`}
+                      onClick={() => toggleRecentItemSelection(idx)}
+                    >
+                      <div className="item-checkbox">
+                        {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                      </div>
+                      <div className="item-details">
+                        <div className="item-name">{item.name}</div>
+                        <div className="item-meta">
+                          {item.quantity} × ₹{item.rate}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="existing-items-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setFlowState("form")}
+                >
+                  + Add New Item
+                </button>
+
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={selectedRecentIndices.length === 0}
+                  onClick={() => {
+                    const chosen = selectedRecentIndices.map((idx) => recentItems[idx]).filter(Boolean)
+                    if (chosen.length > 0) {
+                      setItems(
+                        chosen.map((itm, i) => ({
+                          id: Date.now() + i,
+                          name: itm.name,
+                          quantity: itm.quantity,
+                          rate: itm.rate
+                        }))
+                      )
+                    }
+                    setFlowState("form")
+                  }}
+                >
+                  Add {selectedRecentIndices.length} {selectedRecentIndices.length === 1 ? "Item" : "Items"} to Bill
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="bill-header">
         <div className="bill-header-left">

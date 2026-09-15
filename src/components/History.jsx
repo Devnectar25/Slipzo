@@ -10,21 +10,30 @@ import {
   ChevronsRight,
   Filter,
   User,
-  Calendar
+  Calendar,
+  Plus
 } from "lucide-react"
 import { call, money, getCachedData } from "../lib/utils"
 import { TableSkeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 
 export function History({ setView, setSelectedBillId }) {
-  const cachedData = getCachedData("/bills?page=1&limit=10")
+  const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10")
+  const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
+
+  const filter10Days = (list) => {
+    if (!Array.isArray(list)) return []
+    const cutoff = Date.now() - TEN_DAYS_MS
+    return list.filter((b) => b && b.created_at && new Date(b.created_at).getTime() >= cutoff)
+  }
+
   const [bills, setBills] = useState(() => {
-    if (cachedData?.bills) return cachedData.bills
-    if (Array.isArray(cachedData)) return cachedData
+    if (cachedData?.bills) return filter10Days(cachedData.bills)
+    if (Array.isArray(cachedData)) return filter10Days(cachedData)
     return []
   })
   const [loading, setLoading] = useState(() => !cachedData)
-  const [totalRecords, setTotalRecords] = useState(() => cachedData?.total || (Array.isArray(cachedData) ? cachedData.length : 0))
+  const [totalRecords, setTotalRecords] = useState(() => cachedData?.total || (Array.isArray(cachedData) ? filter10Days(cachedData).length : 0))
   const [totalPages, setTotalPages] = useState(() => cachedData?.totalPages || 1)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
@@ -38,20 +47,21 @@ export function History({ setView, setSelectedBillId }) {
       if (bills.length === 0) setLoading(true)
       const queryParams = new URLSearchParams({
         page: String(page),
-        limit: String(limit)
+        limit: String(limit),
+        days_limit: "10"
       })
       if (search.trim()) queryParams.append("search", search.trim())
       if (paymentMode !== "All") queryParams.append("payment_mode", paymentMode)
 
       const data = await call(`/bills?${queryParams.toString()}`)
-      
+
       if (data && typeof data === "object" && !Array.isArray(data) && data.bills) {
-        setBills(data.bills)
-        setTotalRecords(data.total || 0)
+        const filtered = filter10Days(data.bills)
+        setBills(filtered)
+        setTotalRecords(data.total || filtered.length)
         setTotalPages(data.totalPages || 1)
       } else {
-        // Fallback for non-paginated format
-        const billsList = Array.isArray(data) ? data : []
+        const billsList = filter10Days(Array.isArray(data) ? data : [])
         setBills(billsList)
         setTotalRecords(billsList.length)
         setTotalPages(1)
@@ -281,32 +291,107 @@ export function History({ setView, setSelectedBillId }) {
             </div>
           </div>
         </>
+      ) : search || paymentMode !== "All" ? (
+        <div className="history-empty-card fade-in">
+          <div className="history-empty-icon muted">
+            <Search size={28} />
+          </div>
+          <h3>No receipts found</h3>
+          <p>No receipts matched your search filters. Try clearing the search or filter.</p>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => {
+              setSearch("")
+              setPaymentMode("All")
+            }}
+            style={{ marginTop: "0.75rem" }}
+          >
+            Clear filters
+          </button>
+        </div>
       ) : (
-        <div className="empty fade-in">
-          <Receipt size={32} />
-          <h3>{search || paymentMode !== "All" ? "No receipts found" : "No receipts yet"}</h3>
+        <div className="history-empty-card fade-in">
+          <div className="history-empty-icon">
+            <Receipt size={32} />
+          </div>
+          <h3>No bills yet</h3>
           <p>
-            {search || paymentMode !== "All"
-              ? "No receipts matched your search filters. Try clearing the search."
-              : "Your saved receipts will automatically show up here."}
+            Your saved receipts from the last 10 days will automatically appear here once you create your first bill.
           </p>
-          {(search || paymentMode !== "All") && (
-            <button
-              className="secondary-button"
-              onClick={() => {
-                setSearch("")
-                setPaymentMode("All")
-              }}
-              style={{ marginTop: "1rem" }}
-            >
-              Clear filters
-            </button>
-          )}
+          <button
+            type="button"
+            className="primary-button history-create-btn"
+            onClick={() => setView("bills")}
+          >
+            <Plus size={16} /> Create New Bill
+          </button>
         </div>
       )}
 
       <style>{`
+        .history-empty-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 3rem 1.5rem;
+          text-align: center;
+          max-width: 440px;
+          margin: 2.5rem auto;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .history-empty-icon {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: #e0f2fe;
+          color: #0ea5e9;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 1rem;
+        }
+
+        .history-empty-icon.muted {
+          background: #f1f5f9;
+          color: #64748b;
+        }
+
+        .history-empty-card h3 {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0 0 0.35rem 0;
+        }
+
+        .history-empty-card p {
+          font-size: 0.88rem;
+          color: #64748b;
+          margin: 0 0 1.25rem 0;
+          line-height: 1.5;
+        }
+
+        .history-create-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.65rem 1.25rem;
+          border-radius: 10px;
+          font-weight: 600;
+        }
+
         @media (max-width: 640px) {
+          .history-empty-card {
+            padding: 2rem 1.25rem !important;
+            margin: 1.5rem auto !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
           .history-page .table-controls-bar {
             flex-direction: column !important;
             align-items: stretch !important;

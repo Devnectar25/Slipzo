@@ -18,7 +18,9 @@ import { ShopOnboardingModal } from "./components/ShopOnboardingModal"
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider } from "./components/common/Toast"
-import { call } from "./lib/utils"
+import { call, syncUserQuota } from "./lib/utils"
+import { AdminLogin } from "./components/admin/AdminLogin"
+import { AdminDashboard } from "./components/admin/AdminDashboard"
 import "./styles/App.css"
 import "./styles/print.css"
 
@@ -34,68 +36,113 @@ export default function App() {
 
 function AppContent() {
   const [user, setUser] = useState(null)
-  const [checking, setChecking] = useState(true)
   const [view, setView] = useState("landing")
-  const [selectedBillId, setSelectedBillId] = useState(null)
+  const [checking, setChecking] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
-  const [authRegister, setAuthRegister] = useState(false)
+  const [isRegister, setIsRegister] = useState(false)
   const [showShopOnboarding, setShowShopOnboarding] = useState(false)
+  const [adminUser, setAdminUser] = useState(null)
+  const [adminToken, setAdminToken] = useState(null)
+  const [isAdminChecking, setIsAdminChecking] = useState(true)
+  const [selectedBillId, setSelectedBillId] = useState(null)
 
-  const handleOpenAuth = (isRegister = false) => {
-    setAuthRegister(isRegister)
+  const handleOpenAuth = (register = false) => {
+    setIsRegister(register)
     setShowAuth(true)
   }
 
-  const checkShopSetupNeeded = async (currentUser) => {
-    if (!currentUser?.id) return
-
+  const checkShopSetupNeeded = async (userData) => {
     try {
-      const shop = await call("/shop")
-      // Check if user has filled in all essential shop details: name, phone, address
-      const isShopFilled = Boolean(
-        shop &&
-        shop.name && shop.name.trim() !== "" &&
-        shop.phone && shop.phone.trim() !== "" &&
-        shop.address && shop.address.trim() !== ""
-      )
-
-      if (!isShopFilled) {
-        // Keep showing the popup until the user fills in all shop details
+      const shopData = await call("/shop/me")
+      if (!shopData || !shopData.name) {
         setShowShopOnboarding(true)
-      } else {
-        localStorage.setItem(`slipzo_shop_setup_${currentUser.id}`, "true")
       }
     } catch (err) {
+      console.warn('⚠️ Shop info not found, showing onboarding:', err.message)
       setShowShopOnboarding(true)
     }
   }
 
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        console.log('🔐 Checking authentication...')
-        const userData = await call("/auth/me")
-        console.log('✅ User authenticated:', userData)
-        if (userData && (userData.id || userData.email)) {
-          setUser(userData)
-          setView("dashboard")
-          checkShopSetupNeeded(userData)
-        } else {
-          console.log('❌ Invalid user data returned:', userData)
-          setUser(null)
-          setView("landing")
-        }
-      } catch (err) {
-        console.log('❌ Not authenticated:', err.message)
-        setUser(null)
-        setView("landing")
-      } finally {
-        setChecking(false)
-      }
+  const checkAdminAuth = async () => {
+    const savedToken = localStorage.getItem("slipzo_admin_token")
+    if (!savedToken) {
+      setIsAdminChecking(false)
+      setView("admin_login")
+      setChecking(false)
+      return
     }
 
-    checkAuth()
+    try {
+      const res = await call("/admin/me", {
+        headers: { Authorization: `Bearer ${savedToken}` }
+      })
+      if (res && (res.admin || (res.user && res.user.is_admin))) {
+        setAdminUser(res.admin || res.user)
+        setAdminToken(savedToken)
+        setView("admin_dashboard")
+      } else {
+        localStorage.removeItem("slipzo_admin_token")
+        setView("admin_login")
+      }
+    } catch (err) {
+      console.error("Admin verification failed:", err)
+      localStorage.removeItem("slipzo_admin_token")
+      setView("admin_login")
+    } finally {
+      setIsAdminChecking(false)
+      setChecking(false)
+    }
+  }
+
+  const checkUserAuth = async () => {
+    try {
+      console.log('🔐 Checking user authentication...')
+      const userData = await call("/auth/me")
+      console.log('✅ User authenticated:', userData)
+      if (userData && (userData.id || userData.email)) {
+        localStorage.setItem("slipzo_user_info", JSON.stringify(userData))
+        // Remove legacy un-scoped keys if present from previous builds
+        localStorage.removeItem("slipzo_active_plan")
+        localStorage.removeItem("slipzo_free_print_count")
+
+        const userKey = userData.email || userData.id
+        
+        // Sync subscription quota from DB backend
+        try {
+          const subRes = await call("/subscriptions/my")
+          if (subRes && subRes.quota) {
+            syncUserQuota(subRes.quota, userKey)
+          }
+        } catch (subErr) {
+          console.warn("Could not sync DB subscriptions:", subErr)
+        }
+
+        setUser(userData)
+        setView("dashboard")
+        checkShopSetupNeeded(userData)
+      } else {
+        console.log('❌ Invalid user data returned:', userData)
+        localStorage.removeItem("slipzo_user_info")
+        setUser(null)
+        setView("landing")
+      }
+    } catch (err) {
+      console.log('❌ Not authenticated:', err.message)
+      localStorage.removeItem("slipzo_user_info")
+      setUser(null)
+      setView("landing")
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  useEffect(() => {
+    const path = window.location.pathname
+    if (path === "/admin/login" || path === "/admin" || path.startsWith("/admin/")) {
+      checkAdminAuth()
+    } else {
+      checkUserAuth()
+    }
   }, [])
 
   useEffect(() => {
@@ -108,9 +155,13 @@ function AppContent() {
   const handleLogout = async () => {
     try {
       await call("/auth/logout", { method: "POST" })
+      localStorage.removeItem("slipzo_user_info")
       setUser(null)
       setShowShopOnboarding(false)
       setView("landing")
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+      }
     } catch (err) {
       console.error("Logout failed:", err)
     }
@@ -135,6 +186,26 @@ function AppContent() {
     setView(viewName)
   }
 
+  const handleAdminLoginSuccess = (adminData, token) => {
+    if (token) {
+      localStorage.setItem("slipzo_token", token)
+      localStorage.setItem("slipzo_admin_token", token)
+    }
+    setAdminUser(adminData)
+    setView("admin_dashboard")
+    window.history.pushState({}, "", "/admin")
+  }
+
+  const handleAdminLogout = async () => {
+    try {
+      await call("/admin/logout", { method: "POST" })
+    } catch (err) {}
+    localStorage.removeItem("slipzo_admin_token")
+    setAdminUser(null)
+    setView("admin_login")
+    window.history.pushState({}, "", "/admin/login")
+  }
+
   if (checking) {
     return (
       <div className="loading">
@@ -144,6 +215,14 @@ function AppContent() {
         </div>
       </div>
     )
+  }
+
+  if (view === "admin_login" || view === "admin") {
+    return <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
+  }
+
+  if (view === "admin_dashboard") {
+    return <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
   }
 
   // Public pages (accessible without login)
@@ -442,6 +521,9 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                 </button>
                 <button onClick={() => setView("landing")}>
                   <Home size={13} /> About
+                </button>
+                <button onClick={() => { setView("admin_login"); window.history.pushState({}, "", "/admin/login"); }}>
+                  <ShieldCheck size={13} /> Admin Portal
                 </button>
               </div>
               <div className="footer-links">

@@ -564,13 +564,6 @@ export function Products({ setView, requireAuth, user }) {
                       >
                         <Edit size={13} />
                       </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="product-action-icon-btn delete"
-                        title="Delete Product"
-                      >
-                        <Trash2 size={13} />
-                      </button>
                     </div>
                   </div>
                 </div>

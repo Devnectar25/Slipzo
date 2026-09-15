@@ -210,15 +210,27 @@ export const money = (n) => `₹${Number(n || 0).toFixed(2)}`
 
 export const now = () => new Date().toISOString()
 
-export const getActivePlanDetails = () => {
+export const getCurrentUserKey = () => {
   try {
-    const raw = localStorage.getItem("slipzo_active_plan")
+    const userRaw = typeof window !== 'undefined' ? localStorage.getItem('slipzo_user_info') : null
+    if (userRaw) {
+      const u = JSON.parse(userRaw)
+      if (u?.email || u?.id) return u.email || u.id
+    }
+  } catch (e) {}
+  return "guest"
+}
+
+export const getActivePlanDetails = (userKey) => {
+  const key = userKey || getCurrentUserKey()
+  try {
+    const raw = localStorage.getItem(`slipzo_active_plan_${key}`)
     if (raw) {
       return JSON.parse(raw)
     }
   } catch (e) {}
 
-  const freeUsed = getFreePrintCount()
+  const freeUsed = getFreePrintCount(key)
   const remaining = Math.max(0, 10 - freeUsed)
   return {
     name: "Free Starter Tier",
@@ -229,21 +241,18 @@ export const getActivePlanDetails = () => {
   }
 }
 
-export const activatePlan = (planName, printCount) => {
+export const activatePlan = (planName, printCount, userKey) => {
+  const key = userKey || getCurrentUserKey()
   try {
-    const current = getActivePlanDetails()
-    const currentRemaining = current.printsRemaining || 0
-    const newTotal = (current.totalPrints || 10) + printCount
-    const newRemaining = currentRemaining + printCount
     const planData = {
       name: planName,
-      printsRemaining: newRemaining,
-      totalPrints: newTotal,
-      usedPrints: current.usedPrints || 0,
+      printsRemaining: printCount,
+      totalPrints: printCount,
+      usedPrints: 0,
       isFreeTier: false,
       activatedAt: new Date().toISOString()
     }
-    localStorage.setItem("slipzo_active_plan", JSON.stringify(planData))
+    localStorage.setItem(`slipzo_active_plan_${key}`, JSON.stringify(planData))
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
     }
@@ -253,22 +262,53 @@ export const activatePlan = (planName, printCount) => {
   }
 }
 
-export const getFreePrintCount = () => {
+export const syncUserQuota = (quotaData, userKey) => {
+  if (!quotaData) return null
+  const key = userKey || getCurrentUserKey()
   try {
-    const val = localStorage.getItem("slipzo_free_print_count")
+    const current = getActivePlanDetails(key)
+    const totalPrints = Number(quotaData.totalPrints) || 10
+    const usedPrints = Number(quotaData.usedPrints) || 0
+    const printsRemaining = Number(quotaData.printsRemaining ?? Math.max(0, totalPrints - usedPrints))
+    const planName = quotaData.planName || current.name || (totalPrints > 10 ? "Purchased Plan" : "Free Starter Tier")
+
+    const updatedPlan = {
+      name: planName,
+      printsRemaining,
+      totalPrints,
+      usedPrints,
+      isFreeTier: totalPrints <= 10,
+      updatedAt: new Date().toISOString()
+    }
+    localStorage.setItem(`slipzo_active_plan_${key}`, JSON.stringify(updatedPlan))
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+    }
+    return updatedPlan
+  } catch (e) {
+    console.error("Failed to sync user quota:", e)
+  }
+}
+
+
+export const getFreePrintCount = (userKey) => {
+  const key = userKey || getCurrentUserKey()
+  try {
+    const val = localStorage.getItem(`slipzo_free_print_count_${key}`)
     return val ? parseInt(val, 10) || 0 : 0
   } catch {
     return 0
   }
 }
 
-export const incrementFreePrintCount = () => {
+export const incrementFreePrintCount = (userKey) => {
+  const key = userKey || getCurrentUserKey()
   try {
-    const current = getActivePlanDetails()
+    const current = getActivePlanDetails(key)
     if (current.isFreeTier) {
-      const freeUsed = getFreePrintCount()
+      const freeUsed = getFreePrintCount(key)
       const next = freeUsed + 1
-      localStorage.setItem("slipzo_free_print_count", String(next))
+      localStorage.setItem(`slipzo_free_print_count_${key}`, String(next))
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
       }
@@ -281,7 +321,7 @@ export const incrementFreePrintCount = () => {
         printsRemaining: updatedRemaining,
         usedPrints: updatedUsed
       }
-      localStorage.setItem("slipzo_active_plan", JSON.stringify(updatedPlan))
+      localStorage.setItem(`slipzo_active_plan_${key}`, JSON.stringify(updatedPlan))
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
       }
@@ -292,13 +332,13 @@ export const incrementFreePrintCount = () => {
   }
 }
 
-export const getRemainingFreePrints = () => {
-  const plan = getActivePlanDetails()
+export const getRemainingFreePrints = (userKey) => {
+  const plan = getActivePlanDetails(userKey)
   return plan.printsRemaining
 }
 
-export const canPrintFree = () => {
-  return getRemainingFreePrints() > 0
+export const canPrintFree = (userKey) => {
+  return getRemainingFreePrints(userKey) > 0
 }
 
 export const getTemplateUsage = (templateId) => {

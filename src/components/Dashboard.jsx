@@ -6,7 +6,7 @@ import { call, money, getRemainingFreePrints, getCachedData } from "../lib/utils
 import { MetricSkeleton } from "./common/Skeleton"
 
 export function Dashboard({ setView, requireAuth, user }) {
-  const remainingPrints = user?.prints_remaining ?? user?.remaining_prints ?? getRemainingFreePrints()
+  const remainingPrints = getRemainingFreePrints(user?.email || user?.id)
   const [stats, setStats] = useState(() => {
     const cachedStats = getCachedData("/bills/stats")
     return {
