@@ -106,6 +106,16 @@ function AppContent() {
   }
 
   const checkShopSetupNeeded = async (userData) => {
+    const userKey = userData?.email || userData?.id
+    if (!userKey) return
+
+    // If user has already been shown first-time shop profile onboarding on this device/account, do NOT show it again
+    const firstTimeDone = localStorage.getItem(`slipzo_first_time_onboarding_${userKey}`)
+    if (firstTimeDone) {
+      setShowShopOnboarding(false)
+      return
+    }
+
     try {
       const shopData = await call("/shop")
       const isComplete = Boolean(
@@ -121,10 +131,16 @@ function AppContent() {
         setShowShopOnboarding(true)
       } else {
         setShowShopOnboarding(false)
+        localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
       }
     } catch (err) {
-      console.warn('⚠️ Shop info not found, showing onboarding:', err.message)
-      setShowShopOnboarding(true)
+      console.warn('⚠️ Shop info check:', err.message)
+      // Only show onboarding if user has not been onboarded before
+      if (!firstTimeDone) {
+        setShowShopOnboarding(true)
+      } else {
+        setShowShopOnboarding(false)
+      }
     }
   }
 
@@ -266,10 +282,18 @@ function AppContent() {
     setUser(userData)
     setView("dashboard")
     setShowAuth(false)
+    const userKey = userData?.email || userData?.id
+
     if (isNewUser) {
       setShowShopOnboarding(true)
+      if (userKey) localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
     } else {
-      checkShopSetupNeeded(userData)
+      const firstTimeDone = userKey ? localStorage.getItem(`slipzo_first_time_onboarding_${userKey}`) : false
+      if (!firstTimeDone) {
+        checkShopSetupNeeded(userData)
+      } else {
+        setShowShopOnboarding(false)
+      }
     }
   }
 
@@ -389,9 +413,15 @@ function AppContent() {
     <ShopOnboardingModal
       isOpen={showShopOnboarding}
       user={user}
-      onClose={() => setShowShopOnboarding(false)}
+      onClose={() => {
+        setShowShopOnboarding(false)
+        const userKey = user?.email || user?.id
+        if (userKey) localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
+      }}
       onComplete={() => {
         setShowShopOnboarding(false)
+        const userKey = user?.email || user?.id
+        if (userKey) localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
         if (user?.id && localStorage.getItem(`slipzo_items_setup_${user.id}`) !== "true") {
           setShowAddItemsModal(true)
         }

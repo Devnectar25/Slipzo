@@ -25,8 +25,17 @@ export function Reprint({ billId, setView }) {
           setError("No bill selected")
           return
         }
-        const data = await call(`/bills/${actualBillId}`)
-        setBill(data)
+          const data = await call(`/bills/${actualBillId}`)
+          if (data && typeof data === "object") {
+            let parsedItems = data.items
+            if (typeof parsedItems === "string") {
+              try { parsedItems = JSON.parse(parsedItems) } catch(e) { parsedItems = [] }
+            }
+            if (!Array.isArray(parsedItems)) parsedItems = []
+            setBill({ ...data, items: parsedItems })
+          } else {
+            setBill(null)
+          }
       } catch (err) {
         console.error("Failed to load bill:", err)
         setError(err.message || "Failed to load bill")
@@ -211,7 +220,7 @@ export function Reprint({ billId, setView }) {
               <span>Rate</span>
               <span>Amount</span>
             </div>
-            {bill.items && bill.items.length > 0 ? (
+            {Array.isArray(bill.items) && bill.items.length > 0 ? (
               bill.items.map((item, index) => {
                 const qty = Number(item.quantity) || 0
                 const rate = Number(item.rate) || 0

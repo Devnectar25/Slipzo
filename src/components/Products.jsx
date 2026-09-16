@@ -325,7 +325,8 @@ export function Products({ setView, requireAuth, user }) {
     }
   }
 
-  const filteredProducts = products.filter(p => {
+  const safeProducts = Array.isArray(products) ? products : []
+  const filteredProducts = safeProducts.filter(p => {
     const status = (p.status || 'active').toString().toLowerCase().trim()
     if (status === 'inactive') return false
 
