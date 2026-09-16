@@ -19,7 +19,7 @@ import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
 
-export function History({ setView, setSelectedBillId }) {
+export function History({ setView, setSelectedBillId, user }) {
   const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10")
   const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
 
@@ -80,7 +80,7 @@ export function History({ setView, setSelectedBillId }) {
 
   useEffect(() => {
     loadBills()
-  }, [page, limit, paymentMode])
+  }, [page, limit, paymentMode, user?.id])
 
   // Debounced search
   useEffect(() => {
@@ -218,45 +218,51 @@ export function History({ setView, setSelectedBillId }) {
                 className="history-row"
                 key={bill.id}
               >
-                <div className="history-date">
-                  <b>
-                    {new Date(bill.created_at).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric"
-                    })}
-                  </b>
-                  <small>
-                    {new Date(bill.created_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    })}
-                  </small>
-                </div>
-
-                <div className="history-details-col">
-                  <div className="history-bill-number">
-                    <b>{bill.number}</b>
-                    {bill.customer_name && (
-                      <span className="customer-tag">
-                        <User size={11} /> {bill.customer_name}
-                      </span>
-                    )}
+                <div className="history-main-content">
+                  <div className="history-date">
+                    <b>
+                      {new Date(bill.created_at).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric"
+                      })}
+                    </b>
+                    <small>
+                      {new Date(bill.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      })}
+                    </small>
                   </div>
-                  <small className="text-muted">
-                    {bill.items?.length || 0} {bill.items?.length === 1 ? "item" : "items"} ·{" "}
-                    <span className="payment-badge">{bill.payment_mode || "Cash"}</span>
-                  </small>
-                </div>
 
-                <div className="history-amount-col">
-                  <strong>{money(bill.total)}</strong>
+                  <div className="history-details-col">
+                    <div className="history-bill-number">
+                      <b>{bill.number}</b>
+                    </div>
+
+                    <div className="history-meta-badges-row">
+                      {bill.customer_name && (
+                        <span className="customer-tag">
+                          <User size={11} /> {bill.customer_name}
+                        </span>
+                      )}
+                      <span className="payment-badge">{bill.payment_mode || "Cash"}</span>
+                    </div>
+
+                    <div className="history-items-count text-muted">
+                      {bill.items?.length || 0} {bill.items?.length === 1 ? "item" : "items"}
+                    </div>
+                  </div>
+
+                  <div className="history-amount-col">
+                    <strong>{money(bill.total)}</strong>
+                  </div>
                 </div>
 
                 <div className="history-actions-col">
                   <button
                     data-testid={`reprint-bill-${bill.id}-button`}
-                    className="icon-button"
+                    className="icon-button print-button"
                     title="Reprint Receipt"
                     onClick={() => handleReprint(bill.id)}
                   >
@@ -438,6 +444,168 @@ export function History({ setView, setSelectedBillId }) {
           font-weight: 600;
         }
 
+        /* Action Icons Color & Box Size Consistency (Desktop & Mobile) */
+        .history-page .history-actions-col .icon-button {
+          width: 36px !important;
+          height: 36px !important;
+          min-width: 36px !important;
+          max-width: 36px !important;
+          min-height: 36px !important;
+          max-height: 36px !important;
+          border-radius: 10px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+          flex-shrink: 0 !important;
+          transition: all 0.15s ease !important;
+        }
+
+        .history-page .icon-button.print-button {
+          color: #0284c7 !important;
+          background: #e0f2fe !important;
+          border: 1.5px solid #7dd3fc !important;
+        }
+
+        .history-page .icon-button.print-button:hover:not(:disabled) {
+          background: #0284c7 !important;
+          color: #ffffff !important;
+          border-color: #0284c7 !important;
+        }
+
+        .history-page .icon-button.delete-button {
+          color: #ef4444 !important;
+          background: #fef2f2 !important;
+          border: 1.5px solid #fecaca !important;
+        }
+
+        .history-page .icon-button.delete-button:hover:not(:disabled) {
+          background: #ef4444 !important;
+          color: #ffffff !important;
+          border-color: #ef4444 !important;
+        }
+
+        .history-meta-badges-row {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          flex-wrap: wrap;
+        }
+
+        .history-meta-badges-row .customer-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          max-width: 170px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* Compact Desktop Layout Fix */
+        @media (min-width: 641px) {
+          .history-page .history-row {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 0.55rem 1.15rem !important;
+            margin-bottom: 0.4rem !important;
+            border-radius: 10px !important;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            gap: 1.25rem !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+            transition: all 0.15s ease !important;
+          }
+
+          .history-page .history-row:hover {
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+          }
+
+          .history-page .history-main-content {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            flex: 1 !important;
+            gap: 1.25rem !important;
+            min-width: 0 !important;
+          }
+
+          .history-page .history-date {
+            min-width: 110px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.08rem !important;
+            flex-shrink: 0 !important;
+          }
+
+          .history-page .history-date b {
+            font-size: 0.82rem !important;
+            color: #0f172a !important;
+            line-height: 1.2 !important;
+          }
+
+          .history-page .history-date small {
+            font-size: 0.72rem !important;
+            color: #64748b !important;
+            line-height: 1.2 !important;
+          }
+
+          .history-page .history-details-col {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 1.25rem !important;
+            min-width: 0 !important;
+            flex-wrap: wrap !important;
+          }
+
+          .history-page .history-bill-number b {
+            font-size: 0.88rem !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            white-space: nowrap !important;
+          }
+
+          .history-page .history-meta-badges-row {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 0.4rem !important;
+            flex-wrap: wrap !important;
+          }
+
+          .history-page .history-items-count {
+            font-size: 0.78rem !important;
+            color: #64748b !important;
+            white-space: nowrap !important;
+          }
+
+          .history-page .history-amount-col {
+            min-width: 90px !important;
+            text-align: right !important;
+            flex-shrink: 0 !important;
+          }
+
+          .history-page .history-amount-col strong {
+            font-size: 1.05rem !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+          }
+
+          .history-page .history-actions-col {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 0.45rem !important;
+            flex-shrink: 0 !important;
+          }
+        }
+
         @media (max-width: 640px) {
           .history-empty-card {
             padding: 2rem 1.25rem !important;
@@ -452,59 +620,118 @@ export function History({ setView, setSelectedBillId }) {
             gap: 0.5rem !important;
           }
 
+          /* Mobile Filters - One Row */
           .history-page .filter-controls-group {
-            flex-direction: column !important;
+            display: flex !important;
+            flex-direction: row !important;
             width: 100% !important;
             gap: 0.5rem !important;
           }
 
-          .history-page .select-wrapper,
-          .history-page .filter-select {
+          .history-page .filter-controls-group .select-wrapper {
+            flex: 1 1 0% !important;
+            width: 50% !important;
+            min-width: 0 !important;
+          }
+
+          .history-page .filter-controls-group .filter-select {
             width: 100% !important;
-            min-height: 44px !important;
+            min-height: 40px !important;
+            font-size: 0.82rem !important;
+            padding-left: 0.5rem !important;
+            padding-right: 1.5rem !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
           }
 
-          .history-actions-col {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-          }
-
-          .history-page .history-row .delete-button {
-            color: #ef4444;
-            background: #fef2f2;
-          }
-
-          .history-page .history-row .delete-button:hover:not(:disabled) {
-            background: #fee2e2;
-            color: #dc2626;
-          }
-
+          /* Mobile Cards - Compact Two Column Structure */
           .history-page .history-row {
             display: flex !important;
-            flex-direction: column !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
             align-items: flex-start !important;
-            gap: 0.5rem !important;
-            position: relative;
-            padding: 0.85rem !important;
+            padding: 0.65rem 0.75rem !important;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 0.45rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+          }
+
+          .history-page .history-main-content {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.15rem !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+            padding-right: 0.4rem !important;
+          }
+
+          .history-page .history-date {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: baseline !important;
+            gap: 0.35rem !important;
+            flex-wrap: wrap !important;
+          }
+
+          .history-page .history-date b {
+            font-size: 0.84rem !important;
+            color: #0f172a !important;
+            font-weight: 700 !important;
+          }
+
+          .history-page .history-date small {
+            font-size: 0.73rem !important;
+            color: #64748b !important;
+          }
+
+          .history-page .history-details-col {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.12rem !important;
+          }
+
+          .history-page .history-bill-number b {
+            font-size: 0.88rem !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            word-break: break-word !important;
+          }
+
+          .history-page .history-meta-badges-row {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+            margin: 0.05rem 0 !important;
+            flex-wrap: wrap !important;
+          }
+
+          .history-page .history-items-count {
+            font-size: 0.76rem !important;
+            color: #64748b !important;
           }
 
           .history-page .history-amount-col {
-            margin-top: 0.2rem;
+            margin-top: 0.1rem !important;
+            text-align: left !important;
+          }
+
+          .history-page .history-amount-col strong {
+            font-size: 1.05rem !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
           }
 
           .history-page .history-actions-col {
-            position: absolute;
-            top: 0.75rem;
-            right: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-          }
-
-          .history-page .history-actions-col .icon-button {
-            min-width: 38px;
-            min-height: 38px;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.3rem !important;
+            align-items: flex-end !important;
+            justify-content: flex-start !important;
+            flex-shrink: 0 !important;
           }
 
           .history-page .pagination-bar {

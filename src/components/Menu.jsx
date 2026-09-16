@@ -196,21 +196,25 @@ export function Menu({ setView, requireAuth, user }) {
   return (
     <div className="page menu-page fade-in">
       {/* Page Header */}
-      <div className="page-header flex-between" style={{ flexWrap: "wrap", gap: "1rem" }}>
-        <div>
-          <p className="eyebrow accent" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+      <div className="page-intro menu-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "1.25rem" }}>
+        <div style={{ flex: 1, minWidth: "260px" }}>
+          <p className="eyebrow accent" style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "11px", fontWeight: "700", letterSpacing: "1.5px", textTransform: "uppercase", color: "#0ea5e9", margin: "0 0 0.35rem 0" }}>
             <Utensils size={14} /> SHOP MENU
           </p>
-          <h2>Menu & Items</h2>
-          <p className="subtle">Manage products and services sold by your shop for fast billing</p>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: "700", color: "#0f172a", margin: "0 0 0.35rem 0", lineHeight: 1.25 }}>
+            Menu & Items
+          </h2>
+          <p className="subtle" style={{ fontSize: "0.875rem", color: "#64748b", margin: 0, lineHeight: 1.45, maxWidth: "560px" }}>
+            Manage products and services sold by your shop for fast billing
+          </p>
         </div>
-        <button className="primary-button" onClick={handleOpenAddModal} style={{ gap: "0.5rem" }}>
+        <button className="primary-button" onClick={handleOpenAddModal} style={{ gap: "0.5rem", whiteSpace: "nowrap", flexShrink: 0, alignSelf: "flex-start" }}>
           <Plus size={18} /> Add New Item
         </button>
       </div>
 
       {/* Stats Cards Row */}
-      <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginTop: "1rem", marginBottom: "1.25rem" }}>
+      <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginTop: "1rem", marginBottom: "1.25rem" }}>
         <div className="stat-card" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "0.95rem 1.15rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
           <div className="stat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span className="stat-label" style={{ fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.05em" }}>Total Saved Items</span>

@@ -202,13 +202,13 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             flex: 1,
             minHeight: 0,
             overflowY: 'auto',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#cbd5e1 transparent',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.2rem',
             marginBottom: '0.25rem',
-            paddingRight: '3px',
+            paddingRight: '0px',
           }}
         >
           {navItems.map((item) => (
@@ -584,33 +584,26 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             transform: translateX(0) !important;
           }
 
+          .app-shell aside,
+          .app-shell aside nav {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+          }
+
+          .app-shell aside::-webkit-scrollbar,
+          .app-shell aside nav::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+
           .app-shell aside nav {
             flex: 1 !important;
             min-height: 0 !important;
             overflow-y: auto !important;
-            scrollbar-width: thin !important;
-            scrollbar-color: #cbd5e1 transparent !important;
             gap: 0.2rem !important;
             margin-bottom: 0.25rem !important;
-            padding-right: 3px !important;
-          }
-
-          .app-shell aside nav::-webkit-scrollbar {
-            width: 4px !important;
-            display: block !important;
-          }
-
-          .app-shell aside nav::-webkit-scrollbar-track {
-            background: transparent !important;
-          }
-
-          .app-shell aside nav::-webkit-scrollbar-thumb {
-            background: #cbd5e1 !important;
-            border-radius: 4px !important;
-          }
-
-          .app-shell aside nav::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8 !important;
+            padding-right: 0px !important;
           }
 
           .app-shell aside nav button {
