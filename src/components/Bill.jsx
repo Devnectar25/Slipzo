@@ -157,7 +157,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           if (parsed.pageWidth === "80mm" || parsed.pageWidth === "80") return "80mm"
           if (parsed.pageWidth === "a4") return "a4"
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     return "80mm"
   })
@@ -167,7 +167,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     const saved = localStorage.getItem("slipzo_print_settings")
     let settings = {}
     if (saved) {
-      try { settings = JSON.parse(saved) } catch (_) {}
+      try { settings = JSON.parse(saved) } catch (_) { }
     }
     settings.pageWidth = fmt
     localStorage.setItem("slipzo_print_settings", JSON.stringify(settings))
@@ -1035,304 +1035,304 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
               </label>
             </div>
 
-          {/* Items Section */}
-          <div className="editor-section items-section">
-            <div className="items-header">
-              <span className="items-header-label">Items & Services</span>
-              <button className="ghost-button small" onClick={clearAllItems}>
-                Clear all
+            {/* Items Section */}
+            <div className="editor-section items-section">
+              <div className="items-header">
+                <span className="items-header-label">Items & Services</span>
+                <button className="ghost-button small" onClick={clearAllItems}>
+                  Clear all
+                </button>
+              </div>
+
+              <div className="items-list">
+                {items.map((item, index) => (
+                  <div className="item-card" key={item.id}>
+                    <div className="item-row">
+                      <div className="item-field item-name-field" style={{ minWidth: 0, maxWidth: "100%", width: "100%", boxSizing: "border-box" }}>
+                        {user && Array.isArray(menuItems) && menuItems.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, maxWidth: '100%', width: '100%', boxSizing: 'border-box' }}>
+                            <select
+                              data-testid={`bill-item-${index}-select`}
+                              value={item.isSaved ? item.name : (item.name ? "__CUSTOM__" : "")}
+                              onChange={(e) => {
+                                const selectedVal = e.target.value
+                                if (selectedVal === "__ADD_NEW__") {
+                                  setNewItemName("")
+                                  setNewItemPrice("")
+                                  setShowAddNewItemModal(true)
+                                  return
+                                }
+                                if (selectedVal === "" || selectedVal === "__CUSTOM__") {
+                                  updateItemRow(index, { isSaved: false })
+                                  return
+                                }
+                                const matched = menuItems.find(m => m.name === selectedVal)
+                                if (matched) {
+                                  updateItemRow(index, {
+                                    name: matched.name,
+                                    rate: String(matched.price),
+                                    isSaved: true
+                                  })
+                                }
+                              }}
+                              className="item-input option-select"
+                              style={{
+                                fontSize: '0.88rem',
+                                fontWeight: item.isSaved ? '600' : '400',
+                                background: item.isSaved ? '#f0f9ff' : '#ffffff',
+                                borderColor: item.isSaved ? '#0ea5e9' : '#e2e8f0',
+                                width: '100%',
+                                maxWidth: '100%',
+                                minWidth: 0,
+                                boxSizing: 'border-box',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              <option value="">-- Select Saved Shop Item --</option>
+                              {menuItems.map((m) => (
+                                <option key={m.id} value={m.name}>
+                                  {m.name} — ₹{m.price}
+                                </option>
+                              ))}
+                              {item.name && !item.isSaved && (
+                                <option value="__CUSTOM__">Custom: {item.name}</option>
+                              )}
+                              <option value="__ADD_NEW__">+ Add New Item to Menu...</option>
+                            </select>
+                            {(!item.isSaved || !item.name) && (
+                              <input
+                                data-testid={`bill-item-${index}-name-input`}
+                                placeholder="Or type custom item name..."
+                                value={item.name}
+                                onChange={(e) => updateItem(index, "name", e.target.value)}
+                                className="item-input"
+                                style={{ fontSize: '0.82rem' }}
+                                autoComplete="off"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <input
+                            data-testid={`bill-item-${index}-name-input`}
+                            placeholder="Item name / description"
+                            value={item.name}
+                            onChange={(e) => updateItem(index, "name", e.target.value)}
+                            className="item-input"
+                            autoComplete="off"
+                          />
+                        )}
+                      </div>
+                      <div className="item-field item-qty-field">
+                        <label className="mobile-only-field-label">Qty</label>
+                        <input
+                          data-testid={`bill-item-${index}-quantity-input`}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="1"
+                          value={item.quantity === 0 || item.quantity === "0" ? "" : item.quantity}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/[^0-9]/g, "");
+                            if (val.length > 1 && val.startsWith("0")) {
+                              val = val.replace(/^0+/, "");
+                            }
+                            updateItem(index, "quantity", val);
+                          }}
+                          onBlur={() => {
+                            if (!item.quantity || Number(item.quantity) <= 0) {
+                              updateItem(index, "quantity", 1);
+                            }
+                          }}
+                          className="item-input number-input"
+                        />
+                      </div>
+                      <div className="item-field item-rate-field">
+                        <label className="mobile-only-field-label">Rate (₹)</label>
+                        <input
+                          data-testid={`bill-item-${index}-rate-input`}
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0"
+                          value={item.rate === 0 || item.rate === "0" ? "" : item.rate}
+                          readOnly={Boolean(item.isSaved)}
+                          onFocus={(e) => {
+                            if (!item.isSaved) e.target.select()
+                          }}
+                          onChange={(e) => {
+                            if (item.isSaved) return
+                            let val = e.target.value.replace(/[^0-9.]/g, "");
+                            const parts = val.split(".");
+                            if (parts.length > 2) {
+                              val = parts[0] + "." + parts.slice(1).join("");
+                            }
+                            if (val.length > 1 && val.startsWith("0") && !val.startsWith("0.")) {
+                              val = val.replace(/^0+/, "");
+                              if (val.startsWith(".")) val = "0" + val;
+                            }
+                            updateItem(index, "rate", val);
+                          }}
+                          onBlur={() => {
+                            if (item.isSaved) return
+                            if (item.rate) {
+                              const num = parseFloat(item.rate);
+                              if (isNaN(num) || num === 0) {
+                                updateItem(index, "rate", "");
+                              } else {
+                                updateItem(index, "rate", String(num));
+                              }
+                            }
+                          }}
+                          className={`item-input number-input ${item.isSaved ? "read-only-rate" : ""}`}
+                          style={{
+                            background: item.isSaved ? "#f8fafc" : "#ffffff",
+                            color: item.isSaved ? "#0f172a" : "inherit",
+                            fontWeight: item.isSaved ? "700" : "inherit",
+                            cursor: item.isSaved ? "not-allowed" : "text"
+                          }}
+                          title={item.isSaved ? "Rate auto-populated from saved Shop Item" : undefined}
+                        />
+                      </div>
+                      <div className="item-field item-amount-field">
+                        <span className="item-amount">
+                          {money((Number(item.quantity) || 0) * (Number(item.rate) || 0))}
+                        </span>
+                      </div>
+                      <button
+                        className="remove-item-button"
+                        onClick={() => removeItem(index)}
+                        disabled={items.length <= 1}
+                        title="Remove item"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                data-testid="add-bill-item-button"
+                className="add-item-button"
+                onClick={handleAddItemClick}
+              >
+                <Plus size={16} /> Add Item
               </button>
             </div>
 
-            <div className="items-list">
-              {items.map((item, index) => (
-                <div className="item-card" key={item.id}>
-                  <div className="item-row">
-                    <div className="item-field item-name-field" style={{ minWidth: 0, maxWidth: "100%", width: "100%", boxSizing: "border-box" }}>
-                      {user && Array.isArray(menuItems) && menuItems.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, maxWidth: '100%', width: '100%', boxSizing: 'border-box' }}>
-                          <select
-                            data-testid={`bill-item-${index}-select`}
-                            value={item.isSaved ? item.name : (item.name ? "__CUSTOM__" : "")}
-                            onChange={(e) => {
-                              const selectedVal = e.target.value
-                              if (selectedVal === "__ADD_NEW__") {
-                                setNewItemName("")
-                                setNewItemPrice("")
-                                setShowAddNewItemModal(true)
-                                return
-                              }
-                              if (selectedVal === "" || selectedVal === "__CUSTOM__") {
-                                updateItemRow(index, { isSaved: false })
-                                return
-                              }
-                              const matched = menuItems.find(m => m.name === selectedVal)
-                              if (matched) {
-                                updateItemRow(index, {
-                                  name: matched.name,
-                                  rate: String(matched.price),
-                                  isSaved: true
-                                })
-                              }
-                            }}
-                            className="item-input option-select"
-                            style={{
-                              fontSize: '0.88rem',
-                              fontWeight: item.isSaved ? '600' : '400',
-                              background: item.isSaved ? '#f0f9ff' : '#ffffff',
-                              borderColor: item.isSaved ? '#0ea5e9' : '#e2e8f0',
-                              width: '100%',
-                              maxWidth: '100%',
-                              minWidth: 0,
-                              boxSizing: 'border-box',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden'
-                            }}
-                          >
-                            <option value="">-- Select Saved Shop Item --</option>
-                            {menuItems.map((m) => (
-                              <option key={m.id} value={m.name}>
-                                {m.name} — ₹{m.price}
-                              </option>
-                            ))}
-                            {item.name && !item.isSaved && (
-                              <option value="__CUSTOM__">Custom: {item.name}</option>
-                            )}
-                            <option value="__ADD_NEW__">+ Add New Item to Menu...</option>
-                          </select>
-                          {(!item.isSaved || !item.name) && (
-                            <input
-                              data-testid={`bill-item-${index}-name-input`}
-                              placeholder="Or type custom item name..."
-                              value={item.name}
-                              onChange={(e) => updateItem(index, "name", e.target.value)}
-                              className="item-input"
-                              style={{ fontSize: '0.82rem' }}
-                              autoComplete="off"
-                            />
-                          )}
-                        </div>
-                      ) : (
-                        <input
-                          data-testid={`bill-item-${index}-name-input`}
-                          placeholder="Item name / description"
-                          value={item.name}
-                          onChange={(e) => updateItem(index, "name", e.target.value)}
-                          className="item-input"
-                          autoComplete="off"
-                        />
-                      )}
-                    </div>
-                    <div className="item-field item-qty-field">
-                      <label className="mobile-only-field-label">Qty</label>
-                      <input
-                        data-testid={`bill-item-${index}-quantity-input`}
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="1"
-                        value={item.quantity === 0 || item.quantity === "0" ? "" : item.quantity}
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => {
-                          let val = e.target.value.replace(/[^0-9]/g, "");
-                          if (val.length > 1 && val.startsWith("0")) {
-                            val = val.replace(/^0+/, "");
-                          }
-                          updateItem(index, "quantity", val);
-                        }}
-                        onBlur={() => {
-                          if (!item.quantity || Number(item.quantity) <= 0) {
-                            updateItem(index, "quantity", 1);
-                          }
-                        }}
-                        className="item-input number-input"
-                      />
-                    </div>
-                    <div className="item-field item-rate-field">
-                      <label className="mobile-only-field-label">Rate (₹)</label>
-                      <input
-                        data-testid={`bill-item-${index}-rate-input`}
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={item.rate === 0 || item.rate === "0" ? "" : item.rate}
-                        readOnly={Boolean(item.isSaved)}
-                        onFocus={(e) => {
-                          if (!item.isSaved) e.target.select()
-                        }}
-                        onChange={(e) => {
-                          if (item.isSaved) return
-                          let val = e.target.value.replace(/[^0-9.]/g, "");
-                          const parts = val.split(".");
-                          if (parts.length > 2) {
-                            val = parts[0] + "." + parts.slice(1).join("");
-                          }
-                          if (val.length > 1 && val.startsWith("0") && !val.startsWith("0.")) {
-                            val = val.replace(/^0+/, "");
-                            if (val.startsWith(".")) val = "0" + val;
-                          }
-                          updateItem(index, "rate", val);
-                        }}
-                        onBlur={() => {
-                          if (item.isSaved) return
-                          if (item.rate) {
-                            const num = parseFloat(item.rate);
-                            if (isNaN(num) || num === 0) {
-                              updateItem(index, "rate", "");
-                            } else {
-                              updateItem(index, "rate", String(num));
-                            }
-                          }
-                        }}
-                        className={`item-input number-input ${item.isSaved ? "read-only-rate" : ""}`}
-                        style={{
-                          background: item.isSaved ? "#f8fafc" : "#ffffff",
-                          color: item.isSaved ? "#0f172a" : "inherit",
-                          fontWeight: item.isSaved ? "700" : "inherit",
-                          cursor: item.isSaved ? "not-allowed" : "text"
-                        }}
-                        title={item.isSaved ? "Rate auto-populated from saved Shop Item" : undefined}
-                      />
-                    </div>
-                    <div className="item-field item-amount-field">
-                      <span className="item-amount">
-                        {money((Number(item.quantity) || 0) * (Number(item.rate) || 0))}
-                      </span>
-                    </div>
-                    <button
-                      className="remove-item-button"
-                      onClick={() => removeItem(index)}
-                      disabled={items.length <= 1}
-                      title="Remove item"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              data-testid="add-bill-item-button"
-              className="add-item-button"
-              onClick={handleAddItemClick}
-            >
-              <Plus size={16} /> Add Item
-            </button>
-          </div>
-
-          {/* Bill Options: Discount, Tax, Payment */}
-          <div className="editor-section options-grid">
-            <div className="option-group">
-              <label className="field-label">
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Discount (₹)</span>
-                  <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Fixed in Shop Profile)</small>
-                </span>
-                <input
-                  data-testid="bill-discount-input"
-                  type="text"
-                  readOnly
-                  disabled
-                  value={discount}
-                  placeholder="0"
-                  className="option-input"
-                  style={{ background: "#f8fafc", cursor: "not-allowed", color: "#334155", fontWeight: 600 }}
-                  title="Fixed default discount set in Shop Profile"
-                />
-              </label>
-            </div>
-            <div className="option-group">
-              <label className="field-label">
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Tax Rate (%)</span>
-                  <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Fixed in Shop Profile)</small>
-                </span>
-                <input
-                  data-testid="bill-tax-input"
-                  type="text"
-                  readOnly
-                  disabled
-                  value={!isTaxEnabled ? "0" : tax}
-                  placeholder="0"
-                  className="option-input"
-                  style={{ background: "#f8fafc", cursor: "not-allowed", color: "#334155", fontWeight: 600 }}
-                  title="Fixed default tax rate set in Shop Profile"
-                />
-              </label>
-            </div>
-            <div className="option-group">
-              <label className="field-label">
-                <span>Payment Mode</span>
-                <select
-                  data-testid="bill-payment-select"
-                  value={payment}
-                  onChange={(e) => setPayment(e.target.value)}
-                  className="option-select"
-                >
-                  <option value="Cash">Cash</option>
-                  <option value="UPI">UPI / QR</option>
-                </select>
-              </label>
-            </div>
-          </div>
-
-          {renderUsageInfo()}
-
-          {error && <div className="error-message slide-up">{error}</div>}
-
-          {saved && (
-            <div className="success-message slide-up">
-              <div className="success-icon">✓</div>
-              <div>
-                <strong>Receipt saved successfully!</strong>
-                <span className="success-details">
-                  Bill #{saved.number} · {saved.items?.length || 0} items · {saved.payment_mode}
-                </span>
+            {/* Bill Options: Discount, Tax, Payment */}
+            <div className="editor-section options-grid">
+              <div className="option-group">
+                <label className="field-label">
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Discount (₹)</span>
+                    <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Fixed in Shop Profile)</small>
+                  </span>
+                  <input
+                    data-testid="bill-discount-input"
+                    type="text"
+                    readOnly
+                    disabled
+                    value={discount}
+                    placeholder="0"
+                    className="option-input"
+                    style={{ background: "#f8fafc", cursor: "not-allowed", color: "#334155", fontWeight: 600 }}
+                    title="Fixed default discount set in Shop Profile"
+                  />
+                </label>
+              </div>
+              <div className="option-group">
+                <label className="field-label">
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Tax Rate (%)</span>
+                    <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Fixed in Shop Profile)</small>
+                  </span>
+                  <input
+                    data-testid="bill-tax-input"
+                    type="text"
+                    readOnly
+                    disabled
+                    value={!isTaxEnabled ? "0" : tax}
+                    placeholder="0"
+                    className="option-input"
+                    style={{ background: "#f8fafc", cursor: "not-allowed", color: "#334155", fontWeight: 600 }}
+                    title="Fixed default tax rate set in Shop Profile"
+                  />
+                </label>
+              </div>
+              <div className="option-group">
+                <label className="field-label">
+                  <span>Payment Mode</span>
+                  <select
+                    data-testid="bill-payment-select"
+                    value={payment}
+                    onChange={(e) => setPayment(e.target.value)}
+                    className="option-select"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI / QR</option>
+                  </select>
+                </label>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Action Buttons: Reset, Save Bill, Print */}
-        <div className="bill-actions-bar">
-          <button
-            data-testid="reset-bill-button"
-            className="secondary-button"
-            onClick={resetForm}
-          >
-            <X size={15} /> Reset
-          </button>
-          <button
-            data-testid="save-bill-button"
-            className="primary-button"
-            onClick={saveBill}
-            disabled={loading}
-          >
-            {loading ? (
-              <ButtonLoader text="Saving..." />
-            ) : (
-              <>
-                <Save size={15} /> {!user ? "Sign up to save" : "Save Bill"}
-              </>
+            {renderUsageInfo()}
+
+            {error && <div className="error-message slide-up">{error}</div>}
+
+            {saved && (
+              <div className="success-message slide-up">
+                <div className="success-icon">✓</div>
+                <div>
+                  <strong>Receipt saved successfully!</strong>
+                  <span className="success-details">
+                    Bill #{saved.number} · {saved.items?.length || 0} items · {saved.payment_mode}
+                  </span>
+                </div>
+              </div>
             )}
-          </button>
-          <button
-            data-testid="print-receipt-button"
-            className="print-button"
-            onClick={handlePrint}
-            disabled={isPrinting}
-          >
-            {isPrinting ? (
-              <ButtonLoader text="Printing..." />
-            ) : (
-              <>
-                <Printer size={15} /> Print
-              </>
-            )}
-          </button>
+          </div>
+
+          {/* Action Buttons: Reset, Save Bill, Print */}
+          <div className="bill-actions-bar">
+            <button
+              data-testid="reset-bill-button"
+              className="secondary-button"
+              onClick={resetForm}
+            >
+              <X size={15} /> Reset
+            </button>
+            <button
+              data-testid="save-bill-button"
+              className="primary-button"
+              onClick={saveBill}
+              disabled={loading}
+            >
+              {loading ? (
+                <ButtonLoader text="Saving..." />
+              ) : (
+                <>
+                  <Save size={15} /> {!user ? "Sign up to save" : "Save Bill"}
+                </>
+              )}
+            </button>
+            <button
+              data-testid="print-receipt-button"
+              className="print-button"
+              onClick={handlePrint}
+              disabled={isPrinting}
+            >
+              {isPrinting ? (
+                <ButtonLoader text="Printing..." />
+              ) : (
+                <>
+                  <Printer size={15} /> Print
+                </>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
 
         {/* RIGHT - Receipt Preview */}
         <div className="receipt-preview-panel">
