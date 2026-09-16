@@ -48,7 +48,7 @@ export function Reprint({ billId, setView }) {
           if (parsed.pageWidth === "80mm" || parsed.pageWidth === "80") return "80mm"
           if (parsed.pageWidth === "a4") return "a4"
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     return "80mm"
   })
@@ -58,7 +58,7 @@ export function Reprint({ billId, setView }) {
     const saved = localStorage.getItem("slipzo_print_settings")
     let settings = {}
     if (saved) {
-      try { settings = JSON.parse(saved) } catch (_) {}
+      try { settings = JSON.parse(saved) } catch (_) { }
     }
     settings.pageWidth = fmt
     localStorage.setItem("slipzo_print_settings", JSON.stringify(settings))

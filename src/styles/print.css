@@ -4,38 +4,8 @@
 
 @media print {
   @page {
-    size: 80mm 297mm;
+    size: auto;
     margin: 0;
-  }
-
-  body.width-80mm @page,
-  .width-80mm @page,
-  body.format-80mm @page,
-  .format-80mm @page {
-    size: 80mm 297mm;
-    margin: 0;
-  }
-
-  body.width-55mm @page,
-  .width-55mm @page,
-  body.format-55mm @page,
-  .format-55mm @page {
-    size: 55mm 297mm;
-    margin: 0;
-  }
-
-  body.width-58mm @page,
-  .width-58mm @page,
-  body.format-58mm @page,
-  .format-58mm @page {
-    size: 58mm 297mm;
-    margin: 0;
-  }
-
-  body.format-a4 @page,
-  .format-a4 @page {
-    size: A4 portrait;
-    margin: 8mm;
   }
 
   /* Reset all outer parent containers so receipt renders cleanly */

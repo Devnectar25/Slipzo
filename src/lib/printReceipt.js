@@ -51,7 +51,16 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const totalRowSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : (pageWidth === "55mm" ? "10px" : "11px"))
   const grandTotalSize = isA4 ? "18px" : (pageWidth === "80mm" ? "16px" : (pageWidth === "55mm" ? "13.5px" : "14px"))
   const footerSize = isA4 ? "13px" : (pageWidth === "80mm" ? "11.5px" : (pageWidth === "55mm" ? "9.5px" : "10.5px"))
-  const gridColumns = isA4 ? "2.5fr 0.6fr 1fr 1fr" : (pageWidth === "80mm" ? "2.2fr 0.5fr 1fr 1fr" : (pageWidth === "55mm" ? "1.8fr 0.5fr 0.85fr 0.95fr" : "2fr 0.5fr 0.9fr 1fr"))
+  const gridColumns = isA4 
+    ? "2.5fr 0.6fr 1fr 1fr" 
+    : (pageWidth === "80mm" 
+      ? "2.2fr 0.5fr 1fr 1fr" 
+      : (pageWidth === "55mm" 
+        ? "1.15fr 0.35fr 1.05fr 1.15fr" 
+        : "1.3fr 0.4fr 1.05fr 1.1fr"))
+
+  const lineHeight = density === "tight" ? 1.4 : (density === "relaxed" ? 1.75 : 1.55)
+  const itemPadding = density === "tight" ? "3px 0" : (density === "relaxed" ? "6px 0" : "4.5px 0")
 
   // Clone element to manipulate without affecting original
   const clone = el.cloneNode(true)
@@ -82,59 +91,14 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     if (footer) footer.remove()
   }
 
-  // Measure content height accurately (at 96 DPI: 1px = 0.264583 mm)
-  const scrollH = Math.max(150, (el.scrollHeight || el.offsetHeight || 250) - 30)
-  const estimatedHeightMm = isA4 
-    ? 297 
-    : Math.max(25, Math.ceil(scrollH * 0.264583 * scale) + 5)
-
-  const pageCssSize = isA4 ? "A4 portrait" : `${pageWidth} auto`
-  const paperLabel = isA4 ? "A4 Standard" : `${pageWidth} Thermal Roll`
-
   clone.style.margin = "0"
   clone.style.width = "100%"
   clone.style.maxWidth = isA4 ? "180mm" : pageWidth
   clone.style.height = "auto"
   clone.style.boxSizing = "border-box"
 
-  const receiptHTML = clone.outerHTML
-
-  // Use full available screen for popup
-  const availW = window.screen.availWidth || 1200
-  const availH = window.screen.availHeight || 800
-
-  const printWindow = window.open(
-    "",
-    "SlipzoThermalReceipt",
-    `width=${availW},height=${availH},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
-  )
-
-  if (!printWindow) {
-    Swal.fire({
-      title: "Popup Blocked",
-      text: "Please allow popups in your browser to enable thermal receipt printing.",
-      icon: "warning",
-      confirmButtonColor: "#0ea5e9"
-    })
-    return
-  }
-
-  try {
-    printWindow.moveTo(0, 0)
-    printWindow.resizeTo(availW, availH)
-  } catch (_) { /* browser restricted */ }
-
-  const lineHeight = density === "tight" ? 1.4 : (density === "relaxed" ? 1.75 : 1.55)
-  const itemPadding = density === "tight" ? "3px 0" : (density === "relaxed" ? "6px 0" : "4.5px 0")
-
-  printWindow.document.write(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=${isA4 ? "210mm" : pageWidth}, initial-scale=1.0" />
-  <title>Receipt (${paperLabel}) – Slipzo</title>
-  <style>
-    /* ===== RESET ===== */
+  // Base CSS for thermal receipt (used both for off-screen measurement and in print window)
+  const receiptCSS = `
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -143,145 +107,23 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       print-color-adjust: exact !important;
     }
 
-    /* ===== PAGE SIZE — thermal paper width with continuous length ===== */
-    @page {
-      ${isA4 ? "size: A4 portrait; margin: 8mm;" : `size: ${pageWidth} 297mm; margin: 0;`}
-    }
-
-    /* ===== SCREEN VIEW — html/body locked to thermal width, no wide centering ===== */
-    html {
-      background: #0f172a;
-      width: ${isA4 ? "210mm" : pageWidth};
-      max-width: 100%;
-      margin: 0 auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    body {
-      background: #ffffff;
-      color: #000000;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
-      font-size: ${fontSize}px;
-      line-height: ${lineHeight};
-      width: ${isA4 ? "210mm" : pageWidth};
-      max-width: ${isA4 ? "210mm" : pageWidth};
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      letter-spacing: normal;
-    }
-
-    /* Screen top toolbar — shown on screen, hidden on print */
-    .screen-control-bar {
-      width: 100%;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 14px;
-      padding: 14px 16px;
-      margin-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      color: #f8fafc;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-    }
-
-    .screen-control-bar *, .screen-control-bar button, .screen-control-bar span {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-    }
-
-    .screen-control-bar .bar-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .screen-control-bar .bar-info {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-    }
-
-    .screen-control-bar .paper-pill {
-      background: #0ea5e9;
-      color: #ffffff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 6px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      display: inline-block;
-    }
-
-    .screen-control-bar .stats-pill {
-      font-size: 11.5px;
-      color: #94a3b8;
-      font-weight: 500;
-      margin-top: 2px;
-    }
-
-    .screen-control-bar .print-trigger-btn {
-      background: #10b981;
-      color: #ffffff;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 13.5px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s ease;
-      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
-      flex-shrink: 0;
-    }
-
-    .screen-control-bar .print-trigger-btn:hover {
-      background: #059669;
-      transform: translateY(-1px);
-    }
-
-    .screen-control-bar .bar-tips {
-      font-size: 11.5px;
-      color: #cbd5e1;
-      line-height: 1.5;
-      border-top: 1px solid #334155;
-      padding-top: 10px;
-    }
-
-    .screen-control-bar .bar-tips strong {
-      color: #38bdf8;
-    }
-
-    /* Receipt wrapper on screen */
-    .screen-receipt-wrapper {
-      background: #ffffff;
-      width: 100%;
-      max-width: 100%;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      border-radius: 4px;
-      overflow: visible;
-      position: relative;
-      padding: ${isA4 ? "12mm 15mm" : "2mm 1mm 4mm 1mm"};
-    }
-
-    /* Override screen preview padding on cloned receipt element */
-    .receipt-preview-content {
-      padding: ${isA4 ? "0" : "1mm 0.5mm"} !important;
+    .receipt-preview-content,
+    #receipt-to-print {
+      padding: 0 !important;
       margin: 0 !important;
       border: none !important;
       box-shadow: none !important;
       border-radius: 0 !important;
       width: 100% !important;
       max-width: 100% !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
+      font-size: ${fontSize}px;
+      line-height: ${lineHeight};
+      letter-spacing: normal;
     }
 
-    /* ===== THERMAL RECEIPT STYLING ===== */
     .receipt-shop {
       text-align: center;
       padding-bottom: 8px;
@@ -290,7 +132,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     }
 
     .receipt-logo {
-      display: none;
+      display: none !important;
     }
 
     .receipt-shop-name {
@@ -448,8 +290,8 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       justify-content: space-between;
       font-size: ${grandTotalSize};
       font-weight: 900;
-      padding: 8px 0 6px;
-      margin-top: 6px;
+      padding: 4px 0;
+      margin-top: 4px;
       border-top: 2.5px solid #000000;
       color: #000000;
       word-break: break-word;
@@ -463,9 +305,11 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
 
     .receipt-footer {
       text-align: center;
-      padding-top: 8px;
+      padding-top: 4px;
+      padding-bottom: 0;
       border-top: 1.5px dashed #000000;
-      margin-top: 8px;
+      margin-top: 4px;
+      margin-bottom: 0;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
@@ -476,29 +320,308 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       font-size: ${footerSize};
       font-weight: 800;
       color: #000000;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
 
     .receipt-thanks {
       font-size: ${footerSize};
       font-weight: 700;
       color: #000000;
-      margin-top: 4px;
+      margin-top: 2px;
+      margin-bottom: 0;
       word-break: break-word;
     }
 
-    /* ===== PRINT MEDIA — overrides for clean thermal output ===== */
+    .receipt-tax-badge,
+    .receipt-boutique-badge {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      padding: 3px 6px;
+      border: 1.5px solid #000000;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .receipt-pro-extras {
+      margin: 6px 0;
+      text-align: center;
+    }
+
+    .receipt-qr-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .receipt-qr-box {
+      border: 1.5px solid #000000;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .receipt-qr-wrapper span {
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .receipt-loyalty-tag {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 0;
+    }
+
+    .receipt-signatory-wrapper {
+      margin-top: 16px;
+      margin-bottom: 8px;
+      text-align: right;
+    }
+
+    .signatory-line {
+      width: 120px;
+      margin-left: auto;
+      border-top: 1px solid #000000;
+      margin-bottom: 4px;
+    }
+
+    .receipt-signatory-wrapper span {
+      font-size: 10px;
+      font-weight: 700;
+    }
+  `
+
+  // Accurately measure the receipt height before opening print window
+  let targetHeightMm = isA4 ? 297 : 120
+
+  if (!isA4) {
+    try {
+      const measureDiv = document.createElement("div")
+      measureDiv.id = "slipzo-print-measure"
+      measureDiv.style.position = "fixed"
+      measureDiv.style.left = "-9999px"
+      measureDiv.style.top = "0"
+      measureDiv.style.width = pageWidth
+      measureDiv.style.maxWidth = pageWidth
+      measureDiv.style.minWidth = pageWidth
+      measureDiv.style.visibility = "hidden"
+      measureDiv.style.pointerEvents = "none"
+      measureDiv.style.zIndex = "-9999"
+      measureDiv.style.margin = "0"
+      measureDiv.style.padding = "1mm 1.5mm 0 1.5mm"
+      measureDiv.style.boxSizing = "border-box"
+      measureDiv.style.background = "#ffffff"
+
+      const measureStyle = document.createElement("style")
+      measureStyle.textContent = receiptCSS
+      measureDiv.appendChild(measureStyle)
+
+      const cloneForMeasure = clone.cloneNode(true)
+      cloneForMeasure.style.width = "100%"
+      cloneForMeasure.style.maxWidth = "100%"
+      cloneForMeasure.style.margin = "0"
+      cloneForMeasure.style.padding = "0"
+      cloneForMeasure.style.border = "none"
+      cloneForMeasure.style.boxShadow = "none"
+      cloneForMeasure.style.background = "#ffffff"
+      measureDiv.appendChild(cloneForMeasure)
+
+      document.body.appendChild(measureDiv)
+
+      // Measure rendered bounding height in CSS pixels
+      const measuredPx = Math.ceil(measureDiv.getBoundingClientRect().height || measureDiv.offsetHeight)
+      document.body.removeChild(measureDiv)
+
+      if (measuredPx > 40) {
+        // Standard CSS unit: 1 inch = 96 CSS pixels = 25.4mm
+        // Add 2.5mm safe buffer so thermal cutter cuts cleanly after thank you message
+        targetHeightMm = Math.ceil(measuredPx * (25.4 / 96)) + 2.5
+      }
+    } catch (err) {
+      console.warn("[printReceipt] Height measurement fallback:", err)
+      targetHeightMm = 140
+    }
+  }
+
+  const paperLabel = isA4 ? "A4 Standard" : `${pageWidth} Thermal Roll`
+  const receiptHTML = clone.outerHTML
+
+  // Open dedicated print preview window
+  const availW = window.screen.availWidth || 1200
+  const availH = window.screen.availHeight || 800
+
+  const printWindow = window.open(
+    "",
+    "SlipzoThermalReceipt",
+    `width=${availW},height=${availH},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
+  )
+
+  if (!printWindow) {
+    Swal.fire({
+      title: "Popup Blocked",
+      text: "Please allow popups in your browser to enable thermal receipt printing.",
+      icon: "warning",
+      confirmButtonColor: "#0ea5e9"
+    })
+    return
+  }
+
+  try {
+    printWindow.moveTo(0, 0)
+    printWindow.resizeTo(availW, availH)
+  } catch (_) { /* browser restricted */ }
+
+  const pageCssRule = isA4
+    ? "size: A4 portrait; margin: 8mm !important;"
+    : `size: ${pageWidth} ${targetHeightMm}mm !important; margin: 0 !important;`
+
+  printWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=${isA4 ? "210mm" : pageWidth}, initial-scale=1.0" />
+  <title>Receipt (${paperLabel}) – Slipzo</title>
+  <style>
+    ${receiptCSS}
+
+    /* Page size matching measured content height exactly — ends after thank you message */
+    @page {
+      ${pageCssRule}
+    }
+
+    /* Screen UI container styles */
+    html {
+      background: #0f172a;
+      width: ${isA4 ? "210mm" : pageWidth};
+      max-width: 100%;
+      margin: 0 auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: #ffffff;
+      color: #000000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
+      font-size: ${fontSize}px;
+      line-height: ${lineHeight};
+      width: ${isA4 ? "210mm" : pageWidth};
+      max-width: ${isA4 ? "210mm" : pageWidth};
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      letter-spacing: normal;
+    }
+
+    .screen-control-bar {
+      width: 100%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      color: #f8fafc;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    }
+
+    .screen-control-bar *, .screen-control-bar button, .screen-control-bar span {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    }
+
+    .screen-control-bar .bar-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .screen-control-bar .bar-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    .screen-control-bar .paper-pill {
+      background: #0ea5e9;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: inline-block;
+    }
+
+    .screen-control-bar .stats-pill {
+      font-size: 11.5px;
+      color: #94a3b8;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .screen-control-bar .print-trigger-btn {
+      background: #10b981;
+      color: #ffffff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+      flex-shrink: 0;
+    }
+
+    .screen-control-bar .print-trigger-btn:hover {
+      background: #059669;
+      transform: translateY(-1px);
+    }
+
+    .screen-control-bar .bar-tips {
+      font-size: 11.5px;
+      color: #cbd5e1;
+      line-height: 1.5;
+      border-top: 1px solid #334155;
+      padding-top: 10px;
+    }
+
+    .screen-control-bar .bar-tips strong {
+      color: #38bdf8;
+    }
+
+    .screen-receipt-wrapper {
+      background: #ffffff;
+      width: 100%;
+      max-width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      border-radius: 4px;
+      overflow: visible;
+      position: relative;
+      padding: ${isA4 ? "12mm 15mm" : "1mm 1.5mm 0 1.5mm"};
+      box-sizing: border-box;
+    }
+
+    /* Print media overrides */
     @media print {
-      /* Hide screen-only controls */
       .screen-control-bar {
         display: none !important;
       }
 
-      /* Enforce @page thermal size with fallback */
       @page {
-        ${isA4 
-          ? "size: A4 portrait; margin: 8mm !important;" 
-          : `size: ${pageWidth} 297mm !important; margin: 0 !important;`}
+        ${pageCssRule}
       }
 
       html {
@@ -517,13 +640,15 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
         width: ${isA4 ? "100%" : pageWidth} !important;
         max-width: ${isA4 ? "100%" : pageWidth} !important;
         margin: 0 !important;
-        padding: ${isA4 ? "0" : "0.5mm 0.5mm 1mm 0.5mm"} !important;
+        padding: ${isA4 ? "0" : "1mm 1.5mm 0 1.5mm"} !important;
         height: auto !important;
         min-height: 0 !important;
         box-shadow: none !important;
         border: none !important;
         overflow: visible !important;
         transform: none !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
 
       .screen-receipt-wrapper {
@@ -538,7 +663,10 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
-        page-break-inside: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
 
       #receipt-to-print,
@@ -554,7 +682,10 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
-        page-break-inside: auto !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
     }
   </style>
@@ -580,18 +711,34 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   </div>
 
   <script>
-    // Auto-print after load — all page sizing is handled via inline CSS above
+    // Verify popup rendered dimensions and trigger print
     window.addEventListener('load', function () {
+      if (!${isA4}) {
+        try {
+          var wrapper = document.querySelector('.screen-receipt-wrapper');
+          if (wrapper) {
+            var actualPx = Math.ceil(wrapper.getBoundingClientRect().height || wrapper.offsetHeight);
+            var actualMm = Math.ceil(actualPx * (25.4 / 96)) + 2.5;
+            // If actual rendered size in popup is larger, adjust @page to prevent any 2nd page spill
+            if (actualMm > ${targetHeightMm}) {
+              var dynStyle = document.createElement('style');
+              dynStyle.textContent = '@media print { @page { size: ${pageWidth} ' + actualMm + 'mm !important; margin: 0 !important; } }';
+              document.head.appendChild(dynStyle);
+            }
+          }
+        } catch (_) {}
+      }
+
       setTimeout(function () {
         window.print();
-      }, 350);
+      }, 150);
     });
 
-    // Close window after printing
+    // Automatically close window after printing is done or canceled
     window.addEventListener('afterprint', function () {
       setTimeout(function () {
         window.close();
-      }, 800);
+      }, 500);
     });
   </script>
 </body>
