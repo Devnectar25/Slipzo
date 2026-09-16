@@ -261,8 +261,8 @@ export function Pricing({ setView, setShowAuth, user }) {
       </section>
 
       {/* Active Subscription & Print Quota Manager Banner */}
-      <section style={{ maxWidth: '1200px', margin: '0 auto 2.5rem', padding: '0 1.5rem' }}>
-        <div style={{
+      <section className="active-quota-section" style={{ maxWidth: '1200px', margin: '0 auto 2.5rem', padding: '0 1.5rem' }}>
+        <div className="active-quota-card" style={{
           background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
           borderRadius: '20px',
           padding: '1.75rem 2rem',
@@ -272,10 +272,10 @@ export function Pricing({ setView, setShowAuth, user }) {
           flexDirection: 'column',
           gap: '1.25rem'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                <span style={{
+          <div className="active-quota-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="active-quota-info">
+              <div className="active-plan-tag-row" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <span className="active-plan-badge" style={{
                   background: activePlan.isFreeTier ? '#fef3c7' : '#dcfce7',
                   color: activePlan.isFreeTier ? '#d97706' : '#15803d',
                   fontSize: '0.75rem',
@@ -286,19 +286,20 @@ export function Pricing({ setView, setShowAuth, user }) {
                   alignItems: 'center',
                   gap: '0.35rem',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
+                  letterSpacing: '0.5px',
+                  whiteSpace: 'nowrap'
                 }}>
                   <ShieldCheck size={14} /> {activePlan.name || "Free Starter Tier"}
                 </span>
                 <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Active Plan</span>
               </div>
-              <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h2 className="active-quota-heading" style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Printer size={22} style={{ color: '#0ea5e9' }} />
                 {activePlan.printsRemaining?.toLocaleString()} prints remaining
               </h2>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', flexWrap: 'wrap' }}>
+            <div className="active-quota-stats-row" style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', flexWrap: 'wrap' }}>
               <div>
                 <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>TOTAL QUOTA</span>
                 <strong style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
@@ -346,7 +347,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 </div>
               )}
               {plan.savings && !plan.popular && (
-                <div className="popular-badge" style={{ background: '#10b981' }}>
+                <div className="popular-badge green-badge" style={{ background: '#10b981' }}>
                   🎉 {plan.savings}
                 </div>
               )}
@@ -472,7 +473,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               </div>
 
               {/* Range Slider & Number Input */}
-              <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="adjust-prints-card" style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <div className="slider-header-controls">
                   <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600 }}>
                     <Sliders size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.4rem' }} />
@@ -490,12 +491,12 @@ export function Pricing({ setView, setShowAuth, user }) {
                         background: 'white',
                         color: '#0f172a',
                         border: 'none',
-                        padding: '0.45rem 0.75rem',
+                        padding: '0.4rem 0.5rem',
                         borderRadius: '8px',
                         fontSize: '1rem',
                         fontWeight: 700,
-                        width: '110px',
-                        textAlign: 'right'
+                        width: '95px',
+                        textAlign: 'center'
                       }}
                     />
                     <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>prints</span>
@@ -750,6 +751,110 @@ export function Pricing({ setView, setShowAuth, user }) {
           </button>
         </div>
       </section>
+
+      <style>{`
+        /* Active Plan Card Mobile Fixes */
+        @media (max-width: 640px) {
+          .pricing-page .active-quota-section {
+            padding: 0 0.75rem !important;
+            margin: 0.75rem auto 1.25rem !important;
+          }
+
+          .pricing-page .active-quota-card {
+            padding: 1rem 0.85rem !important;
+            border-radius: 16px !important;
+            gap: 0.75rem !important;
+            text-align: center !important;
+            align-items: center !important;
+          }
+
+          .pricing-page .active-quota-header {
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            gap: 0.65rem !important;
+            width: 100% !important;
+          }
+
+          .pricing-page .active-quota-info {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            width: 100% !important;
+          }
+
+          .pricing-page .active-plan-tag-row {
+            justify-content: center !important;
+            width: 100% !important;
+          }
+
+          .pricing-page .active-plan-badge {
+            white-space: nowrap !important;
+            font-size: 0.7rem !important;
+            padding: 0.2rem 0.65rem !important;
+          }
+
+          .pricing-page .active-quota-heading {
+            justify-content: center !important;
+            text-align: center !important;
+            font-size: 1.3rem !important;
+          }
+
+          .pricing-page .active-quota-stats-row {
+            justify-content: center !important;
+            width: 100% !important;
+            gap: 1.25rem !important;
+            text-align: center !important;
+          }
+
+          /* Business Super & Preset Cards Mobile Alignment & Spacing */
+          .pricing-plans .plans-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 2.25rem !important;
+          }
+
+          .pricing-card {
+            padding-top: 1.85rem !important;
+          }
+
+          /* Adjust Prints Card Mobile Reduction */
+          .adjust-prints-card {
+            padding: 0.85rem 0.9rem !important;
+            margin: 0 auto !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+        }
+
+        /* Badge Positioning & Centering */
+        .popular-badge {
+          position: absolute;
+          top: -14px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #0ea5e9;
+          color: white;
+          padding: 0.35rem 1rem;
+          border-radius: 20px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          gap: 0.35rem;
+          white-space: nowrap;
+          z-index: 2;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .popular-badge.green-badge {
+          background: #10b981 !important;
+        }
+      `}</style>
     </div>
   )
 }

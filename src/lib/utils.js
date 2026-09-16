@@ -5,7 +5,16 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-let rawApi = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://slipzo-api.vercel.app/api' : 'http://localhost:8000/api')).trim()
+let envApi = (import.meta.env.VITE_API_URL || '/api').trim()
+
+// If running on localhost or 127.0.0.1, use relative /api to leverage Vite backend proxy
+if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  if (envApi.includes('vercel.app')) {
+    envApi = '/api'
+  }
+}
+
+let rawApi = envApi
 
 // Strip trailing slash
 if (rawApi.endsWith('/')) {
@@ -92,8 +101,9 @@ export const call = async (path, options = {}) => {
       invalidateApiCache('/bills')
       invalidateApiCache('/bills/stats')
     }
-    else if (cleanPath.startsWith('/products') || cleanPath.startsWith('/menu')) {
+    else if (cleanPath.startsWith('/products') || cleanPath.startsWith('/admin/products') || cleanPath.startsWith('/menu')) {
       invalidateApiCache('/products')
+      invalidateApiCache('/admin/products')
       invalidateApiCache('/menu')
     }
     else if (cleanPath.startsWith('/shop')) invalidateApiCache('/shop')
@@ -155,17 +165,24 @@ const executeFetch = async (cleanPath, options = {}) => {
   const method = (options.method || 'GET').toUpperCase()
   const isGet = method === 'GET'
   
-  const token = typeof window !== 'undefined' ? localStorage.getItem('slipzo_token') : null
+  const token = typeof window !== 'undefined' 
+    ? (localStorage.getItem('slipzo_admin_token') || localStorage.getItem('slipzo_token')) 
+    : null
+
+  const { headers: customHeaders, ...restOptions } = options
+
+  const defaultHeaders = {
+    "Content-Type": "application/json",
+    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    ...(customHeaders || {})
+  }
 
   try {
     const response = await fetch(url, {
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-        ...(options.headers || {})
-      },
-      ...options
+      method,
+      ...restOptions,
+      headers: defaultHeaders
     })
     
     // Check if server returned HTML (e.g. Vercel SPA index.html fallback) instead of JSON

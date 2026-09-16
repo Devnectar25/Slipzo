@@ -23,14 +23,65 @@ import {
   Edit2,
   Trash2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X,
+  AlertCircle,
+  DollarSign,
+  Sparkles
 } from "lucide-react"
-import { call } from "../../lib/utils"
+import { call, invalidateApiCache } from "../../lib/utils"
 import Swal from "sweetalert2"
 import "../../styles/Admin.css"
 
+const getInitialAdminTab = () => {
+  if (typeof window === "undefined") return "overview"
+  const cleanPath = (window.location.pathname || "").toLowerCase().trim()
+  if (cleanPath.includes("/admin/products") || cleanPath.includes("/admin/product-catalog")) return "products"
+  if (cleanPath.includes("/admin/plan-buyers")) return "plan_buyers"
+  if (cleanPath.includes("/admin/templates")) return "templates"
+  if (cleanPath.includes("/admin/bill-history") || cleanPath.includes("/admin/bills")) return "bills"
+  if (cleanPath.includes("/admin/support") || cleanPath.includes("/admin/contacts")) return "contacts"
+  if (cleanPath.includes("/admin/users")) return "users"
+  if (cleanPath.includes("/admin/system") || cleanPath.includes("/admin/health")) return "system"
+  return "overview"
+}
+
+const getAdminTabPath = (tab) => {
+  switch (tab) {
+    case "overview": return "/admin/overview"
+    case "products": return "/admin/products"
+    case "plan_buyers": return "/admin/plan-buyers"
+    case "templates": return "/admin/templates"
+    case "bills": return "/admin/bill-history"
+    case "contacts": return "/admin/support"
+    case "users": return "/admin/users"
+    case "system": return "/admin/system"
+    default: return "/admin/overview"
+  }
+}
+
 export function AdminDashboard({ admin, onLogout }) {
-  const [activeTab, setActiveTab] = useState("overview")
+  const [activeTab, setActiveTabState] = useState(() => getInitialAdminTab())
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab)
+    if (typeof window !== "undefined") {
+      const targetPath = getAdminTabPath(tab)
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({}, "", targetPath + window.location.search)
+      }
+    }
+  }
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const currentTab = getInitialAdminTab()
+      setActiveTabState(currentTab)
+    }
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
+
   const [loading, setLoading] = useState(true)
   const [statsData, setStatsData] = useState(null)
   const [usersList, setUsersList] = useState([])
@@ -44,47 +95,75 @@ export function AdminDashboard({ admin, onLogout }) {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
+  // Add Product Modal State
+  const [showAddProductModal, setShowAddProductModal] = useState(false)
+  const [prodForm, setProdForm] = useState({ name: "", category: "Hardware", price: "", tax_rate: "" })
+  const [prodPhotos, setProdPhotos] = useState([])
+  const [prodError, setProdError] = useState("")
+  const [prodSubmitting, setProdSubmitting] = useState(false)
+
   useEffect(() => {
     setCurrentPage(1)
   }, [activeTab, searchQuery, pageSize])
 
-  const loadAdminData = async () => {
+  const loadAdminData = async (isManualRefresh = false) => {
     setLoading(true)
     const headers = getAdminHeaders()
+    const opts = { headers, noCache: true }
+
+    if (isManualRefresh) {
+      invalidateApiCache('/admin')
+      invalidateApiCache()
+    }
+
     try {
-      const statsRes = await call("/admin/stats", { headers }).catch(() => null)
-      if (statsRes && statsRes.stats) {
+      const statsRes = await call("/admin/stats", opts).catch(() => null)
+      if (statsRes && (statsRes.stats || statsRes.totalUsers !== undefined)) {
         setStatsData(statsRes)
       }
 
-      const usersRes = await call("/admin/users", { headers }).catch(() => null)
-      if (usersRes && usersRes.users) {
-        setUsersList(usersRes.users)
+      const usersRes = await call("/admin/users", opts).catch(() => null)
+      if (usersRes && (usersRes.users || Array.isArray(usersRes))) {
+        setUsersList(usersRes.users || (Array.isArray(usersRes) ? usersRes : []))
       }
 
-      const billsRes = await call("/admin/bills", { headers }).catch(() => null)
-      if (billsRes && billsRes.bills) {
-        setBillsList(billsRes.bills)
+      const billsRes = await call("/admin/bills", opts).catch(() => null)
+      if (billsRes && (billsRes.bills || Array.isArray(billsRes))) {
+        setBillsList(billsRes.bills || (Array.isArray(billsRes) ? billsRes : []))
       }
 
-      const contactsRes = await call("/admin/contacts", { headers }).catch(() => null)
-      if (contactsRes && contactsRes.contacts) {
-        setContactsList(contactsRes.contacts)
+      const contactsRes = await call("/admin/contacts", opts).catch(() => null)
+      if (contactsRes && (contactsRes.contacts || Array.isArray(contactsRes))) {
+        setContactsList(contactsRes.contacts || (Array.isArray(contactsRes) ? contactsRes : []))
       }
 
-      const templatesRes = await call("/admin/templates", { headers }).catch(() => null)
-      if (templatesRes && templatesRes.templates) {
-        setTemplatesList(templatesRes.templates)
+      const templatesRes = await call("/admin/templates", opts).catch(() => null)
+      if (templatesRes && (templatesRes.templates || Array.isArray(templatesRes))) {
+        setTemplatesList(templatesRes.templates || (Array.isArray(templatesRes) ? templatesRes : []))
       }
 
-      const productsRes = await call("/admin/products", { headers }).catch(() => null)
-      if (productsRes && productsRes.products) {
-        setProductsList(productsRes.products)
+      const productsRes = await call("/admin/products", opts).catch(() => null)
+      if (productsRes && (productsRes.products || Array.isArray(productsRes))) {
+        setProductsList(productsRes.products || (Array.isArray(productsRes) ? productsRes : []))
       }
 
-      const buyersRes = await call("/admin/plan-buyers", { headers }).catch(() => null)
-      if (buyersRes && buyersRes.planBuyers) {
-        setPlanBuyersList(buyersRes.planBuyers)
+      const buyersRes = await call("/admin/plan-buyers", opts).catch(() => null)
+      if (buyersRes && (buyersRes.planBuyers || Array.isArray(buyersRes))) {
+        setPlanBuyersList(buyersRes.planBuyers || (Array.isArray(buyersRes) ? buyersRes : []))
+      }
+
+      if (isManualRefresh) {
+        const Toast = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true
+        })
+        Toast.fire({
+          icon: 'success',
+          title: 'Data refreshed successfully'
+        })
       }
     } catch (err) {
       console.error("Failed to load admin dashboard data:", err)
@@ -195,66 +274,177 @@ export function AdminDashboard({ admin, onLogout }) {
     }
   }
 
-  const handleAddProduct = async () => {
-    const { value: formValues } = await Swal.fire({
-      title: 'Add New Product to Catalog',
-      html: `
-        <div style="text-align: left; font-size: 0.9rem;">
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Product Name</label>
-          <input id="swal-product-name" class="swal2-input" placeholder="e.g. Shampoo 250ml" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
-          
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Category</label>
-          <input id="swal-product-cat" class="swal2-input" placeholder="e.g. Hardware, POS Accessories" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
-          
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Price (₹)</label>
-          <input id="swal-product-price" type="number" class="swal2-input" placeholder="e.g. 300" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+  const handleOpenAddProductModal = () => {
+    setProdForm({ name: "", category: "Hardware", price: "", tax_rate: "" })
+    setProdPhotos([])
+    setProdError("")
+    setShowAddProductModal(true)
+  }
 
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">GST / Tax Rate (%)</label>
-          <input id="swal-product-tax" type="number" class="swal2-input" placeholder="e.g. 18" style="width: 100%; margin: 0; box-sizing: border-box;" />
-        </div>
-      `,
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: 'Add Product',
-      confirmButtonColor: '#0ea5e9',
-      preConfirm: () => {
-        const name = document.getElementById('swal-product-name').value;
-        const category = document.getElementById('swal-product-cat').value || 'Hardware';
-        const price = parseFloat(document.getElementById('swal-product-price').value) || 0;
-        const tax_rate = parseFloat(document.getElementById('swal-product-tax').value) || 0;
-        if (!name || !name.trim()) {
-          Swal.showValidationMessage('Product name is required');
-          return false;
+  const handleCloseAddProductModal = () => {
+    setShowAddProductModal(false)
+    setProdForm({ name: "", category: "Hardware", price: "", tax_rate: "" })
+    setProdPhotos([])
+    setProdError("")
+  }
+
+  const handleSelectProductPhotos = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    setProdError("")
+
+    // Validate file types (JPG, JPEG, PNG, WEBP)
+    const validFormats = ["image/jpeg", "image/png", "image/webp", "image/jpg"]
+    const invalidFiles = files.filter(f => !validFormats.includes((f.type || "").toLowerCase()) && !/\.(jpe?g|png|webp)$/i.test(f.name))
+
+    if (invalidFiles.length > 0) {
+      setProdError("Only image files (JPG, PNG, WEBP) are allowed.")
+      e.target.value = ""
+      return
+    }
+
+    if (prodPhotos.length + files.length > 5) {
+      setProdError("You can upload a maximum of 5 product photos.")
+      e.target.value = ""
+      return
+    }
+
+    // Read and compress image files as lightweight Data URLs
+    const readPromises = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (evt) => {
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            const MAX_WIDTH = 800
+            const MAX_HEIGHT = 800
+            let width = img.width
+            let height = img.height
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height = Math.round((height * MAX_WIDTH) / width)
+                width = MAX_WIDTH
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width = Math.round((width * MAX_HEIGHT) / height)
+                height = MAX_HEIGHT
+              }
+            }
+
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(img, 0, 0, width, height)
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75)
+            resolve({
+              id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              dataUrl: compressedDataUrl,
+              name: file.name
+            })
+          }
+          img.onerror = () => {
+            resolve({
+              id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              dataUrl: evt.target.result,
+              name: file.name
+            })
+          }
+          img.src = evt.target.result
         }
-        return { name: name.trim(), category: category.trim(), price, tax_rate, is_admin_product: true };
-      }
-    });
+        reader.readAsDataURL(file)
+      })
+    })
 
-    if (formValues) {
-      try {
-        const newProd = await call('/admin/products', {
-          method: 'POST',
-          headers: getAdminHeaders(),
-          body: JSON.stringify(formValues)
-        }).catch(() => null);
-
-        if (newProd && newProd.product) {
-          setProductsList((prev) => [newProd.product, ...prev]);
-        } else if (newProd && newProd.id) {
-          setProductsList((prev) => [newProd, ...prev]);
-        } else {
-          const localItem = {
-            id: `prod_${Date.now()}`,
-            ...formValues,
-            created_at: new Date().toISOString()
-          };
-          setProductsList((prev) => [localItem, ...prev]);
+    Promise.all(readPromises).then(newPhotoObjs => {
+      setProdPhotos(prev => {
+        const combined = [...prev, ...newPhotoObjs]
+        if (combined.length > 5) {
+          setProdError("You can upload a maximum of 5 product photos.")
+          return combined.slice(0, 5)
         }
-        Swal.fire({ title: 'Success!', text: 'New product added successfully', icon: 'success', confirmButtonColor: '#0ea5e9' });
-        loadAdminData();
-      } catch (err) {
-        Swal.fire('Error', err?.detail || err?.message || 'Failed to add product', 'error');
+        if (combined.length >= 3 && combined.length <= 5) {
+          setProdError("")
+        }
+        return combined
+      })
+      e.target.value = ""
+    })
+  }
+
+  const handleRemovePhoto = (index) => {
+    setProdPhotos(prev => {
+      const updated = prev.filter((_, i) => i !== index)
+      if (updated.length < 3) {
+        setProdError("Please upload at least 3 product photos.")
+      } else if (updated.length <= 5) {
+        setProdError("")
       }
+      return updated
+    })
+  }
+
+  const handleSubmitAddProduct = async (e) => {
+    e?.preventDefault()
+    setProdError("")
+
+    if (!prodForm.name || !prodForm.name.trim()) {
+      setProdError("Product name is required")
+      return
+    }
+
+    if (prodPhotos.length < 3) {
+      setProdError("Please upload at least 3 product photos.")
+      return
+    }
+
+    if (prodPhotos.length > 5) {
+      setProdError("You can upload a maximum of 5 product photos.")
+      return
+    }
+
+    setProdSubmitting(true)
+    try {
+      const photoUrls = prodPhotos.map(p => p.dataUrl)
+      const payload = {
+        name: prodForm.name.trim(),
+        category: (prodForm.category || "Hardware").trim(),
+        price: parseFloat(prodForm.price) || 0,
+        tax_rate: parseFloat(prodForm.tax_rate) || 0,
+        images: photoUrls,
+        image: photoUrls[0] || "",
+        status: "active",
+        is_admin_product: true
+      }
+
+      const res = await call('/admin/products', {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify(payload)
+      })
+
+      if (!res || (!res.product && !res.id)) {
+        throw new Error("Backend did not return a created product record.")
+      }
+
+      const createdProd = res.product || res
+      setProductsList(prev => [createdProd, ...prev.filter(p => p.id !== createdProd.id)])
+      handleCloseAddProductModal()
+      Swal.fire({
+        title: 'Success!',
+        text: res.detail || 'New product with photos added successfully!',
+        icon: 'success',
+        confirmButtonColor: '#0ea5e9'
+      })
+      await loadAdminData()
+    } catch (err) {
+      console.error("Failed to add product:", err)
+      setProdError(err?.detail || err?.message || "Failed to save product to database. Please try again.")
+    } finally {
+      setProdSubmitting(false)
     }
   }
 
@@ -360,6 +550,60 @@ export function AdminDashboard({ admin, onLogout }) {
       (b.shop_name && b.shop_name.toLowerCase().includes(q))
     )
   })
+
+  // Calculate Plan Buyer Analytics Metrics
+  const validCompletedBuyers = planBuyersList.filter(b => 
+    !b.payment_status || (b.payment_status || '').toLowerCase() === 'completed'
+  )
+
+  const totalPlanRevenue = validCompletedBuyers.reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0)
+
+  const uniqueBuyerIds = new Set(
+    validCompletedBuyers.map(b => b.user_id || b.user_email).filter(Boolean)
+  )
+  const totalUniquePlanBuyers = uniqueBuyerIds.size
+
+  const totalPlansSold = validCompletedBuyers.length
+
+  const starterPackCount = validCompletedBuyers.filter(b => 
+    (b.plan_name || '').toLowerCase().includes('starter')
+  ).length
+
+  const proGrowthCount = validCompletedBuyers.filter(b => {
+    const name = (b.plan_name || '').toLowerCase()
+    return (name.includes('growth') || name.includes('pro')) && !name.includes('business') && !name.includes('super')
+  }).length
+
+  const businessSuperCount = validCompletedBuyers.filter(b => {
+    const name = (b.plan_name || '').toLowerCase()
+    return name.includes('business') || name.includes('super')
+  }).length
+
+  const handleStatusChange = async (product, newStatus) => {
+    const previousStatus = (product.status || 'active').toLowerCase() === 'active' ? 'active' : 'inactive'
+    if (newStatus === previousStatus) return
+
+    setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, status: newStatus } : p))
+
+    try {
+      const headers = getAdminHeaders()
+      const payload = { status: newStatus, name: product.name }
+      let res = await call(`/admin/products/${product.id}/status`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(payload)
+      })
+
+      if (res && (res.product || res.id)) {
+        const updated = res.product || res
+        setProductsList(prev => prev.map(p => (p.id === product.id || p.name === product.name) ? { ...p, status: newStatus, ...updated } : p))
+      }
+    } catch (err) {
+      console.error("Failed to update product status:", err)
+      setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, status: previousStatus } : p))
+      Swal.fire('Status Update Failed', err?.detail || err?.message || 'Could not save product status to database', 'error')
+    }
+  }
 
   const handleDeleteProduct = async (product) => {
     const confirm = await Swal.fire({
@@ -600,8 +844,8 @@ export function AdminDashboard({ admin, onLogout }) {
           </h2>
 
           <div className="admin-topbar-actions">
-            <button className="admin-refresh-btn" onClick={loadAdminData} disabled={loading}>
-              <RefreshCw size={14} className={loading ? "spin" : ""} /> Refresh
+            <button className="admin-refresh-btn" onClick={() => loadAdminData(true)} disabled={loading}>
+              <RefreshCw size={14} className={loading ? "spin" : ""} /> {loading ? "Refreshing..." : "Refresh"}
             </button>
             <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
               {admin?.email || "admin@slipzo.com"}
@@ -768,7 +1012,63 @@ export function AdminDashboard({ admin, onLogout }) {
           )}
 
           {activeTab === "plan_buyers" && (
-            <div className="admin-table-container">
+            <>
+              {/* Analytics Section ABOVE Existing Table */}
+              <div className="admin-stats-grid">
+                {/* 1. Total Revenue */}
+                <div className="admin-stat-card">
+                  <div className="admin-stat-icon" style={{ background: "#dcfce7", color: "#15803d" }}>
+                    <DollarSign size={24} />
+                  </div>
+                  <div>
+                    <h3 className="admin-stat-val">
+                      ₹{totalPlanRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    </h3>
+                    <p className="admin-stat-lbl">Total Revenue</p>
+                    <span style={{ fontSize: "0.725rem", color: "#64748b" }}>Successful payments</span>
+                  </div>
+                </div>
+
+                {/* 2. Total Plan Buyers */}
+                <div className="admin-stat-card">
+                  <div className="admin-stat-icon" style={{ background: "#e0f2fe", color: "#0284c7" }}>
+                    <Users size={24} />
+                  </div>
+                  <div>
+                    <h3 className="admin-stat-val">{totalUniquePlanBuyers}</h3>
+                    <p className="admin-stat-lbl">Total Plan Buyers</p>
+                    <span style={{ fontSize: "0.725rem", color: "#64748b" }}>Unique buyers</span>
+                  </div>
+                </div>
+
+                {/* 3. Starter Pack */}
+                <div className="admin-stat-card">
+                  <div className="admin-stat-icon" style={{ background: "#fef3c7", color: "#d97706" }}>
+                    <Zap size={24} />
+                  </div>
+                  <div>
+                    <h3 className="admin-stat-val">{starterPackCount}</h3>
+                    <p className="admin-stat-lbl">Starter Pack</p>
+                    <span style={{ fontSize: "0.725rem", color: "#64748b" }}>Starter plan sales</span>
+                  </div>
+                </div>
+
+                {/* 4. Pro Growth */}
+                <div className="admin-stat-card">
+                  <div className="admin-stat-icon" style={{ background: "#cff4fc", color: "#0891b2" }}>
+                    <Sparkles size={24} />
+                  </div>
+                  <div>
+                    <h3 className="admin-stat-val">{proGrowthCount}</h3>
+                    <p className="admin-stat-lbl">Pro Growth</p>
+                    <span style={{ fontSize: "0.725rem", color: "#64748b" }}>Pro plan sales</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Existing Plan Buyer Table */}
+              <div className="admin-table-container">
               <div className="admin-table-header">
                 <h4 className="admin-table-title">Plan Buyer Users & Active Print Subscriptions ({filteredPlanBuyers.length})</h4>
                 <input
@@ -836,28 +1136,29 @@ export function AdminDashboard({ admin, onLogout }) {
               </div>
               {renderPagination(filteredPlanBuyers.length)}
             </div>
+            </>
           )}
 
           {activeTab === "products" && (
             <div className="admin-table-container">
               <div className="admin-table-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <h4 className="admin-table-title">System Product Catalog ({filteredProducts.length})</h4>
+                <h4 className="admin-table-title">System Product Catalog ({filteredProducts.length})</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    className="admin-search-input"
+                    placeholder="Search product, category, shop..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                   <button
                     className="admin-refresh-btn"
                     style={{ background: '#0ea5e9', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
-                    onClick={handleAddProduct}
+                    onClick={handleOpenAddProductModal}
                   >
                     <Plus size={14} /> Add New Product
                   </button>
                 </div>
-                <input
-                  type="text"
-                  className="admin-search-input"
-                  placeholder="Search product, category, shop..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
               </div>
               <div className="admin-table-wrapper">
                 <table className="admin-table">
@@ -868,6 +1169,7 @@ export function AdminDashboard({ admin, onLogout }) {
                       <th>Price</th>
                       <th>GST / Tax Rate</th>
                       <th>Stock Qty</th>
+                      <th>Status</th>
                       <th>Shop / User</th>
                       <th>Created Date</th>
                       <th>Actions</th>
@@ -876,13 +1178,59 @@ export function AdminDashboard({ admin, onLogout }) {
                   <tbody>
                     {paginatedProducts.map((p) => (
                       <tr key={p.id}>
-                        <td style={{ fontWeight: 600, color: "#0f172a" }}>{p.name}</td>
+                        <td style={{ fontWeight: 600, color: "#0f172a" }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            {(() => {
+                              let mainImg = p.image
+                              if (!mainImg && p.images) {
+                                try {
+                                  const parsed = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
+                                  if (Array.isArray(parsed) && parsed.length > 0) mainImg = parsed[0]
+                                } catch (_) {}
+                              }
+                              return mainImg ? (
+                                <img
+                                  src={mainImg}
+                                  alt={p.name}
+                                  style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
+                                />
+                              ) : (
+                                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0 }}>
+                                  <Package size={18} />
+                                </div>
+                              )
+                            })()}
+                            <span>{p.name}</span>
+                          </div>
+                        </td>
                         <td>
                           <span className="admin-tag admin-tag-blue">{p.category || "General"}</span>
                         </td>
                         <td style={{ fontWeight: 700, color: "#16a34a" }}>₹{Number(p.price || 0).toLocaleString()}</td>
                         <td>{p.tax_rate ? `${p.tax_rate}%` : "0%"}</td>
                         <td>{p.stock_quantity ?? "Unlimited"}</td>
+                        <td>
+                          <select
+                            value={(p.status || 'active').toLowerCase() === 'active' ? 'active' : 'inactive'}
+                            onChange={(e) => handleStatusChange(p, e.target.value)}
+                            style={{
+                              background: (p.status || 'active').toLowerCase() === 'active' ? '#dcfce7' : '#f1f5f9',
+                              color: (p.status || 'active').toLowerCase() === 'active' ? '#15803d' : '#64748b',
+                              border: `1px solid ${(p.status || 'active').toLowerCase() === 'active' ? '#bbf7d0' : '#cbd5e1'}`,
+                              padding: '0.3rem 0.65rem',
+                              fontWeight: 700,
+                              fontSize: '0.775rem',
+                              borderRadius: '20px',
+                              cursor: 'pointer',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                            title="Change Product Active / Inactive status"
+                          >
+                            <option value="active" style={{ background: '#ffffff', color: '#15803d', fontWeight: 600 }}>Active</option>
+                            <option value="inactive" style={{ background: '#ffffff', color: '#64748b', fontWeight: 600 }}>Inactive</option>
+                          </select>
+                        </td>
                         <td>
                           <div>{p.shop_name || p.user_name || "Unknown"}</div>
                           <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{p.user_email}</div>
@@ -902,7 +1250,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     ))}
                     {filteredProducts.length === 0 && (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={9} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
                           No products found in system catalog.
                         </td>
                       </tr>
@@ -917,8 +1265,15 @@ export function AdminDashboard({ admin, onLogout }) {
           {activeTab === "templates" && (
             <div className="admin-table-container">
               <div className="admin-table-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <h4 className="admin-table-title">Manage Bill Templates ({filteredTemplates.length})</h4>
+                <h4 className="admin-table-title">Manage Bill Templates ({filteredTemplates.length})</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    className="admin-search-input"
+                    placeholder="Filter templates..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                   <button
                     className="admin-refresh-btn"
                     style={{ background: '#0ea5e9', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
@@ -927,13 +1282,6 @@ export function AdminDashboard({ admin, onLogout }) {
                     <Plus size={14} /> Add New Template
                   </button>
                 </div>
-                <input
-                  type="text"
-                  className="admin-search-input"
-                  placeholder="Filter templates..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
               </div>
               <div className="admin-table-wrapper">
                 <table className="admin-table">
@@ -1125,6 +1473,297 @@ export function AdminDashboard({ admin, onLogout }) {
           )}
         </div>
       </main>
+
+      {/* Add New Product Modal */}
+      {showAddProductModal && (
+        <div
+          className="admin-modal-overlay"
+          onClick={handleCloseAddProductModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+        >
+          <div
+            className="admin-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '520px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+              border: '1px solid #e2e8f0',
+              padding: '1.75rem',
+              boxSizing: 'border-box'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                Add New Product to Catalog
+              </h3>
+              <button
+                type="button"
+                onClick={handleCloseAddProductModal}
+                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitAddProduct} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Product Name */}
+              <div>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: '#334155' }}>
+                  Product Name <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Shampoo 250ml"
+                  value={prodForm.name}
+                  onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: '#334155' }}>
+                  Category
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Hardware, POS Accessories"
+                  value={prodForm.category}
+                  onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
+                  style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Price & Tax Rate Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div>
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: '#334155' }}>
+                    Price (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder="e.g. 300"
+                    value={prodForm.price}
+                    onChange={(e) => setProdForm({ ...prodForm, price: e.target.value })}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: '#334155' }}>
+                    GST / Tax Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder="e.g. 18"
+                    value={prodForm.tax_rate}
+                    onChange={(e) => setProdForm({ ...prodForm, tax_rate: e.target.value })}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Product Photos Section (MIN 3, MAX 5) */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div>
+                    <label style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      Product Photos <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Upload 3–5 photos (JPG, PNG, WEBP)
+                    </span>
+                  </div>
+
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '12px',
+                    background: prodPhotos.length >= 3 && prodPhotos.length <= 5 ? '#dcfce7' : '#fee2e2',
+                    color: prodPhotos.length >= 3 && prodPhotos.length <= 5 ? '#15803d' : '#b91c1c',
+                    border: `1px solid ${prodPhotos.length >= 3 && prodPhotos.length <= 5 ? '#bbf7d0' : '#fecaca'}`
+                  }}>
+                    {prodPhotos.length} / 5 photos
+                  </span>
+                </div>
+
+                {/* Upload Button */}
+                <div style={{ marginBottom: prodPhotos.length > 0 ? '0.85rem' : '0' }}>
+                  <input
+                    type="file"
+                    id="admin-prod-photo-picker"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                    style={{ display: 'none' }}
+                    onChange={handleSelectProductPhotos}
+                    disabled={prodPhotos.length >= 5}
+                  />
+                  <label
+                    htmlFor="admin-prod-photo-picker"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.55rem 0.95rem',
+                      borderRadius: '8px',
+                      background: prodPhotos.length >= 5 ? '#cbd5e1' : '#0ea5e9',
+                      color: prodPhotos.length >= 5 ? '#64748b' : '#ffffff',
+                      fontSize: '0.825rem',
+                      fontWeight: 600,
+                      cursor: prodPhotos.length >= 5 ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <Plus size={15} /> Upload Photos
+                  </label>
+                </div>
+
+                {/* Thumbnail Previews Grid */}
+                {prodPhotos.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
+                    {prodPhotos.map((photo, idx) => (
+                      <div
+                        key={photo.id || idx}
+                        style={{
+                          position: 'relative',
+                          width: '72px',
+                          height: '72px',
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        <img
+                          src={photo.dataUrl}
+                          alt={`Product photo ${idx + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhoto(idx)}
+                          title="Remove photo"
+                          style={{
+                            position: 'absolute',
+                            top: '3px',
+                            right: '3px',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: 'rgba(15, 23, 42, 0.75)',
+                            color: '#ffffff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0,
+                            fontSize: '12px',
+                            lineHeight: 1
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                        <span style={{
+                          position: 'absolute',
+                          bottom: '2px',
+                          left: '2px',
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          background: 'rgba(0,0,0,0.6)',
+                          color: '#ffffff',
+                          padding: '0.05rem 0.3rem',
+                          borderRadius: '4px'
+                        }}>
+                          #{idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Error Banner */}
+              {prodError && (
+                <div style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  color: '#b91c1c',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '10px',
+                  fontSize: '0.825rem',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}>
+                  <AlertCircle size={16} />
+                  <span>{prodError}</span>
+                </div>
+              )}
+
+              {/* Submit & Cancel Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleCloseAddProductModal}
+                  style={{
+                    padding: '0.65rem 1.15rem',
+                    borderRadius: '10px',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    color: '#334155',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={prodSubmitting}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '10px',
+                    background: '#0ea5e9',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    cursor: prodSubmitting ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(14, 165, 233, 0.3)'
+                  }}
+                >
+                  {prodSubmitting ? 'Adding Product...' : 'Add Product'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

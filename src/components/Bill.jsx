@@ -963,7 +963,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         <div className="bill-editor-column">
           <div className="bill-editor-panel">
             {/* Top Section: Compact Top-Right Invoice Number */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.85rem' }}>
               {/* Compact Top-Right Invoice Number */}
               <div className="compact-invoice-container" style={{ flexShrink: 0, textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
                 <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -1009,7 +1009,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             </div>
 
             {/* Customer Section - Text Input */}
-            <div className="editor-section" style={{ marginBottom: '1.5rem' }}>
+            <div className="editor-section" style={{ marginBottom: '0.85rem' }}>
               <label className="field-label">
                 <span>CUSTOMER (OPTIONAL)</span>
                 <div style={{ position: 'relative', marginTop: '0.35rem' }}>
@@ -1221,78 +1221,78 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
               </button>
             </div>
 
-            {/* Bill Options: Discount, Tax, Payment */}
-            <div className="editor-section options-grid">
-              <div className="option-group">
-                <label className="field-label">
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>Discount (₹)</span>
-                    <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Fixed in Shop Profile)</small>
-                  </span>
-                  <input
-                    data-testid="bill-discount-input"
-                    type="text"
-                    readOnly
-                    disabled
-                    value={discount}
-                    placeholder="0"
-                    className="option-input"
-                    style={{ background: "#f8fafc", cursor: "not-allowed", color: "#334155", fontWeight: 600 }}
-                    title="Fixed default discount set in Shop Profile"
-                  />
-                </label>
-              </div>
-              <div className="option-group">
-                <label className="field-label">
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>Tax Rate (%)</span>
-                    <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>(Fixed in Shop Profile)</small>
-                  </span>
-                  <input
-                    data-testid="bill-tax-input"
-                    type="text"
-                    readOnly
-                    disabled
-                    value={!isTaxEnabled ? "0" : tax}
-                    placeholder="0"
-                    className="option-input"
-                    style={{ background: "#f8fafc", cursor: "not-allowed", color: "#334155", fontWeight: 600 }}
-                    title="Fixed default tax rate set in Shop Profile"
-                  />
-                </label>
-              </div>
-              <div className="option-group">
-                <label className="field-label">
-                  <span>Payment Mode</span>
-                  <select
-                    data-testid="bill-payment-select"
-                    value={payment}
-                    onChange={(e) => setPayment(e.target.value)}
-                    className="option-select"
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="UPI">UPI / QR</option>
-                  </select>
-                </label>
+          {/* Bill Options: Discount, Tax, Payment */}
+          <div className="editor-section options-grid">
+            <div className="option-group">
+              <label className="field-label option-field-label">
+                <span className="option-label-text">
+                  <span>DISCOUNT (₹)</span>
+                  <small className="option-sub-label">(Fixed in Shop Profile)</small>
+                </span>
+                <input
+                  data-testid="bill-discount-input"
+                  type="text"
+                  readOnly
+                  disabled
+                  value={discount}
+                  placeholder="0"
+                  className="option-input"
+                  title="Fixed default discount set in Shop Profile"
+                />
+              </label>
+            </div>
+            <div className="option-group">
+              <label className="field-label option-field-label">
+                <span className="option-label-text">
+                  <span>TAX RATE (%)</span>
+                  <small className="option-sub-label">(Fixed in Shop Profile)</small>
+                </span>
+                <input
+                  data-testid="bill-tax-input"
+                  type="text"
+                  readOnly
+                  disabled
+                  value={!isTaxEnabled ? "0" : tax}
+                  placeholder="0"
+                  className="option-input"
+                  title="Fixed default tax rate set in Shop Profile"
+                />
+              </label>
+            </div>
+            <div className="option-group">
+              <label className="field-label option-field-label">
+                <span className="option-label-text">
+                  <span>PAYMENT MODE</span>
+                  <small className="option-sub-label option-sub-label-hidden" style={{ visibility: 'hidden' }}>(Fixed in Shop Profile)</small>
+                </span>
+                <select
+                  data-testid="bill-payment-select"
+                  value={payment}
+                  onChange={(e) => setPayment(e.target.value)}
+                  className="option-select"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI / QR</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          {renderUsageInfo()}
+
+          {error && <div className="error-message slide-up">{error}</div>}
+
+          {saved && (
+            <div className="success-message slide-up">
+              <div className="success-icon">✓</div>
+              <div>
+                <strong>Receipt saved successfully!</strong>
+                <span className="success-details">
+                  Bill #{saved.number} · {saved.items?.length || 0} items · {saved.payment_mode}
+                </span>
               </div>
             </div>
-
-            {renderUsageInfo()}
-
-            {error && <div className="error-message slide-up">{error}</div>}
-
-            {saved && (
-              <div className="success-message slide-up">
-                <div className="success-icon">✓</div>
-                <div>
-                  <strong>Receipt saved successfully!</strong>
-                  <span className="success-details">
-                    Bill #{saved.number} · {saved.items?.length || 0} items · {saved.payment_mode}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Action Buttons: Reset, Save Bill, Print */}
           <div className="bill-actions-bar">
@@ -1333,6 +1333,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             </button>
           </div>
         </div>
+      </div>
 
         {/* RIGHT - Receipt Preview */}
         <div className="receipt-preview-panel">
@@ -1880,6 +1881,20 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             text-overflow: ellipsis !important;
             white-space: normal !important;
             word-break: break-word !important;
+          }
+
+          .bill-page .option-group .option-sub-label-hidden,
+          .bill-page .option-group .option-sub-label[style*="visibility: hidden"],
+          .bill-page .option-group .option-sub-label[style*="hidden"] {
+            display: none !important;
+          }
+
+          .bill-page .option-label-text {
+            min-height: auto !important;
+          }
+
+          .bill-page .option-field-label {
+            gap: 0.25rem !important;
           }
         }
       `}</style>

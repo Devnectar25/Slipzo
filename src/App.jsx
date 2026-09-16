@@ -36,9 +36,50 @@ export default function App() {
   )
 }
 
+const pathToView = (pathname) => {
+  if (!pathname) return null
+  const clean = pathname.toLowerCase().trim()
+  if (clean === "/products") return "products"
+  if (clean === "/new-bill" || clean === "/bills") return "bills"
+  if (clean === "/menu") return "menu"
+  if (clean === "/templates") return "templates"
+  if (clean === "/pricing") return "pricing"
+  if (clean === "/bill-history" || clean === "/history") return "history"
+  if (clean === "/shop-profile" || clean === "/shop") return "shop"
+  if (clean === "/contact") return "contact"
+  if (clean === "/product") return "product"
+  if (clean === "/reprint") return "reprint"
+  if (clean === "/overview" || clean === "/dashboard") return "dashboard"
+  return null
+}
+
+const viewToPath = (viewName) => {
+  switch (viewName) {
+    case "dashboard": return "/overview"
+    case "products": return "/products"
+    case "bills": return "/new-bill"
+    case "menu": return "/menu"
+    case "templates": return "/templates"
+    case "pricing": return "/pricing"
+    case "history": return "/bill-history"
+    case "shop": return "/shop-profile"
+    case "contact": return "/contact"
+    case "product": return "/product"
+    case "reprint": return "/reprint"
+    case "landing": return "/"
+    default: return null
+  }
+}
+
 function AppContent() {
   const [user, setUser] = useState(null)
-  const [view, setView] = useState("landing")
+  const [view, setViewState] = useState(() => {
+    if (typeof window !== "undefined") {
+      const initialView = pathToView(window.location.pathname)
+      if (initialView) return initialView
+    }
+    return "landing"
+  })
   const [checking, setChecking] = useState(true)
   const [showAuth, setShowAuth] = useState(false)
   const [isRegister, setIsRegister] = useState(false)
@@ -49,6 +90,16 @@ function AppContent() {
   const [selectedBillId, setSelectedBillId] = useState(null)
   const [showAddItemsModal, setShowAddItemsModal] = useState(false)
 
+  const setView = (newView) => {
+    setViewState(newView)
+    if (typeof window !== "undefined") {
+      const targetPath = viewToPath(newView)
+      if (targetPath && window.location.pathname !== targetPath) {
+        window.history.pushState({}, "", targetPath + window.location.search)
+      }
+    }
+  }
+
   const handleOpenAuth = (register = false) => {
     setIsRegister(register)
     setShowAuth(true)
@@ -56,9 +107,20 @@ function AppContent() {
 
   const checkShopSetupNeeded = async (userData) => {
     try {
-      const shopData = await call("/shop/me")
-      if (!shopData || !shopData.name) {
+      const shopData = await call("/shop")
+      const isComplete = Boolean(
+        shopData &&
+        shopData.name &&
+        shopData.name.trim() &&
+        shopData.phone &&
+        shopData.phone.trim() &&
+        shopData.address &&
+        shopData.address.trim()
+      )
+      if (!isComplete) {
         setShowShopOnboarding(true)
+      } else {
+        setShowShopOnboarding(false)
       }
     } catch (err) {
       console.warn('⚠️ Shop info not found, showing onboarding:', err.message)
@@ -121,19 +183,36 @@ function AppContent() {
         }
 
         setUser(userData)
-        setView("dashboard")
+        const currentUrlView = pathToView(window.location.pathname)
+        if (currentUrlView) {
+          setView(currentUrlView)
+        } else {
+          setView("dashboard")
+        }
         checkShopSetupNeeded(userData)
       } else {
         console.log('❌ Invalid user data returned:', userData)
         localStorage.removeItem("slipzo_user_info")
         setUser(null)
-        setView("landing")
+        const currentUrlView = pathToView(window.location.pathname)
+        const publicPages = ["landing", "templates", "product", "pricing", "contact", "bills"]
+        if (currentUrlView && publicPages.includes(currentUrlView)) {
+          setView(currentUrlView)
+        } else {
+          setView("landing")
+        }
       }
     } catch (err) {
       console.log('❌ Not authenticated:', err.message)
       localStorage.removeItem("slipzo_user_info")
       setUser(null)
-      setView("landing")
+      const currentUrlView = pathToView(window.location.pathname)
+      const publicPages = ["landing", "templates", "product", "pricing", "contact", "bills"]
+      if (currentUrlView && publicPages.includes(currentUrlView)) {
+        setView(currentUrlView)
+      } else {
+        setView("landing")
+      }
     } finally {
       setChecking(false)
     }
@@ -146,6 +225,18 @@ function AppContent() {
     } else {
       checkUserAuth()
     }
+
+    const handlePopState = () => {
+      const p = window.location.pathname
+      if (!p.startsWith("/admin")) {
+        const matched = pathToView(p)
+        if (matched) {
+          setViewState(matched)
+        }
+      }
+    }
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
   useEffect(() => {
@@ -159,6 +250,7 @@ function AppContent() {
     try {
       await call("/auth/logout", { method: "POST" })
       localStorage.removeItem("slipzo_user_info")
+      invalidateApiCache()
       setUser(null)
       setShowShopOnboarding(false)
       setView("landing")
@@ -279,6 +371,7 @@ function AppContent() {
             setView={setView}
             setSelectedBillId={setSelectedBillId}
             requireAuth={requireAuth}
+            user={user}
           />
         )}
         {view === "shop" && <Shop requireAuth={requireAuth} user={user} setView={setView} />}

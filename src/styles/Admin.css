@@ -254,11 +254,11 @@
 }
 
 .admin-nav {
-  padding: 1rem 0.75rem;
+  padding: 1rem 0.75rem 0.5rem 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  flex: 1;
+  flex: 0 1 auto;
 }
 
 .admin-nav-item {

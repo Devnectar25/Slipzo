@@ -8,73 +8,14 @@ import {
 import { call, getCachedData } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
-const defaultProducts = [
-  { 
-    id: "p1", 
-    name: "NIYAMA Portable Bluetooth POS Printer (58mm)", 
-    price: 2699, 
-    category: "Hardware", 
-    sku: "NIYAMA-58BT", 
-    tax_rate: 18, 
-    stock: 18, 
-    image: "/products/niyama_printer.jpg",
-    description: "Rechargeable 58mm Bluetooth handheld mobile thermal printer with battery indicator and high-speed receipt printing" 
-  },
-  { 
-    id: "p2", 
-    name: "Hansol SUPERMAX Thermal POS Paper Rolls (Pack of 10)", 
-    price: 420, 
-    category: "Hardware", 
-    sku: "HANSOL-SMAX-10", 
-    tax_rate: 18, 
-    stock: 95, 
-    image: "/products/hansol_rolls.jpg",
-    description: "Premium grade Hansol SUPERMAX smooth, jam-free thermal receipt rolls for clear dark printing" 
-  },
-  { 
-    id: "p3", 
-    name: "Bluetooth POS Receipt Printer (80mm)", 
-    price: 2850, 
-    category: "Hardware", 
-    sku: "POS-BT200", 
-    tax_rate: 18, 
-    stock: 12, 
-    image: "/products/pos_printer.jpg",
-    description: "Portable 58mm wireless thermal printer for Android & iOS with rechargeable battery" 
-  },
-  { 
-    id: "p4", 
-    name: "80mm POS Thermal Paper Rolls (10 Rolls)", 
-    price: 450, 
-    category: "Hardware", 
-    sku: "ROLL-80MM-10", 
-    tax_rate: 18, 
-    stock: 85, 
-    image: "/products/paper_rolls.jpg",
-    description: "ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals" 
-  },
-  { 
-    id: "p5", 
-    name: "Customer Bill Folder & Stand", 
-    price: 180, 
-    category: "Stationery", 
-    sku: "STAT-FLD", 
-    tax_rate: 12, 
-    stock: 40, 
-    image: "",
-    description: "Leatherette receipt holder for retail billing counters" 
-  }
-]
-
 export function Products({ setView, requireAuth, user }) {
   const [products, setProducts] = useState(() => {
     const cached = getCachedData("/products")
-    return (Array.isArray(cached) && cached.length > 0) ? cached : defaultProducts
+    return Array.isArray(cached) ? cached : []
   })
   const [stats, setStats] = useState(() => {
-    const initial = (Array.isArray(getCachedData("/products")) && getCachedData("/products").length > 0)
-      ? getCachedData("/products")
-      : defaultProducts
+    const cached = getCachedData("/products")
+    const initial = Array.isArray(cached) ? cached : []
     const catSet = new Set(initial.map(p => p.category || 'General'))
     const lowStock = initial.filter(p => (p.stock || 0) < 10).length
     return { totalProducts: initial.length, totalCategories: catSet.size, lowStockProducts: lowStock }
@@ -111,7 +52,7 @@ export function Products({ setView, requireAuth, user }) {
   const [image, setImage] = useState("")
   const [description, setDescription] = useState("")
 
-  const categories = ["Hardware", "Stationery", "Groceries", "Electronics", "Apparel", "Services", "General"]
+  const categories = ["Hardware", "Stationery", "Electronics"]
 
   const fetchProducts = async () => {
     try {
@@ -385,6 +326,9 @@ export function Products({ setView, requireAuth, user }) {
   }
 
   const filteredProducts = products.filter(p => {
+    const status = (p.status || 'active').toString().toLowerCase().trim()
+    if (status === 'inactive') return false
+
     const matchesSearch = search.trim() === "" || 
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.category && p.category.toLowerCase().includes(search.toLowerCase())) ||
@@ -410,15 +354,6 @@ export function Products({ setView, requireAuth, user }) {
           <p className="products-description">
             Buy thermal receipt printers, paper rolls & accessories, or add custom products for billing.
           </p>
-        </div>
-
-        <div className="products-header-actions">
-          <button
-            onClick={handleOpenAdd}
-            className="primary-button add-product-btn"
-          >
-            <Plus size={16} /> Add Product
-          </button>
         </div>
       </div>
 
@@ -509,11 +444,6 @@ export function Products({ setView, requireAuth, user }) {
                       <span className="product-category-tag">
                         {product.category || "Hardware"}
                       </span>
-                      {product.sku && (
-                        <span className="product-sku-tag">
-                          #{product.sku}
-                        </span>
-                      )}
                     </div>
 
                     <h3 className="product-card-title">
@@ -530,14 +460,6 @@ export function Products({ setView, requireAuth, user }) {
                       <span className="product-price-val">
                         ₹{product.price}
                       </span>
-                      <span className="product-gst-note">
-                        +{product.tax_rate || 18}% GST
-                      </span>
-                    </div>
-
-                    <div className="product-card-stock" style={{ color: (product.stock || 0) < 10 ? '#ef4444' : '#10b981' }}>
-                      <span className="stock-indicator-dot" style={{ background: (product.stock || 0) < 10 ? '#ef4444' : '#10b981' }}></span>
-                      {product.stock || 0} units in stock
                     </div>
                   </div>
 
@@ -549,22 +471,6 @@ export function Products({ setView, requireAuth, user }) {
                     >
                       <ShoppingBag size={14} /> Buy Now
                     </button>
-
-                    <div className="product-card-secondary-actions">
-                      <button
-                        onClick={() => handleQuickAddToBill(product)}
-                        className="product-add-bill-btn"
-                      >
-                        + Add to Bill
-                      </button>
-                      <button
-                        onClick={() => handleOpenEdit(product)}
-                        className="product-action-icon-btn"
-                        title="Edit Product"
-                      >
-                        <Edit size={13} />
-                      </button>
-                    </div>
                   </div>
                 </div>
               ))}
@@ -573,12 +479,9 @@ export function Products({ setView, requireAuth, user }) {
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '3rem 1.5rem', textAlign: 'center' }}>
               <Package size={40} style={{ color: '#cbd5e1', margin: '0 auto 0.75rem' }} />
               <h3 style={{ fontSize: '1.1rem', color: '#0f172a', margin: '0 0 0.25rem 0' }}>No products found</h3>
-              <p style={{ color: '#64748b', fontSize: '0.88rem', margin: '0 0 1.25rem 0' }}>
-                {search || selectedCategory !== "all" ? "Try adjusting your search or category filter" : "Add your first shop product to quick-fill receipts!"}
+              <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
+                {search || selectedCategory !== "all" ? "Try adjusting your search or category filter" : "No products available in the catalog"}
               </p>
-              <button onClick={handleOpenAdd} className="primary-button" style={{ margin: '0 auto' }}>
-                <Plus size={16} /> Add Product
-              </button>
             </div>
           )}
         </>

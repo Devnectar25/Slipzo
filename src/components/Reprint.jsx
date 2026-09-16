@@ -275,20 +275,88 @@ export function Reprint({ billId, setView }) {
 
       <style>{`
         @media (max-width: 640px) {
+          .reprint-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+            padding-left: 0.85rem !important;
+            padding-right: 0.85rem !important;
+            padding-bottom: 5.5rem !important;
+          }
+
+          .reprint-page .page-intro {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.75rem !important;
+          }
+
+          .reprint-page .page-intro h2 {
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+            font-size: 1.35rem !important;
+          }
+
           .reprint-page .bill-header-actions {
             width: 100% !important;
+            max-width: 100% !important;
             display: flex !important;
+            flex-direction: row !important;
             gap: 0.5rem !important;
+            box-sizing: border-box !important;
           }
 
           .reprint-page .bill-header-actions button {
-            flex: 1 !important;
+            flex: 1 1 0% !important;
+            width: 50% !important;
+            min-width: 0 !important;
             justify-content: center !important;
             min-height: 44px !important;
+            white-space: nowrap !important;
           }
 
           .reprint-page .receipt-preview-panel {
-            maxWidth: 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 1rem 0.75rem !important;
+            margin: 0 auto !important;
+            overflow: hidden !important;
+          }
+
+          .reprint-page .preview-header {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            flex-wrap: wrap !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          .reprint-page .print-format-toggle-group {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            flex-wrap: nowrap !important;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .reprint-page .receipt-preview-content {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+          }
+
+          .reprint-page .receipt-preview-content.format-80mm,
+          .reprint-page .receipt-preview-content.format-a4 {
+            max-width: 100% !important;
+            padding: 1rem 0.65rem !important;
           }
         }
       `}</style>
