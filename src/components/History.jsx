@@ -30,7 +30,7 @@ export function History({ setView, setSelectedBillId, user }) {
   }
 
   const [bills, setBills] = useState(() => {
-    if (cachedData?.bills) return filter10Days(cachedData.bills)
+    if (cachedData?.bills && Array.isArray(cachedData.bills)) return filter10Days(cachedData.bills)
     if (Array.isArray(cachedData)) return filter10Days(cachedData)
     return []
   })
@@ -47,7 +47,7 @@ export function History({ setView, setSelectedBillId, user }) {
 
   const loadBills = async () => {
     try {
-      if (bills.length === 0) setLoading(true)
+      if (!Array.isArray(bills) || bills.length === 0) setLoading(true)
       const queryParams = new URLSearchParams({
         page: String(page),
         limit: String(limit),
@@ -58,7 +58,7 @@ export function History({ setView, setSelectedBillId, user }) {
 
       const data = await call(`/bills?${queryParams.toString()}`)
 
-      if (data && typeof data === "object" && !Array.isArray(data) && data.bills) {
+      if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.bills)) {
         const filtered = filter10Days(data.bills)
         setBills(filtered)
         setTotalRecords(data.total || filtered.length)
@@ -209,10 +209,16 @@ export function History({ setView, setSelectedBillId, user }) {
       {/* Bills Content */}
       {loading ? (
         <TableSkeleton rows={limit > 10 ? 10 : limit} cols={4} />
-      ) : bills.length > 0 ? (
+      ) : Array.isArray(bills) && bills.length > 0 ? (
         <>
           <div className="history-list">
-            {bills.map((bill) => (
+            {bills.map((bill) => {
+              const itemsCount = Array.isArray(bill.items)
+                ? bill.items.length
+                : typeof bill.items === "string"
+                ? (() => { try { const p = JSON.parse(bill.items); return Array.isArray(p) ? p.length : 0 } catch(e) { return 0 } })()
+                : 0
+              return (
               <div
                 data-testid={`history-bill-${bill.id}`}
                 className="history-row"
@@ -250,7 +256,7 @@ export function History({ setView, setSelectedBillId, user }) {
                     </div>
 
                     <div className="history-items-count text-muted">
-                      {bill.items?.length || 0} {bill.items?.length === 1 ? "item" : "items"}
+                      {itemsCount} {itemsCount === 1 ? "item" : "items"}
                     </div>
                   </div>
 
@@ -279,7 +285,8 @@ export function History({ setView, setSelectedBillId, user }) {
                   </button>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
 
           {/* Pagination Navigation Bar */}

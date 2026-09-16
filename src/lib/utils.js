@@ -36,11 +36,13 @@ const CACHE_STALE_MS = 5 * 60 * 1000 // 5 minutes stale (can serve while revalid
 export const clearApiCache = () => {
   memoryCache.clear()
   try {
-    const keys = Object.keys(sessionStorage)
-    for (const k of keys) {
-      if (k.startsWith('slipzo_cache_')) {
-        sessionStorage.removeItem(k)
-      }
+    const sKeys = Object.keys(sessionStorage)
+    for (const k of sKeys) {
+      if (k.startsWith('slipzo_cache_')) sessionStorage.removeItem(k)
+    }
+    const lKeys = Object.keys(localStorage)
+    for (const k of lKeys) {
+      if (k.startsWith('slipzo_cache_')) localStorage.removeItem(k)
     }
   } catch (e) {}
 }
@@ -52,10 +54,16 @@ export const invalidateApiCache = (pattern) => {
     }
   }
   try {
-    const keys = Object.keys(sessionStorage)
-    for (const k of keys) {
+    const sKeys = Object.keys(sessionStorage)
+    for (const k of sKeys) {
       if (k.startsWith('slipzo_cache_') && (!pattern || k.includes(pattern))) {
         sessionStorage.removeItem(k)
+      }
+    }
+    const lKeys = Object.keys(localStorage)
+    for (const k of lKeys) {
+      if (k.startsWith('slipzo_cache_') && (!pattern || k.includes(pattern))) {
+        localStorage.removeItem(k)
       }
     }
   } catch (e) {}
@@ -68,10 +76,11 @@ export const getCachedData = (path) => {
     return mem.data
   }
   try {
-    const raw = sessionStorage.getItem(`slipzo_cache_${cleanPath}`)
+    const raw = sessionStorage.getItem(`slipzo_cache_${cleanPath}`) || localStorage.getItem(`slipzo_cache_${cleanPath}`)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Date.now() - parsed.timestamp < CACHE_STALE_MS) {
+      // Allow up to 30 minutes stale window for instant initial render while revalidating
+      if (Date.now() - parsed.timestamp < CACHE_STALE_MS * 6) {
         memoryCache.set(cleanPath, parsed)
         return parsed.data
       }

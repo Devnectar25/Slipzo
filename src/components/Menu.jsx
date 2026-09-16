@@ -189,7 +189,8 @@ export function Menu({ setView, requireAuth, user }) {
     }
   }
 
-  const filteredItems = items.filter((it) =>
+  const safeItems = Array.isArray(items) ? items : []
+  const filteredItems = safeItems.filter((it) =>
     (it.name || "").toLowerCase().includes(search.trim().toLowerCase())
   )
 

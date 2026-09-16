@@ -529,7 +529,10 @@ export function AdminDashboard({ admin, onLogout }) {
     }
   }
 
-  const filteredUsers = usersList.filter(u => {
+  const safeUsersList = Array.isArray(usersList) ? usersList : []
+  const safePlanBuyersList = Array.isArray(planBuyersList) ? planBuyersList : []
+
+  const filteredUsers = safeUsersList.filter(u => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
@@ -540,7 +543,7 @@ export function AdminDashboard({ admin, onLogout }) {
     )
   })
 
-  const filteredPlanBuyers = planBuyersList.filter(b => {
+  const filteredPlanBuyers = safePlanBuyersList.filter(b => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
@@ -552,7 +555,7 @@ export function AdminDashboard({ admin, onLogout }) {
   })
 
   // Calculate Plan Buyer Analytics Metrics
-  const validCompletedBuyers = planBuyersList.filter(b => 
+  const validCompletedBuyers = safePlanBuyersList.filter(b => 
     !b.payment_status || (b.payment_status || '').toLowerCase() === 'completed'
   )
 
@@ -632,7 +635,12 @@ export function AdminDashboard({ admin, onLogout }) {
     }
   }
 
-  const filteredProducts = productsList.filter(p => {
+  const safeProductsList = Array.isArray(productsList) ? productsList : []
+  const safeTemplatesList = Array.isArray(templatesList) ? templatesList : []
+  const safeBillsList = Array.isArray(billsList) ? billsList : []
+  const safeContactsList = Array.isArray(contactsList) ? contactsList : []
+
+  const filteredProducts = safeProductsList.filter(p => {
     // Exclude custom user shop menu items (e.g. Shampoo, Hair Cream, General category) from sale products catalog
     if (
       p.is_menu_item === true || 
@@ -655,7 +663,7 @@ export function AdminDashboard({ admin, onLogout }) {
     )
   })
 
-  const filteredTemplates = templatesList.filter(t => {
+  const filteredTemplates = safeTemplatesList.filter(t => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
@@ -665,7 +673,7 @@ export function AdminDashboard({ admin, onLogout }) {
     )
   })
 
-  const filteredBills = billsList.filter(b => {
+  const filteredBills = safeBillsList.filter(b => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
@@ -676,7 +684,7 @@ export function AdminDashboard({ admin, onLogout }) {
     )
   })
 
-  const filteredContacts = contactsList.filter(c => {
+  const filteredContacts = safeContactsList.filter(c => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
     return (
