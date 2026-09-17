@@ -612,6 +612,8 @@ export function Shop({ user, setView } = {}) {
                 </div>
               )}
             </label>
+          </div>
+        </div>
 
         {/* Section 3: Invoice Numbering Configuration & Realistic Thermal Preview */}
         <div className="form-section-card">
@@ -646,10 +648,6 @@ export function Shop({ user, setView } = {}) {
                 <span className="field-error-text">
                   <AlertCircle size={13} /> {errors.invoice_prefix}
                 </span>
-              ) : (
-                <small style={{ fontSize: "0.72rem", color: "#94a3b8", marginTop: "0.2rem", display: "block" }}>
-                  7–15 digits for contact header on receipt
-                </small>
               )}
               <small className="field-helper-note">1–8 uppercase letters or numbers</small>
             </label>
