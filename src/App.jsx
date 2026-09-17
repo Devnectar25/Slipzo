@@ -20,7 +20,7 @@ import { AddYourItemsModal } from "./components/AddYourItemsModal"
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider } from "./components/common/Toast"
-import { call, syncUserQuota } from "./lib/utils"
+import { call, syncUserQuota, clearApiCache, isNativeApp } from "./lib/utils"
 import { AdminLogin } from "./components/admin/AdminLogin"
 import { AdminDashboard } from "./components/admin/AdminDashboard"
 import "./styles/App.css"
@@ -276,16 +276,23 @@ function AppContent() {
   const handleLogout = async () => {
     try {
       await call("/auth/logout", { method: "POST" })
-      localStorage.removeItem("slipzo_user_info")
-      invalidateApiCache()
+    } catch (err) {
+      console.warn("Backend logout endpoint warning:", err)
+    } finally {
+      try {
+        localStorage.removeItem("slipzo_user_info")
+        localStorage.removeItem("slipzo_token")
+        localStorage.removeItem("slipzo_admin_token")
+        sessionStorage.clear()
+        clearApiCache()
+      } catch (e) {}
+
       setUser(null)
       setShowShopOnboarding(false)
       setView("landing")
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
       }
-    } catch (err) {
-      console.error("Logout failed:", err)
     }
   }
 
@@ -339,9 +346,22 @@ function AppContent() {
   if (checking) {
     return (
       <div className="loading">
-        <div className="brand-loader">
-          <img src="/logo.png" alt="Slipzo" className="brand-loader-logo" />
-          <div className="brand-loader-text">Loading Slipzo<span>•</span></div>
+        <div className="brand-loader-card">
+          <div className="brand-loader-logo-wrapper">
+            <div className="brand-loader-ring-glow"></div>
+            <div className="brand-loader-ring-spinner"></div>
+            <img src="/logo.png" alt="Slipzo" className="brand-loader-logo" />
+          </div>
+          <div className="brand-loader-text-group">
+            <div className="brand-loader-brand">
+              <span className="brand-title">Slipzo</span>
+              <span className="brand-dot">•</span>
+            </div>
+            <p className="brand-loader-subtext">Quick & Smart Billing System</p>
+          </div>
+          <div className="brand-loader-progress-track">
+            <div className="brand-loader-progress-fill"></div>
+          </div>
         </div>
       </div>
     )
@@ -573,7 +593,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                     setMobileMenuOpen(false)
                   }}
                 >
-                  <LogIn size={16} /> Login
+                  <LogIn size={16} /> Log In
                 </button>
                 <button
                   className="mobile-get-started-btn"
@@ -586,7 +606,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                     setMobileMenuOpen(false)
                   }}
                 >
-                  <Zap size={16} /> Get Started
+                  <Zap size={16} /> Sign Up
                 </button>
               </div>
             )}
@@ -624,84 +644,86 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
         {renderPage()}
       </main>
 
-      <footer className="public-footer">
-        <div className="footer-container">
-          <div className="footer-grid">
-            <div
-              className="footer-brand"
-              onClick={() => setView(user ? "dashboard" : "landing")}
-              style={{ cursor: 'pointer' }}
-              title="Return to Home"
-            >
-              <div className="footer-logo-box">
-                <img
-                  src="/Footer_Logo.png"
-                  alt="Slipzo"
-                  className="footer-logo"
-                />
+      {!isNativeApp && (
+        <footer className="public-footer">
+          <div className="footer-container">
+            <div className="footer-grid">
+              <div
+                className="footer-brand"
+                onClick={() => setView(user ? "dashboard" : "landing")}
+                style={{ cursor: 'pointer' }}
+                title="Return to Home"
+              >
+                <div className="footer-logo-box">
+                  <img
+                    src="/Footer_Logo.png"
+                    alt="Slipzo"
+                    className="footer-logo"
+                  />
+                </div>
+                <p className="footer-tagline">Effortless digital billing & receipts for small businesses.</p>
+                
+                <div className="footer-social-icons">
+                  <a href="https://devnectar.in" target="_blank" rel="noreferrer" title="Website"><Globe size={16} /></a>
+                  <a href="mailto:support@slipzo.in" title="Email Us"><Mail size={16} /></a>
+                  <button onClick={() => setView("product")} title="Features"><Sparkles size={16} /></button>
+                  <button onClick={() => setView("templates")} title="Templates"><LayoutTemplate size={16} /></button>
+                </div>
               </div>
-              <p className="footer-tagline">Effortless digital billing & receipts for small businesses.</p>
-              
-              <div className="footer-social-icons">
-                <a href="https://devnectar.in" target="_blank" rel="noreferrer" title="Website"><Globe size={16} /></a>
-                <a href="mailto:support@slipzo.in" title="Email Us"><Mail size={16} /></a>
-                <button onClick={() => setView("product")} title="Features"><Sparkles size={16} /></button>
-                <button onClick={() => setView("templates")} title="Templates"><LayoutTemplate size={16} /></button>
+
+              <div className="footer-links-group">
+                <div className="footer-links">
+                  <h4>Product</h4>
+                  <button onClick={() => setView("product")}>
+                    <Sparkles size={13} /> Features
+                  </button>
+                  <button onClick={() => setView("templates")}>
+                    <LayoutTemplate size={13} /> Templates
+                  </button>
+                  <button onClick={() => setView("pricing")}>
+                    <Tag size={13} /> Pricing
+                  </button>
+                </div>
+                <div className="footer-links">
+                  <h4>Company</h4>
+                  <button onClick={() => setView("contact")}>
+                    <Mail size={13} /> Contact Us
+                  </button>
+                  <button onClick={() => setView("landing")}>
+                    <Home size={13} /> About
+                  </button>
+                  <button onClick={() => { setView("admin_login"); window.history.pushState({}, "", "/admin/login"); }}>
+                    <ShieldCheck size={13} /> Admin Portal
+                  </button>
+                </div>
+                <div className="footer-links">
+                  <h4>Legal</h4>
+                  <button onClick={() => setView("contact")}>
+                    <ShieldCheck size={13} /> Privacy Policy
+                  </button>
+                  <button onClick={() => setView("contact")}>
+                    <FileText size={13} /> Terms of Service
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="footer-links-group">
-              <div className="footer-links">
-                <h4>Product</h4>
-                <button onClick={() => setView("product")}>
-                  <Sparkles size={13} /> Features
-                </button>
-                <button onClick={() => setView("templates")}>
-                  <LayoutTemplate size={13} /> Templates
-                </button>
-                <button onClick={() => setView("pricing")}>
-                  <Tag size={13} /> Pricing
-                </button>
-              </div>
-              <div className="footer-links">
-                <h4>Company</h4>
-                <button onClick={() => setView("contact")}>
-                  <Mail size={13} /> Contact Us
-                </button>
-                <button onClick={() => setView("landing")}>
-                  <Home size={13} /> About
-                </button>
-                <button onClick={() => { setView("admin_login"); window.history.pushState({}, "", "/admin/login"); }}>
-                  <ShieldCheck size={13} /> Admin Portal
-                </button>
-              </div>
-              <div className="footer-links">
-                <h4>Legal</h4>
-                <button onClick={() => setView("contact")}>
-                  <ShieldCheck size={13} /> Privacy Policy
-                </button>
-                <button onClick={() => setView("contact")}>
-                  <FileText size={13} /> Terms of Service
-                </button>
-              </div>
+            <div className="footer-bottom">
+              <p>© 2026 slipzo.com. All rights reserved.</p>
+              <a
+                href="https://devnectar.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="devnectar-block"
+                title="Visit devNectar.in"
+              >
+                <span className="devnectar-label">Crafted by</span>
+                <span className="devnectar-text">devNectar</span>
+              </a>
             </div>
           </div>
-
-          <div className="footer-bottom">
-            <p>© 2026 slipzo.com. All rights reserved.</p>
-            <a
-              href="https://devnectar.in"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="devnectar-block"
-              title="Visit devNectar.in"
-            >
-              <span className="devnectar-label">Crafted by</span>
-              <span className="devnectar-text">devNectar</span>
-            </a>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   )
 }

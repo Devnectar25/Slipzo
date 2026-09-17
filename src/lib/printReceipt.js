@@ -747,3 +747,106 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   printWindow.document.close()
   printWindow.focus()
 }
+
+const loadHtml2Pdf = () => {
+  return new Promise((resolve) => {
+    if (window.html2pdf) return resolve(window.html2pdf)
+    const script = document.createElement("script")
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+    script.onload = () => resolve(window.html2pdf)
+    script.onerror = () => resolve(null)
+    document.body.appendChild(script)
+  })
+}
+
+export async function saveReceiptAsPdf(elementId = "receipt-to-print", options = {}) {
+  const el = document.getElementById(elementId)
+  if (!el) {
+    console.error(`[saveReceiptAsPdf] Element #${elementId} not found`)
+    Swal.fire({
+      title: "Element Not Found",
+      text: "Could not find receipt to export as PDF.",
+      icon: "error",
+      confirmButtonColor: "#0ea5e9"
+    })
+    return
+  }
+
+  Swal.fire({
+    title: "Generating PDF...",
+    text: "Preparing your receipt PDF for download.",
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading()
+    }
+  })
+
+  try {
+    const html2pdf = await loadHtml2Pdf()
+    const clone = el.cloneNode(true)
+    
+    clone.style.margin = "0 auto"
+    clone.style.background = "#ffffff"
+    clone.style.color = "#000000"
+    clone.style.boxShadow = "none"
+
+    const wrapper = document.createElement("div")
+    wrapper.style.padding = "15px"
+    wrapper.style.background = "#ffffff"
+    wrapper.appendChild(clone)
+
+    const config = typeof options === "string" ? { pageWidth: options } : (options || {})
+    const rawWidth = (config.pageWidth || "80mm").trim().toLowerCase()
+    const isA4 = rawWidth === "a4" || rawWidth === "full"
+    const filename = `Slipzo_Receipt_${Date.now()}.pdf`
+
+    if (html2pdf) {
+      const pdfOpt = {
+        margin: [5, 5, 5, 5],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: isA4 ? 'a4' : [80, 200], orientation: 'portrait' }
+      }
+      await html2pdf().set(pdfOpt).from(wrapper).save()
+      Swal.fire({
+        title: "PDF Saved! 📄",
+        text: "Receipt PDF has been saved successfully.",
+        icon: "success",
+        timer: 2000,
+        showConfirmButton: false
+      })
+    } else {
+      Swal.close()
+      printReceiptElement(elementId, options)
+    }
+  } catch (err) {
+    console.error("[saveReceiptAsPdf] error:", err)
+    Swal.close()
+    printReceiptElement(elementId, options)
+  }
+}
+
+export function promptPrintOrPdfChoice(elementId = "receipt-to-print", options = {}, onChoiceDone) {
+  Swal.fire({
+    title: "Choose Action 📄🖨️",
+    text: "Select how you would like to output this receipt:",
+    icon: "question",
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonText: "🖨️ Print Receipt",
+    denyButtonText: "📄 Save as PDF",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#10b981",
+    denyButtonColor: "#0ea5e9",
+    cancelButtonColor: "#64748b"
+  }).then((result) => {
+    if (result.isConfirmed) {
+      printReceiptElement(elementId, options)
+      if (onChoiceDone) onChoiceDone('print')
+    } else if (result.isDenied) {
+      saveReceiptAsPdf(elementId, options)
+      if (onChoiceDone) onChoiceDone('pdf')
+    }
+  })
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
-import { Printer, X, Check, RefreshCw, Sparkles } from "lucide-react"
-import { printReceiptElement } from "../lib/printReceipt"
+import { Printer, X, Check, RefreshCw, Sparkles, Download, FileText } from "lucide-react"
+import { printReceiptElement, saveReceiptAsPdf } from "../lib/printReceipt"
 import { incrementFreePrintCount } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
@@ -121,6 +121,26 @@ export function PrintModal({
     incrementFreePrintCount()
 
     printReceiptElement(elementId, {
+      pageWidth,
+      scale: scale / 100,
+      fontSize,
+      density,
+      highContrast,
+      showShopDetails,
+      showCustomer,
+      showTax,
+      showFooter
+    })
+    onClose()
+    if (onPrinted) {
+      onPrinted()
+    }
+  }
+
+  const handleSavePdf = async () => {
+    incrementFreePrintCount()
+
+    await saveReceiptAsPdf(elementId, {
       pageWidth,
       scale: scale / 100,
       fontSize,
@@ -447,12 +467,31 @@ export function PrintModal({
           </div>
         </div>
 
-        {/* Footer Actions: Only Cancel + Print, in one straight line under preview */}
-        <div className="print-modal-footer print-modal-footer--single-row">
-          <button type="button" className="secondary-button" onClick={onClose}>
+        {/* Footer Actions: Cancel + Save as PDF + Print Receipt */}
+        <div className="print-modal-footer print-modal-footer--single-row" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button type="button" className="secondary-button" onClick={onClose} style={{ flex: '1 1 auto' }}>
             Cancel
           </button>
-          <button type="button" className="primary-button print-main-cta" onClick={handlePrint}>
+          <button 
+            type="button" 
+            className="secondary-button" 
+            onClick={handleSavePdf}
+            style={{
+              flex: '1 1 auto',
+              background: '#f0f9ff',
+              color: '#0284c7',
+              borderColor: '#bae6fd',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              fontWeight: 600
+            }}
+          >
+            <Download size={15} />
+            <span>Save as PDF</span>
+          </button>
+          <button type="button" className="primary-button print-main-cta" onClick={handlePrint} style={{ flex: '1 1 auto' }}>
             <Printer size={15} />
             <span className="cta-full-text">Print {pageWidth} Receipt</span>
             <span className="cta-short-text">Print {pageWidth}</span>
