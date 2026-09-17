@@ -554,7 +554,7 @@ export function Templates({ setView, user }) {
           {filteredTemplates.map((template) => {
             const cardGradient = template.gradient || "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
             const accentColor = template.accentColor || "#0ea5e9"
-            const features = template.features || [
+            const features = Array.isArray(template.features) ? template.features : [
               `${template.width || "58mm"} thermal print layout`,
               template.show_tax ? `GST / Tax (${template.tax_rate || 18}%) calculation` : "Zero tax / simple layout",
               template.footer || "Thank you note included"
@@ -604,7 +604,7 @@ export function Templates({ setView, user }) {
 
                 {/* Features list */}
                 <div className="template-features-list">
-                  {features.map((feat, idx) => (
+                  {(Array.isArray(features) ? features : []).map((feat, idx) => (
                     <div className="template-feat-item" key={idx}>
                       <Check size={16} style={{ color: accentColor, flexShrink: 0 }} />
                       <span>{feat}</span>
@@ -726,7 +726,7 @@ export function Templates({ setView, user }) {
                   <div className="thermal-line-divider" />
 
                   <div className="thermal-items-list">
-                    {previewTemplate.previewData.items.map((item, idx) => (
+                    {(Array.isArray(previewTemplate?.previewData?.items) ? previewTemplate.previewData.items : []).map((item, idx) => (
                       <div className="thermal-item-row" key={idx}>
                         <span className="col-item">{item.name}</span>
                         <span className="col-qty">{item.qty}</span>

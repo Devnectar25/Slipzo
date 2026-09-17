@@ -5,16 +5,32 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-let envApi = (import.meta.env.VITE_API_URL || '/api').trim()
+let customApi = typeof window !== 'undefined' ? localStorage.getItem('slipzo_custom_api_url') : null
+let envApi = (import.meta.env.VITE_API_URL || '').trim()
 
-// If running on localhost or 127.0.0.1, use relative /api to leverage Vite backend proxy
-if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-  if (envApi.includes('vercel.app')) {
-    envApi = '/api'
+// Detect if running inside Capacitor Android/iOS Native Webview
+const isNativeApp = typeof window !== 'undefined' && (
+  Boolean(window.Capacitor?.isNativePlatform?.()) ||
+  window.location.protocol === 'capacitor:' ||
+  (window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port)
+)
+
+let rawApi = customApi || envApi
+
+if (isNativeApp) {
+  // If a full HTTP(S) URL is explicitly provided, use it
+  if (rawApi && rawApi.startsWith('http')) {
+    // use configured rawApi
+  } else {
+    // Default to the live Vercel production backend API connected to Supabase PostgreSQL database
+    rawApi = 'https://slipzo-api.vercel.app/api'
+  }
+} else {
+  // Running in web browser
+  if (!rawApi || rawApi === '/api') {
+    rawApi = '/api'
   }
 }
-
-let rawApi = envApi
 
 // Strip trailing slash
 if (rawApi.endsWith('/')) {
@@ -217,6 +233,19 @@ const executeFetch = async (cleanPath, options = {}) => {
     if (!response.ok) {
       const errorMsg = Array.isArray(data.detail) ? data.detail[0]?.msg : data.detail || data.message || "Something went wrong"
       console.error(`❌ API Error (${response.status}):`, errorMsg)
+      
+      if (response.status === 401) {
+        try {
+          localStorage.removeItem('slipzo_token')
+          localStorage.removeItem('slipzo_user_info')
+          localStorage.removeItem('slipzo_admin_token')
+          sessionStorage.clear()
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('slipzo_auth_unauthorized'))
+          }
+        } catch (e) {}
+      }
+
       throw new Error(errorMsg)
     }
 
@@ -227,7 +256,7 @@ const executeFetch = async (cleanPath, options = {}) => {
     }
 
     // Store successful GET responses in cache
-    if (isGet && !options.noCache) {
+    if (isGet && !options.noCache && response.ok) {
       const cacheItem = { data, timestamp: Date.now() }
       memoryCache.set(cleanPath, cacheItem)
       try {
@@ -238,7 +267,7 @@ const executeFetch = async (cleanPath, options = {}) => {
     return data
   } catch (err) {
     if (err.message === 'Failed to fetch') {
-      throw new Error("Failed to connect to backend server. Please verify https://slipzo-api.vercel.app is online.")
+      throw new Error(`Failed to connect to backend server (${API}). Please verify network connection.`)
     }
     throw err
   }

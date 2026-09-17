@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Slipzo</string>
+    <string name="title_activity_main">Slipzo</string>
+    <string name="package_name">com.slipzo.app</string>
+    <string name="custom_url_scheme">com.slipzo.app</string>
+</resources>
