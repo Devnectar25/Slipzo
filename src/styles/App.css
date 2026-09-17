@@ -5862,11 +5862,12 @@ body.is-native-app .public-footer,
    SHOP PROFILE
    -------------------------------------------- */
 .profile-form {
-  background: white;
-  padding: 2rem;
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  max-width: 600px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  max-width: 100%;
+  width: 100%;
 }
 
 .profile-form label {

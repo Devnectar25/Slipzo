@@ -663,6 +663,9 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   }
 
   const handlePrintComplete = (newQuota) => {
+    if (newQuota && user) {
+      syncUserQuota(newQuota, user?.email || user?.id)
+    }
     if (selected?.id) {
       const key = `template_usage_${selected.id}`
       try {
@@ -948,10 +951,11 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         <div className="bill-editor-column">
           <div className="bill-editor-panel">
             {/* Invoice Number - Top Right */}
-            <div className="invoice-number-field" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '0.5rem' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '0.25rem' }}>INVOICE NO.</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Hash size={16} color="#94a3b8" />
+            <div className="invoice-number-field" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '0.85rem' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>
+                INVOICE NO.
+              </label>
+              <div>
                 {editingBillNumber ? (
                   <input
                     type="text"
@@ -961,45 +965,46 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                     onKeyDown={(e) => e.key === 'Enter' && setEditingBillNumber(false)}
                     autoFocus
                     className="item-input"
-                    style={{ width: '120px', padding: '0.25rem 0.5rem', fontSize: '0.9rem' }}
+                    style={{
+                      width: '140px',
+                      padding: '0.28rem 0.6rem',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      fontFamily: 'monospace, sans-serif',
+                      borderRadius: '6px',
+                      border: '1.5px solid #0ea5e9',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      textAlign: 'center'
+                    }}
                   />
                 ) : (
                   <div 
                     onClick={() => setEditingBillNumber(true)}
-                    style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', cursor: 'pointer', padding: '0.25rem 0' }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '6px',
+                      padding: '0.28rem 0.65rem',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      fontFamily: 'monospace, sans-serif',
+                      color: '#0369a1',
+                      boxShadow: '0 1px 2px rgba(14, 165, 233, 0.08)',
+                      cursor: 'pointer',
+                      letterSpacing: '0.3px',
+                      userSelect: 'none',
+                      maxWidth: '100%',
+                      whiteSpace: 'nowrap'
+                    }}
                     title="Click to edit invoice number"
                   >
                     {customBillNumber || "Auto-generated"}
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Customer Section - Hidden on Mobile */}
-            <div className="editor-section mobile-hide-field" style={{ marginBottom: '0.85rem' }}>
-              <label className="field-label">
-                <span>CUSTOMER (OPTIONAL)</span>
-                <div style={{ position: 'relative', marginTop: '0.35rem' }}>
-                  <input
-                    type="text"
-                    placeholder="Enter customer name"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="item-input"
-                    style={{ width: '100%', paddingRight: customerName ? '32px' : '0.8rem' }}
-                  />
-                  {customerName && (
-                    <button
-                      type="button"
-                      onClick={() => setCustomerName("")}
-                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
-                      title="Clear customer name"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </label>
             </div>
 
             {/* Items & Services Card */}
@@ -1580,6 +1585,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         onPrinted={handlePrintComplete}
         defaultWidth={printFormat}
         elementId="receipt-to-print"
+        user={user}
       />
 
       {/* Saved Shop Items Picker Modal */}

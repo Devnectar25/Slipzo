@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Home, LayoutTemplate, Sparkles, Tag, Mail, LogIn, Zap, ArrowRight, Menu, X, ShieldCheck, FileText, Globe } from "lucide-react"
 import { Auth } from "./components/Auth"
 import { Shell } from "./components/Shell"
@@ -94,8 +94,11 @@ function AppContent() {
   const [showRewardModal, setShowRewardModal] = useState(false)
   const [showFreeRewardExpiredModal, setShowFreeRewardExpiredModal] = useState(false)
   const { error: toastError } = useToast()
+  const isClaimingRewardRef = useRef(false)
 
   const handleClaimOnboardingReward = async () => {
+    if (isClaimingRewardRef.current) return
+    isClaimingRewardRef.current = true
     try {
       const userKey = user?.email || user?.id
       if (user?.id) {
@@ -103,6 +106,7 @@ function AppContent() {
       }
       if (userKey) {
         localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
+        localStorage.removeItem(`slipzo_onboarding_in_progress_${userKey}`)
       }
 
       // Claim 10 free prints onboarding reward from backend API
@@ -120,6 +124,8 @@ function AppContent() {
       console.error("Failed to claim onboarding reward:", err)
       toastError(err.message || "Failed to claim 10 free prints reward. Please try again.")
       throw err
+    } finally {
+      isClaimingRewardRef.current = false
     }
   }
 
@@ -160,12 +166,20 @@ function AppContent() {
     const userKey = userData?.email || userData?.id
     if (!userKey) return
 
-    // If user has already been shown first-time shop profile onboarding on this device/account, do NOT show it again
-    const firstTimeDone = localStorage.getItem(`slipzo_first_time_onboarding_${userKey}`)
-    if (firstTimeDone) {
+    const firstTimeDone = localStorage.getItem(`slipzo_first_time_onboarding_${userKey}`) === "true"
+    const isRewardClaimed = Number(userData?.onboarding_reward_claimed || 0) === 1
+
+    // If user has already claimed reward or completed onboarding, keep all onboarding modals closed
+    if (firstTimeDone || isRewardClaimed) {
       setShowShopOnboarding(false)
+      setShowAddItemsModal(false)
+      setShowRewardModal(false)
+      localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
+      localStorage.removeItem(`slipzo_onboarding_in_progress_${userKey}`)
       return
     }
+
+    const isOnboardingInProgress = localStorage.getItem(`slipzo_onboarding_in_progress_${userKey}`) === "true"
 
     try {
       const shopData = await call("/shop")
@@ -178,16 +192,27 @@ function AppContent() {
         shopData.address &&
         shopData.address.trim()
       )
+
       if (!isComplete) {
+        // STATE 2: Shop profile is incomplete: show shop profile popup
         setShowShopOnboarding(true)
-      } else {
+        setShowAddItemsModal(false)
+        setShowRewardModal(false)
+      } else if (isOnboardingInProgress) {
+        // STATE 3: Shop profile is complete, but onboarding is in progress: show Add Items modal
         setShowShopOnboarding(false)
+        setShowAddItemsModal(true)
+        setShowRewardModal(false)
+      } else {
+        // Existing user with complete profile: finish onboarding
+        setShowShopOnboarding(false)
+        setShowAddItemsModal(false)
+        setShowRewardModal(false)
         localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
       }
     } catch (err) {
       console.warn('⚠️ Shop info check:', err.message)
-      // Only show onboarding if user has not been onboarded before
-      if (!firstTimeDone) {
+      if (isOnboardingInProgress) {
         setShowShopOnboarding(true)
       } else {
         setShowShopOnboarding(false)
@@ -285,6 +310,11 @@ function AppContent() {
     }
   }
 
+  const userRef = useRef(user)
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
+
   useEffect(() => {
     const path = window.location.pathname
     if (path === "/admin/login" || path === "/admin" || path.startsWith("/admin/")) {
@@ -310,10 +340,20 @@ function AppContent() {
     }
 
     const handleShowExpiry = (e) => {
-      const userKey = user?.email || user?.id
+      const currentUser = userRef.current
+      const userKey = currentUser?.email || currentUser?.id
       const isForced = !!e?.detail?.force
 
+      if (e?.detail?.quota) {
+        syncUserQuota(e.detail.quota, userKey)
+      }
+
       if (!isForced && userKey && sessionStorage.getItem(`slipzo_free_expiry_dismissed_${userKey}`)) {
+        return
+      }
+
+      if (isForced) {
+        setShowFreeRewardExpiredModal(true)
         return
       }
 
@@ -331,7 +371,7 @@ function AppContent() {
       window.removeEventListener("popstate", handlePopState)
       window.removeEventListener("slipzo-show-free-reward-expired", handleShowExpiry)
     }
-  }, [user])
+  }, [])
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
@@ -356,6 +396,8 @@ function AppContent() {
 
       setUser(null)
       setShowShopOnboarding(false)
+      setShowAddItemsModal(false)
+      setShowRewardModal(false)
       setView("landing")
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
@@ -379,14 +421,19 @@ function AppContent() {
     }
 
     if (isNewUser) {
+      if (userKey) {
+        localStorage.setItem(`slipzo_onboarding_in_progress_${userKey}`, "true")
+        localStorage.removeItem(`slipzo_first_time_onboarding_${userKey}`)
+      }
       setShowShopOnboarding(true)
-      if (userKey) localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
+      setShowAddItemsModal(false)
+      setShowRewardModal(false)
     } else {
-      const firstTimeDone = userKey ? localStorage.getItem(`slipzo_first_time_onboarding_${userKey}`) : false
-      if (!firstTimeDone) {
-        checkShopSetupNeeded(userData)
-      } else {
-        setShowShopOnboarding(false)
+      setShowShopOnboarding(false)
+      setShowAddItemsModal(false)
+      setShowRewardModal(false)
+      if (Number(userData?.onboarding_reward_claimed || 0) === 1 && userKey) {
+        localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
       }
     }
   }
@@ -513,6 +560,7 @@ function AppContent() {
             billId={selectedBillId}
             setView={setView}
             requireAuth={requireAuth}
+            user={user}
           />
         )}
       </ErrorBoundary>
@@ -522,18 +570,13 @@ function AppContent() {
       user={user}
       onClose={() => {
         setShowShopOnboarding(false)
-        const userKey = user?.email || user?.id
-        if (userKey) localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
       }}
       onComplete={() => {
         setShowShopOnboarding(false)
-        const userKey = user?.email || user?.id
-        if (userKey) localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
-        if (user?.id && localStorage.getItem(`slipzo_items_setup_${user.id}`) !== "true") {
-          setShowAddItemsModal(true)
-        } else {
-          handleClaimOnboardingReward()
+        if (user?.id) {
+          localStorage.setItem(`slipzo_shop_setup_${user.id}`, "true")
         }
+        setShowAddItemsModal(true)
       }}
     />
     <AddYourItemsModal

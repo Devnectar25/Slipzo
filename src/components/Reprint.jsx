@@ -7,7 +7,7 @@ import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
 
-export function Reprint({ billId, setView }) {
+export function Reprint({ billId, setView, requireAuth, user }) {
   const [bill, setBill] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -75,8 +75,9 @@ export function Reprint({ billId, setView }) {
   }
 
   const printReceipt = () => {
-    if (!canPrintFree()) {
-      const plan = getActivePlanDetails()
+    const userKey = user?.email || user?.id
+    if (!canPrintFree(userKey)) {
+      const plan = getActivePlanDetails(userKey)
       if (plan?.isFreeTier) {
         window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
       } else {
@@ -394,6 +395,7 @@ export function Reprint({ billId, setView }) {
         onClose={() => setShowPrintModal(false)}
         defaultWidth={printFormat}
         elementId="receipt-to-print"
+        user={user}
       />
     </div>
   )
