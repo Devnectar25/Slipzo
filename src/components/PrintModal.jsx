@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
-import { Printer, X, Check, RefreshCw, Sparkles } from "lucide-react"
-import { printReceiptElement } from "../lib/printReceipt"
+import { Printer, X, Check, RefreshCw, Sparkles, Download, FileText } from "lucide-react"
+import { printReceiptElement, saveReceiptAsPdf } from "../lib/printReceipt"
 import { call, syncUserQuota, canPrintFree, getActivePlanDetails, incrementFreePrintCount } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -217,6 +217,26 @@ export function PrintModal({
       if (toastError) toastError(err.message || "Failed to print receipt")
     } finally {
       setIsSubmittingPrint(false)
+    }
+  }
+
+  const handleSavePdf = async () => {
+    incrementFreePrintCount()
+
+    await saveReceiptAsPdf(elementId, {
+      pageWidth,
+      scale: scale / 100,
+      fontSize,
+      density,
+      highContrast,
+      showShopDetails,
+      showCustomer,
+      showTax,
+      showFooter
+    })
+    onClose()
+    if (onPrinted) {
+      onPrinted()
     }
   }
 
@@ -530,17 +550,40 @@ export function PrintModal({
           </div>
         </div>
 
-        {/* Footer Actions: Only Cancel + Print, in one straight line under preview */}
-        <div className="print-modal-footer print-modal-footer--single-row">
-          <button type="button" className="secondary-button" onClick={onClose} disabled={isSubmittingPrint}>
+        {/* Footer Actions: Cancel + Save as PDF + Print Receipt */}
+        <div className="print-modal-footer print-modal-footer--single-row" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button type="button" className="secondary-button" onClick={onClose} disabled={isSubmittingPrint} style={{ flex: '1 1 auto' }}>
             Cancel
+          </button>
+          <button 
+            type="button" 
+            className="secondary-button" 
+            onClick={handleSavePdf}
+            disabled={isSubmittingPrint}
+            style={{
+              flex: '1 1 auto',
+              background: '#f0f9ff',
+              color: '#0284c7',
+              borderColor: '#bae6fd',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              fontWeight: 600
+            }}
+          >
+            <Download size={15} />
+            <span>Save as PDF</span>
           </button>
           <button
             type="button"
             className="primary-button print-main-cta"
             onClick={handlePrint}
             disabled={isSubmittingPrint}
-            style={isSubmittingPrint ? { opacity: 0.8, cursor: "not-allowed" } : undefined}
+            style={{
+              flex: '1 1 auto',
+              ...(isSubmittingPrint ? { opacity: 0.8, cursor: "not-allowed" } : {})
+            }}
           >
             {isSubmittingPrint ? (
               <ButtonLoader text="Printing..." size={15} />

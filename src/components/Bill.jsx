@@ -531,16 +531,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   }
 
   const handleAddItemClick = () => {
-    if (user && Array.isArray(menuItems) && menuItems.length > 0) {
-      setItemPickerSearch("")
-      setShowItemPickerModal(true)
-    } else if (user) {
-      setNewItemName("")
-      setNewItemPrice("")
-      setShowAddNewItemModal(true)
-    } else {
-      addItem()
-    }
+    addItem()
   }
 
   const addItem = () => {
@@ -1023,8 +1014,8 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
               <div className="items-table-labels">
                 <span className="col-label col-item-name">Item Name</span>
                 <span className="col-label col-qty">Qty</span>
-                <span className="col-label col-rate">Rate (₹)</span>
-                <span className="col-label col-total">Total (₹)</span>
+                <span className="col-label col-rate">Rate</span>
+                <span className="col-label col-total">Total</span>
                 <span className="col-label col-delete"></span>
               </div>
 
@@ -1085,9 +1076,17 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                       )}
                     </div>
 
-                    {/* Quantity Stepper Control (Left Number, Right Column: + Top, − Bottom) */}
+                    {/* Quantity Stepper Control (- Left, Number Middle, + Right) */}
                     <div className="item-col item-col-qty">
                       <div className="qty-stepper">
+                        <button
+                          type="button"
+                          className="qty-btn qty-minus"
+                          onClick={() => decreaseQuantity(index)}
+                          aria-label="Decrease quantity"
+                        >
+                          -
+                        </button>
                         <div className="qty-val-container">
                           <input
                             data-testid={`bill-item-${index}-quantity-input`}
@@ -1110,24 +1109,14 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                             className="qty-val-input"
                           />
                         </div>
-                        <div className="qty-actions-column">
-                          <button
-                            type="button"
-                            className="qty-btn qty-plus"
-                            onClick={() => increaseQuantity(index)}
-                            aria-label="Increase quantity"
-                          >
-                            +
-                          </button>
-                          <button
-                            type="button"
-                            className="qty-btn qty-minus"
-                            onClick={() => decreaseQuantity(index)}
-                            aria-label="Decrease quantity"
-                          >
-                            -
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          className="qty-btn qty-plus"
+                          onClick={() => increaseQuantity(index)}
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
 
@@ -1174,7 +1163,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                     {/* Total Amount */}
                     <div className="item-col item-col-total">
                       <span className="row-item-total">
-                        {money((Number(item.quantity) || 0) * (Number(item.rate) || 0))}
+                        {((Number(item.quantity) || 0) * (Number(item.rate) || 0)).toFixed(2)}
                       </span>
                     </div>
 

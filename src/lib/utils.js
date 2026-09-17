@@ -9,11 +9,17 @@ let customApi = typeof window !== 'undefined' ? localStorage.getItem('slipzo_cus
 let envApi = (import.meta.env.VITE_API_URL || '').trim()
 
 // Detect if running inside Capacitor Android/iOS Native Webview
-const isNativeApp = typeof window !== 'undefined' && (
+export const isNativeApp = typeof window !== 'undefined' && (
   Boolean(window.Capacitor?.isNativePlatform?.()) ||
   window.location.protocol === 'capacitor:' ||
   (window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port)
 )
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  if (isNativeApp) {
+    document.body?.classList?.add('is-native-app')
+  }
+}
 
 let rawApi = customApi || envApi
 
@@ -278,17 +284,17 @@ export const money = (n) => `₹${Number(n || 0).toFixed(2)}`
 export const now = () => new Date().toISOString()
 
 export const getCurrentUserKey = (user) => {
-  if (typeof user === 'string' && user.trim()) return user.trim()
+  if (typeof user === 'string' && user.trim()) return user.trim().toLowerCase()
   if (user && typeof user === 'object') {
-    if (user.email) return String(user.email).trim()
-    if (user.id) return String(user.id).trim()
+    if (user.email) return String(user.email).trim().toLowerCase()
+    if (user.id) return String(user.id).trim().toLowerCase()
   }
   try {
     const userRaw = typeof window !== 'undefined' ? localStorage.getItem('slipzo_user_info') : null
     if (userRaw) {
       const u = JSON.parse(userRaw)
-      if (u?.email) return String(u.email).trim()
-      if (u?.id) return String(u.id).trim()
+      if (u?.email) return String(u.email).trim().toLowerCase()
+      if (u?.id) return String(u.id).trim().toLowerCase()
     }
   } catch (e) {}
   return "guest"
@@ -317,7 +323,7 @@ export const saveStoredMenuItems = (items, user) => {
 }
 
 export const getActivePlanDetails = (userKey) => {
-  const key = userKey || getCurrentUserKey()
+  const key = getCurrentUserKey(userKey)
   try {
     const raw = localStorage.getItem(`slipzo_active_plan_${key}`)
     if (raw) {
@@ -337,7 +343,7 @@ export const getActivePlanDetails = (userKey) => {
 }
 
 export const activatePlan = (planName, printCount, userKey) => {
-  const key = userKey || getCurrentUserKey()
+  const key = getCurrentUserKey(userKey)
   try {
     const planData = {
       name: planName,
@@ -359,7 +365,7 @@ export const activatePlan = (planName, printCount, userKey) => {
 
 export const syncUserQuota = (quotaData, userKey) => {
   if (!quotaData) return null
-  const key = userKey || getCurrentUserKey()
+  const key = getCurrentUserKey(userKey)
   try {
     const current = getActivePlanDetails(key)
     const totalPrints = quotaData.totalPrints !== undefined ? Number(quotaData.totalPrints) : (current?.totalPrints ?? 10)
