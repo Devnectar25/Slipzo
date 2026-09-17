@@ -1,13 +1,55 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { 
   ArrowRight, Printer, Star, CheckCircle, FileText, Layout, Store, 
   Award, Type, Eye, Check, Sparkles, SlidersHorizontal, QrCode, Shield, Zap
 } from "lucide-react"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
+import { RealisticReceiptView } from "./RealisticReceiptView"
 
 export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
   const [activeCategory, setActiveCategory] = useState("all")
   const [previewTemplate, setPreviewTemplate] = useState(null)
+
+  // Lock background scroll when preview template modal is open
+  useEffect(() => {
+    if (previewTemplate) {
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+      const scrollX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft || 0
+
+      const originalBodyOverflow = document.body.style.overflow
+      const originalBodyPosition = document.body.style.position
+      const originalBodyTop = document.body.style.top
+      const originalBodyLeft = document.body.style.left
+      const originalBodyWidth = document.body.style.width
+      const originalDocOverflow = document.documentElement.style.overflow
+
+      document.body.style.overflow = "hidden"
+      document.body.style.position = "fixed"
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.left = `-${scrollX}px`
+      document.body.style.width = "100%"
+      document.documentElement.style.overflow = "hidden"
+
+      const elementsToLock = document.querySelectorAll(".shell-content, .shell-main, .app, .public-layout, .main-content")
+      elementsToLock.forEach(el => {
+        el.dataset.origOverflow = el.style.overflow
+        el.style.overflow = "hidden"
+      })
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow
+        document.body.style.position = originalBodyPosition
+        document.body.style.top = originalBodyTop
+        document.body.style.left = originalBodyLeft
+        document.body.style.width = originalBodyWidth
+        document.documentElement.style.overflow = originalDocOverflow
+        elementsToLock.forEach(el => {
+          el.style.overflow = el.dataset.origOverflow || ""
+        })
+        window.scrollTo(scrollX, scrollY)
+      }
+    }
+  }, [previewTemplate])
 
   const templates = [
     {
@@ -37,7 +79,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         discount: 0,
         total: 220,
         payment: "UPI / PhonePe",
-        footer: "Thank you for visiting Minimal Cafe!"
+        footer: "Thank you for visiting! Please come again."
       }
     },
     {
@@ -50,7 +92,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       description: "Clean and professional receipt template with itemized table, GST breakdown, and clear totals.",
       gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
       accentColor: "#0284c7",
-      features: ["Shop logo header", "Itemized list with quantity", "Tax / GST calculation", "Payment mode badge"],
+      features: ["Shop header & GSTIN", "Itemized table (Qty, Rate, Total)", "Tax / GST calculation", "Payment mode & barcode"],
       previewData: {
         shopName: "CLASSIC MART & GROCERY",
         address: "Shop 14, Main Market, Connaught Place, New Delhi",
@@ -77,10 +119,10 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Business",
       badge: "Retail Choice",
       paperSize: "80mm POS",
-      description: "Professional high-volume retail template with loyalty points display, item discounts, and payment QR code.",
+      description: "Professional high-volume retail POS receipt with clean column headers, item discounts, and net totals.",
       gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
       accentColor: "#2563eb",
-      features: ["Brand accent header", "Discount highlight tags", "Loyalty rewards counter", "Dynamic UPI QR code"],
+      features: ["Retail store header", "Itemized table with quantity", "Tax / GST calculation", "Editable footer note"],
       previewData: {
         shopName: "URBAN FASHION PRO",
         address: "Level 2, Phoenix Marketcity, Mumbai",
@@ -97,7 +139,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         discount: 300,
         total: 3098,
         payment: "Credit / Debit Card",
-        footer: "★ You earned 60 Loyalty Points with this purchase!"
+        footer: "Thank you for shopping with us! Please come again."
       }
     },
     {
@@ -110,7 +152,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       description: "Ultra-compact monospace thermal bill layout engineered specifically to maximize speed and minimize roll paper consumption.",
       gradient: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)",
       accentColor: "#0d9488",
-      features: ["Fast thermal printing", "Monospace font alignment", "High-density item lines", "Less paper usage"],
+      features: ["58mm compact layout", "Monospace font alignment", "High-density item lines", "Paper saving spacing"],
       previewData: {
         shopName: "KRISHNA JUICE & SHAKES",
         address: "Near Metro Station Gate 2, Hyderabad",
@@ -137,10 +179,10 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Modern",
       badge: "Trendy",
       paperSize: "58mm Thermal",
-      description: "Contemporary aesthetic for boutiques, cafes, and salons with pill badges, stylish spacing, and Instagram handle.",
+      description: "Contemporary aesthetic for boutiques, cafes, and modern shops with clean typography and spacing.",
       gradient: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
       accentColor: "#0ea5e9",
-      features: ["Modern typography", "Category pill badges", "Social media footer", "Clean spacing"],
+      features: ["Modern typography", "Clean item list with rates", "Clear amount due card", "Custom footer note"],
       previewData: {
         shopName: "LUMINA BEAUTY & SPA",
         address: "3rd Block, Koramangala, Bengaluru",
@@ -156,8 +198,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         tax: 0,
         discount: 0,
         total: 1340,
-        payment: "GPay",
-        footer: "Tag us on Instagram @luminabeauty for 10% off next visit!"
+        payment: "UPI / Card",
+        footer: "Thank you for your visit! Please come again."
       }
     },
     {
@@ -167,10 +209,10 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Business",
       badge: "Premium",
       paperSize: "80mm Standard / A4",
-      description: "Formal tax invoice template designed for electronics, hardware, and B2B services requiring HSN, CGST/SGST & signature.",
+      description: "Formal tax invoice template designed for businesses requiring full GST details, itemized totals, and formal terms.",
       gradient: "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)",
       accentColor: "#0284c7",
-      features: ["HSN / SAC Code column", "Split CGST & SGST", "Authorized signatory box", "Terms & conditions"],
+      features: ["Formal Tax Invoice header", "GSTIN & seller details", "Itemized table with rates", "Tax breakdown & totals"],
       previewData: {
         shopName: "TECHNO COMPUTERS & PERIPHERALS",
         address: "Plot 88, Electronic City Phase 1, Bengaluru",
@@ -179,15 +221,15 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         invoiceNo: "TC-INV-2026-904",
         date: "09 Mar 2026, 03:00 PM",
         items: [
-          { name: "Wireless Ergonomic Mouse [HSN 8471]", qty: 1, rate: 850, total: 850 },
-          { name: "Mechanical RGB Keyboard [HSN 8471]", qty: 1, rate: 2400, total: 2400 }
+          { name: "Wireless Ergonomic Mouse", qty: 1, rate: 850, total: 850 },
+          { name: "Mechanical RGB Keyboard", qty: 1, rate: 2400, total: 2400 }
         ],
         subtotal: 3250,
         tax: 585,
         discount: 0,
         total: 3835,
-        payment: "NEFT / Net Banking",
-        footer: "Warranty valid with original invoice. Goods once sold are subject to manufacturer terms."
+        payment: "Bank / Online",
+        footer: "Thank you for your business. Terms & conditions apply."
       }
     }
   ]
@@ -368,7 +410,16 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
 
       {/* Live Preview Modal */}
       {previewTemplate && (
-        <div className="template-modal-overlay" onClick={() => setPreviewTemplate(null)}>
+        <div
+          className="template-modal-overlay"
+          onClick={() => setPreviewTemplate(null)}
+          onWheel={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault()
+              e.stopPropagation()
+            }
+          }}
+        >
           <div className="template-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="template-modal-header">
               <div>
@@ -379,88 +430,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
             </div>
 
             <div className="template-modal-receipt-wrapper">
-              <div className="realistic-thermal-receipt">
-                <div className="receipt-paper-top" />
-                <div className="receipt-content">
-                  <div className="thermal-header">
-                    <h2 className="thermal-shop-name">{previewTemplate.previewData.shopName}</h2>
-                    <p className="thermal-shop-address">{previewTemplate.previewData.address}</p>
-                    <p className="thermal-shop-meta">Tel: {previewTemplate.previewData.phone}</p>
-                    {previewTemplate.previewData.gst && (
-                      <p className="thermal-shop-meta">GSTIN: {previewTemplate.previewData.gst}</p>
-                    )}
-                  </div>
-
-                  <div className="thermal-dots-divider" />
-
-                  <div className="thermal-meta-row">
-                    <span>Invoice: {previewTemplate.previewData.invoiceNo}</span>
-                    <span>{previewTemplate.previewData.date}</span>
-                  </div>
-
-                  <div className="thermal-dots-divider" />
-
-                  <div className="thermal-table-header">
-                    <span className="col-item">ITEM</span>
-                    <span className="col-qty">QTY</span>
-                    <span className="col-rate">RATE</span>
-                    <span className="col-amt">AMT</span>
-                  </div>
-
-                  <div className="thermal-line-divider" />
-
-                  <div className="thermal-items-list">
-                    {previewTemplate.previewData.items.map((item, idx) => (
-                      <div className="thermal-item-row" key={idx}>
-                        <span className="col-item">{item.name}</span>
-                        <span className="col-qty">{item.qty}</span>
-                        <span className="col-rate">₹{item.rate}</span>
-                        <span className="col-amt">₹{item.total}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="thermal-line-divider" />
-
-                  <div className="thermal-summary">
-                    <div className="thermal-sum-row">
-                      <span>Subtotal</span>
-                      <span>₹{previewTemplate.previewData.subtotal.toFixed(2)}</span>
-                    </div>
-                    {previewTemplate.previewData.discount > 0 && (
-                      <div className="thermal-sum-row discount">
-                        <span>Discount</span>
-                        <span>-₹{previewTemplate.previewData.discount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {previewTemplate.previewData.tax > 0 && (
-                      <div className="thermal-sum-row">
-                        <span>Tax / GST</span>
-                        <span>₹{previewTemplate.previewData.tax.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="thermal-sum-row grand-total">
-                      <span>NET AMOUNT</span>
-                      <span>₹{previewTemplate.previewData.total.toFixed(2)}</span>
-                    </div>
-                    <div className="thermal-sum-row payment-info">
-                      <span>Payment Mode:</span>
-                      <span>{previewTemplate.previewData.payment}</span>
-                    </div>
-                  </div>
-
-                  <div className="thermal-dots-divider" />
-
-                  <div className="thermal-footer">
-                    <p>{previewTemplate.previewData.footer}</p>
-                    <div className="thermal-barcode-mock">
-                      ||||| | |||| ||| |||||| ||||| ||||
-                    </div>
-                    <span className="thermal-powered">Powered by Slipzo.com</span>
-                  </div>
-                </div>
-                <div className="receipt-paper-bottom" />
-              </div>
+              <RealisticReceiptView template={previewTemplate} />
             </div>
 
             <div className="template-modal-footer">

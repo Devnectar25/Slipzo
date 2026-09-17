@@ -77,9 +77,30 @@ function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PRE
     return `${cleanPrefix}-${seqStr}`
   } else if (format === "DATE-SEQ") {
     return `${dateStr}-${seqStr}`
-  } else {
     return `${cleanPrefix}-${dateStr}-${seqStr}`
   }
+}
+
+function numberToWords(amount) {
+  const num = Math.round(Number(amount) || 0)
+  if (num === 0) return "Zero Rupees Only"
+  const a = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"
+  ]
+  const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+  function inWords(n) {
+    if (n === 0) return ""
+    if (n < 20) return a[n] + " "
+    if (n < 100) return b[Math.floor(n / 10)] + " " + a[n % 10] + (n % 10 ? " " : "")
+    if (n < 1000) return a[Math.floor(n / 100)] + " Hundred " + inWords(n % 100)
+    if (n < 100000) return inWords(Math.floor(n / 1000)) + "Thousand " + inWords(n % 1000)
+    if (n < 10000000) return inWords(Math.floor(n / 100000)) + "Lakh " + inWords(n % 100000)
+    return inWords(Math.floor(n / 10000000)) + "Crore " + inWords(n % 10000000)
+  }
+
+  return (inWords(num).trim() + " Rupees Only")
 }
 
 export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: parentSetShop }) {
@@ -368,6 +389,27 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     const list = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
     return findTemplateMatch(list, selectedId) || list.find((t) => t.is_default) || list[0] || null
   }, [templates, selectedId])
+
+  const templateType = useMemo(() => {
+    const id = String(selected?.id || selected?.templateId || "").toLowerCase()
+    if (id === "1" || id.includes("classic")) return "classic"
+    if (id === "2" || id.includes("minimal")) return "minimal"
+    if (id === "3" || id.includes("pro")) return "pro"
+    if (id === "4" || id.includes("eco")) return "eco"
+    if (id === "5" || id.includes("modern")) return "modern"
+    if (id === "6" || id.includes("elite")) return "elite"
+    return "classic"
+  }, [selected])
+
+  const activeItems = useMemo(
+    () => items.filter((item) => item.name && item.name.trim()),
+    [items]
+  )
+
+  const totalUnits = useMemo(
+    () => activeItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+    [activeItems]
+  )
 
   // Sync tax and discount from shop profile as the single source of truth
   useEffect(() => {
@@ -1356,161 +1398,654 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             </div>
           </div>
 
+          {/* Template Switcher Toolbar */}
+          <div className="preview-template-toolbar">
+            <div className="preview-tpl-label-wrap">
+              <SlidersHorizontal size={14} />
+              <span>Style:</span>
+              <select
+                className="preview-template-select"
+                value={selected?.id || ""}
+                onChange={(e) => {
+                  setSelectedId(e.target.value)
+                  sessionStorage.setItem("slipzo-template", e.target.value)
+                }}
+              >
+                {(Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.width || "58mm"})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="preview-template-pills">
+              {[
+                { id: "classic", label: "Classic" },
+                { id: "minimal", label: "Minimal" },
+                { id: "pro", label: "Shop Pro" },
+                { id: "eco", label: "Eco Print" },
+                { id: "modern", label: "Modern" },
+                { id: "elite", label: "Business Elite" }
+              ].map((p) => {
+                const isActive = templateType === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`tpl-pill-btn ${isActive ? "active" : ""}`}
+                    onClick={() => {
+                      const list = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
+                      const match = list.find(
+                        (t) => String(t.id).toLowerCase() === p.id || String(t.name).toLowerCase().includes(p.id)
+                      )
+                      const targetId = match ? match.id : p.id
+                      setSelectedId(targetId)
+                      sessionStorage.setItem("slipzo-template", targetId)
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div
             ref={receiptRef}
             id="receipt-to-print"
-            className={`receipt-preview-content format-${printFormat} tpl-style-${selected?.id || "2"}`}
+            className={`receipt-preview-content format-${printFormat} tpl-style-${templateType} tpl-id-${selected?.id || "classic"}`}
           >
-            {/* Template Specific Header Badge */}
-            {(selected?.id === "6" || selected?.id === "elite") && (
-              <div className="receipt-tax-badge">TAX INVOICE</div>
-            )}
-            {(selected?.id === "5" || selected?.id === "modern") && (
-              <div className="receipt-boutique-badge">BOUTIQUE RECEIPT</div>
-            )}
-
-            {/* Shop Header */}
-            <div className="receipt-shop">
-              <div className="receipt-logo">S</div>
-              <h2 className="receipt-shop-name">
-                {cleanTextLines(shop?.name || "Slipzo Shop").map((line, idx) => (
-                  <div key={idx}>{line}</div>
-                ))}
-              </h2>
-              {shop?.address && cleanTextLines(shop.address).length > 0 && (
-                <div className="receipt-shop-address">
-                  {cleanTextLines(shop.address).map((line, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                      {idx === 0 && <MapPin size={12} />} <span>{line}</span>
+            {/* ========================================================================= */}
+            {/* 1. CLASSIC RECEIPT STRUCTURE */}
+            {/* ========================================================================= */}
+            {templateType === "classic" && (
+              <div className="receipt-classic-container">
+                <div className="receipt-shop">
+                  <div className="classic-crest">
+                    {(shop?.name || "S").trim().charAt(0).toUpperCase()}
+                  </div>
+                  <h2 className="receipt-shop-name">
+                    {cleanTextLines(shop?.name || "Classic Mart").map((line, idx) => (
+                      <div key={idx}>{line}</div>
+                    ))}
+                  </h2>
+                  {shop?.address && cleanTextLines(shop.address).length > 0 && (
+                    <div className="receipt-shop-address">
+                      {cleanTextLines(shop.address).map((line, idx) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                          {idx === 0 && <MapPin size={12} />} <span>{line}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                  {shop?.phone && (
+                    <p className="receipt-shop-phone">
+                      <Phone size={12} /> {shop.phone}
+                    </p>
+                  )}
+                  {shop?.gstin && (
+                    <p className="receipt-shop-phone" style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>
+                      GSTIN: {shop.gstin}
+                    </p>
+                  )}
                 </div>
-              )}
-              {shop?.phone && (
-                <p className="receipt-shop-phone">
-                  <Phone size={12} /> {shop.phone}
-                </p>
-              )}
-              {shop?.gstin && (
-                <p className="receipt-shop-phone" style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>
-                  GSTIN: {shop.gstin}
-                </p>
-              )}
-            </div>
 
-            {/* Receipt Meta */}
-            <div className="receipt-meta">
-              <span className="receipt-number" style={{ whiteSpace: 'nowrap' }}>#{customBillNumber || "SLP-DRAFT"}</span>
-              <span className="receipt-date" style={{ whiteSpace: 'nowrap' }}>
-                {formattedDate} {formattedTime}
-              </span>
-            </div>
+                <div className="classic-meta-grid">
+                  <div><span>INVOICE:</span> <b>#{customBillNumber || "CM-8821"}</b></div>
+                  <div><span>DATE:</span> <b>{formattedDate}</b></div>
+                  <div><span>COUNTER:</span> <b>POS-01</b></div>
+                  <div><span>TIME:</span> <b>{formattedTime}</b></div>
+                </div>
 
-            {/* Customer Line in Preview */}
-            {selectedCustomer && (
-              <div className="receipt-customer-line">
-                <span>Customer: <b>{selectedCustomer.name}</b></span>
-                {selectedCustomer.phone && <small>Ph: {selectedCustomer.phone}</small>}
-              </div>
-            )}
+                {selectedCustomer && (
+                  <div className="receipt-customer-line">
+                    <span>Customer: <b>{selectedCustomer.name}</b></span>
+                    {selectedCustomer.phone && <small>Ph: {selectedCustomer.phone}</small>}
+                  </div>
+                )}
 
-            {/* Divider */}
-            <div className="receipt-divider"></div>
+                <div className="classic-divider-double" />
 
-            {/* Items */}
-            <div className="receipt-items">
-              <div className="receipt-items-header">
-                <span>Item</span>
-                <span>Qty</span>
-                <span>Rate</span>
-                <span>Amount</span>
-              </div>
-              {items.filter((item) => item.name && item.name.trim()).length > 0 ? (
-                items
-                  .filter((item) => item.name && item.name.trim())
-                  .map((item, index) => {
-                    const qty = Number(item.quantity) || 0
-                    const rate = Number(item.rate) || 0
-                    const amount = qty * rate
-                    return (
-                      <div className="receipt-item-row" key={item.id || index}>
-                        <span className="receipt-item-name">{item.name}</span>
-                        <span className="receipt-item-qty">{qty}</span>
-                        <span className="receipt-item-rate">{money(rate)}</span>
-                        <span className="receipt-item-amount">{money(amount)}</span>
+                <div className="classic-items-table">
+                  <div className="receipt-items-header">
+                    <span>ITEM</span>
+                    <span>QTY</span>
+                    <span>RATE</span>
+                    <span>AMOUNT</span>
+                  </div>
+                  {activeItems.length > 0 ? (
+                    activeItems.map((item, index) => {
+                      const qty = Number(item.quantity) || 0
+                      const rate = Number(item.rate) || 0
+                      const amount = qty * rate
+                      return (
+                        <div className="receipt-item-row" key={item.id || index}>
+                          <span className="receipt-item-name">{item.name}</span>
+                          <span className="receipt-item-qty">{qty}</span>
+                          <span className="receipt-item-rate">{money(rate)}</span>
+                          <span className="receipt-item-amount">{money(amount)}</span>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="receipt-empty-items">
+                      <p>No items added</p>
+                      <small>Add items to see preview</small>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#64748b', padding: '0.2rem 0.4rem', borderBottom: '1px solid #e2e8f0', marginBottom: '0.4rem' }}>
+                  <span>Items: <b>{activeItems.length}</b></span>
+                  <span>Total Units: <b>{totalUnits}</b></span>
+                </div>
+
+                <div className="receipt-totals">
+                  <div className="receipt-total-row">
+                    <span>Subtotal</span>
+                    <span>{money(subtotal)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="receipt-total-row discount">
+                      <span>Discount</span>
+                      <span>-{money(discountAmount)}</span>
+                    </div>
+                  )}
+                  {isTaxEnabled && taxRate > 0 && (
+                    <div className="classic-gst-box">
+                      <div className="gst-line">
+                        <span>Taxable Value</span>
+                        <span>{money(taxable)}</span>
                       </div>
-                    )
-                  })
-              ) : (
-                <div className="receipt-empty-items">
-                  <p>No items added</p>
-                  <small>Add items to see preview</small>
+                      <div className="gst-line">
+                        <span>CGST ({taxRate / 2}%)</span>
+                        <span>{money(taxAmount / 2)}</span>
+                      </div>
+                      <div className="gst-line">
+                        <span>SGST ({taxRate / 2}%)</span>
+                        <span>{money(taxAmount / 2)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Totals */}
-            <div className="receipt-totals">
-              {isTaxEnabled && shopTaxMode === 1 && taxRate > 0 ? (
-                <div className="receipt-total-row">
-                  <span>Taxable Subtotal</span>
-                  <span>{money(taxable - taxAmount)}</span>
+                <div className="classic-grand-banner">
+                  <span>GRAND TOTAL</span>
+                  <span>{money(total)}</span>
                 </div>
-              ) : (
-                <div className="receipt-total-row">
-                  <span>Subtotal</span>
-                  <span>{money(subtotal)}</span>
-                </div>
-              )}
-              {discountAmount > 0 && (
-                <div className="receipt-total-row discount">
-                  <span>Discount</span>
-                  <span>-{money(discountAmount)}</span>
-                </div>
-              )}
-              {isTaxEnabled && taxRate > 0 && (
-                <div className="receipt-total-row">
-                  <span>{shopTaxMode === 1 ? `GST (${taxRate}%)` : `Tax (${taxRate}%)`}</span>
-                  <span>{money(taxAmount)}</span>
-                </div>
-              )}
-              <div className="receipt-grand-total">
-                <span>Grand Total</span>
-                <span>{money(total)}</span>
-              </div>
-            </div>
 
-            {/* Divider */}
-            <div className="receipt-divider"></div>
-
-            {/* Special Features per Template */}
-            {(selected?.id === "3" || selected?.id === "pro") && (
-              <div className="receipt-pro-extras">
-                <div className="receipt-qr-wrapper">
-                  <div className="receipt-qr-box">UPI QR</div>
-                  <span>Scan to pay with any UPI App</span>
+                <div className="receipt-payment" style={{ padding: '0.3rem 0', fontSize: '0.74rem' }}>
+                  <span>Payment Mode:</span>
+                  <b>{payment}</b>
                 </div>
-                <div className="receipt-loyalty-tag">★ Earned {Math.floor(total / 50)} Loyalty Points</div>
+
+                <div className="receipt-barcode-wrap">
+                  <div className="receipt-barcode-bars">|||| ||| ||||| || |||||| ||</div>
+                  <div className="receipt-barcode-num">*{customBillNumber || "SLP-DRAFT"}*</div>
+                </div>
+
+                <div className="classic-policy-footer">
+                  <p>{selected?.footer || "Thank you for shopping with us! Goods once sold can be exchanged within 7 days with original invoice."}</p>
+                </div>
               </div>
             )}
 
-            {(selected?.id === "6" || selected?.id === "elite") && (
-              <div className="receipt-signatory-wrapper">
-                <div className="signatory-line" />
-                <span>Authorized Signatory</span>
+            {/* ========================================================================= */}
+            {/* 2. MINIMAL CLEAN BILL STRUCTURE */}
+            {/* ========================================================================= */}
+            {templateType === "minimal" && (
+              <div className="receipt-minimal-container">
+                <div className="receipt-shop">
+                  <div className="minimal-dot-logo">S</div>
+                  <h2 className="receipt-shop-name" style={{ fontSize: '1.15rem', letterSpacing: '-0.3px' }}>
+                    {shop?.name || "Minimal Cafe"}
+                  </h2>
+                  <p style={{ color: '#64748b', fontSize: '0.72rem', margin: '0.2rem 0 0' }}>
+                    {[shop?.phone, shop?.address].filter(Boolean).join(" · ") || "Specialty Store"}
+                  </p>
+                </div>
+
+                <div className="minimal-meta-clean">
+                  <span>#{customBillNumber || "INV-102"}</span>
+                  <span>{formattedDate} {formattedTime}</span>
+                </div>
+
+                {selectedCustomer && (
+                  <div className="receipt-customer-line" style={{ border: 'none', padding: '0.25rem 0' }}>
+                    <span>Customer: <b>{selectedCustomer.name}</b></span>
+                  </div>
+                )}
+
+                <div style={{ margin: '0.6rem 0' }}>
+                  {activeItems.length > 0 ? (
+                    activeItems.map((item, index) => {
+                      const qty = Number(item.quantity) || 0
+                      const rate = Number(item.rate) || 0
+                      return (
+                        <div className="minimal-item-entry" key={item.id || index}>
+                          <div className="minimal-item-info">
+                            <span className="minimal-item-title">{item.name}</span>
+                            <span className="minimal-item-sub">{qty} × {money(rate)}</span>
+                          </div>
+                          <span className="minimal-item-price">{money(qty * rate)}</span>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="receipt-empty-items">
+                      <p>No items added</p>
+                    </div>
+                  )}
+                </div>
+
+                {discountAmount > 0 && (
+                  <div className="receipt-total-row discount" style={{ padding: '0.2rem 0' }}>
+                    <span>Discount</span>
+                    <span>-{money(discountAmount)}</span>
+                  </div>
+                )}
+                {isTaxEnabled && taxRate > 0 && (
+                  <div className="receipt-total-row" style={{ padding: '0.2rem 0' }}>
+                    <span>Tax ({taxRate}%)</span>
+                    <span>{money(taxAmount)}</span>
+                  </div>
+                )}
+
+                <div className="minimal-total-hero">
+                  <span>TOTAL AMOUNT</span>
+                  <span>{money(total)}</span>
+                </div>
+
+                <div style={{ textAlign: 'center', margin: '0.6rem 0 0.3rem' }}>
+                  <div className="minimal-paid-stamp">PAID VIA {payment?.toUpperCase()}</div>
+                </div>
+
+                <p style={{ textAlign: 'center', fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.6rem', fontStyle: 'italic' }}>
+                  {selected?.footer || "thank you for visiting · please come again"}
+                </p>
               </div>
             )}
 
-            {/* Footer */}
-            <div className="receipt-footer">
-              <div className="receipt-payment">
-                <span>Payment Mode</span>
-                <span>{payment}</span>
+            {/* ========================================================================= */}
+            {/* 3. SHOP PRO (RETAIL POS) STRUCTURE */}
+            {/* ========================================================================= */}
+            {templateType === "pro" && (
+              <div className="receipt-pro-container">
+                <div className="pro-store-ribbon" style={{ background: "#2563eb", color: "#ffffff", padding: "0.55rem 0.75rem", borderRadius: "6px", textAlign: "center", marginBottom: "0.5rem" }}>
+                  <h2 style={{ fontSize: "1.15rem", fontWeight: 800, margin: 0, letterSpacing: "0.3px" }}>{shop?.name || "RETAIL STORE"}</h2>
+                  <p style={{ fontSize: "0.65rem", margin: "0.15rem 0 0", opacity: 0.9 }}>RETAIL POS RECEIPT</p>
+                </div>
+
+                <div style={{ textAlign: 'center', fontSize: '0.68rem', color: '#475569', marginBottom: '0.5rem' }}>
+                  {shop?.address && <div>{shop.address}</div>}
+                  {shop?.phone && <div>Tel: {shop.phone}</div>}
+                  {shop?.gstin && <div style={{ fontWeight: 700, color: "#0f172a" }}>GSTIN: {shop.gstin}</div>}
+                </div>
+
+                <div className="pro-meta-bar" style={{ display: "flex", justifyContent: "space-between", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "0.35rem 0.6rem", fontSize: "0.68rem", margin: "0.5rem 0" }}>
+                  <div><span>BILL NO:</span> <b>#{customBillNumber || "POS-4401"}</b></div>
+                  <div><span>DATE:</span> <b>{formattedDate}</b></div>
+                  <div><span>PAY:</span> <b>{payment}</b></div>
+                </div>
+
+                {selectedCustomer && (
+                  <div className="receipt-customer-line" style={{ background: '#f8fafc', padding: '0.35rem 0.5rem', borderRadius: '4px', margin: '0.4rem 0', fontSize: '0.72rem' }}>
+                    <span>Customer: <b>{selectedCustomer.name}</b></span>
+                    {selectedCustomer.phone && <small style={{ color: '#64748b', marginLeft: '0.5rem' }}>Ph: {selectedCustomer.phone}</small>}
+                  </div>
+                )}
+
+                <div className="receipt-items" style={{ margin: "0.6rem 0" }}>
+                  <div className="receipt-items-header" style={{ borderBottom: '2px solid #2563eb', display: 'grid', gridTemplateColumns: '2.2fr 0.5fr 1fr 1fr', padding: '0.3rem 0', fontSize: '0.7rem', fontWeight: 800, color: '#1e293b' }}>
+                    <span>Item Description</span>
+                    <span style={{ textAlign: 'center' }}>Qty</span>
+                    <span style={{ textAlign: 'right' }}>Rate</span>
+                    <span style={{ textAlign: 'right' }}>Amount</span>
+                  </div>
+                  {activeItems.length > 0 ? (
+                    activeItems.map((item, index) => {
+                      const qty = Number(item.quantity) || 0
+                      const rate = Number(item.rate) || 0
+                      return (
+                        <div className="receipt-item-row" key={item.id || index} style={{ display: 'grid', gridTemplateColumns: '2.2fr 0.5fr 1fr 1fr', padding: '0.35rem 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.72rem' }}>
+                          <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.name}</span>
+                          <span style={{ textAlign: 'center', color: '#475569' }}>{qty}</span>
+                          <span style={{ textAlign: 'right', color: '#475569' }}>{money(rate)}</span>
+                          <span style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>{money(qty * rate)}</span>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="receipt-empty-items">
+                      <p>No items added</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="receipt-totals" style={{ fontSize: '0.74rem', margin: '0.5rem 0' }}>
+                  <div className="receipt-total-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0', color: '#475569' }}>
+                    <span>Gross Subtotal ({totalUnits} items)</span>
+                    <span>{money(subtotal)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="receipt-total-row discount" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0', color: '#059669', fontWeight: 700 }}>
+                      <span>Discount</span>
+                      <span>-{money(discountAmount)}</span>
+                    </div>
+                  )}
+                  {isTaxEnabled && taxRate > 0 && (
+                    <div className="receipt-total-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0', color: '#475569' }}>
+                      <span>GST ({taxRate}%)</span>
+                      <span>{money(taxAmount)}</span>
+                    </div>
+                  )}
+                  <div className="receipt-grand-total" style={{ borderTop: '2px solid #2563eb', color: '#1d4ed8', display: 'flex', justifyContent: 'space-between', padding: '0.45rem 0', fontWeight: 900, fontSize: '0.95rem', marginTop: '0.3rem' }}>
+                    <span>NET PAYABLE</span>
+                    <span>{money(total)}</span>
+                  </div>
+                </div>
+
+                <div className="receipt-footer" style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '0.5rem', marginTop: '0.5rem', textAlign: 'center' }}>
+                  <p className="receipt-thanks" style={{ fontSize: '0.68rem', color: '#64748b', margin: 0 }}>
+                    {selected?.footer || "Thank you for shopping with us! Please come again."}
+                  </p>
+                </div>
               </div>
-              <p className="receipt-thanks">
-                {selected?.footer || "Thank you for shopping with us!"}
-              </p>
-            </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* 4. ECO PRINT (THERMAL MONOSPACE) STRUCTURE */}
+            {/* ========================================================================= */}
+            {templateType === "eco" && (
+              <div className="receipt-eco-container" style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" }}>
+                <div className="eco-sawtooth-top" />
+                <div className="eco-header-box" style={{ textAlign: "center", borderBottom: "1px dashed #0d9488", paddingBottom: "0.4rem", marginBottom: "0.4rem" }}>
+                  <h2 style={{ fontSize: "0.95rem", fontWeight: 900, letterSpacing: "0.5px", margin: 0 }}>
+                    *** {shop?.name?.toUpperCase() || "THERMAL SHOP"} ***
+                  </h2>
+                  <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: '0.15rem' }}>
+                    {shop?.address && <div>{shop.address}</div>}
+                    {shop?.phone && <div>TEL: {shop.phone}</div>}
+                    {shop?.gstin && <div>GSTIN: {shop.gstin}</div>}
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px dashed #94a3b8', margin: '0.35rem 0' }} />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 700, margin: '0.3rem 0' }}>
+                  <span>BILL: #{customBillNumber || "KJ-7734"}</span>
+                  <span>{formattedDate} {formattedTime}</span>
+                </div>
+
+                <div style={{ borderTop: '1px dashed #94a3b8', margin: '0.35rem 0' }} />
+
+                <div className="eco-items-mono" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', margin: '0.4rem 0' }}>
+                  {activeItems.length > 0 ? (
+                    activeItems.map((item, index) => {
+                      const qty = Number(item.quantity) || 0
+                      const rate = Number(item.rate) || 0
+                      return (
+                        <div className="eco-item-row-mono" key={item.id || index} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700 }}>
+                          <span>{qty}x {item.name}</span>
+                          <span>{money(qty * rate)}</span>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div style={{ textAlign: 'center', fontSize: '0.68rem', padding: '0.5rem 0' }}>No items added</div>
+                  )}
+                </div>
+
+                <div style={{ borderTop: '1px dashed #94a3b8', margin: '0.35rem 0' }} />
+
+                <div className="receipt-totals" style={{ padding: 0, fontSize: '0.7rem', margin: '0.35rem 0' }}>
+                  <div className="receipt-total-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.1rem 0' }}>
+                    <span>SUBTOTAL:</span>
+                    <span>{money(subtotal)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="receipt-total-row discount" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.1rem 0', color: '#dc2626' }}>
+                      <span>DISCOUNT:</span>
+                      <span>-{money(discountAmount)}</span>
+                    </div>
+                  )}
+                  {isTaxEnabled && taxRate > 0 && (
+                    <div className="receipt-total-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.1rem 0' }}>
+                      <span>TAX ({taxRate}%):</span>
+                      <span>{money(taxAmount)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="eco-total-box" style={{ border: "2px solid #0f172a", padding: "0.4rem 0.6rem", display: "flex", justifyContent: "space-between", fontWeight: 900, fontSize: "0.92rem", margin: "0.45rem 0" }}>
+                  <span>TOTAL:</span>
+                  <span>{money(total)}</span>
+                </div>
+
+                <div className="receipt-payment" style={{ display: "flex", justifyContent: "space-between", fontSize: "0.68rem", padding: "0.15rem 0" }}>
+                  <span>PAID VIA:</span>
+                  <b>{payment?.toUpperCase()}</b>
+                </div>
+
+                <div style={{ borderTop: '1px dashed #94a3b8', margin: '0.45rem 0' }} />
+
+                <div style={{ textAlign: "center", fontSize: "0.65rem", color: "#475569", margin: "0.3rem 0" }}>
+                  {selected?.footer || "Thank you for shopping with us!"}
+                </div>
+
+                <div className="eco-sawtooth-bottom" />
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* 5. MODERN SHOP (BOUTIQUE & CAFE) STRUCTURE */}
+            {/* ========================================================================= */}
+            {templateType === "modern" && (
+              <div className="receipt-modern-container">
+                <div className="receipt-shop" style={{ textAlign: "center", border: 'none', paddingBottom: '0.4rem' }}>
+                  <h2 className="receipt-shop-name" style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.15rem' }}>
+                    {shop?.name || "Modern Shop"}
+                  </h2>
+                  {shop?.address && (
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', margin: '0.15rem 0' }}>
+                      {shop.address}
+                    </div>
+                  )}
+                  {shop?.phone && (
+                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                      Tel: {shop.phone}
+                    </div>
+                  )}
+                  {shop?.gstin && (
+                    <div style={{ fontSize: '0.68rem', color: '#0ea5e9', fontWeight: 600, marginTop: '0.1rem' }}>
+                      GSTIN: {shop.gstin}
+                    </div>
+                  )}
+                </div>
+
+                {selectedCustomer && (
+                  <div className="receipt-customer-line" style={{ display: "flex", justifyContent: "space-between", background: '#f8fafc', padding: '0.35rem 0.5rem', borderRadius: '6px', margin: '0.35rem 0', fontSize: '0.7rem' }}>
+                    <span>Customer: <b>{selectedCustomer.name}</b></span>
+                    {selectedCustomer.phone && <small style={{ color: '#64748b' }}>{selectedCustomer.phone}</small>}
+                  </div>
+                )}
+
+                <div className="receipt-meta" style={{ display: "flex", justifyContent: "space-between", borderBottom: '1px solid #f1f5f9', padding: '0.4rem 0', fontSize: '0.7rem', color: '#64748b' }}>
+                  <span>Invoice: <b>#{customBillNumber || "INV-2026"}</b></span>
+                  <span>{formattedDate} {formattedTime}</span>
+                </div>
+
+                <div style={{ margin: '0.5rem 0' }}>
+                  {activeItems.length > 0 ? (
+                    activeItems.map((item, index) => {
+                      const qty = Number(item.quantity) || 0
+                      const rate = Number(item.rate) || 0
+                      return (
+                        <div className="modern-item-card" key={item.id || index} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "0.45rem 0.65rem", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                          <div className="item-meta">
+                            <span className="item-name" style={{ fontWeight: 700, fontSize: "0.78rem", color: "#0f172a" }}>{item.name}</span>
+                            <small className="item-details" style={{ display: 'block', fontSize: "0.68rem", color: "#64748b" }}>{qty} qty @ {money(rate)}</small>
+                          </div>
+                          <span className="item-amt-badge" style={{ background: "#e0f2fe", color: "#0284c7", fontWeight: 800, fontSize: "0.78rem", padding: "0.2rem 0.5rem", borderRadius: "6px" }}>{money(qty * rate)}</span>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="receipt-empty-items">
+                      <p>No items added</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="receipt-totals" style={{ background: '#f8fafc', padding: '0.65rem', borderRadius: '8px', fontSize: '0.74rem' }}>
+                  <div className="receipt-total-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0', color: '#475569' }}>
+                    <span>Subtotal</span>
+                    <span>{money(subtotal)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="receipt-total-row discount" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0', color: '#059669', fontWeight: 700 }}>
+                      <span>Discount</span>
+                      <span>-{money(discountAmount)}</span>
+                    </div>
+                  )}
+                  {isTaxEnabled && taxRate > 0 && (
+                    <div className="receipt-total-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0', color: '#475569' }}>
+                      <span>GST ({taxRate}%)</span>
+                      <span>{money(taxAmount)}</span>
+                    </div>
+                  )}
+                  <div className="receipt-grand-total" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #cbd5e1', paddingTop: '0.4rem', color: '#0ea5e9', fontWeight: 800, fontSize: '0.95rem', marginTop: '0.25rem' }}>
+                    <span>Amount Due</span>
+                    <span>{money(total)}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.7rem", padding: "0.4rem 0.2rem", color: "#64748b" }}>
+                  <span>Payment Method</span>
+                  <b style={{ color: "#0f172a" }}>{payment}</b>
+                </div>
+
+                <p style={{ textAlign: 'center', fontSize: '0.68rem', color: '#94a3b8', marginTop: '0.6rem', lineHeight: 1.4 }}>
+                  {selected?.footer || "Thank you for your visit! Please come again."}
+                </p>
+              </div>
+            )}
+
+            {/* ========================================================================= */}
+            {/* 6. BUSINESS ELITE (FORMAL TAX INVOICE) STRUCTURE */}
+            {/* ========================================================================= */}
+            {templateType === "elite" && (
+              <div className="receipt-elite-container">
+                <div className="elite-tax-banner" style={{ background: "#0284c7", color: "#ffffff", padding: "0.45rem 0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.5px", borderRadius: "4px", marginBottom: "0.65rem" }}>
+                  <span>TAX INVOICE</span>
+                  <span>ORIGINAL FOR RECIPIENT</span>
+                </div>
+
+                <div className="elite-party-card" style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "0.45rem 0.6rem", background: "#f8fafc", fontSize: "0.7rem", marginBottom: "0.5rem" }}>
+                  <div style={{ fontSize: "0.6rem", fontWeight: 800, color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "0.2rem" }}>Supplier / Seller</div>
+                  <h4 style={{ fontSize: "0.82rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.15rem" }}>{shop?.name || "Techno Computers"}</h4>
+                  <p style={{ color: "#475569", margin: "0.05rem 0", fontSize: "0.68rem" }}>{shop?.address || "Main Street, Commercial Hub"}</p>
+                  <p style={{ color: "#475569", margin: "0.05rem 0", fontSize: "0.68rem" }}>Tel: {shop?.phone || "N/A"}</p>
+                  {shop?.gstin && <p style={{ color: "#0f172a", fontWeight: 700, margin: "0.05rem 0", fontSize: "0.68rem" }}>GSTIN: {shop.gstin}</p>}
+                </div>
+
+                <div className="classic-meta-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontSize: "0.68rem", background: "#f8fafc", padding: "0.35rem 0.5rem", borderRadius: "4px", margin: "0.4rem 0" }}>
+                  <div><span style={{ color: "#64748b" }}>Invoice No:</span> <b>#{customBillNumber || "TC-INV-904"}</b></div>
+                  <div><span style={{ color: "#64748b" }}>Date:</span> <b>{formattedDate}</b></div>
+                  <div><span style={{ color: "#64748b" }}>Payment:</span> <b>{payment}</b></div>
+                  <div><span style={{ color: "#64748b" }}>Items:</span> <b>{activeItems.length}</b></div>
+                </div>
+
+                {selectedCustomer && (
+                  <div style={{ fontSize: "0.68rem", color: "#475569", background: "#f8fafc", padding: "0.3rem 0.5rem", borderRadius: "4px", marginBottom: "0.4rem" }}>
+                    Billed To: <b>{selectedCustomer.name}</b> {selectedCustomer.phone ? `(${selectedCustomer.phone})` : ""}
+                  </div>
+                )}
+
+                <div className="classic-items-table" style={{ margin: "0.5rem 0" }}>
+                  <div className="receipt-items-header" style={{ display: "grid", gridTemplateColumns: "0.4fr 2.2fr 0.6fr 1fr 1fr", gap: "4px", fontSize: "0.68rem", fontWeight: 800, borderBottom: "1px solid #cbd5e1", paddingBottom: "0.3rem" }}>
+                    <span>#</span>
+                    <span>Description</span>
+                    <span style={{ textAlign: "center" }}>Qty</span>
+                    <span style={{ textAlign: "right" }}>Rate</span>
+                    <span style={{ textAlign: "right" }}>Amount</span>
+                  </div>
+                  {activeItems.length > 0 ? (
+                    activeItems.map((item, index) => {
+                      const qty = Number(item.quantity) || 0
+                      const rate = Number(item.rate) || 0
+                      const amount = qty * rate
+                      return (
+                        <div className="receipt-item-row" key={item.id || index} style={{ display: "grid", gridTemplateColumns: "0.4fr 2.2fr 0.6fr 1fr 1fr", gap: "4px", fontSize: "0.7rem", padding: "0.3rem 0", borderBottom: "1px solid #f1f5f9" }}>
+                          <span>{index + 1}</span>
+                          <span style={{ fontWeight: 600 }}>{item.name}</span>
+                          <span style={{ textAlign: "center" }}>{qty}</span>
+                          <span style={{ textAlign: "right" }}>{money(rate)}</span>
+                          <span style={{ textAlign: "right", fontWeight: 700 }}>{money(amount)}</span>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="receipt-empty-items">
+                      <p>No items added</p>
+                    </div>
+                  )}
+                </div>
+
+                {isTaxEnabled && taxRate > 0 && (
+                  <table className="elite-tax-analysis-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.68rem", margin: "0.5rem 0", border: "1px solid #cbd5e1" }}>
+                    <thead>
+                      <tr style={{ background: "#f1f5f9" }}>
+                        <th style={{ padding: "0.3rem", border: "1px solid #cbd5e1", textAlign: "left" }}>Taxable Amt</th>
+                        <th style={{ padding: "0.3rem", border: "1px solid #cbd5e1", textAlign: "right" }}>CGST ({taxRate / 2}%)</th>
+                        <th style={{ padding: "0.3rem", border: "1px solid #cbd5e1", textAlign: "right" }}>SGST ({taxRate / 2}%)</th>
+                        <th style={{ padding: "0.3rem", border: "1px solid #cbd5e1", textAlign: "right" }}>Total Tax</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style={{ padding: "0.3rem", border: "1px solid #e2e8f0" }}>{money(taxable)}</td>
+                        <td style={{ padding: "0.3rem", border: "1px solid #e2e8f0", textAlign: "right" }}>{money(taxAmount / 2)}</td>
+                        <td style={{ padding: "0.3rem", border: "1px solid #e2e8f0", textAlign: "right" }}>{money(taxAmount / 2)}</td>
+                        <td style={{ padding: "0.3rem", border: "1px solid #e2e8f0", textAlign: "right", fontWeight: 700 }}>{money(taxAmount)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
+
+                <div className="receipt-totals" style={{ fontSize: "0.74rem", margin: "0.5rem 0" }}>
+                  <div className="receipt-total-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0' }}>
+                    <span>Subtotal</span>
+                    <span>{money(subtotal)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="receipt-total-row discount" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0', color: '#dc2626' }}>
+                      <span>Discount</span>
+                      <span>-{money(discountAmount)}</span>
+                    </div>
+                  )}
+                  {isTaxEnabled && taxRate > 0 && (
+                    <div className="receipt-total-row" style={{ display: 'flex', justifyContent: 'space-between', padding: '0.15rem 0', color: '#475569' }}>
+                      <span>GST Output ({taxRate}%)</span>
+                      <span>{money(taxAmount)}</span>
+                    </div>
+                  )}
+                  <div className="receipt-grand-total" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #0284c7', color: '#0284c7', padding: '0.45rem 0', fontWeight: 900, fontSize: '0.95rem', marginTop: '0.25rem' }}>
+                    <span>TOTAL INVOICE VALUE</span>
+                    <span>{money(total)}</span>
+                  </div>
+                </div>
+
+                <div className="receipt-barcode-wrap" style={{ textAlign: "center", margin: "0.5rem 0 0.35rem" }}>
+                  <div className="receipt-barcode-bars" style={{ letterSpacing: "3px", fontWeight: 700, fontSize: "0.9rem", color: "#0f172a" }}>|||| ||| ||||| || |||||| ||</div>
+                  <div className="receipt-barcode-num" style={{ fontSize: "0.65rem", color: "#64748b" }}>*{customBillNumber || "TC-INV-904"}*</div>
+                </div>
+
+                <p style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '0.45rem', textAlign: 'center', lineHeight: 1.3, borderTop: '1px dashed #cbd5e1', paddingTop: '0.45rem' }}>
+                  {selected?.footer || "Thank you for your business. Terms & conditions apply."}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Quick Actions in Preview */}
