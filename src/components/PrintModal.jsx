@@ -1,17 +1,22 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Printer, X, Check, RefreshCw, Sparkles, Download, FileText } from "lucide-react"
 import { printReceiptElement, saveReceiptAsPdf } from "../lib/printReceipt"
-import { incrementFreePrintCount } from "../lib/utils"
+import { call, syncUserQuota, canPrintFree, getActivePlanDetails, incrementFreePrintCount, getCurrentUserKey } from "../lib/utils"
+import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
+import Swal from "sweetalert2"
 
 export function PrintModal({
   isOpen,
   onClose,
   onPrinted,
   defaultWidth = "58mm",
-  elementId = "receipt-to-print"
+  elementId = "receipt-to-print",
+  user
 }) {
-  const { success } = useToast()
+  const { success, error: toastError } = useToast()
+  const [isSubmittingPrint, setIsSubmittingPrint] = useState(false)
+  const isPrintingRef = useRef(false)
 
   // Load initial settings from localStorage or defaults
   const [pageWidth, setPageWidth] = useState(() => {
@@ -117,43 +122,205 @@ export function PrintModal({
 
   if (!isOpen) return null
 
-  const handlePrint = () => {
-    incrementFreePrintCount()
+  const handlePrint = async () => {
+    if (isPrintingRef.current || isSubmittingPrint) return
+    isPrintingRef.current = true
+    setIsSubmittingPrint(true)
 
-    printReceiptElement(elementId, {
-      pageWidth,
-      scale: scale / 100,
-      fontSize,
-      density,
-      highContrast,
-      showShopDetails,
-      showCustomer,
-      showTax,
-      showFooter
-    })
-    onClose()
-    if (onPrinted) {
-      onPrinted()
+    const userKey = user?.email || user?.id || getCurrentUserKey(user)
+    const token = typeof window !== "undefined" ? (localStorage.getItem("slipzo_token") || localStorage.getItem("slipzo_admin_token")) : null
+    const userInfo = typeof window !== "undefined" ? localStorage.getItem("slipzo_user_info") : null
+    const isLoggedIn = Boolean(user || token || userInfo)
+
+    try {
+      if (isLoggedIn) {
+        // Authenticated user: call backend /subscriptions/consume-print
+        let quota = null
+        try {
+          const res = await call("/subscriptions/consume-print", {
+            method: "POST"
+          })
+          if (res && res.quota) {
+            quota = res.quota
+            syncUserQuota(res.quota, userKey)
+          }
+        } catch (err) {
+          console.error("Print quota deduction failed:", err)
+          const errMsg = err?.detail || err?.message || "No print credits available"
+          const plan = getActivePlanDetails(userKey)
+
+          if (plan?.isFreeTier || errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("0 prints") || errMsg.toLowerCase().includes("exhausted")) {
+            window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+          } else {
+            Swal.fire({
+              title: "Print Quota Limit Reached",
+              text: errMsg,
+              icon: "warning",
+              confirmButtonText: "View Pricing Plans",
+              confirmButtonColor: "#0ea5e9"
+            })
+          }
+          return
+        }
+
+        // Trigger physical print after successful deduction
+        printReceiptElement(elementId, {
+          pageWidth,
+          scale: scale / 100,
+          fontSize,
+          density,
+          highContrast,
+          showShopDetails,
+          showCustomer,
+          showTax,
+          showFooter
+        })
+
+        onClose()
+        if (onPrinted) {
+          onPrinted(quota)
+        }
+
+        // Show expiry popup if user just reached 0 remaining prints on free tier
+        if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
+          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
+        }
+      } else {
+        // Guest user: check local quota
+        if (!canPrintFree(userKey)) {
+          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+          return
+        }
+
+        incrementFreePrintCount(userKey)
+
+        printReceiptElement(elementId, {
+          pageWidth,
+          scale: scale / 100,
+          fontSize,
+          density,
+          highContrast,
+          showShopDetails,
+          showCustomer,
+          showTax,
+          showFooter
+        })
+
+        onClose()
+        if (onPrinted) {
+          onPrinted()
+        }
+
+        const plan = getActivePlanDetails(userKey)
+        if (plan?.isFreeTier && Number(plan.printsRemaining) <= 0) {
+          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+        }
+      }
+    } catch (err) {
+      console.error("Failed to execute print:", err)
+      if (toastError) toastError(err.message || "Failed to print receipt")
+    } finally {
+      isPrintingRef.current = false
+      setIsSubmittingPrint(false)
     }
   }
 
   const handleSavePdf = async () => {
-    incrementFreePrintCount()
+    if (isPrintingRef.current || isSubmittingPrint) return
+    isPrintingRef.current = true
+    setIsSubmittingPrint(true)
 
-    await saveReceiptAsPdf(elementId, {
-      pageWidth,
-      scale: scale / 100,
-      fontSize,
-      density,
-      highContrast,
-      showShopDetails,
-      showCustomer,
-      showTax,
-      showFooter
-    })
-    onClose()
-    if (onPrinted) {
-      onPrinted()
+    const userKey = user?.email || user?.id || getCurrentUserKey(user)
+    const token = typeof window !== "undefined" ? (localStorage.getItem("slipzo_token") || localStorage.getItem("slipzo_admin_token")) : null
+    const userInfo = typeof window !== "undefined" ? localStorage.getItem("slipzo_user_info") : null
+    const isLoggedIn = Boolean(user || token || userInfo)
+
+    try {
+      if (isLoggedIn) {
+        let quota = null
+        try {
+          const res = await call("/subscriptions/consume-print", {
+            method: "POST"
+          })
+          if (res && res.quota) {
+            quota = res.quota
+            syncUserQuota(res.quota, userKey)
+          }
+        } catch (err) {
+          console.error("Print quota deduction failed for PDF:", err)
+          const errMsg = err?.detail || err?.message || "No print credits available"
+          const plan = getActivePlanDetails(userKey)
+
+          if (plan?.isFreeTier || errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("0 prints") || errMsg.toLowerCase().includes("exhausted")) {
+            window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+          } else {
+            Swal.fire({
+              title: "Print Quota Limit Reached",
+              text: errMsg,
+              icon: "warning",
+              confirmButtonText: "View Pricing Plans",
+              confirmButtonColor: "#0ea5e9"
+            })
+          }
+          return
+        }
+
+        await saveReceiptAsPdf(elementId, {
+          pageWidth,
+          scale: scale / 100,
+          fontSize,
+          density,
+          highContrast,
+          showShopDetails,
+          showCustomer,
+          showTax,
+          showFooter
+        })
+
+        onClose()
+        if (onPrinted) {
+          onPrinted(quota)
+        }
+
+        if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
+          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
+        }
+      } else {
+        if (!canPrintFree(userKey)) {
+          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+          return
+        }
+
+        incrementFreePrintCount(userKey)
+
+        await saveReceiptAsPdf(elementId, {
+          pageWidth,
+          scale: scale / 100,
+          fontSize,
+          density,
+          highContrast,
+          showShopDetails,
+          showCustomer,
+          showTax,
+          showFooter
+        })
+
+        onClose()
+        if (onPrinted) {
+          onPrinted()
+        }
+
+        const plan = getActivePlanDetails(userKey)
+        if (plan?.isFreeTier && Number(plan.printsRemaining) <= 0) {
+          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+        }
+      }
+    } catch (err) {
+      console.error("Failed to save PDF:", err)
+      if (toastError) toastError(err.message || "Failed to save PDF")
+    } finally {
+      isPrintingRef.current = false
+      setIsSubmittingPrint(false)
     }
   }
 
@@ -469,13 +636,14 @@ export function PrintModal({
 
         {/* Footer Actions: Cancel + Save as PDF + Print Receipt */}
         <div className="print-modal-footer print-modal-footer--single-row" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button type="button" className="secondary-button" onClick={onClose} style={{ flex: '1 1 auto' }}>
+          <button type="button" className="secondary-button" onClick={onClose} disabled={isSubmittingPrint} style={{ flex: '1 1 auto' }}>
             Cancel
           </button>
           <button 
             type="button" 
             className="secondary-button" 
             onClick={handleSavePdf}
+            disabled={isSubmittingPrint}
             style={{
               flex: '1 1 auto',
               background: '#f0f9ff',
@@ -491,10 +659,25 @@ export function PrintModal({
             <Download size={15} />
             <span>Save as PDF</span>
           </button>
-          <button type="button" className="primary-button print-main-cta" onClick={handlePrint} style={{ flex: '1 1 auto' }}>
-            <Printer size={15} />
-            <span className="cta-full-text">Print {pageWidth} Receipt</span>
-            <span className="cta-short-text">Print {pageWidth}</span>
+          <button
+            type="button"
+            className="primary-button print-main-cta"
+            onClick={handlePrint}
+            disabled={isSubmittingPrint}
+            style={{
+              flex: '1 1 auto',
+              ...(isSubmittingPrint ? { opacity: 0.8, cursor: "not-allowed" } : {})
+            }}
+          >
+            {isSubmittingPrint ? (
+              <ButtonLoader text="Printing..." size={15} />
+            ) : (
+              <>
+                <Printer size={15} />
+                <span className="cta-full-text">Print {pageWidth} Receipt</span>
+                <span className="cta-short-text">Print {pageWidth}</span>
+              </>
+            )}
           </button>
         </div>
       </div>

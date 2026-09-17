@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react"
 import { ArrowLeft, Printer, User } from "lucide-react"
-import { call, money, cleanTextLines } from "../lib/utils"
+import { call, money, cleanTextLines, canPrintFree, getActivePlanDetails } from "../lib/utils"
 import { printReceiptElement } from "../lib/printReceipt"
 import { PrintModal } from "./PrintModal"
 import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
+import Swal from "sweetalert2"
 
-export function Reprint({ billId, setView }) {
+export function Reprint({ billId, setView, requireAuth, user }) {
   const [bill, setBill] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -74,6 +75,24 @@ export function Reprint({ billId, setView }) {
   }
 
   const printReceipt = () => {
+    const userKey = user?.email || user?.id
+    if (!canPrintFree(userKey)) {
+      const plan = getActivePlanDetails(userKey)
+      if (plan?.isFreeTier) {
+        window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+      } else {
+        Swal.fire({
+          title: "Print Quota Reached",
+          text: "You have used all available prints in your plan. Please select a plan to add print credits and continue.",
+          icon: "warning",
+          confirmButtonText: "View Pricing Plans",
+          confirmButtonColor: "#0ea5e9"
+        }).then(() => {
+          setView?.("pricing")
+        })
+      }
+      return
+    }
     setShowPrintModal(true)
   }
 
@@ -376,6 +395,7 @@ export function Reprint({ billId, setView }) {
         onClose={() => setShowPrintModal(false)}
         defaultWidth={printFormat}
         elementId="receipt-to-print"
+        user={user}
       />
     </div>
   )

@@ -10,6 +10,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
   const [price, setPrice] = useState("")
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState("")
+  const [completing, setCompleting] = useState(false)
 
   const { success: toastSuccess, error: toastError } = useToast()
 
@@ -90,12 +91,22 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
     }
   }
 
-  const handleFinish = () => {
-    if (user?.id) {
-      localStorage.setItem(`slipzo_items_setup_${user.id}`, "true")
+  const handleFinish = async () => {
+    if (completing) return
+    setCompleting(true)
+    try {
+      if (user?.id) {
+        localStorage.setItem(`slipzo_items_setup_${user.id}`, "true")
+      }
+      if (onContinue) {
+        await onContinue()
+      }
+      onClose()
+    } catch (err) {
+      console.error("Error completing items setup:", err)
+    } finally {
+      setCompleting(false)
     }
-    onContinue?.()
-    onClose()
   }
 
   return (
@@ -296,6 +307,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
             type="button"
             className="secondary-button add-items-skip-btn"
             onClick={handleFinish}
+            disabled={completing}
           >
             Skip for now
           </button>
@@ -303,8 +315,15 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
             type="button"
             className="primary-button add-items-continue-btn"
             onClick={handleFinish}
+            disabled={completing}
           >
-            <span>Continue to Billing</span> <ArrowRight size={16} />
+            {completing ? (
+              <span>Claiming Reward...</span>
+            ) : (
+              <>
+                <span>Continue</span> <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </div>
 

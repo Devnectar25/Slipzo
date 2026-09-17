@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle, FileText, Percent } from "lucide-react"
+import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle } from "lucide-react"
 import { call, findTemplateMatch } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -26,15 +26,11 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
-  const [gstin, setGstin] = useState("")
-  const [showTax, setShowTax] = useState(1) // 1 = Tax Included, 2 = Tax Extra, 0 = No Tax
-  const [taxRate, setTaxRate] = useState(18)
   const [prefix, setPrefix] = useState("SLP")
   const [sequence, setSequence] = useState(1001)
   const [format, setFormat] = useState("PREFIX-DATE-SEQ")
   const [templates, setTemplates] = useState(() => BUILTIN_TEMPLATES)
   const [defaultTemplateId, setDefaultTemplateId] = useState("")
-  const [defaultDiscount, setDefaultDiscount] = useState("0")
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
@@ -61,9 +57,6 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           if (data.name && !data.name.endsWith("'s Shop")) setName(data.name)
           if (data.phone) setPhone(data.phone)
           if (data.address) setAddress(data.address)
-          if (data.gstin) setGstin(data.gstin)
-          if (data.show_tax !== undefined) setShowTax(Number(data.show_tax))
-          if (data.tax_rate !== undefined) setTaxRate(Number(data.tax_rate))
           if (data.invoice_prefix) setPrefix(data.invoice_prefix)
           if (data.invoice_sequence) setSequence(data.invoice_sequence)
           if (data.invoice_format) setFormat(data.invoice_format)
@@ -71,7 +64,6 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
             const matchedDefault = findTemplateMatch(tplList, data.default_template_id)
             setDefaultTemplateId(matchedDefault ? matchedDefault.id : data.default_template_id)
           } else if (tplList[0]?.id) setDefaultTemplateId(tplList[0].id)
-          if (data.default_discount !== undefined) setDefaultDiscount(String(data.default_discount))
         } else if (tplList[0]?.id) {
           setDefaultTemplateId(tplList[0].id)
         }
@@ -187,14 +179,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           name: name.trim(),
           phone: phone.trim(),
           address: address.trim(),
-          gstin: gstin.trim().toUpperCase(),
-          show_tax: Number(showTax),
-          tax_rate: Number(taxRate) || 18,
           invoice_prefix: prefix.trim().toUpperCase(),
           invoice_sequence: Number(sequence),
           invoice_format: format,
-          default_template_id: defaultTemplateId,
-          default_discount: parseFloat(defaultDiscount) || 0
+          default_template_id: defaultTemplateId
         })
       })
 
@@ -203,8 +191,11 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
       }
 
       success("🎉 Shop profile saved! Welcome to Slipzo.")
-      onComplete?.()
-      onClose()
+      if (onComplete) {
+        onComplete()
+      } else {
+        onClose?.()
+      }
     } catch (err) {
       console.error("Failed to save shop details:", err)
       toastError(err.message || "Failed to save shop details.")
@@ -224,25 +215,9 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
   const liveInvoiceNo = previewInvoiceNumber(prefix, sequence, format)
 
-  // Live Tax calculation for preview
+  // Live calculation for preview
   const sampleItemsTotal = 350.00
-  const rateNum = Number(taxRate) || 18
-  let previewSubtotal = sampleItemsTotal
-  let previewTaxAmount = 0
-  let previewTotalPaid = sampleItemsTotal
-
-  if (showTax === 1) { // Tax Included
-    const base = sampleItemsTotal / (1 + (rateNum / 100))
-    previewTaxAmount = sampleItemsTotal - base
-    previewTotalPaid = sampleItemsTotal
-  } else if (showTax === 2) { // Tax Extra
-    previewSubtotal = sampleItemsTotal
-    previewTaxAmount = sampleItemsTotal * (rateNum / 100)
-    previewTotalPaid = sampleItemsTotal + previewTaxAmount
-  } else { // No Tax
-    previewTotalPaid = sampleItemsTotal
-    previewTaxAmount = 0
-  }
+  const previewTotalPaid = sampleItemsTotal
 
   return (
     <div 
@@ -351,72 +326,6 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               )}
             </div>
 
-            {/* GSTIN / Tax ID */}
-            <div className="onboarding-field">
-              <label className="onboarding-label">
-                <FileText size={14} className="field-icon" />
-                <span>GSTIN / Tax ID <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>(Optional)</span></span>
-              </label>
-              <input
-                type="text"
-                maxLength={15}
-                placeholder="e.g. 29ABCDE1234F1ZH"
-                value={gstin}
-                onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                className="onboarding-input"
-              />
-            </div>
-
-            {/* Tax / GST Settings */}
-            <div className="onboarding-field">
-              <label className="onboarding-label">
-                <Percent size={14} className="field-icon" />
-                <span>Tax / GST Inclusion</span>
-              </label>
-              <div className="tax-toggle-group">
-                <button
-                  type="button"
-                  className={`tax-btn ${showTax === 1 ? "active" : ""}`}
-                  onClick={() => setShowTax(1)}
-                >
-                  Tax Included
-                </button>
-                <button
-                  type="button"
-                  className={`tax-btn ${showTax === 2 ? "active" : ""}`}
-                  onClick={() => setShowTax(2)}
-                >
-                  Tax Extra
-                </button>
-                <button
-                  type="button"
-                  className={`tax-btn ${showTax === 0 ? "active" : ""}`}
-                  onClick={() => setShowTax(0)}
-                >
-                  No Tax
-                </button>
-              </div>
-
-              {showTax !== 0 && (
-                <div style={{ marginTop: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 500 }}>Default Tax Rate:</span>
-                  <div style={{ position: 'relative', width: '100px' }}>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      value={taxRate}
-                      onChange={(e) => setTaxRate(e.target.value)}
-                      className="onboarding-input"
-                      style={{ paddingRight: '1.6rem', paddingLeft: '0.6rem' }}
-                    />
-                    <span style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>%</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Invoice Prefix & Starting Sequence */}
             <div className="onboarding-grid-two">
               <div className="onboarding-field">
@@ -469,47 +378,30 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               </div>
             </div>
 
-            <div className="onboarding-row">
-              <div className="onboarding-field">
-                <label className="onboarding-label">
-                  <span>Receipt Template</span>
-                </label>
-                <select
-                  value={defaultTemplateId}
-                  onChange={(e) => setDefaultTemplateId(e.target.value)}
-                  className="onboarding-input"
-                  style={{ background: "#ffffff" }}
-                >
-                  {Array.isArray(templates) && templates.length > 0 ? (
-                    templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.width || "58mm"})
-                      </option>
-                    ))
-                  ) : (
-                    BUILTIN_TEMPLATES.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.width || "58mm"})
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div className="onboarding-field">
-                <label className="onboarding-label">
-                  <span>Default Discount (₹)</span>
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="0"
-                  value={defaultDiscount}
-                  onChange={(e) => setDefaultDiscount(e.target.value)}
-                  className="onboarding-input"
-                />
-              </div>
+            <div className="onboarding-field">
+              <label className="onboarding-label">
+                <span>Receipt Template</span>
+              </label>
+              <select
+                value={defaultTemplateId}
+                onChange={(e) => setDefaultTemplateId(e.target.value)}
+                className="onboarding-input"
+                style={{ background: "#ffffff" }}
+              >
+                {Array.isArray(templates) && templates.length > 0 ? (
+                  templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.width || "58mm"})
+                    </option>
+                  ))
+                ) : (
+                  BUILTIN_TEMPLATES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.width || "58mm"})
+                    </option>
+                  ))
+                )}
+              </select>
             </div>
           </form>
 
@@ -527,7 +419,6 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                   <h3>{name || "Your Shop Name"}</h3>
                   {address ? <p className="mock-addr">{address}</p> : <p className="mock-placeholder-addr">Shop address will appear here</p>}
                   {phone ? <p className="mock-phone">Tel: {phone}</p> : <p className="mock-placeholder-phone">Tel: +91 00000 00000</p>}
-                  {gstin ? <p className="mock-phone" style={{ marginTop: '0.15rem', color: '#1e293b' }}>GSTIN: {gstin}</p> : null}
                 </div>
 
                 <div className="onboarding-mock-meta">
@@ -557,29 +448,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
                 <div className="onboarding-mock-divider" />
 
-                {showTax === 2 && (
-                  <div style={{ fontSize: '0.78em', color: '#334155', display: 'flex', flexDirection: 'column', gap: '0.15rem', marginBottom: '0.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>SUBTOTAL</span>
-                      <span>₹{previewSubtotal.toFixed(2)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>GST ({rateNum}%)</span>
-                      <span>₹{previewTaxAmount.toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
-
                 <div className="onboarding-mock-total">
                   <span>TOTAL PAID</span>
                   <span>₹{previewTotalPaid.toFixed(2)}</span>
                 </div>
-
-                {showTax === 1 && (
-                  <div style={{ textAlign: 'right', fontSize: '0.68em', color: '#475569', marginTop: '0.2rem' }}>
-                    (Includes {rateNum}% GST: ₹{previewTaxAmount.toFixed(2)})
-                  </div>
-                )}
 
                 <div className="onboarding-mock-footer">
                   <p>Thank you for shopping with us!</p>
