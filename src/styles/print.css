@@ -336,4 +336,86 @@
     color: #000000 !important;
     margin: 3px 0 0 0 !important;
   }
+
+  /* Structural Templates Print Rules */
+  .classic-crest {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    border: 1.5px solid #000000 !important;
+    margin: 0 auto 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 900 !important;
+  }
+  .classic-meta-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 3px !important;
+    border: 1px solid #000000 !important;
+    padding: 3px !important;
+    margin: 4px 0 !important;
+  }
+  .classic-meta-grid div { display: flex !important; justify-content: space-between !important; }
+  .classic-divider-double { border-top: 2.5px double #000000 !important; margin: 4px 0 !important; }
+  .classic-items-table { border: 1px solid #000000 !important; margin: 4px 0 !important; }
+  .classic-gst-box { border: 1px dashed #000000 !important; padding: 4px !important; margin: 4px 0 !important; }
+  .classic-gst-box .gst-line { display: flex !important; justify-content: space-between !important; }
+  .classic-grand-banner {
+    border: 2px solid #000000 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 4px 6px !important;
+    font-weight: 900 !important;
+    margin: 4px 0 !important;
+  }
+  .receipt-barcode-wrap { text-align: center !important; margin: 6px 0 2px !important; }
+  .receipt-barcode-bars { font-size: 14px !important; letter-spacing: 2px !important; font-weight: 900 !important; }
+  .receipt-barcode-num { font-size: 10px !important; }
+  .classic-policy-footer { font-size: 9px !important; text-align: center !important; border-top: 1px solid #000000 !important; padding-top: 4px !important; margin-top: 4px !important; }
+
+  /* Minimal */
+  .minimal-dot-logo { display: none !important; }
+  .minimal-meta-clean { display: flex !important; justify-content: space-between !important; margin: 4px 0 !important; border-bottom: 1px solid #000000 !important; }
+  .minimal-item-entry { display: flex !important; justify-content: space-between !important; padding: 3px 0 !important; border-bottom: 0.5px solid #ccc !important; }
+  .minimal-total-hero { display: flex !important; justify-content: space-between !important; border-top: 2px solid #000000 !important; padding-top: 4px !important; margin-top: 4px !important; font-weight: 900 !important; }
+  .minimal-paid-stamp { border: 1px solid #000000 !important; padding: 2px 6px !important; font-weight: 800 !important; display: inline-block !important; margin: 4px auto !important; }
+
+  /* Pro */
+  .pro-store-ribbon { border: 1.5px solid #000000 !important; padding: 4px !important; text-align: center !important; margin-bottom: 4px !important; }
+  .pro-meta-bar { display: grid !important; grid-template-columns: 1fr 1fr !important; border: 1px solid #000000 !important; padding: 3px !important; margin-bottom: 4px !important; }
+  .pro-meta-bar div { display: flex !important; justify-content: space-between !important; }
+  .pro-savings-banner { border: 1.5px dashed #000000 !important; padding: 4px !important; text-align: center !important; font-weight: 800 !important; margin: 4px 0 !important; }
+  .pro-loyalty-widget { border: 1px solid #000000 !important; padding: 4px !important; margin: 4px 0 !important; }
+  .pro-loyalty-header { display: flex !important; justify-content: space-between !important; font-weight: 800 !important; }
+  .pro-upi-card { border: 1px solid #000000 !important; padding: 4px !important; text-align: center !important; margin: 4px 0 !important; }
+  .pro-upi-badge { border: 1px solid #000000 !important; display: inline-block !important; padding: 1px 4px !important; font-weight: 800 !important; font-size: 10px !important; margin-bottom: 2px !important; }
+
+  /* Eco */
+  .eco-sawtooth-top, .eco-sawtooth-bottom { border-top: 1px dashed #000000 !important; margin: 3px 0 !important; }
+  .eco-header-box { border: 1px dashed #000000 !important; text-align: center !important; padding: 3px 0 !important; margin-bottom: 4px !important; }
+  .eco-token-line { display: flex !important; justify-content: space-between !important; border-bottom: 1px dotted #000000 !important; padding: 2px 0 !important; font-weight: 800 !important; }
+  .eco-item-row-mono { display: flex !important; justify-content: space-between !important; padding: 1px 0 !important; }
+  .eco-total-box { border: 2px solid #000000 !important; display: flex !important; justify-content: space-between !important; padding: 4px !important; font-weight: 900 !important; margin: 4px 0 !important; }
+  .eco-paper-saver-badge { font-weight: 800 !important; font-size: 10px !important; text-align: center !important; margin-top: 4px !important; }
+
+  /* Modern */
+  .modern-boutique-pill { border: 1px solid #000000 !important; padding: 1px 6px !important; font-weight: 800 !important; display: inline-block !important; margin-bottom: 4px !important; }
+  .modern-client-card { border: 1px solid #000000 !important; padding: 3px !important; display: flex !important; justify-content: space-between !important; margin: 4px 0 !important; }
+  .modern-item-card { border-bottom: 1px solid #000000 !important; padding: 3px 0 !important; display: flex !important; justify-content: space-between !important; }
+  .modern-social-card { border-top: 1px solid #000000 !important; padding-top: 4px !important; margin-top: 4px !important; text-align: center !important; }
+
+  /* Elite */
+  .elite-tax-banner { border: 1.5px solid #000000 !important; padding: 3px 6px !important; font-weight: 900 !important; display: flex !important; justify-content: space-between !important; margin-bottom: 4px !important; }
+  .elite-parties-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 4px !important; margin-bottom: 4px !important; }
+  .elite-party-card { border: 1px solid #000000 !important; padding: 4px !important; font-size: 10px !important; }
+  .elite-party-card .party-role { font-weight: 800 !important; text-transform: uppercase !important; font-size: 9px !important; margin-bottom: 2px !important; }
+  .elite-tax-analysis-table { width: 100% !important; border-collapse: collapse !important; margin: 4px 0 !important; border: 1px solid #000000 !important; font-size: 10px !important; }
+  .elite-tax-analysis-table th, .elite-tax-analysis-table td { border: 1px solid #000000 !important; padding: 2px 4px !important; text-align: right !important; }
+  .elite-tax-analysis-table th:first-child, .elite-tax-analysis-table td:first-child { text-align: left !important; }
+  .elite-amount-words { border-left: 2px solid #000000 !important; padding-left: 4px !important; margin: 4px 0 !important; font-size: 10px !important; }
+  .elite-bank-block { border: 1px dashed #000000 !important; padding: 3px !important; margin: 4px 0 !important; font-size: 10px !important; }
+  .elite-signatory-stamp { text-align: right !important; margin-top: 8px !important; }
+  .elite-sign-rule { width: 100px !important; margin-left: auto !important; border-top: 1px solid #000000 !important; margin-bottom: 2px !important; }
 }

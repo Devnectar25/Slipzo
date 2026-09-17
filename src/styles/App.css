@@ -2353,6 +2353,230 @@ body.is-native-app .public-footer,
   font-style: italic;
 }
 
+/* Structural Mini Receipt Elements */
+.mini-header-classic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.15rem;
+  margin-bottom: 0.3rem;
+}
+
+.mini-crest-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.6rem;
+  color: #0284c7;
+  background: #f0f9ff;
+  margin-bottom: 0.1rem;
+}
+
+.mini-gst-tag {
+  font-size: 0.42rem;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: 0.3px;
+}
+
+.mini-meta-grid {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.46rem;
+  color: #334155;
+  padding: 0.15rem 0;
+}
+
+.mini-meta-grid b {
+  color: #0f172a;
+}
+
+.mini-barcode-line {
+  font-family: 'Libre Barcode 39', 'Courier New', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  text-align: center;
+  color: #1e293b;
+  margin: 0.25rem 0 0.1rem;
+}
+
+.mini-policy-note {
+  font-size: 0.4rem;
+  color: #64748b;
+  text-align: center;
+  border-top: 1px dashed #e2e8f0;
+  padding-top: 0.15rem;
+  margin-top: 0.15rem;
+}
+
+.mini-savings-pill {
+  background: #ecfdf5;
+  border: 1px dashed #10b981;
+  color: #047857;
+  font-size: 0.46rem;
+  font-weight: 700;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  text-align: center;
+  margin: 0.2rem 0;
+}
+
+.mini-loyalty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 0.05rem;
+}
+
+.mini-loyalty-pts {
+  font-size: 0.48rem;
+  font-weight: 700;
+  color: #d97706;
+}
+
+.mini-loyalty-wrap small {
+  font-size: 0.4rem;
+  color: #64748b;
+}
+
+.mini-sawtooth-cut {
+  height: 4px;
+  width: 100%;
+  background: radial-gradient(circle, transparent, transparent 50%, #ffffff 50%, #ffffff 100%);
+  background-size: 6px 6px;
+  margin: 0.2rem 0;
+  opacity: 0.7;
+}
+
+.mini-eco-badge {
+  font-size: 0.42rem;
+  font-weight: 700;
+  color: #0f766e;
+  text-align: center;
+  letter-spacing: 0.3px;
+  margin-top: 0.2rem;
+}
+
+.mini-customer-tag {
+  font-size: 0.44rem;
+  color: #6366f1;
+  background: #eef2ff;
+  border-radius: 4px;
+  padding: 0.08rem 0.3rem;
+  display: inline-block;
+  margin-bottom: 0.2rem;
+  font-weight: 600;
+}
+
+.mini-dual-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 0.2rem 0.3rem;
+  margin: 0.2rem 0;
+}
+
+.mini-party-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.mini-party-col small {
+  font-size: 0.38rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.mini-party-col b {
+  font-size: 0.48rem;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-party-col span {
+  font-size: 0.4rem;
+  color: #475569;
+}
+
+.mini-item-elite-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.5rem;
+  color: #1e293b;
+  padding: 0.08rem 0;
+}
+
+.mini-signatory-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 0.3rem;
+}
+
+.mini-sign-line {
+  width: 45px;
+  height: 1px;
+  background: #94a3b8;
+  margin-bottom: 0.1rem;
+}
+
+.mini-signatory-block span {
+  font-size: 0.4rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.mini-paid-badge-minimal {
+  display: inline-block;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 0.42rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  margin-top: 0.25rem;
+  text-align: center;
+  align-self: center;
+}
+
+.mini-subtext-muted {
+  font-size: 0.44rem;
+  color: #94a3b8;
+}
+
+.mini-meta-minimal {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.44rem;
+  color: #64748b;
+  margin-bottom: 0.2rem;
+}
+
+.mini-thank-subtle {
+  font-size: 0.42rem;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+
 /* ==========================================================================
    LANDING TEMPLATES SHOWCASE GRID (Fix for broken unbordered cards & collapsed buttons)
    ========================================================================== */
@@ -4671,7 +4895,7 @@ body.is-native-app .public-footer,
 }
 
 .template-showcase-card.dashboard-card {
-  padding: 1rem 1rem 0.85rem;
+  padding: 1.25rem 1rem 1rem;
   border-radius: 14px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -8706,13 +8930,17 @@ body.is-native-app .public-footer,
   background: white;
   border-radius: 14px;
   border: 1px solid #e2e8f0;
-  padding: 1rem 1rem 0.85rem;
+  padding: 1.25rem 1rem 1rem;
   display: flex;
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   position: relative;
   overflow: hidden;
+}
+
+.template-card-top {
+  margin-bottom: 0.6rem;
 }
 
 .template-showcase-card:hover {
@@ -8781,26 +9009,41 @@ body.is-native-app .public-footer,
 }
 
 .template-desc {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: #64748b;
-  line-height: 1.4;
-  margin-bottom: 0.75rem;
+  line-height: 1.45;
+  margin-bottom: 0.65rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .template-receipt-preview {
   background: #f8fafc;
   border-radius: 10px;
-  padding: 0.5rem;
+  padding: 0.65rem 0.5rem;
   border: 1px dashed #cbd5e1;
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
   margin-bottom: 0.75rem;
+  min-height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .template-receipt-preview:hover {
   border-color: #0f172a;
   background: #f8fafc;
+}
+
+.template-receipt-preview .mini-receipt {
+  box-shadow: none;
+  border: none;
+  max-width: 185px;
+  width: 100%;
 }
 
 .mock-receipt {
@@ -8889,17 +9132,22 @@ body.is-native-app .public-footer,
 .template-features-list {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 0.85rem;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
   flex: 1;
+  padding: 0.5rem 0.55rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
 }
 
 .template-feat-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.4rem;
-  font-size: 0.76rem;
+  font-size: 0.73rem;
   color: #475569;
+  line-height: 1.4;
 }
 
 .template-card-actions {
@@ -9163,33 +9411,55 @@ body.is-native-app .public-footer,
 .template-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .template-modal-card {
   background: white;
   border-radius: 20px;
   width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
+  max-width: 500px;
+  max-height: 88vh;
+  height: auto;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 24px 50px -12px rgba(15, 23, 42, 0.3), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  position: relative;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  animation: templateModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes templateModalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .template-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
+  padding: 1.15rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  flex-shrink: 0;
+  z-index: 2;
 }
 
 .template-modal-header h3 {
@@ -9231,24 +9501,82 @@ body.is-native-app .public-footer,
 }
 
 .template-modal-receipt-wrapper {
-  padding: 1.5rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: calc(88vh - 145px);
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: #f1f5f9;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
+  padding: 1.5rem 1.25rem 2.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.template-modal-receipt-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.template-modal-receipt-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0.5rem 0;
+}
+
+.template-modal-receipt-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+.template-modal-receipt-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .realistic-thermal-receipt {
   width: 100%;
   max-width: 380px;
   background: #ffffff;
-  padding: 1.75rem 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.8rem;
   color: #1e293b;
   position: relative;
   border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin: 0 auto;
+}
+
+.receipt-paper-top {
+  height: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    #f1f5f9 0px,
+    #f1f5f9 6px,
+    transparent 6px,
+    transparent 8px
+  );
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.receipt-paper-bottom {
+  height: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    #f1f5f9 0px,
+    #f1f5f9 6px,
+    transparent 6px,
+    transparent 8px
+  );
+  border-top: 1px solid #e2e8f0;
+}
+
+.receipt-content {
+  padding: 1.25rem;
 }
 
 .thermal-header {
@@ -9383,9 +9711,11 @@ body.is-native-app .public-footer,
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  padding: 1.25rem 1.5rem;
+  padding: 1.15rem 1.5rem;
   border-top: 1px solid #e2e8f0;
   background: white;
+  flex-shrink: 0;
+  z-index: 2;
 }
 
 /* ============================================
@@ -10437,19 +10767,805 @@ body.is-native-app .public-footer,
   background: #94a3b8;
 }
 
-/* Template style variants for live receipt */
-.tpl-style-4 {
-  font-family: 'Courier New', Courier, monospace !important;
+/* ==========================================================================
+   STRUCTURAL & PREMIUM RECEIPT TEMPLATES SYSTEM
+   ========================================================================== */
+
+/* Template Switcher Toolbar in Billing Preview Header */
+.preview-template-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.4rem 0.65rem;
+  margin-bottom: 0.85rem;
 }
 
-.tpl-style-4 .receipt-shop-name {
-  text-transform: uppercase;
+.preview-tpl-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.preview-template-select {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.preview-template-select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.preview-template-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.preview-template-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.tpl-pill-btn {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tpl-pill-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.tpl-pill-btn.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+}
+
+/* ==========================================================================
+   TEMPLATE 1: CLASSIC RECEIPT (.tpl-style-classic)
+   ========================================================================== */
+.tpl-style-classic {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  border: 1.5px solid #0f172a !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+}
+
+.tpl-style-classic .receipt-shop {
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 0.65rem;
+}
+
+.classic-crest {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid #0284c7;
+  background: #f0f9ff;
+  color: #0284c7;
+  font-weight: 900;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.4rem;
+}
+
+.classic-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem 0.6rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  margin: 0.5rem 0;
+  font-size: 0.72rem;
+}
+
+.classic-meta-grid div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.classic-meta-grid span {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.classic-meta-grid b {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.classic-divider-double {
+  border: none;
+  border-top: 3px double #0f172a;
+  margin: 0.6rem 0;
+}
+
+.classic-items-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+}
+
+.classic-items-table .receipt-items-header {
+  background: #f1f5f9;
+  border-bottom: 1.5px solid #0f172a;
+  padding: 0.4rem 0.5rem;
+  font-weight: 800;
+  font-size: 0.7rem;
   letter-spacing: 0.5px;
 }
 
-.tpl-style-6 {
-  border: 2px double #0284c7 !important;
+.classic-items-table .receipt-item-row {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
 }
+
+.classic-items-table .receipt-item-row:last-child {
+  border-bottom: none;
+}
+
+.classic-gst-box {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  margin: 0.5rem 0;
+  font-size: 0.72rem;
+}
+
+.classic-gst-box .gst-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+  color: #475569;
+}
+
+.classic-grand-banner {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 900;
+  font-size: 0.95rem;
+  margin: 0.6rem 0;
+}
+
+.classic-grand-banner span:last-child {
+  font-size: 1.05rem;
+  letter-spacing: 0.3px;
+}
+
+.receipt-barcode-wrap {
+  text-align: center;
+  margin: 0.65rem 0 0.35rem;
+}
+
+.receipt-barcode-bars {
+  font-family: monospace;
+  font-size: 1.35rem;
+  letter-spacing: 3px;
+  color: #0f172a;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.receipt-barcode-num {
+  font-size: 0.65rem;
+  color: #64748b;
+  letter-spacing: 1px;
+  margin-top: 0.15rem;
+}
+
+.classic-policy-footer {
+  font-size: 0.66rem;
+  color: #64748b;
+  text-align: center;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.45rem;
+  margin-top: 0.45rem;
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   TEMPLATE 2: MINIMAL CLEAN BILL (.tpl-style-minimal)
+   ========================================================================== */
+.tpl-style-minimal {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.tpl-style-minimal .receipt-shop {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.75rem;
+}
+
+.minimal-dot-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0ea5e9;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.4rem;
+}
+
+.minimal-meta-clean {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  font-size: 0.7rem;
+  color: #64748b;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.minimal-item-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.minimal-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.minimal-item-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.minimal-item-sub {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.minimal-item-price {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.minimal-total-hero {
+  padding: 0.75rem 0 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-top: 1.5px solid #0f172a;
+  margin-top: 0.5rem;
+}
+
+.minimal-total-hero span:first-child {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #475569;
+}
+
+.minimal-total-hero span:last-child {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #0ea5e9;
+}
+
+.minimal-paid-stamp {
+  display: inline-block;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-top: 0.4rem;
+}
+
+/* ==========================================================================
+   TEMPLATE 3: SHOP PRO (RETAIL POS) (.tpl-style-pro)
+   ========================================================================== */
+.tpl-style-pro {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  border-top: 5px solid #2563eb !important;
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.1);
+}
+
+.pro-store-ribbon {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  text-align: center;
+  margin-bottom: 0.65rem;
+}
+
+.pro-store-ribbon h2 {
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  margin: 0;
+  color: #ffffff !important;
+}
+
+.pro-store-ribbon p {
+  font-size: 0.65rem;
+  opacity: 0.9;
+  margin: 0.15rem 0 0;
+}
+
+.pro-meta-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  margin-bottom: 0.65rem;
+}
+
+.pro-meta-bar div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pro-savings-banner {
+  background: #ecfdf5;
+  border: 1.5px dashed #059669;
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  text-align: center;
+  color: #047857;
+  font-weight: 800;
+  font-size: 0.78rem;
+  margin: 0.65rem 0;
+  letter-spacing: 0.2px;
+}
+
+.pro-savings-banner span {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #059669;
+  margin-top: 0.1rem;
+}
+
+.pro-loyalty-widget {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.6rem 0;
+  font-size: 0.72rem;
+}
+
+.pro-loyalty-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 800;
+  color: #b45309;
+  margin-bottom: 0.2rem;
+}
+
+.pro-loyalty-sub {
+  color: #92400e;
+  font-size: 0.66rem;
+}
+
+.pro-upi-card {
+  border: 1.5px solid #2563eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.6rem;
+  text-align: center;
+  margin: 0.65rem 0;
+}
+
+.pro-upi-badge {
+  display: inline-block;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.35rem;
+}
+
+.pro-upi-id {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pro-upi-sub {
+  font-size: 0.64rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+/* ==========================================================================
+   TEMPLATE 4: ECO PRINT (THERMAL MONOSPACE) (.tpl-style-eco)
+   ========================================================================== */
+.tpl-style-eco {
+  font-family: ui-monospace, SFMono-Regular, "Space Mono", "Courier New", Courier, monospace !important;
+  background: #fafaf9 !important;
+  border: 1px dashed #0d9488 !important;
+  box-shadow: none !important;
+}
+
+.eco-sawtooth-top,
+.eco-sawtooth-bottom {
+  height: 6px;
+  width: 100%;
+  background: repeating-linear-gradient(45deg, #0d9488, #0d9488 4px, transparent 4px, transparent 8px);
+  margin: 0.35rem 0;
+  opacity: 0.8;
+}
+
+.eco-header-box {
+  text-align: center;
+  padding: 0.4rem 0;
+  border-top: 1px dashed #0d9488;
+  border-bottom: 1px dashed #0d9488;
+  margin-bottom: 0.5rem;
+}
+
+.eco-header-box h2 {
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.eco-token-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0;
+  border-bottom: 1px dotted #94a3b8;
+  margin-bottom: 0.45rem;
+}
+
+.eco-items-mono {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.eco-item-row-mono {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.eco-total-box {
+  border: 2px solid #0f172a;
+  padding: 0.45rem 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 900;
+  font-size: 0.92rem;
+  margin: 0.55rem 0;
+}
+
+.eco-paper-saver-badge {
+  background: #ccfbf1;
+  color: #0f766e;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  margin-top: 0.45rem;
+}
+
+/* ==========================================================================
+   TEMPLATE 5: MODERN SHOP (BOUTIQUE & SALON) (.tpl-style-modern)
+   ========================================================================== */
+.tpl-style-modern {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  border-radius: 16px !important;
+  border: 1px solid #e0f2fe !important;
+  box-shadow: 0 8px 30px rgba(14, 165, 233, 0.1) !important;
+}
+
+.modern-boutique-pill {
+  display: inline-block;
+  background: #0ea5e9;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 20px;
+  margin-bottom: 0.4rem;
+}
+
+.modern-client-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.4rem 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  margin: 0.5rem 0;
+}
+
+.modern-client-card span {
+  color: #166534;
+  font-weight: 700;
+}
+
+.modern-client-card small {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.modern-item-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.modern-item-card .item-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.modern-item-card .item-name {
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #0f172a;
+}
+
+.modern-item-card .item-details {
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.modern-item-card .item-amt-badge {
+  background: #e0f2fe;
+  color: #0284c7;
+  font-weight: 800;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+}
+
+.modern-social-card {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 0.55rem;
+  text-align: center;
+  margin-top: 0.65rem;
+  border: 1px solid #f1f5f9;
+}
+
+.modern-social-card p {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.modern-social-card small {
+  font-size: 0.64rem;
+  color: #64748b;
+  display: block;
+  margin-top: 0.15rem;
+}
+
+/* ==========================================================================
+   TEMPLATE 6: BUSINESS ELITE (FORMAL TAX INVOICE) (.tpl-style-elite)
+   ========================================================================== */
+.tpl-style-elite {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  border: 2px solid #0284c7 !important;
+  box-shadow: 0 8px 30px rgba(2, 132, 199, 0.12) !important;
+}
+
+.elite-tax-banner {
+  background: #0284c7;
+  color: #ffffff;
+  padding: 0.45rem 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  margin-bottom: 0.65rem;
+}
+
+.elite-parties-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.elite-party-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  background: #f8fafc;
+  font-size: 0.7rem;
+}
+
+.elite-party-card .party-role {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #0284c7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.2rem;
+}
+
+.elite-party-card h4 {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.15rem;
+}
+
+.elite-party-card p {
+  color: #475569;
+  margin: 0.05rem 0;
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.elite-tax-analysis-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.68rem;
+  margin: 0.6rem 0;
+  border: 1px solid #cbd5e1;
+}
+
+.elite-tax-analysis-table th {
+  background: #f1f5f9;
+  font-weight: 800;
+  color: #334155;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid #cbd5e1;
+  text-align: right;
+}
+
+.elite-tax-analysis-table th:first-child {
+  text-align: left;
+}
+
+.elite-tax-analysis-table td {
+  padding: 0.35rem 0.45rem;
+  border: 1px solid #e2e8f0;
+  text-align: right;
+  color: #1e293b;
+}
+
+.elite-tax-analysis-table td:first-child {
+  text-align: left;
+}
+
+.elite-amount-words {
+  background: #f8fafc;
+  border-left: 3px solid #0284c7;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.68rem;
+  color: #334155;
+  margin: 0.5rem 0;
+}
+
+.elite-amount-words b {
+  color: #0f172a;
+}
+
+.elite-bank-block {
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.68rem;
+  color: #475569;
+  margin: 0.5rem 0;
+}
+
+.elite-bank-block b {
+  color: #0f172a;
+}
+
+.elite-signatory-stamp {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.elite-signatory-stamp p {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 1.5rem;
+}
+
+.elite-sign-rule {
+  width: 130px;
+  border-top: 1px solid #0f172a;
+  margin-bottom: 0.2rem;
+}
+
+.elite-signatory-stamp span {
+  font-size: 0.65rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+/* ============================================
+   MOBILE-FIRST & PWA STANDALONE RESPONSIVE SYSTEM
+   ============================================ */
+
 
 /* ============================================
    MOBILE-FIRST & PWA STANDALONE RESPONSIVE SYSTEM
@@ -10514,7 +11630,6 @@ body,
   }
 
   .modal-card,
-  .template-modal-card,
   .template-modal {
     width: 100% !important;
     max-width: 100% !important;
@@ -10526,8 +11641,18 @@ body,
     padding: 1.25rem !important;
   }
 
+  .template-modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+  }
+
   .modal-card::-webkit-scrollbar,
-  .template-modal-card::-webkit-scrollbar,
   .template-modal::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
@@ -13315,7 +14440,6 @@ body,
   }
 
   .modal-card,
-  .template-modal-card,
   .shop-onboarding-card,
   .new-bill-popup-card,
   .auth-modal-box,

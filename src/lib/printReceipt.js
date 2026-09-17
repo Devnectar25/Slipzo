@@ -19,7 +19,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const isA4 = rawWidth === "a4" || rawWidth === "full"
   const is55 = rawWidth === "55mm" || rawWidth === "55"
   const is80 = rawWidth === "80mm" || rawWidth === "80"
-  
+
   let pageWidth = "80mm"
   if (isA4) {
     pageWidth = "210mm"
@@ -51,12 +51,12 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const totalRowSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : (pageWidth === "55mm" ? "10px" : "11px"))
   const grandTotalSize = isA4 ? "18px" : (pageWidth === "80mm" ? "16px" : (pageWidth === "55mm" ? "13.5px" : "14px"))
   const footerSize = isA4 ? "13px" : (pageWidth === "80mm" ? "11.5px" : (pageWidth === "55mm" ? "9.5px" : "10.5px"))
-  const gridColumns = isA4 
-    ? "2.5fr 0.6fr 1fr 1fr" 
-    : (pageWidth === "80mm" 
-      ? "2.2fr 0.5fr 1fr 1fr" 
-      : (pageWidth === "55mm" 
-        ? "1.15fr 0.35fr 1.05fr 1.15fr" 
+  const gridColumns = isA4
+    ? "2.5fr 0.6fr 1fr 1fr"
+    : (pageWidth === "80mm"
+      ? "2.2fr 0.5fr 1fr 1fr"
+      : (pageWidth === "55mm"
+        ? "1.15fr 0.35fr 1.05fr 1.15fr"
         : "1.3fr 0.4fr 1.05fr 1.1fr"))
 
   const lineHeight = density === "tight" ? 1.4 : (density === "relaxed" ? 1.75 : 1.55)
@@ -393,6 +393,90 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       font-size: 10px;
       font-weight: 700;
     }
+
+    /* Structural Template Print Styles */
+    .classic-crest {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1.5px solid #000000;
+      margin: 0 auto 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 14px;
+    }
+    .classic-meta-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+      border: 1px solid #000000;
+      padding: 4px;
+      margin: 4px 0;
+      font-size: ${metaSize};
+    }
+    .classic-meta-grid div { display: flex; justify-content: space-between; }
+    .classic-divider-double { border-top: 2.5px double #000000; margin: 4px 0; }
+    .classic-items-table { border: 1px solid #000000; margin: 4px 0; }
+    .classic-gst-box { border: 1px dashed #000000; padding: 4px; margin: 4px 0; }
+    .classic-gst-box .gst-line { display: flex; justify-content: space-between; }
+    .classic-grand-banner {
+      border: 2px solid #000000;
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 6px;
+      font-weight: 900;
+      margin: 4px 0;
+    }
+    .receipt-barcode-wrap { text-align: center; margin: 6px 0 2px; }
+    .receipt-barcode-bars { font-size: 14px; letter-spacing: 2px; font-weight: 900; }
+    .receipt-barcode-num { font-size: 10px; }
+    .classic-policy-footer { font-size: 9px; text-align: center; border-top: 1px solid #000000; padding-top: 4px; margin-top: 4px; }
+
+    /* Minimal */
+    .minimal-dot-logo { display: none !important; }
+    .minimal-meta-clean { display: flex; justify-content: space-between; font-size: ${metaSize}; margin: 4px 0; border-bottom: 1px solid #000000; }
+    .minimal-item-entry { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 0.5px solid #ccc; }
+    .minimal-total-hero { display: flex; justify-content: space-between; border-top: 2px solid #000000; padding-top: 4px; margin-top: 4px; font-weight: 900; }
+    .minimal-paid-stamp { border: 1px solid #000000; padding: 2px 6px; font-weight: 800; display: inline-block; margin: 4px auto; }
+
+    /* Pro */
+    .pro-store-ribbon { border: 1.5px solid #000000; padding: 4px; text-align: center; margin-bottom: 4px; }
+    .pro-meta-bar { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #000000; padding: 3px; font-size: ${metaSize}; margin-bottom: 4px; }
+    .pro-meta-bar div { display: flex; justify-content: space-between; }
+    .pro-savings-banner { border: 1.5px dashed #000000; padding: 4px; text-align: center; font-weight: 800; margin: 4px 0; }
+    .pro-loyalty-widget { border: 1px solid #000000; padding: 4px; margin: 4px 0; }
+    .pro-loyalty-header { display: flex; justify-content: space-between; font-weight: 800; }
+    .pro-upi-card { border: 1px solid #000000; padding: 4px; text-align: center; margin: 4px 0; }
+    .pro-upi-badge { border: 1px solid #000000; display: inline-block; padding: 1px 4px; font-weight: 800; font-size: 10px; margin-bottom: 2px; }
+
+    /* Eco */
+    .eco-sawtooth-top, .eco-sawtooth-bottom { border-top: 1px dashed #000000; margin: 3px 0; }
+    .eco-header-box { border: 1px dashed #000000; text-align: center; padding: 3px 0; margin-bottom: 4px; }
+    .eco-token-line { display: flex; justify-content: space-between; border-bottom: 1px dotted #000000; padding: 2px 0; font-weight: 800; }
+    .eco-item-row-mono { display: flex; justify-content: space-between; padding: 1px 0; }
+    .eco-total-box { border: 2px solid #000000; display: flex; justify-content: space-between; padding: 4px; font-weight: 900; margin: 4px 0; }
+    .eco-paper-saver-badge { font-weight: 800; font-size: 10px; text-align: center; margin-top: 4px; }
+
+    /* Modern */
+    .modern-boutique-pill { border: 1px solid #000000; padding: 1px 6px; font-weight: 800; display: inline-block; margin-bottom: 4px; }
+    .modern-client-card { border: 1px solid #000000; padding: 3px; display: flex; justify-content: space-between; margin: 4px 0; }
+    .modern-item-card { border-bottom: 1px solid #000000; padding: 3px 0; display: flex; justify-content: space-between; }
+    .modern-social-card { border-top: 1px solid #000000; padding-top: 4px; margin-top: 4px; text-align: center; }
+
+    /* Elite */
+    .elite-tax-banner { border: 1.5px solid #000000; padding: 3px 6px; font-weight: 900; display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .elite-parties-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 4px; }
+    .elite-party-card { border: 1px solid #000000; padding: 4px; font-size: 10px; }
+    .elite-party-card .party-role { font-weight: 800; text-transform: uppercase; font-size: 9px; margin-bottom: 2px; }
+    .elite-tax-analysis-table { width: 100%; border-collapse: collapse; margin: 4px 0; border: 1px solid #000000; font-size: 10px; }
+    .elite-tax-analysis-table th, .elite-tax-analysis-table td { border: 1px solid #000000; padding: 2px 4px; text-align: right; }
+    .elite-tax-analysis-table th:first-child, .elite-tax-analysis-table td:first-child { text-align: left; }
+    .elite-amount-words { border-left: 2px solid #000000; padding-left: 4px; margin: 4px 0; font-size: 10px; }
+    .elite-bank-block { border: 1px dashed #000000; padding: 3px; margin: 4px 0; font-size: 10px; }
+    .elite-signatory-stamp { text-align: right; margin-top: 8px; }
+    .elite-sign-rule { width: 100px; margin-left: auto; border-top: 1px solid #000000; margin-bottom: 2px; }
   `
 
   // Accurately measure the receipt height before opening print window
