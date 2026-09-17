@@ -19,7 +19,7 @@ import {
   Utensils,
   List
 } from "lucide-react"
-import { getRemainingFreePrints, getActivePlanDetails } from "../lib/utils"
+import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call } from "../lib/utils"
 
 const navItems = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard, protected: false },
@@ -44,16 +44,35 @@ const mobileNavItems = [
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const [isOpen, setIsOpen] = useState(false)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
-  const userKey = user?.email || user?.id
-  const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
+  const userKey = getCurrentUserKey(user)
+  const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
 
   useEffect(() => {
+    let isMounted = true
+    const currentKey = getCurrentUserKey(user)
+
+    const fetchFreshQuota = async () => {
+      if (!user) return
+      try {
+        const subRes = await call("/subscriptions/my")
+        if (subRes && subRes.quota && isMounted) {
+          const synced = syncUserQuota(subRes.quota, currentKey)
+          if (synced) setActivePlan(synced)
+        }
+      } catch (err) {
+        console.warn("Could not fetch user quota in Shell:", err)
+      }
+    }
+
+    fetchFreshQuota()
+
     const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails(user?.email || user?.id))
+      setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)
     return () => {
+      isMounted = false
       window.removeEventListener("slipzo-quota-update", handleUpdate)
       window.removeEventListener("storage", handleUpdate)
     }
@@ -329,7 +348,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           <button
             data-testid="logout-button"
             className="logout"
-            onClick={onLogout}
+            onClick={(e) => {
+              e.preventDefault()
+              setIsOpen(false)
+              if (onLogout) onLogout()
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -428,13 +451,17 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           top: 0 !important;
           left: 0 !important;
           right: 0 !important;
-          height: 56px !important;
+          min-height: calc(56px + env(safe-area-inset-top, 0px)) !important;
+          height: auto !important;
           background: #ffffff !important;
           border-bottom: 1px solid #e2e8f0 !important;
           display: flex !important;
           align-items: center !important;
           justify-content: space-between !important;
-          padding: 0 1.25rem !important;
+          padding-top: max(calc(env(safe-area-inset-top, 0px) + 6px), 12px) !important;
+          padding-bottom: 10px !important;
+          padding-left: 1.25rem !important;
+          padding-right: 1.25rem !important;
           z-index: 70 !important;
           box-sizing: border-box !important;
           width: 100% !important;
@@ -495,6 +522,14 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
            DESKTOP STYLES
            ============================================ */
         @media (min-width: 769px) {
+          .app-shell:not(.desktop-collapsed) .shell-header-brand {
+            display: none !important;
+          }
+
+          .app-shell.desktop-collapsed .shell-header-brand {
+            display: flex !important;
+          }
+
           .app-shell .main {
             margin-left: 280px !important;
             padding: 0 !important;
@@ -548,6 +583,15 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             padding: 0 !important;
           }
 
+          .shell-static-header {
+            padding-top: max(calc(env(safe-area-inset-top, 0px) + 28px), 32px) !important;
+            padding-bottom: 12px !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            min-height: calc(56px + max(env(safe-area-inset-top, 0px), 28px)) !important;
+            height: auto !important;
+          }
+
           .main-content-scroll {
             padding: 0.75rem 0.65rem calc(72px + env(safe-area-inset-bottom, 0px)) 0.65rem !important;
             margin-bottom: 0 !important;
@@ -574,7 +618,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             height: 100dvh !important;
             max-height: 100dvh !important;
             overflow: hidden !important;
-            padding: 0.75rem 1rem max(0.65rem, env(safe-area-inset-bottom, 0.65rem)) 1rem !important;
+            padding: max(calc(env(safe-area-inset-top, 0px) + 28px), 32px) 1rem max(0.65rem, env(safe-area-inset-bottom, 0.65rem)) 1rem !important;
             box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12) !important;
             width: 280px !important;
             max-width: 85vw !important;

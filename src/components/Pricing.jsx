@@ -1,20 +1,39 @@
 import { useState, useEffect } from "react"
 import { ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, ShieldCheck, HelpCircle, Printer, RefreshCw } from "lucide-react"
 import Swal from "sweetalert2"
-import { getActivePlanDetails, activatePlan, syncUserQuota, call } from "../lib/utils"
+import { getActivePlanDetails, activatePlan, syncUserQuota, call, getCurrentUserKey } from "../lib/utils"
 
 export function Pricing({ setView, setShowAuth, user }) {
   const [customPrints, setCustomPrints] = useState(2500)
-  const userKey = user?.email || user?.id
-  const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
+  const userKey = getCurrentUserKey(user)
+  const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
 
   useEffect(() => {
+    let isMounted = true
+    const currentKey = getCurrentUserKey(user)
+
+    const fetchFreshQuota = async () => {
+      if (!user) return
+      try {
+        const subRes = await call("/subscriptions/my")
+        if (subRes && subRes.quota && isMounted) {
+          const synced = syncUserQuota(subRes.quota, currentKey)
+          if (synced) setActivePlan(synced)
+        }
+      } catch (err) {
+        console.warn("Could not fetch user quota in Pricing:", err)
+      }
+    }
+
+    fetchFreshQuota()
+
     const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails(user?.email || user?.id))
+      setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)
     return () => {
+      isMounted = false
       window.removeEventListener("slipzo-quota-update", handleUpdate)
       window.removeEventListener("storage", handleUpdate)
     }
