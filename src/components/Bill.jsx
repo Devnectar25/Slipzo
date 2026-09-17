@@ -585,22 +585,6 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     }
 
     const userKey = user?.email || user?.id
-    const currentQuota = getActivePlanDetails(userKey)
-    if (currentQuota && currentQuota.printsRemaining <= 0) {
-      const msg = "⚠️ Print quota limit reached. You have 0 prints remaining."
-      setError(msg)
-      toastError(msg)
-      Swal.fire({
-        title: "Print Quota Reached",
-        text: "You have 0 prints remaining in your subscription balance. Please purchase a plan to add print credits and continue creating bills.",
-        icon: "warning",
-        confirmButtonText: "View Pricing Plans",
-        confirmButtonColor: "#0ea5e9"
-      }).then(() => {
-        setView("pricing")
-      })
-      return
-    }
 
     setLoading(true)
     setError(null)
@@ -657,17 +641,6 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
       const msg = err.message || "Failed to save bill. Please try again."
       setError(msg)
       toastError(msg)
-      if (msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("0 prints")) {
-        Swal.fire({
-          title: "Print Quota Limit Reached",
-          text: msg,
-          icon: "warning",
-          confirmButtonText: "View Pricing Plans",
-          confirmButtonColor: "#0ea5e9"
-        }).then(() => {
-          setView("pricing")
-        })
-      }
     } finally {
       setLoading(false)
     }
@@ -676,40 +649,37 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   const handlePrint = () => {
     const userKey = user?.email || user?.id
     if (!canPrintFree(userKey)) {
-      const msg = "⚠️ You have reached your print quota limit."
-      if (toastError) toastError(msg)
-      Swal.fire({
-        title: "Print Quota Reached",
-        text: "You have used all available prints in your plan. Please select a plan to add print credits and continue.",
-        icon: "warning",
-        confirmButtonText: "View Pricing Plans",
-        confirmButtonColor: "#0ea5e9"
-      }).then(() => {
-        setView("pricing")
-      })
+      const plan = getActivePlanDetails(userKey)
+      if (plan?.isFreeTier) {
+        window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+      } else {
+        const msg = "⚠️ You have reached your print quota limit."
+        if (toastError) toastError(msg)
+        Swal.fire({
+          title: "Print Quota Reached",
+          text: "You have used all available prints in your plan. Please select a plan to add print credits and continue.",
+          icon: "warning",
+          confirmButtonText: "View Pricing Plans",
+          confirmButtonColor: "#0ea5e9"
+        }).then(() => {
+          setView("pricing")
+        })
+      }
       return
     }
 
     setShowPrintModal(true)
   }
 
-  const handlePrintComplete = () => {
+  const handlePrintComplete = (newQuota) => {
     if (selected?.id) {
-      incrementTemplatePrint(selected.id)
-    }
-    const remaining = getRemainingFreePrints()
-    if (remaining <= 0) {
-      const msg = "⚠️ You have used all prints in your quota!"
-      if (toastError) toastError(msg)
-      Swal.fire({
-        title: "Print Quota Exhausted",
-        text: "You have 0 prints remaining in your subscription. Please top up your print quota to continue printing.",
-        icon: "warning",
-        confirmButtonText: "Explore Plans",
-        confirmButtonColor: "#0ea5e9"
-      }).then(() => {
-        setView("pricing")
-      })
+      const key = `template_usage_${selected.id}`
+      try {
+        const data = localStorage.getItem(key)
+        const usage = data ? JSON.parse(data) : { edits: 0, prints: 0 }
+        usage.prints = (usage.prints || 0) + 1
+        localStorage.setItem(key, JSON.stringify(usage))
+      } catch (_) {}
     }
   }
 
@@ -986,6 +956,34 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         {/* LEFT - Bill Editor Column */}
         <div className="bill-editor-column">
           <div className="bill-editor-panel">
+            {/* Invoice Number - Top Right */}
+            <div className="invoice-number-field" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '0.5rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: '0.25rem' }}>INVOICE NO.</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Hash size={16} color="#94a3b8" />
+                {editingBillNumber ? (
+                  <input
+                    type="text"
+                    value={customBillNumber}
+                    onChange={(e) => setCustomBillNumber(e.target.value)}
+                    onBlur={() => setEditingBillNumber(false)}
+                    onKeyDown={(e) => e.key === 'Enter' && setEditingBillNumber(false)}
+                    autoFocus
+                    className="item-input"
+                    style={{ width: '120px', padding: '0.25rem 0.5rem', fontSize: '0.9rem' }}
+                  />
+                ) : (
+                  <div 
+                    onClick={() => setEditingBillNumber(true)}
+                    style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', cursor: 'pointer', padding: '0.25rem 0' }}
+                    title="Click to edit invoice number"
+                  >
+                    {customBillNumber || "Auto-generated"}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Customer Section - Hidden on Mobile */}
             <div className="editor-section mobile-hide-field" style={{ marginBottom: '0.85rem' }}>
               <label className="field-label">

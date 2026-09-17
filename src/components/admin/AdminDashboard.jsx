@@ -27,7 +27,8 @@ import {
   X,
   AlertCircle,
   DollarSign,
-  Sparkles
+  Sparkles,
+  ExternalLink
 } from "lucide-react"
 import { call, invalidateApiCache } from "../../lib/utils"
 import Swal from "sweetalert2"
@@ -97,7 +98,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
   // Add Product Modal State
   const [showAddProductModal, setShowAddProductModal] = useState(false)
-  const [prodForm, setProdForm] = useState({ name: "", category: "Hardware", price: "", tax_rate: "" })
+  const [prodForm, setProdForm] = useState({ name: "", category: "Hardware", price: "", product_link: "" })
   const [prodPhotos, setProdPhotos] = useState([])
   const [prodError, setProdError] = useState("")
   const [prodSubmitting, setProdSubmitting] = useState(false)
@@ -283,7 +284,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
   const handleCloseAddProductModal = () => {
     setShowAddProductModal(false)
-    setProdForm({ name: "", category: "Hardware", price: "", tax_rate: "" })
+    setProdForm({ name: "", category: "Hardware", price: "", product_link: "" })
     setProdPhotos([])
     setProdError("")
   }
@@ -378,13 +379,22 @@ export function AdminDashboard({ admin, onLogout }) {
   const handleRemovePhoto = (index) => {
     setProdPhotos(prev => {
       const updated = prev.filter((_, i) => i !== index)
-      if (updated.length < 3) {
-        setProdError("Please upload at least 3 product photos.")
+      if (updated.length < 1) {
+        setProdError("Please upload at least 1 product photo.")
       } else if (updated.length <= 5) {
         setProdError("")
       }
       return updated
     })
+  }
+
+  const isValidUrl = (url) => {
+    try {
+      const parsed = new URL(url)
+      return parsed.protocol === "http:" || parsed.protocol === "https:"
+    } catch (_) {
+      return false
+    }
   }
 
   const handleSubmitAddProduct = async (e) => {
@@ -396,8 +406,18 @@ export function AdminDashboard({ admin, onLogout }) {
       return
     }
 
-    if (prodPhotos.length < 3) {
-      setProdError("Please upload at least 3 product photos.")
+    if (!prodForm.product_link || !prodForm.product_link.trim()) {
+      setProdError("Product link is required")
+      return
+    }
+
+    if (!isValidUrl(prodForm.product_link.trim())) {
+      setProdError("Please enter a valid product link URL (e.g. https://example.com/product)")
+      return
+    }
+
+    if (prodPhotos.length < 1) {
+      setProdError("Please upload at least 1 product photo.")
       return
     }
 
@@ -413,7 +433,7 @@ export function AdminDashboard({ admin, onLogout }) {
         name: prodForm.name.trim(),
         category: (prodForm.category || "Hardware").trim(),
         price: parseFloat(prodForm.price) || 0,
-        tax_rate: parseFloat(prodForm.tax_rate) || 0,
+        product_link: prodForm.product_link.trim(),
         images: photoUrls,
         image: photoUrls[0] || "",
         status: "active",
@@ -634,6 +654,72 @@ export function AdminDashboard({ admin, onLogout }) {
       }
     }
   }
+
+  const handleEditProduct = async (product) => {
+    const { value: formValues } = await Swal.fire({
+      title: 'Edit Product',
+      html: `
+        <div style="text-align: left; font-size: 0.875rem;">
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Product Name</label>
+          <input id="swal-edit-prod-name" class="swal2-input" value="${(product.name || '').replace(/"/g, '&quot;')}" placeholder="Product Name" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Category</label>
+          <input id="swal-edit-prod-cat" class="swal2-input" value="${(product.category || 'Hardware').replace(/"/g, '&quot;')}" placeholder="e.g. Hardware, POS Accessories" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Price (₹)</label>
+          <input id="swal-edit-prod-price" type="number" step="any" min="0" class="swal2-input" value="${product.price || 0}" placeholder="Price" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Product Link (Buy Now URL)</label>
+          <input id="swal-edit-prod-link" type="url" class="swal2-input" value="${(product.product_link || '').replace(/"/g, '&quot;')}" placeholder="https://example.com/product" style="width: 100%; margin: 0; box-sizing: border-box;" />
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Save Changes',
+      confirmButtonColor: '#0ea5e9',
+      preConfirm: () => {
+        const name = document.getElementById('swal-edit-prod-name')?.value;
+        const category = document.getElementById('swal-edit-prod-cat')?.value;
+        const price = document.getElementById('swal-edit-prod-price')?.value;
+        const product_link = document.getElementById('swal-edit-prod-link')?.value;
+
+        if (!name || !name.trim()) {
+          Swal.showValidationMessage('Product name is required');
+          return false;
+        }
+        if (!product_link || !product_link.trim()) {
+          Swal.showValidationMessage('Product link is required');
+          return false;
+        }
+        if (!isValidUrl(product_link.trim())) {
+          Swal.showValidationMessage('Please enter a valid product link URL');
+          return false;
+        }
+        return {
+          name: name.trim(),
+          category: category ? category.trim() : 'General',
+          price: parseFloat(price) || 0,
+          product_link: product_link.trim()
+        };
+      }
+    });
+
+    if (formValues) {
+      try {
+        const res = await call(`/admin/products/${product.id}`, {
+          method: 'PUT',
+          headers: getAdminHeaders(),
+          body: JSON.stringify(formValues)
+        });
+        const updated = res?.product || { ...product, ...formValues };
+        setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, ...updated } : p));
+        Swal.fire({ title: 'Updated!', text: 'Product updated successfully', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        loadAdminData();
+      } catch (err) {
+        Swal.fire('Error', err?.detail || err?.message || 'Failed to update product', 'error');
+      }
+    }
+  };
 
   const safeProductsList = Array.isArray(productsList) ? productsList : []
   const safeTemplatesList = Array.isArray(templatesList) ? templatesList : []
@@ -1168,56 +1254,93 @@ export function AdminDashboard({ admin, onLogout }) {
                   </button>
                 </div>
               </div>
-              <div className="admin-table-wrapper">
-                <table className="admin-table">
+              <div className="admin-product-table-wrapper">
+                <table className="admin-table admin-product-table">
                   <thead>
                     <tr>
-                      <th>Product Name</th>
-                      <th>Category</th>
-                      <th>Price</th>
-                      <th>GST / Tax Rate</th>
-                      <th>Stock Qty</th>
-                      <th>Status</th>
-                      <th>Shop / User</th>
-                      <th>Created Date</th>
-                      <th>Actions</th>
+                      <th style={{ width: "8%", textAlign: "center" }}>Product Photo</th>
+                      <th style={{ width: "17%" }}>Product Name</th>
+                      <th style={{ width: "9.5%", textAlign: "center" }}>Category</th>
+                      <th style={{ width: "7.5%", textAlign: "center" }}>Price</th>
+                      <th style={{ width: "8%", textAlign: "center" }}>Product Link</th>
+                      <th style={{ width: "9%", textAlign: "center" }}>Status</th>
+                      <th style={{ width: "16%" }}>Shop / User</th>
+                      <th style={{ width: "9.5%", textAlign: "center", whiteSpace: "nowrap" }}>Created Date</th>
+                      <th style={{ width: "8.5%", textAlign: "center" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedProducts.map((p) => (
                       <tr key={p.id}>
-                        <td style={{ fontWeight: 600, color: "#0f172a" }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                            {(() => {
-                              let mainImg = p.image
-                              if (!mainImg && p.images) {
-                                try {
-                                  const parsed = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
-                                  if (Array.isArray(parsed) && parsed.length > 0) mainImg = parsed[0]
-                                } catch (_) {}
-                              }
-                              return mainImg ? (
-                                <img
-                                  src={mainImg}
-                                  alt={p.name}
-                                  style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
-                                />
-                              ) : (
-                                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', flexShrink: 0 }}>
-                                  <Package size={18} />
-                                </div>
-                              )
-                            })()}
-                            <span>{p.name}</span>
-                          </div>
+                        {/* 1. Product Photo */}
+                        <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                          {(() => {
+                            let mainImg = p.image
+                            if (!mainImg && p.images) {
+                              try {
+                                const parsed = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
+                                if (Array.isArray(parsed) && parsed.length > 0) mainImg = parsed[0]
+                              } catch (_) {}
+                            }
+                            return mainImg ? (
+                              <img
+                                src={mainImg}
+                                alt={p.name}
+                                style={{ width: '34px', height: '34px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #e2e8f0', display: 'inline-block', verticalAlign: 'middle' }}
+                              />
+                            ) : (
+                              <div style={{ width: '34px', height: '34px', borderRadius: '6px', background: '#f1f5f9', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', border: '1px solid #e2e8f0', margin: '0 auto', verticalAlign: 'middle' }}>
+                                <Package size={16} />
+                              </div>
+                            )
+                          })()}
                         </td>
-                        <td>
-                          <span className="admin-tag admin-tag-blue">{p.category || "General"}</span>
+
+                        {/* 2. Product Name */}
+                        <td style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.825rem", lineHeight: 1.3, wordBreak: "break-word" }}>
+                          {p.name}
                         </td>
-                        <td style={{ fontWeight: 700, color: "#16a34a" }}>₹{Number(p.price || 0).toLocaleString()}</td>
-                        <td>{p.tax_rate ? `${p.tax_rate}%` : "0%"}</td>
-                        <td>{p.stock_quantity ?? "Unlimited"}</td>
-                        <td>
+
+                        {/* 3. Category */}
+                        <td style={{ textAlign: "center" }}>
+                          <span className="admin-tag admin-tag-blue" style={{ fontSize: '0.72rem', padding: '0.18rem 0.45rem', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.category || "General"}
+                          </span>
+                        </td>
+
+                        {/* 4. Price */}
+                        <td style={{ fontWeight: 700, color: "#16a34a", fontSize: "0.825rem", whiteSpace: "nowrap", textAlign: "center" }}>
+                          ₹{Number(p.price || 0).toLocaleString()}
+                        </td>
+
+                        {/* 5. Product Link */}
+                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                          {p.product_link ? (
+                            <a
+                              href={p.product_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '3px',
+                                color: '#0ea5e9',
+                                fontSize: '0.775rem',
+                                fontWeight: 600,
+                                textDecoration: 'none'
+                              }}
+                              title={p.product_link}
+                            >
+                              <ExternalLink size={12} /> Link
+                            </a>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>No link</span>
+                          )}
+                        </td>
+
+                        {/* 6. Status */}
+                        <td style={{ textAlign: "center" }}>
                           <select
                             value={(p.status || 'active').toLowerCase() === 'active' ? 'active' : 'inactive'}
                             onChange={(e) => handleStatusChange(p, e.target.value)}
@@ -1225,13 +1348,15 @@ export function AdminDashboard({ admin, onLogout }) {
                               background: (p.status || 'active').toLowerCase() === 'active' ? '#dcfce7' : '#f1f5f9',
                               color: (p.status || 'active').toLowerCase() === 'active' ? '#15803d' : '#64748b',
                               border: `1px solid ${(p.status || 'active').toLowerCase() === 'active' ? '#bbf7d0' : '#cbd5e1'}`,
-                              padding: '0.3rem 0.65rem',
+                              padding: '0.2rem 0.35rem',
                               fontWeight: 700,
-                              fontSize: '0.775rem',
-                              borderRadius: '20px',
+                              fontSize: '0.72rem',
+                              borderRadius: '16px',
                               cursor: 'pointer',
                               outline: 'none',
-                              boxSizing: 'border-box'
+                              boxSizing: 'border-box',
+                              display: 'inline-block',
+                              maxWidth: '100%'
                             }}
                             title="Change Product Active / Inactive status"
                           >
@@ -1239,20 +1364,46 @@ export function AdminDashboard({ admin, onLogout }) {
                             <option value="inactive" style={{ background: '#ffffff', color: '#64748b', fontWeight: 600 }}>Inactive</option>
                           </select>
                         </td>
-                        <td>
-                          <div>{p.shop_name || p.user_name || "Unknown"}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{p.user_email}</div>
+
+                        {/* 7. Shop / User */}
+                        <td style={{ lineHeight: 1.3 }}>
+                          <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.shop_name || p.user_name || "Unknown"}>
+                            {p.shop_name || p.user_name || "Unknown"}
+                          </div>
+                          <div style={{ fontSize: "0.7rem", color: "#64748b", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.user_email}>
+                            {p.user_email}
+                          </div>
                         </td>
-                        <td>{p.created_at ? new Date(p.created_at).toLocaleDateString() : "N/A"}</td>
-                        <td>
-                          <button
-                            className="admin-refresh-btn"
-                            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", padding: "0.35rem 0.65rem" }}
-                            onClick={() => handleDeleteProduct(p)}
-                            title="Delete product from catalog"
-                          >
-                            <Trash2 size={13} /> Delete
-                          </button>
+
+                        {/* 8. Created Date */}
+                        <td style={{ textAlign: "center", whiteSpace: "nowrap", color: '#64748b', fontSize: '0.775rem' }}>
+                          {p.created_at ? new Date(p.created_at).toLocaleDateString() : "N/A"}
+                        </td>
+
+                        {/* 9. Actions */}
+                        <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                          <div className="admin-actions-cell" style={{ justifyContent: 'center', gap: '5px' }}>
+                            <button
+                              type="button"
+                              className="admin-action-btn admin-action-btn-edit"
+                              onClick={() => handleEditProduct(p)}
+                              title="Edit Product"
+                              aria-label="Edit Product"
+                              style={{ width: '30px', height: '30px' }}
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              className="admin-action-btn admin-action-btn-delete"
+                              onClick={() => handleDeleteProduct(p)}
+                              title="Delete Product"
+                              aria-label="Delete Product"
+                              style={{ width: '30px', height: '30px' }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1506,47 +1657,60 @@ export function AdminDashboard({ admin, onLogout }) {
               background: '#ffffff',
               borderRadius: '16px',
               width: '100%',
-              maxWidth: '520px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+              maxWidth: '560px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
               border: '1px solid #e2e8f0',
-              padding: '1.75rem',
+              padding: '1.25rem 1.5rem',
               boxSizing: 'border-box'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid #f1f5f9' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
                 Add New Product to Catalog
               </h3>
               <button
                 type="button"
                 onClick={handleCloseAddProductModal}
-                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem' }}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Close"
+                aria-label="Close modal"
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmitAddProduct} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Product Name */}
+            <form onSubmit={handleSubmitAddProduct} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+              {/* Row 1: Product Name (Full Width) */}
               <div>
-                <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: '#334155' }}>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#334155' }}>
                   Product Name <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Shampoo 250ml"
+                  placeholder="e.g. Thermal Receipt Printer 80mm"
                   value={prodForm.name}
                   onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
-              {/* Category */}
+              {/* Row 2: Category (Full Width) */}
               <div>
-                <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: '#334155' }}>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#334155' }}>
                   Category
                 </label>
                 <input
@@ -1554,14 +1718,14 @@ export function AdminDashboard({ admin, onLogout }) {
                   placeholder="e.g. Hardware, POS Accessories"
                   value={prodForm.category}
                   onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
-              {/* Price & Tax Rate Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+              {/* Row 3: Price (₹) & Product Link (Split Row: 135px 1fr) */}
+              <div className="admin-modal-row-split">
                 <div>
-                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: '#334155' }}>
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#334155' }}>
                     Price (₹)
                   </label>
                   <input
@@ -1571,53 +1735,52 @@ export function AdminDashboard({ admin, onLogout }) {
                     placeholder="e.g. 300"
                     value={prodForm.price}
                     onChange={(e) => setProdForm({ ...prodForm, price: e.target.value })}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', fontSize: '0.85rem', color: '#334155' }}>
-                    GST / Tax Rate (%)
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#334155' }}>
+                    Product Link <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
-                    type="number"
-                    step="any"
-                    min="0"
-                    placeholder="e.g. 18"
-                    value={prodForm.tax_rate}
-                    onChange={(e) => setProdForm({ ...prodForm, tax_rate: e.target.value })}
-                    style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                    type="url"
+                    required
+                    placeholder="https://example.com/product"
+                    value={prodForm.product_link}
+                    onChange={(e) => setProdForm({ ...prodForm, product_link: e.target.value })}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
-              {/* Product Photos Section (MIN 3, MAX 5) */}
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              {/* Row 4: Product Photos Section (MIN 1, MAX 5) */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.65rem 0.85rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
                   <div>
-                    <label style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
                       Product Photos <span style={{ color: '#ef4444' }}>*</span>
                     </label>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      Upload 3–5 photos (JPG, PNG, WEBP)
+                    <span style={{ fontSize: '0.725rem', color: '#64748b' }}>
+                      Upload 1–5 photos (JPG, PNG, WEBP)
                     </span>
                   </div>
 
                   <span style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.725rem',
                     fontWeight: 700,
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '12px',
-                    background: prodPhotos.length >= 3 && prodPhotos.length <= 5 ? '#dcfce7' : '#fee2e2',
-                    color: prodPhotos.length >= 3 && prodPhotos.length <= 5 ? '#15803d' : '#b91c1c',
-                    border: `1px solid ${prodPhotos.length >= 3 && prodPhotos.length <= 5 ? '#bbf7d0' : '#fecaca'}`
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '10px',
+                    background: prodPhotos.length >= 1 && prodPhotos.length <= 5 ? '#dcfce7' : '#fee2e2',
+                    color: prodPhotos.length >= 1 && prodPhotos.length <= 5 ? '#15803d' : '#b91c1c',
+                    border: `1px solid ${prodPhotos.length >= 1 && prodPhotos.length <= 5 ? '#bbf7d0' : '#fecaca'}`
                   }}>
                     {prodPhotos.length} / 5 photos
                   </span>
                 </div>
 
-                {/* Upload Button */}
-                <div style={{ marginBottom: prodPhotos.length > 0 ? '0.85rem' : '0' }}>
+                {/* Upload Action & Thumbnails in unified inline flex row */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.45rem' }}>
                   <input
                     type="file"
                     id="admin-prod-photo-picker"
@@ -1632,85 +1795,84 @@ export function AdminDashboard({ admin, onLogout }) {
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.4rem',
-                      padding: '0.55rem 0.95rem',
-                      borderRadius: '8px',
+                      gap: '0.35rem',
+                      padding: '0.4rem 0.8rem',
+                      borderRadius: '7px',
                       background: prodPhotos.length >= 5 ? '#cbd5e1' : '#0ea5e9',
                       color: prodPhotos.length >= 5 ? '#64748b' : '#ffffff',
-                      fontSize: '0.825rem',
+                      fontSize: '0.8rem',
                       fontWeight: 600,
                       cursor: prodPhotos.length >= 5 ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      flexShrink: 0
                     }}
                   >
-                    <Plus size={15} /> Upload Photos
+                    <Plus size={14} /> Upload Photos
                   </label>
-                </div>
 
-                {/* Thumbnail Previews Grid */}
-                {prodPhotos.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem' }}>
-                    {prodPhotos.map((photo, idx) => (
-                      <div
-                        key={photo.id || idx}
+                  {/* Thumbnail Previews */}
+                  {prodPhotos.map((photo, idx) => (
+                    <div
+                      key={photo.id || idx}
+                      style={{
+                        position: 'relative',
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '7px',
+                        overflow: 'hidden',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                        flexShrink: 0
+                      }}
+                    >
+                      <img
+                        src={photo.dataUrl}
+                        alt={`Product photo ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(idx)}
+                        title="Remove photo"
                         style={{
-                          position: 'relative',
-                          width: '72px',
-                          height: '72px',
-                          borderRadius: '10px',
-                          overflow: 'hidden',
-                          border: '1px solid #cbd5e1',
-                          background: '#ffffff',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                          position: 'absolute',
+                          top: '2px',
+                          right: '2px',
+                          width: '15px',
+                          height: '15px',
+                          borderRadius: '50%',
+                          background: 'rgba(15, 23, 42, 0.8)',
+                          color: '#ffffff',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                          fontSize: '10px',
+                          lineHeight: 1
                         }}
                       >
-                        <img
-                          src={photo.dataUrl}
-                          alt={`Product photo ${idx + 1}`}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhoto(idx)}
-                          title="Remove photo"
-                          style={{
-                            position: 'absolute',
-                            top: '3px',
-                            right: '3px',
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            background: 'rgba(15, 23, 42, 0.75)',
-                            color: '#ffffff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: 0,
-                            fontSize: '12px',
-                            lineHeight: 1
-                          }}
-                        >
-                          <X size={12} />
-                        </button>
-                        <span style={{
-                          position: 'absolute',
-                          bottom: '2px',
-                          left: '2px',
-                          fontSize: '0.65rem',
-                          fontWeight: 700,
-                          background: 'rgba(0,0,0,0.6)',
-                          color: '#ffffff',
-                          padding: '0.05rem 0.3rem',
-                          borderRadius: '4px'
-                        }}>
-                          #{idx + 1}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                        <X size={9} />
+                      </button>
+                      <span style={{
+                        position: 'absolute',
+                        bottom: '1px',
+                        left: '1px',
+                        fontSize: '0.55rem',
+                        fontWeight: 700,
+                        background: 'rgba(0,0,0,0.6)',
+                        color: '#ffffff',
+                        padding: '0 0.2rem',
+                        borderRadius: '3px',
+                        lineHeight: '1.2'
+                      }}>
+                        #{idx + 1}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Error Banner */}
@@ -1719,33 +1881,43 @@ export function AdminDashboard({ admin, onLogout }) {
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
                   color: '#b91c1c',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: '10px',
-                  fontSize: '0.825rem',
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
                   fontWeight: 500,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.4rem'
+                  gap: '0.35rem'
                 }}>
-                  <AlertCircle size={16} />
+                  <AlertCircle size={15} />
                   <span>{prodError}</span>
                 </div>
               )}
 
-              {/* Submit & Cancel Actions */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              {/* Footer Actions */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '0.65rem',
+                marginTop: '0.35rem',
+                paddingTop: '0.75rem',
+                borderTop: '1px solid #f1f5f9'
+              }}>
                 <button
                   type="button"
                   onClick={handleCloseAddProductModal}
                   style={{
-                    padding: '0.65rem 1.15rem',
-                    borderRadius: '10px',
+                    padding: '0.45rem 0.95rem',
+                    borderRadius: '8px',
                     background: '#f1f5f9',
                     border: '1px solid #cbd5e1',
                     color: '#334155',
                     fontWeight: 600,
-                    fontSize: '0.875rem',
-                    cursor: 'pointer'
+                    fontSize: '0.825rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    height: '36px'
                   }}
                 >
                   Cancel
@@ -1754,15 +1926,20 @@ export function AdminDashboard({ admin, onLogout }) {
                   type="submit"
                   disabled={prodSubmitting}
                   style={{
-                    padding: '0.65rem 1.25rem',
-                    borderRadius: '10px',
+                    padding: '0.45rem 1.15rem',
+                    borderRadius: '8px',
                     background: '#0ea5e9',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,
-                    fontSize: '0.875rem',
+                    fontSize: '0.825rem',
                     cursor: prodSubmitting ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 6px rgba(14, 165, 233, 0.3)'
+                    boxShadow: '0 2px 6px rgba(14, 165, 233, 0.3)',
+                    transition: 'all 0.15s ease',
+                    height: '36px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
                   {prodSubmitting ? 'Adding Product...' : 'Add Product'}
