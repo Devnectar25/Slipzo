@@ -1,4 +1,5 @@
 import Swal from "sweetalert2"
+import { isNativeApp } from "./utils.js"
 
 export function printReceiptElement(elementId = "receipt-to-print", options = {}) {
   const el = document.getElementById(elementId)
@@ -450,23 +451,99 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const paperLabel = isA4 ? "A4 Standard" : `${pageWidth} Thermal Roll`
   const receiptHTML = clone.outerHTML
 
-  // Open dedicated print preview window
+  const isMobileOrNative = isNativeApp || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+  // Function to trigger print using a hidden iframe directly inside current page/app
+  const printViaIframe = () => {
+    const existingFrame = document.getElementById("slipzo-print-iframe")
+    if (existingFrame) existingFrame.remove()
+
+    const iframe = document.createElement("iframe")
+    iframe.id = "slipzo-print-iframe"
+    iframe.style.position = "fixed"
+    iframe.style.right = "0"
+    iframe.style.bottom = "0"
+    iframe.style.width = "0"
+    iframe.style.height = "0"
+    iframe.style.border = "0"
+    iframe.style.visibility = "hidden"
+    iframe.style.zIndex = "-9999"
+    document.body.appendChild(iframe)
+
+    const pageCssRule = isA4
+      ? "size: A4 portrait; margin: 8mm !important;"
+      : `size: ${pageWidth} ${targetHeightMm}mm !important; margin: 0 !important;`
+
+    const doc = iframe.contentWindow.document || iframe.contentDocument
+    doc.open()
+    doc.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=${isA4 ? "210mm" : pageWidth}, initial-scale=1.0" />
+  <title>Receipt – Slipzo</title>
+  <style>
+    ${receiptCSS}
+    @page { ${pageCssRule} }
+    html, body {
+      background: #ffffff !important;
+      margin: 0 !important;
+      padding: ${isA4 ? "0" : "1mm 1.5mm 0 1.5mm"} !important;
+      width: ${isA4 ? "100%" : pageWidth} !important;
+      height: auto !important;
+    }
+    #receipt-to-print,
+    .receipt-preview-content {
+      background: #ffffff !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+  </style>
+</head>
+<body>
+  ${receiptHTML}
+</body>
+</html>`)
+    doc.close()
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus()
+        iframe.contentWindow.print()
+      } catch (err) {
+        console.error("[printReceipt] iframe print error:", err)
+      }
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          iframe.remove()
+        }
+      }, 2000)
+    }, 300)
+  }
+
+  // On Native App (APK) or mobile browser, print directly via hidden iframe to stay inside app without redirecting to Chrome
+  if (isMobileOrNative) {
+    printViaIframe()
+    return
+  }
+
+  // Open dedicated print preview window on desktop web
   const availW = window.screen.availWidth || 1200
   const availH = window.screen.availHeight || 800
 
-  const printWindow = window.open(
-    "",
-    "SlipzoThermalReceipt",
-    `width=${availW},height=${availH},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
-  )
+  let printWindow = null
+  try {
+    printWindow = window.open(
+      "",
+      "SlipzoThermalReceipt",
+      `width=${availW},height=${availH},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
+    )
+  } catch (_) {}
 
   if (!printWindow) {
-    Swal.fire({
-      title: "Popup Blocked",
-      text: "Please allow popups in your browser to enable thermal receipt printing.",
-      icon: "warning",
-      confirmButtonColor: "#0ea5e9"
-    })
+    printViaIframe()
     return
   }
 
