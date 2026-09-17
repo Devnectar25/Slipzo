@@ -15,11 +15,13 @@ export default defineConfig({
     }
   },
   build: {
+    chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['lucide-react', 'tailwind-merge', 'clsx'],
+          'query-vendor': ['@tanstack/react-query', 'axios'],
         }
       }
     }
