@@ -70,10 +70,7 @@ export function Shop({ user, setView } = {}) {
       invoice_prefix: data?.invoice_prefix || "SLP",
       invoice_sequence: data?.invoice_sequence || 1001,
       invoice_format: data?.invoice_format || "PREFIX-DATE-SEQ",
-      default_template_id: data?.default_template_id || "",
-      default_discount: data?.default_discount !== undefined && data?.default_discount !== null ? String(data.default_discount) : "0",
-      show_tax: data?.show_tax !== undefined && data?.show_tax !== null ? Number(data.show_tax) : 2,
-      tax_rate: data?.tax_rate !== undefined && data?.tax_rate !== null ? String(data.tax_rate) : "18"
+      default_template_id: data?.default_template_id || ""
     }
   })
   const [errors, setErrors] = useState({})
@@ -176,10 +173,7 @@ export function Shop({ user, setView } = {}) {
             invoice_prefix: data.invoice_prefix || "SLP",
             invoice_sequence: data.invoice_sequence || 1001,
             invoice_format: data.invoice_format || "PREFIX-DATE-SEQ",
-            default_template_id: resolvedDefaultTplId,
-            default_discount: data.default_discount !== undefined && data.default_discount !== null ? String(data.default_discount) : "0",
-            show_tax: data.show_tax !== undefined && data.show_tax !== null ? Number(data.show_tax) : 1,
-            tax_rate: data.tax_rate !== undefined && data.tax_rate !== null ? String(data.tax_rate) : "18"
+            default_template_id: resolvedDefaultTplId
           }
           setShop(loadedShop)
         }
@@ -315,6 +309,7 @@ export function Shop({ user, setView } = {}) {
           <Skeleton width="100%" height="260px" borderRadius="16px" />
           <Skeleton width="100%" height="240px" borderRadius="16px" />
         </div>
+        <Skeleton width="100%" height="70px" borderRadius="12px" style={{ marginTop: "1.5rem" }} />
       </div>
     )
   }

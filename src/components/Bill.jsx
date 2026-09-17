@@ -618,22 +618,6 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     }
 
     const userKey = user?.email || user?.id
-    const currentQuota = getActivePlanDetails(userKey)
-    if (currentQuota && currentQuota.printsRemaining <= 0) {
-      const msg = "⚠️ Print quota limit reached. You have 0 prints remaining."
-      setError(msg)
-      toastError(msg)
-      Swal.fire({
-        title: "Print Quota Reached",
-        text: "You have 0 prints remaining in your subscription balance. Please purchase a plan to add print credits and continue creating bills.",
-        icon: "warning",
-        confirmButtonText: "View Pricing Plans",
-        confirmButtonColor: "#0ea5e9"
-      }).then(() => {
-        setView("pricing")
-      })
-      return
-    }
 
     setLoading(true)
     setError(null)
@@ -690,17 +674,6 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
       const msg = err.message || "Failed to save bill. Please try again."
       setError(msg)
       toastError(msg)
-      if (msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("0 prints")) {
-        Swal.fire({
-          title: "Print Quota Limit Reached",
-          text: msg,
-          icon: "warning",
-          confirmButtonText: "View Pricing Plans",
-          confirmButtonColor: "#0ea5e9"
-        }).then(() => {
-          setView("pricing")
-        })
-      }
     } finally {
       setLoading(false)
     }
@@ -709,40 +682,40 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   const handlePrint = () => {
     const userKey = user?.email || user?.id
     if (!canPrintFree(userKey)) {
-      const msg = "⚠️ You have reached your print quota limit."
-      if (toastError) toastError(msg)
-      Swal.fire({
-        title: "Print Quota Reached",
-        text: "You have used all available prints in your plan. Please select a plan to add print credits and continue.",
-        icon: "warning",
-        confirmButtonText: "View Pricing Plans",
-        confirmButtonColor: "#0ea5e9"
-      }).then(() => {
-        setView("pricing")
-      })
+      const plan = getActivePlanDetails(userKey)
+      if (plan?.isFreeTier) {
+        window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+      } else {
+        const msg = "⚠️ You have reached your print quota limit."
+        if (toastError) toastError(msg)
+        Swal.fire({
+          title: "Print Quota Reached",
+          text: "You have used all available prints in your plan. Please select a plan to add print credits and continue.",
+          icon: "warning",
+          confirmButtonText: "View Pricing Plans",
+          confirmButtonColor: "#0ea5e9"
+        }).then(() => {
+          setView("pricing")
+        })
+      }
       return
     }
 
     setShowPrintModal(true)
   }
 
-  const handlePrintComplete = () => {
-    if (selected?.id) {
-      incrementTemplatePrint(selected.id)
+  const handlePrintComplete = (newQuota) => {
+    if (newQuota && user) {
+      syncUserQuota(newQuota, user?.email || user?.id)
     }
-    const remaining = getRemainingFreePrints()
-    if (remaining <= 0) {
-      const msg = "⚠️ You have used all prints in your quota!"
-      if (toastError) toastError(msg)
-      Swal.fire({
-        title: "Print Quota Exhausted",
-        text: "You have 0 prints remaining in your subscription. Please top up your print quota to continue printing.",
-        icon: "warning",
-        confirmButtonText: "Explore Plans",
-        confirmButtonColor: "#0ea5e9"
-      }).then(() => {
-        setView("pricing")
-      })
+    if (selected?.id) {
+      const key = `template_usage_${selected.id}`
+      try {
+        const data = localStorage.getItem(key)
+        const usage = data ? JSON.parse(data) : { edits: 0, prints: 0 }
+        usage.prints = (usage.prints || 0) + 1
+        localStorage.setItem(key, JSON.stringify(usage))
+      } catch (_) {}
     }
   }
 
@@ -1019,31 +992,61 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         {/* LEFT - Bill Editor Column */}
         <div className="bill-editor-column">
           <div className="bill-editor-panel">
-            {/* Customer Section - Hidden on Mobile */}
-            <div className="editor-section mobile-hide-field" style={{ marginBottom: '0.85rem' }}>
-              <label className="field-label">
-                <span>CUSTOMER (OPTIONAL)</span>
-                <div style={{ position: 'relative', marginTop: '0.35rem' }}>
+            {/* Invoice Number - Top Right */}
+            <div className="invoice-number-field" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginBottom: '0.85rem' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.25rem' }}>
+                INVOICE NO.
+              </label>
+              <div>
+                {editingBillNumber ? (
                   <input
                     type="text"
-                    placeholder="Enter customer name"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
+                    value={customBillNumber}
+                    onChange={(e) => setCustomBillNumber(e.target.value)}
+                    onBlur={() => setEditingBillNumber(false)}
+                    onKeyDown={(e) => e.key === 'Enter' && setEditingBillNumber(false)}
+                    autoFocus
                     className="item-input"
-                    style={{ width: '100%', paddingRight: customerName ? '32px' : '0.8rem' }}
+                    style={{
+                      width: '140px',
+                      padding: '0.28rem 0.6rem',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      fontFamily: 'monospace, sans-serif',
+                      borderRadius: '6px',
+                      border: '1.5px solid #0ea5e9',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      textAlign: 'center'
+                    }}
                   />
-                  {customerName && (
-                    <button
-                      type="button"
-                      onClick={() => setCustomerName("")}
-                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
-                      title="Clear customer name"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </label>
+                ) : (
+                  <div 
+                    onClick={() => setEditingBillNumber(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '6px',
+                      padding: '0.28rem 0.65rem',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      fontFamily: 'monospace, sans-serif',
+                      color: '#0369a1',
+                      boxShadow: '0 1px 2px rgba(14, 165, 233, 0.08)',
+                      cursor: 'pointer',
+                      letterSpacing: '0.3px',
+                      userSelect: 'none',
+                      maxWidth: '100%',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title="Click to edit invoice number"
+                  >
+                    {customBillNumber || "Auto-generated"}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Items & Services Card */}
@@ -2117,6 +2120,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
         onPrinted={handlePrintComplete}
         defaultWidth={printFormat}
         elementId="receipt-to-print"
+        user={user}
       />
 
       {/* Saved Shop Items Picker Modal */}

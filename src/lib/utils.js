@@ -368,10 +368,12 @@ export const syncUserQuota = (quotaData, userKey) => {
   const key = getCurrentUserKey(userKey)
   try {
     const current = getActivePlanDetails(key)
-    const totalPrints = Number(quotaData.totalPrints) || 10
-    const usedPrints = Number(quotaData.usedPrints) || 0
-    const printsRemaining = Number(quotaData.printsRemaining ?? Math.max(0, totalPrints - usedPrints))
-    const planName = quotaData.planName || quotaData.activePlanName || current.name || (totalPrints > 10 ? "Purchased Plan" : "Free Starter Tier")
+    const totalPrints = quotaData.totalPrints !== undefined ? Number(quotaData.totalPrints) : (current?.totalPrints ?? 10)
+    const usedPrints = quotaData.usedPrints !== undefined ? Number(quotaData.usedPrints) : (current?.usedPrints ?? 0)
+    const printsRemaining = quotaData.printsRemaining !== undefined
+      ? Number(quotaData.printsRemaining)
+      : Math.max(0, totalPrints - usedPrints)
+    const planName = quotaData.activePlanName || quotaData.planName || current?.name || (totalPrints > 10 ? "Purchased Plan" : "Free Starter Tier")
 
     const updatedPlan = {
       name: planName,
@@ -379,6 +381,7 @@ export const syncUserQuota = (quotaData, userKey) => {
       totalPrints,
       usedPrints,
       isFreeTier: totalPrints <= 10,
+      onboardingRewardClaimed: quotaData.onboardingRewardClaimed,
       updatedAt: new Date().toISOString()
     }
     localStorage.setItem(`slipzo_active_plan_${key}`, JSON.stringify(updatedPlan))

@@ -47,7 +47,7 @@ export function Products({ setView, requireAuth, user }) {
   const [price, setPrice] = useState("")
   const [category, setCategory] = useState("Hardware")
   const [sku, setSku] = useState("")
-  const [taxRate, setTaxRate] = useState("18")
+  const [productLink, setProductLink] = useState("")
   const [stock, setStock] = useState("100")
   const [image, setImage] = useState("")
   const [description, setDescription] = useState("")
@@ -87,7 +87,7 @@ export function Products({ setView, requireAuth, user }) {
     setPrice("")
     setCategory("Hardware")
     setSku("")
-    setTaxRate("18")
+    setProductLink("")
     setStock("100")
     setImage("")
     setDescription("")
@@ -100,7 +100,7 @@ export function Products({ setView, requireAuth, user }) {
     setPrice(product.price !== undefined ? product.price.toString() : "")
     setCategory(product.category || "Hardware")
     setSku(product.sku || "")
-    setTaxRate(product.tax_rate !== undefined ? product.tax_rate.toString() : "18")
+    setProductLink(product.product_link || "")
     setStock(product.stock !== undefined ? product.stock.toString() : "100")
     setImage(product.image || "")
     setDescription(product.description || "")
@@ -121,7 +121,7 @@ export function Products({ setView, requireAuth, user }) {
         price: parseFloat(price) || 0,
         category: category || "General",
         sku: sku.trim(),
-        tax_rate: parseFloat(taxRate) || 0,
+        product_link: productLink.trim(),
         stock: parseInt(stock) || 0,
         image: image.trim(),
         description: description.trim()
@@ -192,6 +192,32 @@ export function Products({ setView, requireAuth, user }) {
     }))
     setView("bills")
     toast?.show(`Added "${product.name}" to New Bill`, "success")
+  }
+
+  // Buy Now - Open saved product_link directly in a new tab
+  const handleBuyNow = (product) => {
+    if (!product) return
+
+    const rawLink = product.product_link ? String(product.product_link).trim() : ""
+    if (!rawLink) {
+      toast?.show("Product link is not available for this item.", "error")
+      return
+    }
+
+    try {
+      const parsedUrl = new URL(rawLink)
+      if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
+        window.open(rawLink, "_blank", "noopener,noreferrer")
+      } else {
+        toast?.show("Invalid product link URL.", "error")
+      }
+    } catch (_) {
+      if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(rawLink)) {
+        window.open(`https://${rawLink}`, "_blank", "noopener,noreferrer")
+      } else {
+        toast?.show("Invalid product link URL.", "error")
+      }
+    }
   }
 
   // Open Buy Product Modal
@@ -467,7 +493,7 @@ export function Products({ setView, requireAuth, user }) {
                   {/* Card Actions */}
                   <div className="product-card-actions">
                     <button
-                      onClick={() => handleOpenBuy(product)}
+                      onClick={() => handleBuyNow(product)}
                       className="product-buy-now-btn"
                     >
                       <ShoppingBag size={14} /> Buy Now
@@ -808,13 +834,12 @@ export function Products({ setView, requireAuth, user }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>GST Tax (%)</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Product Link</label>
                   <input
-                    type="number"
-                    step="0.1"
-                    placeholder="18"
-                    value={taxRate}
-                    onChange={(e) => setTaxRate(e.target.value)}
+                    type="url"
+                    placeholder="https://example.com/product"
+                    value={productLink}
+                    onChange={(e) => setProductLink(e.target.value)}
                     style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }}
                   />
                 </div>
