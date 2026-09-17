@@ -24,6 +24,47 @@ export function Landing({ setView, setShowAuth, user }) {
   const [activeTemplateIndex, setActiveTemplateIndex] = useState(0)
   const [activeTestimonialIndex, setActiveTestimonialIndex] = useState(0)
 
+  // Lock background scroll when template modal is open
+  useEffect(() => {
+    if (showTemplateModal) {
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+      const scrollX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft || 0
+
+      const originalBodyOverflow = document.body.style.overflow
+      const originalBodyPosition = document.body.style.position
+      const originalBodyTop = document.body.style.top
+      const originalBodyLeft = document.body.style.left
+      const originalBodyWidth = document.body.style.width
+      const originalDocOverflow = document.documentElement.style.overflow
+
+      document.body.style.overflow = "hidden"
+      document.body.style.position = "fixed"
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.left = `-${scrollX}px`
+      document.body.style.width = "100%"
+      document.documentElement.style.overflow = "hidden"
+
+      const elementsToLock = document.querySelectorAll(".shell-content, .shell-main, .app, .public-layout, .main-content")
+      elementsToLock.forEach(el => {
+        el.dataset.origOverflow = el.style.overflow
+        el.style.overflow = "hidden"
+      })
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow
+        document.body.style.position = originalBodyPosition
+        document.body.style.top = originalBodyTop
+        document.body.style.left = originalBodyLeft
+        document.body.style.width = originalBodyWidth
+        document.documentElement.style.overflow = originalDocOverflow
+        elementsToLock.forEach(el => {
+          el.style.overflow = el.dataset.origOverflow || ""
+        })
+        window.scrollTo(scrollX, scrollY)
+      }
+    }
+  }, [showTemplateModal])
+
   const testimonials = [
     {
       id: 1,
