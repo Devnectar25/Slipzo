@@ -5,8 +5,7 @@ const PRECACHE_ASSETS = [
   '/index.html',
   '/manifest.json',
   '/logo.png',
-  '/favicon.svg',
-  '/slipzo-icon.svg'
+  '/favicon.svg'
 ];
 
 self.addEventListener('install', (event) => {

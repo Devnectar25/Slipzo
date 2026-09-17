@@ -242,6 +242,12 @@ function AppContent() {
       checkUserAuth()
     }
 
+    const handleUnauthorized = () => {
+      setUser(null)
+      localStorage.removeItem("slipzo_user_info")
+      localStorage.removeItem("slipzo_token")
+    }
+
     const handlePopState = () => {
       const p = window.location.pathname
       if (!p.startsWith("/admin")) {
@@ -251,8 +257,13 @@ function AppContent() {
         }
       }
     }
+
+    window.addEventListener("slipzo_auth_unauthorized", handleUnauthorized)
     window.addEventListener("popstate", handlePopState)
-    return () => window.removeEventListener("popstate", handlePopState)
+    return () => {
+      window.removeEventListener("slipzo_auth_unauthorized", handleUnauthorized)
+      window.removeEventListener("popstate", handlePopState)
+    }
   }, [])
 
   useEffect(() => {
