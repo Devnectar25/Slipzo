@@ -17,8 +17,10 @@ import {
 import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, getCurrentUserKey } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { ButtonLoader, Spinner } from "./common/Skeleton"
+import { useTranslation } from "react-i18next"
 
 export function Menu({ setView, requireAuth, user }) {
+  const { t } = useTranslation()
   const userKey = getCurrentUserKey(user)
   const cachedItems = getCachedData("/menu")
   const [items, setItems] = useState(() => {
@@ -200,17 +202,17 @@ export function Menu({ setView, requireAuth, user }) {
       <div className="page-intro menu-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "1.25rem" }}>
         <div style={{ flex: 1, minWidth: "260px" }}>
           <p className="eyebrow accent" style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "11px", fontWeight: "700", letterSpacing: "1.5px", textTransform: "uppercase", color: "#0ea5e9", margin: "0 0 0.35rem 0" }}>
-            <Utensils size={14} /> SHOP MENU
+            <Utensils size={14} /> {t("menu.eyebrow", "SHOP MENU")}
           </p>
           <h2 style={{ fontSize: "1.5rem", fontWeight: "700", color: "#0f172a", margin: "0 0 0.35rem 0", lineHeight: 1.25 }}>
-            Menu & Items
+            {t("menu.title", "Menu & Items")}
           </h2>
           <p className="subtle" style={{ fontSize: "0.875rem", color: "#64748b", margin: 0, lineHeight: 1.45, maxWidth: "560px" }}>
-            Manage products and services sold by your shop for fast billing
+            {t("menu.subtitle", "Manage products and services sold by your shop for fast billing")}
           </p>
         </div>
         <button className="primary-button" onClick={handleOpenAddModal} style={{ gap: "0.5rem", whiteSpace: "nowrap", flexShrink: 0, alignSelf: "flex-start" }}>
-          <Plus size={18} /> Add New Item
+          <Plus size={18} /> {t("menu.addNewItem", "Add New Item")}
         </button>
       </div>
 
@@ -229,7 +231,7 @@ export function Menu({ setView, requireAuth, user }) {
 
         <div className="stat-card" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "0.95rem 1.15rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
           <div className="stat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="stat-label" style={{ fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.05em" }}>Average Item Price</span>
+            <span className="stat-label" style={{ fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.05em" }}>{t("menu.avgItemPrice", "Average Item Price")}</span>
             <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <DollarSign size={15} style={{ color: "#0284c7" }} />
             </div>
@@ -239,12 +241,12 @@ export function Menu({ setView, requireAuth, user }) {
               ? money(items.reduce((acc, i) => acc + (Number(i.price) || 0), 0) / items.length)
               : money(0)}
           </div>
-          <div className="stat-footer subtle" style={{ fontSize: "0.78rem", color: "#64748b" }}>Across active shop menu</div>
+          <div className="stat-footer subtle" style={{ fontSize: "0.78rem", color: "#64748b" }}>{t("menu.acrossActiveMenu", "Across active shop menu")}</div>
         </div>
 
         <div className="stat-card" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "0.95rem 1.15rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
           <div className="stat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="stat-label" style={{ fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.05em" }}>Shop Account</span>
+            <span className="stat-label" style={{ fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.05em" }}>{t("menu.shopAccount", "Shop Account")}</span>
             <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Sparkles size={15} style={{ color: "#0284c7" }} />
             </div>
@@ -252,7 +254,7 @@ export function Menu({ setView, requireAuth, user }) {
           <div className="stat-value" style={{ fontSize: "1.15rem", fontWeight: "700", color: "#0f172a", marginTop: "0.1rem", marginBottom: "0.1rem", wordBreak: "break-word" }}>
             {user?.name || "Authenticated Shop"}
           </div>
-          <div className="stat-footer subtle" style={{ fontSize: "0.78rem", color: "#64748b" }}>User-isolated shop items</div>
+          <div className="stat-footer subtle" style={{ fontSize: "0.78rem", color: "#64748b" }}>{t("menu.userIsolated", "User-isolated shop items")}</div>
         </div>
       </div>
 
@@ -262,7 +264,7 @@ export function Menu({ setView, requireAuth, user }) {
           <Search size={16} className="search-icon" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
           <input
             type="text"
-            placeholder="Search saved items..."
+            placeholder={t("menu.searchPlaceholder", "Search saved items...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
@@ -278,7 +280,7 @@ export function Menu({ setView, requireAuth, user }) {
           )}
         </div>
         <button className="ghost-button" onClick={loadItems} title="Refresh items">
-          <RefreshCw size={15} /> Refresh
+          <RefreshCw size={15} /> {t("common.loading", "Refresh")}
         </button>
       </div>
 
@@ -286,7 +288,7 @@ export function Menu({ setView, requireAuth, user }) {
       {loading ? (
         <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
           <Spinner />
-          <p style={{ color: "#64748b", marginTop: "1rem" }}>Loading your shop menu...</p>
+          <p style={{ color: "#64748b", marginTop: "1rem" }}>{t("common.loading", "Loading your shop menu...")}</p>
         </div>
       ) : filteredItems.length === 0 ? (
         /* Empty State */
@@ -318,20 +320,20 @@ export function Menu({ setView, requireAuth, user }) {
             <Utensils size={28} />
           </div>
           <h3 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#0f172a", marginBottom: "0.5rem" }}>
-            {search ? "No matching items found" : "No menu items yet"}
+            {search ? t("menu.noMatchingItems", "No matching items found") : t("menu.noItemsYet", "No menu items yet")}
           </h3>
           <p style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: "1.5", marginBottom: "1.5rem" }}>
             {search
-              ? `No items found matching "${search}". Try clearing your search filter.`
-              : "Add your shop's commonly sold items to create bills faster without typing names and prices manually."}
+              ? t("menu.noMatchingDesc", `No items found matching "{{search}}". Try clearing your search filter.`, { search })
+              : t("menu.addFirstItemDesc", "Add your shop's commonly sold items to create bills faster without typing names and prices manually.")}
           </p>
           {search ? (
             <button className="secondary-button" onClick={() => setSearch("")}>
-              Clear Search Filter
+              {t("menu.clearSearch", "Clear Search Filter")}
             </button>
           ) : (
             <button className="primary-button" onClick={handleOpenAddModal} style={{ margin: "0 auto" }}>
-              <Plus size={16} /> Add Your First Item
+              <Plus size={16} /> {t("menu.addFirstItem", "Add Your First Item")}
             </button>
           )}
         </div>
@@ -343,13 +345,13 @@ export function Menu({ setView, requireAuth, user }) {
               <thead>
                 <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                   <th style={{ padding: "0.85rem 1.25rem", fontSize: "0.78rem", fontWeight: "700", textTransform: "uppercase", color: "#475569", letterSpacing: "0.05em" }}>
-                    Item Name
+                    {t("menu.itemName", "Item Name")}
                   </th>
                   <th style={{ padding: "0.85rem 1.25rem", fontSize: "0.78rem", fontWeight: "700", textTransform: "uppercase", color: "#475569", letterSpacing: "0.05em", textAlign: "right" }}>
-                    Default Price (₹)
+                    {t("menu.defaultPrice", "Default Price (₹)")}
                   </th>
                   <th style={{ padding: "0.85rem 1.25rem", fontSize: "0.78rem", fontWeight: "700", textTransform: "uppercase", color: "#475569", letterSpacing: "0.05em", textAlign: "right", width: "140px" }}>
-                    Actions
+                    {t("menu.actions", "Actions")}
                   </th>
                 </tr>
               </thead>
@@ -441,7 +443,7 @@ export function Menu({ setView, requireAuth, user }) {
                   <Utensils size={18} />
                 </div>
                 <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#0f172a" }}>
-                  {editingItem ? "Edit Shop Item" : "Add New Shop Item"}
+                  {editingItem ? t("menu.editItem", "Edit Shop Item") : t("menu.addNewItem", "Add New Shop Item")}
                 </h3>
               </div>
               <button
@@ -476,11 +478,11 @@ export function Menu({ setView, requireAuth, user }) {
 
               <div style={{ marginBottom: "1.25rem" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", color: "#334155", marginBottom: "0.4rem" }}>
-                  Item Name *
+                  {t("menu.itemName", "Item Name")} *
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Tea, Coffee, Sandwich, Cold Drink"
+                  placeholder={t("menu.itemNamePlaceholder", "e.g. Tea, Coffee, Sandwich, Cold Drink")}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   style={{
@@ -497,7 +499,7 @@ export function Menu({ setView, requireAuth, user }) {
 
               <div style={{ marginBottom: "1.5rem" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", color: "#334155", marginBottom: "0.4rem" }}>
-                  Price (₹) *
+                  {t("menu.price", "Price (₹)")} *
                 </label>
                 <div style={{ position: "relative" }}>
                   <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontWeight: "600", color: "#64748b" }}>
@@ -529,7 +531,7 @@ export function Menu({ setView, requireAuth, user }) {
                   onClick={() => setShowModal(false)}
                   disabled={submitting}
                 >
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
@@ -537,7 +539,7 @@ export function Menu({ setView, requireAuth, user }) {
                   disabled={submitting}
                   style={{ minWidth: "120px" }}
                 >
-                  {submitting ? <ButtonLoader text="Saving..." /> : editingItem ? "Update Item" : "Save Item"}
+                  {submitting ? <ButtonLoader text={t("common.saving", "Saving...")} /> : editingItem ? t("menu.updateItem", "Update Item") : t("menu.saveItem", "Save Item")}
                 </button>
               </div>
             </form>

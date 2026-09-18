@@ -17,31 +17,37 @@ import {
   Tag,
   Printer,
   Utensils,
-  List
+  List,
+  Globe
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
 import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call } from "../lib/utils"
 
-const navItems = [
-  { id: "dashboard", label: "Overview", icon: LayoutDashboard, protected: false },
-  { id: "bills", label: "New bill", icon: Receipt, protected: true },
-  { id: "menu", label: "Menu", icon: List, protected: true },
-  { id: "templates", label: "Templates", icon: FileText, protected: true },
-  { id: "products", label: "Products", icon: Package, protected: true },
-  { id: "history", label: "Bill history", icon: Store, protected: true },
-  { id: "pricing", label: "Pricing", icon: Tag, protected: false, badge: "Plans", badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
-  { id: "shop", label: "Shop profile", icon: Settings, protected: true },
-  { id: "contact", label: "Contact us", icon: Mail, protected: false }
-]
-
-// Mobile bottom navigation items
-const mobileNavItems = [
-  { id: "dashboard", label: "Home", icon: LayoutDashboard },
-  { id: "bills", label: "New Bill", icon: PlusCircle },
-  { id: "templates", label: "Templates", icon: LayoutTemplate },
-  { id: "history", label: "History", icon: History }
-]
-
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
+  const { t, i18n } = useTranslation()
+  const currentLang = i18n.language || "en"
+  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0]
+
+  const navItems = [
+    { id: "dashboard", label: t("nav.overview", "Overview"), icon: LayoutDashboard, protected: false },
+    { id: "bills", label: t("nav.newBill", "New bill"), icon: Receipt, protected: true },
+    { id: "menu", label: t("nav.menu", "Menu"), icon: List, protected: true },
+    { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
+    { id: "products", label: t("nav.products", "Products"), icon: Package, protected: true },
+    { id: "history", label: t("nav.history", "Bill history"), icon: Store, protected: true },
+    { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
+    { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings, protected: true },
+    { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, protected: false }
+  ]
+
+  // Mobile bottom navigation items
+  const mobileNavItems = [
+    { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard },
+    { id: "bills", label: t("nav.newBill", "New Bill"), icon: PlusCircle },
+    { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
+    { id: "history", label: t("nav.history", "History"), icon: History }
+  ]
   const [isOpen, setIsOpen] = useState(false)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
   const userKey = getCurrentUserKey(user)
@@ -300,10 +306,10 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444' }} /> {activePlan.isFreeTier ? 'Free prints' : 'Subscription'}
+                <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444' }} /> {activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}
               </span>
               <span style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444', fontWeight: 700 }}>
-                {(activePlan.printsRemaining || 0).toLocaleString()} / {(activePlan.totalPrints || 10).toLocaleString()} left
+                {(activePlan.printsRemaining || 0).toLocaleString()} / {(activePlan.totalPrints || 10).toLocaleString()} {t("sidebar.printsLeft", "left")}
               </span>
             </div>
             <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -317,7 +323,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             gap: '0.65rem',
             padding: '0.35rem 0.5rem',
             borderRadius: '10px',
-            marginBottom: '0.5rem',
+            marginBottom: '0.35rem',
           }}>
             <div className="avatar" style={{
               width: '32px',
@@ -341,6 +347,34 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               <small style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.email || ""}
               </small>
+            </span>
+          </div>
+
+          {/* User Language Status Pill - links to Shop Profile */}
+          <div
+            data-testid="sidebar-language-status"
+            onClick={() => handleNavClick("shop")}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.35rem 0.6rem',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '9px',
+              marginBottom: '0.45rem',
+              cursor: 'pointer',
+              fontSize: '0.74rem',
+              transition: 'all 0.15s ease'
+            }}
+            title="Profile language settings"
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600, color: '#334155' }}>
+              <Globe size={13} style={{ color: '#0284c7' }} />
+              <span>{currentLangObj.flag} {currentLangObj.nativeName}</span>
+            </span>
+            <span style={{ fontSize: '0.66rem', color: '#0284c7', fontWeight: 700 }}>
+              {t("common.edit", "Change")}
             </span>
           </div>
 
@@ -370,7 +404,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               marginBottom: 0,
             }}
           >
-            <LogOut size={15} /> Sign out
+            <LogOut size={15} /> {t("nav.signOut", "Sign out")}
           </button>
         </div>
       </aside>
@@ -408,7 +442,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               }}
             >
               <Printer size={14} />
-              <span>{(activePlan.printsRemaining || 0).toLocaleString()} {activePlan.isFreeTier ? 'free ' : ''}{(activePlan.printsRemaining || 0) === 1 ? 'print' : 'prints'} left</span>
+              <span>{(activePlan.printsRemaining || 0).toLocaleString()} {activePlan.isFreeTier ? t("header.free", "free") + ' ' : ''}{(activePlan.printsRemaining || 0) === 1 ? t("header.print", "print") : t("header.printsLeft", "prints left")}</span>
             </div>
             <button
               data-testid="shell-menu-button"

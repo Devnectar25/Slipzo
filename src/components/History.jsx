@@ -18,8 +18,10 @@ import { call, money, getCachedData } from "../lib/utils"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
+import { useTranslation } from "react-i18next"
 
 export function History({ setView, setSelectedBillId, user }) {
+  const { t } = useTranslation()
   const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10")
   const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
 
@@ -100,19 +102,19 @@ export function History({ setView, setSelectedBillId, user }) {
   const handleDeleteBill = async (bill) => {
     if (deletingId) return
     const result = await Swal.fire({
-      title: "Delete this bill?",
+      title: t("history.deleteTitle", "Delete this bill?"),
       html: `<div style="font-size: 0.95rem; color: #475569; margin-top: 0.35rem;">
-        Are you sure you want to delete bill <b style="color: #0f172a;">${bill.number}</b> (${money(bill.total)})?
+        ${t("history.deleteConfirm", "Are you sure you want to delete bill")} <b style="color: #0f172a;">${bill.number}</b> (${money(bill.total)})?
       </div>
       <div style="font-size: 0.82rem; color: #ef4444; margin-top: 0.5rem; font-weight: 600;">
-        This action cannot be undone.
+        ${t("history.deleteWarning", "This action cannot be undone.")}
       </div>`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      confirmButtonText: t("common.delete", "Delete"),
+      cancelButtonText: t("common.cancel", "Cancel"),
       focusCancel: true
     })
 
@@ -144,9 +146,9 @@ export function History({ setView, setSelectedBillId, user }) {
     <div className="page history-page fade-in">
       <div className="page-intro">
         <div>
-          <p className="eyebrow accent">YOUR RECEIPTS</p>
-          <h2>Bill history.</h2>
-          <p className="subtle">Every saved receipt, ready to find and reprint again.</p>
+          <p className="eyebrow accent">{t("history.eyebrow", "YOUR RECEIPTS")}</p>
+          <h2>{t("history.title", "Bill history.")}</h2>
+          <p className="subtle">{t("history.subtitle", "Every saved receipt, ready to find and reprint again.")}</p>
         </div>
       </div>
 
@@ -157,7 +159,7 @@ export function History({ setView, setSelectedBillId, user }) {
           <input
             data-testid="history-search-input"
             type="text"
-            placeholder="Search by receipt # or customer..."
+            placeholder={t("history.searchPlaceholder", "Search by receipt # or customer...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
@@ -179,12 +181,12 @@ export function History({ setView, setSelectedBillId, user }) {
               }}
               className="option-select filter-select"
             >
-              <option value="All">All Payments</option>
-              <option value="Cash">Cash</option>
-              <option value="UPI">UPI</option>
-              <option value="Card">Card</option>
-              <option value="Credit">Credit</option>
-              <option value="Online">Online</option>
+              <option value="All">{t("history.allPayments", "All Payments")}</option>
+              <option value="Cash">{t("history.cash", "Cash")}</option>
+              <option value="UPI">{t("history.upi", "UPI")}</option>
+              <option value="Card">{t("history.card", "Card")}</option>
+              <option value="Credit">{t("history.credit", "Credit")}</option>
+              <option value="Online">{t("history.online", "Online")}</option>
             </select>
           </div>
 
@@ -197,10 +199,10 @@ export function History({ setView, setSelectedBillId, user }) {
               }}
               className="option-select filter-select"
             >
-              <option value={5}>5 per page</option>
-              <option value={10}>10 per page</option>
-              <option value={25}>25 per page</option>
-              <option value={50}>50 per page</option>
+              <option value={5}>{t("history.perPage", "{{n}} per page", { n: 5 })}</option>
+              <option value={10}>{t("history.perPage", "{{n}} per page", { n: 10 })}</option>
+              <option value={25}>{t("history.perPage", "{{n}} per page", { n: 25 })}</option>
+              <option value={50}>{t("history.perPage", "{{n}} per page", { n: 50 })}</option>
             </select>
           </div>
         </div>
@@ -256,7 +258,7 @@ export function History({ setView, setSelectedBillId, user }) {
                     </div>
 
                     <div className="history-items-count text-muted">
-                      {itemsCount} {itemsCount === 1 ? "item" : "items"}
+                      {itemsCount} {itemsCount === 1 ? t("history.item", "item") : t("history.items", "items")}
                     </div>
                   </div>
 
@@ -292,8 +294,7 @@ export function History({ setView, setSelectedBillId, user }) {
           {/* Pagination Navigation Bar */}
           <div className="pagination-bar">
             <div className="pagination-info">
-              Showing <span>{totalRecords > 0 ? startRecord : 0}</span> to{" "}
-              <span>{endRecord}</span> of <span>{totalRecords}</span> receipts
+              {t("history.showing", { start: totalRecords > 0 ? startRecord : 0, end: endRecord, total: totalRecords, defaultValue: `Showing ${totalRecords > 0 ? startRecord : 0} to ${endRecord} of ${totalRecords} receipts` })}
             </div>
 
             <div className="pagination-controls">
@@ -363,8 +364,8 @@ export function History({ setView, setSelectedBillId, user }) {
           <div className="history-empty-icon muted">
             <Search size={28} />
           </div>
-          <h3>No receipts found</h3>
-          <p>No receipts matched your search filters. Try clearing the search or filter.</p>
+          <h3>{t("history.noReceiptsFound", "No receipts found")}</h3>
+          <p>{t("history.noReceiptsFoundDesc", "No receipts matched your search filters. Try clearing the search or filter.")}</p>
           <button
             type="button"
             className="secondary-button"
@@ -374,7 +375,7 @@ export function History({ setView, setSelectedBillId, user }) {
             }}
             style={{ marginTop: "0.75rem" }}
           >
-            Clear filters
+            {t("history.clearFilters", "Clear filters")}
           </button>
         </div>
       ) : (
@@ -382,16 +383,16 @@ export function History({ setView, setSelectedBillId, user }) {
           <div className="history-empty-icon">
             <Receipt size={32} />
           </div>
-          <h3>No bills yet</h3>
+          <h3>{t("history.noBillsYet", "No bills yet")}</h3>
           <p>
-            Your saved receipts from the last 10 days will automatically appear here once you create your first bill.
+            {t("history.noBillsYetDesc", "Your saved receipts from the last 10 days will automatically appear here once you create your first bill.")}
           </p>
           <button
             type="button"
             className="primary-button history-create-btn"
             onClick={() => setView("bills")}
           >
-            <Plus size={16} /> Create New Bill
+            <Plus size={16} /> {t("history.createNewBill", "Create New Bill")}
           </button>
         </div>
       )}
