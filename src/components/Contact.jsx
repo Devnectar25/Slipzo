@@ -3,10 +3,12 @@ import {
   ArrowRight, Mail, MessageCircle, Phone, MapPin, Send, 
   CheckCircle2, Clock, HelpCircle, Sparkles, MessageSquare
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { call } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
 export function Contact({ setView, setShowAuth, user }) {
+  const { t } = useTranslation()
   const toast = useToast()
   const [form, setForm] = useState({ 
     name: user?.name || "", 
@@ -136,58 +138,58 @@ export function Contact({ setView, setShowAuth, user }) {
   const contactChannels = [
     {
       icon: <MessageCircle size={26} />,
-      title: "Live Chat & WhatsApp",
-      description: "Chat directly with our product specialist for instant answers.",
-      actionText: "Chat on WhatsApp",
+      title: t("contact.liveChatWhatsApp", "Live Chat & WhatsApp"),
+      description: t("contact.chatDesc", "Chat directly with our product specialist for instant answers."),
+      actionText: t("contact.chatAction", "Chat on WhatsApp"),
       actionLink: "https://wa.me/919876543210",
       accent: "#10b981",
-      badge: "Fastest response"
+      badge: t("contact.fastestResponse", "Fastest response")
     },
     {
       icon: <Mail size={26} />,
-      title: "Email Support",
-      description: "Send us your queries and receive a comprehensive reply in < 24h.",
+      title: t("contact.emailSupport", "Email Support"),
+      description: t("contact.emailDesc", "Send us your queries and receive a comprehensive reply in < 24h."),
       actionText: "support@slipzo.com",
       actionLink: "mailto:support@slipzo.com",
       accent: "#0ea5e9",
-      badge: "24/7 inbox"
+      badge: t("contact.inbox247", "24/7 inbox")
     },
     {
       icon: <Phone size={26} />,
-      title: "Phone Assistance",
-      description: "Speak to our hardware and setup specialists over phone call.",
+      title: t("contact.phoneAssistance", "Phone Assistance"),
+      description: t("contact.phoneDesc", "Speak to our hardware and setup specialists over phone call."),
       actionText: "+91 98765 43210",
       actionLink: "tel:+919876543210",
       accent: "#0ea5e9",
-      badge: "9 AM - 8 PM IST"
+      badge: t("contact.phoneHours", "9 AM - 8 PM IST")
     },
     {
       icon: <MapPin size={26} />,
-      title: "Office Location",
-      description: "Slipzo Technologies, Indiranagar, Bengaluru, Karnataka, India.",
-      actionText: "Open in Maps",
+      title: t("contact.officeLocation", "Office Location"),
+      description: t("contact.officeDesc", "Slipzo Technologies, Indiranagar, Bengaluru, Karnataka, India."),
+      actionText: t("contact.mapsAction", "Open in Maps"),
       actionLink: "#",
       accent: "#f59e0b",
-      badge: "Headquarters"
+      badge: t("contact.headquarters", "Headquarters")
     }
   ]
 
   const faqs = [
     {
-      q: "How fast will your team respond to my message?",
-      a: "Our customer support team typically responds to WhatsApp and live chat inquiries within 5 to 15 minutes during operating hours (9 AM - 8 PM IST). Emails are replied to within 4 to 12 hours."
+      q: t("contact.faq1Q", "How fast will your team respond to my message?"),
+      a: t("contact.faq1A", "Our customer support team typically responds to WhatsApp and live chat inquiries within 5 to 15 minutes during operating hours (9 AM - 8 PM IST). Emails are replied to within 4 to 12 hours.")
     },
     {
-      q: "Do you help with thermal printer setup and drivers?",
-      a: "Yes! If you have a thermal printer (USB, Bluetooth, or Network ESC/POS) and need assistance configuring it with Slipzo, our technical team can guide you step-by-step or connect via screen share."
+      q: t("contact.faq2Q", "Do you help with thermal printer setup and drivers?"),
+      a: t("contact.faq2A", "Yes! If you have a thermal printer (USB, Bluetooth, or Network ESC/POS) and need assistance configuring it with Slipzo, our technical team can guide you step-by-step or connect via screen share.")
     },
     {
-      q: "Can I request a custom receipt template for my business?",
-      a: "Absolutely. If you require special fields, barcodes, specific HSN formatting, or unique branding layouts, reach out to us and we can configure a custom template for your store."
+      q: t("contact.faq3Q", "Can I request a custom receipt template for my business?"),
+      a: t("contact.faq3A", "Absolutely. If you require special fields, barcodes, specific HSN formatting, or unique branding layouts, reach out to us and we can configure a custom template for your store.")
     },
     {
-      q: "Does Slipzo work on mobile phones and tablets?",
-      a: "Yes. Slipzo is 100% web-based and responsive. You can open it on your Android or iPhone and connect to Bluetooth thermal printers directly."
+      q: t("contact.faq4Q", "Does Slipzo work on mobile phones and tablets?"),
+      a: t("contact.faq4A", "Yes. Slipzo is 100% web-based and responsive. You can open it on your Android or iPhone and connect to Bluetooth thermal printers directly.")
     }
   ]
 
@@ -196,11 +198,10 @@ export function Contact({ setView, setShowAuth, user }) {
       {/* Contact Header */}
       <section className="contact-hero">
         <div className="contact-hero-content">
-          <p className="eyebrow">CONTACT US</p>
-          <h1>We're Here to Help Your<br />Shop Run Smoothly</h1>
+          <p className="eyebrow">{t("contact.eyebrow", "CONTACT US")}</p>
+          <h1>{t("contact.title", "We're Here to Help Your Shop Run Smoothly")}</h1>
           <p className="header-description">
-            Have a question about receipt templates, thermal printer compatibility, pricing plans, 
-            or custom requirements? Get in touch with our team.
+            {t("contact.subtitle", "Have a question about receipt templates, thermal printer compatibility, pricing plans, or custom requirements? Get in touch with our team.")}
           </p>
         </div>
       </section>
@@ -232,33 +233,32 @@ export function Contact({ setView, setShowAuth, user }) {
       <section className="contact-form-section">
         <div className="contact-container">
           <div className="contact-info-panel">
-            <span className="info-eyebrow">SEND A MESSAGE</span>
-            <h2>Let's talk about your shop's billing needs</h2>
+            <span className="info-eyebrow">{t("contact.sendMessage", "SEND A MESSAGE")}</span>
+            <h2>{t("contact.formTitle", "Let's talk about your shop's billing needs")}</h2>
             <p>
-              Whether you are a solo retail counter or a multi-location chain, our team is excited 
-              to help you print faster and organize your shop.
+              {t("contact.formSubtitle", "Whether you are a solo retail counter or a multi-location chain, our team is excited to help you print faster and organize your shop.")}
             </p>
 
             <div className="info-perks">
               <div className="perk-item">
                 <CheckCircle2 size={18} className="perk-icon" />
                 <div>
-                  <strong>Free 1-on-1 Consultation</strong>
-                  <p>Get personalized guidance for hardware & thermal printer choices.</p>
+                  <strong>{t("contact.perk1Title", "Free 1-on-1 Consultation")}</strong>
+                  <p>{t("contact.perk1Desc", "Get personalized guidance for hardware & thermal printer choices.")}</p>
                 </div>
               </div>
               <div className="perk-item">
                 <CheckCircle2 size={18} className="perk-icon" />
                 <div>
-                  <strong>Quick Turnaround</strong>
-                  <p>Guaranteed response within 24 hours from a real human specialist.</p>
+                  <strong>{t("contact.perk2Title", "Printer Compatibility Check")}</strong>
+                  <p>{t("contact.perk2Desc", "We verify your ESC/POS Bluetooth, USB, or WiFi model before setup.")}</p>
                 </div>
               </div>
               <div className="perk-item">
                 <CheckCircle2 size={18} className="perk-icon" />
                 <div>
-                  <strong>Custom Template Styling</strong>
-                  <p>Assistance in matching your brand logo, colors, and GST formatting.</p>
+                  <strong>{t("contact.perk3Title", "Dedicated Store Onboarding")}</strong>
+                  <p>{t("contact.perk3Desc", "We help import your catalog, menu items, and GST sequence.")}</p>
                 </div>
               </div>
             </div>
@@ -270,22 +270,22 @@ export function Contact({ setView, setShowAuth, user }) {
                 <div className="success-icon-box">
                   <CheckCircle2 size={40} color="#10b981" />
                 </div>
-                <h3>Message Sent Successfully!</h3>
+                <h3>{t("contact.sentSuccess", "Message Sent Successfully!")}</h3>
                 <p>
-                  Thank you for reaching out. We have received your query and a team member will get back to you shortly.
+                  {t("contact.sentSuccessBody", "Thank you for reaching out. We have received your query and a team member will get back to you shortly.")}
                 </p>
                 <button 
                   className="cta-button secondary"
                   onClick={() => setSubmitted(false)}
                 >
-                  Send Another Message
+                  {t("contact.sendAnother", "Send Another Message")}
                 </button>
               </div>
             ) : (
               <form className="contact-form" onSubmit={handleSubmit} noValidate>
                 <div className="form-group-row">
                   <div className="form-group">
-                    <label htmlFor="name">Your Name *</label>
+                    <label htmlFor="name">{t("contact.yourName", "Your Name")} *</label>
                     <input
                       id="name"
                       type="text"
@@ -302,7 +302,7 @@ export function Contact({ setView, setShowAuth, user }) {
                     )}
                   </div>
                   <div className="form-group">
-                    <label htmlFor="email">Email Address *</label>
+                    <label htmlFor="email">{t("contact.yourEmail", "Email Address")} *</label>
                     <input
                       id="email"
                       type="email"
@@ -322,7 +322,7 @@ export function Contact({ setView, setShowAuth, user }) {
 
                 <div className="form-group-row">
                   <div className="form-group">
-                    <label htmlFor="phone">Phone / WhatsApp (Optional)</label>
+                    <label htmlFor="phone">{t("contact.phoneNumber", "Phone / WhatsApp (Optional)")}</label>
                     <input
                       id="phone"
                       type="tel"
@@ -338,27 +338,26 @@ export function Contact({ setView, setShowAuth, user }) {
                     )}
                   </div>
                   <div className="form-group">
-                    <label htmlFor="topic">Topic of Inquiry</label>
+                    <label htmlFor="topic">{t("contact.topic", "Topic of Inquiry")}</label>
                     <select
                       id="topic"
                       value={form.topic}
                       onChange={(e) => handleChange("topic", e.target.value)}
                     >
-                      <option value="general">General Question</option>
-                      <option value="printer">Thermal Printer Setup</option>
-                      <option value="template">Custom Receipt Template</option>
-                      <option value="pricing">Pricing & Subscription</option>
-                      <option value="enterprise">Multi-Store Enterprise</option>
+                      <option value="general">{t("contact.topicGeneral", "General Question")}</option>
+                      <option value="printer">{t("contact.topicHardware", "Thermal Printer Setup")}</option>
+                      <option value="template">{t("contact.topicCustom", "Custom Receipt Template")}</option>
+                      <option value="pricing">{t("contact.topicPricing", "Pricing & Subscription")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="message">Your Message *</label>
+                  <label htmlFor="message">{t("contact.yourMessage", "Your Message")} *</label>
                   <textarea
                     id="message"
                     rows={4}
-                    placeholder="Tell us about your shop or what you need help with..."
+                    placeholder={t("contact.messagePlaceholder", "Tell us about your shop or what you need help with...")}
                     value={form.message}
                     onChange={(e) => handleChange("message", e.target.value)}
                     style={fieldErrors.message ? { borderColor: "#ef4444" } : {}}
@@ -376,9 +375,9 @@ export function Contact({ setView, setShowAuth, user }) {
                   className="cta-button primary full-width"
                   disabled={loading}
                 >
-                  {loading ? "Sending Message..." : (
+                  {loading ? t("contact.sending", "Sending Message...") : (
                     <>
-                      Send Message <Send size={16} />
+                      {t("contact.sendButton", "Send Message")} <Send size={16} />
                     </>
                   )}
                 </button>
@@ -394,9 +393,9 @@ export function Contact({ setView, setShowAuth, user }) {
       <section className="contact-faq-section">
         <div className="contact-faq-container">
           <div className="section-header">
-            <p className="eyebrow">COMMON QUESTIONS</p>
-            <h2>Frequently Asked Questions</h2>
-            <p>Quick answers to common questions about getting in touch and using Slipzo.</p>
+            <p className="eyebrow">{t("contact.faqEyebrow", "COMMON QUESTIONS")}</p>
+            <h2>{t("contact.faqTitle", "Frequently Asked Questions")}</h2>
+            <p>{t("contact.faqSubtitle", "Quick answers to common questions about getting in touch and using Slipzo.")}</p>
           </div>
           <div className="faq-grid-two">
             {faqs.map((faq, i) => (
@@ -413,10 +412,10 @@ export function Contact({ setView, setShowAuth, user }) {
       <section className="contact-cta-wrapper-section">
         <div className="contact-bottom-cta">
           <div className="bottom-cta-content">
-            <h2>Ready to get started?</h2>
-            <p>Create receipts in seconds. No credit card required.</p>
+            <h2>{t("contact.ctaTitle", "Ready to get started?")}</h2>
+            <p>{t("contact.ctaSubtitle", "Create receipts in seconds. No credit card required.")}</p>
             <button className="cta-button primary large" onClick={() => setShowAuth(true)}>
-              Start Billing Free <ArrowRight size={18} />
+              {t("contact.ctaButton", "Start Billing Free")} <ArrowRight size={18} />
             </button>
           </div>
         </div>

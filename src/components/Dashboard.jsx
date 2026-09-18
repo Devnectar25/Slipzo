@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { Plus, Receipt, ArrowRight, Store, FileText, Package, Mail } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { call, money, getRemainingFreePrints, getCachedData } from "../lib/utils"
 import { MetricSkeleton } from "./common/Skeleton"
 
 export function Dashboard({ setView, requireAuth, user }) {
+  const { t } = useTranslation()
   const remainingPrints = getRemainingFreePrints(user?.email || user?.id)
   const [stats, setStats] = useState(() => {
     const cachedStats = getCachedData("/bills/stats")
@@ -59,10 +61,10 @@ export function Dashboard({ setView, requireAuth, user }) {
     <div className="page dashboard-page fade-in">
       <div className="hero-row">
         <div>
-          <p className="eyebrow accent">TODAY'S DESK</p>
-          <h2>Ready for your next sale?</h2>
+          <p className="eyebrow accent">{t("dashboard.todaysDesk", "TODAY'S DESK")}</p>
+          <h2>{t("dashboard.readySale", "Ready for your next sale?")}</h2>
           <p className="subtle">
-            Create a clean receipt in seconds, then keep serving customers.
+            {t("dashboard.createReceiptSub", "Create a clean receipt in seconds, then keep serving customers.")}
           </p>
         </div>
         <button
@@ -70,7 +72,7 @@ export function Dashboard({ setView, requireAuth, user }) {
           className="primary-button"
           onClick={() => setView("bills")}
         >
-          <Plus size={18} /> New bill
+          <Plus size={18} /> {t("dashboard.newBill", "New bill")}
         </button>
       </div>
 
@@ -79,36 +81,36 @@ export function Dashboard({ setView, requireAuth, user }) {
       ) : (
         <div className="stats">
           <div className="stat" onClick={() => setView("history")} style={{ cursor: "pointer" }}>
-            <span>Today's sales</span>
+            <span>{t("dashboard.totalRevenue", "Today's sales")}</span>
             <b>{money(stats.total)}</b>
             <small>
               {stats.count > 0
-                ? `${stats.count} receipt${stats.count === 1 ? "" : "s"} today`
-                : "Start with your first bill"}
+                ? t("dashboard.receiptsToday", "{{count}} receipt(s) today", { count: stats.count })
+                : t("dashboard.firstBillPrompt", "Start with your first bill")}
             </small>
           </div>
 
           <div className="stat" onClick={() => setView("history")} style={{ cursor: "pointer" }}>
-            <span>Receipts today</span>
+            <span>{t("dashboard.billsCreated", "Receipts today")}</span>
             <b>{stats.count}</b>
             <small>
-              {stats.count > 0 ? "Saved receipts today" : "Nothing saved yet"}
+              {stats.count > 0 ? t("dashboard.savedReceiptsToday", "Saved receipts today") : t("dashboard.nothingSavedYet", "Nothing saved yet")}
             </small>
           </div>
 
           <div className="stat" onClick={() => setView("pricing")} style={{ cursor: "pointer" }}>
-            <span>Total Print</span>
+            <span>{t("dashboard.pricingTitle", "Prints Left")}</span>
             <b>{remainingPrints}</b>
             <small>
-              {remainingPrints > 0 ? `${remainingPrints} remaining` : "Plan limit reached"}
+              {remainingPrints > 0 ? t("dashboard.printsRemaining", "{{count}} remaining", { count: remainingPrints }) : t("dashboard.planLimitReached", "Plan limit reached")}
             </small>
           </div>
 
           <div className="stat" onClick={() => setView("templates")} style={{ cursor: "pointer" }}>
-            <span>Templates</span>
+            <span>{t("dashboard.templatesAvailable", "Templates")}</span>
             <b>{templateCount}</b>
             <small>
-              {templateCount > 0 ? "Reusable bill styles" : "Create template"}
+              {templateCount > 0 ? t("dashboard.reusableBillStyles", "Reusable bill styles") : t("dashboard.createTemplate", "Create template")}
             </small>
           </div>
         </div>
@@ -118,8 +120,8 @@ export function Dashboard({ setView, requireAuth, user }) {
         <section className="quick-panel">
           <div className="section-title">
             <div>
-              <p className="eyebrow">QUICK START</p>
-              <h3>Your simple billing rhythm</h3>
+              <p className="eyebrow">{t("dashboard.quickStart", "QUICK START")}</p>
+              <h3>{t("dashboard.billingRhythm", "Your simple billing rhythm")}</h3>
             </div>
             <Receipt size={28} />
           </div>
@@ -128,57 +130,45 @@ export function Dashboard({ setView, requireAuth, user }) {
             <div>
               <b>01</b>
               <span>
-                <strong>Choose a template</strong>
-                <small>Your shop details and invoice prefix are already placed.</small>
+                <strong>{t("dashboard.step1Title", "Choose a template")}</strong>
+                <small>{t("dashboard.step1Desc", "Your shop details and invoice prefix are already placed.")}</small>
               </span>
             </div>
             <div>
               <b>02</b>
               <span>
-                <strong>Add items</strong>
-                <small>Quick product lookup, quantity × rate, and auto tax calculation.</small>
+                <strong>{t("dashboard.step2Title", "Add items")}</strong>
+                <small>{t("dashboard.step2Desc", "Quick product lookup, quantity × rate, and auto tax calculation.")}</small>
               </span>
             </div>
             <div>
               <b>03</b>
               <span>
-                <strong>Print and go</strong>
-                <small>Works seamlessly with 58mm/80mm thermal & laser printers.</small>
+                <strong>{t("dashboard.step3Title", "Print and go")}</strong>
+                <small>{t("dashboard.step3Desc", "Works seamlessly with 58mm/80mm thermal & laser printers.")}</small>
               </span>
             </div>
           </div>
         </section>
 
         <section className="tip-panel">
-          <p className="eyebrow">QUICK SHORTCUTS</p>
-          <h3>Manage your workspace</h3>
+          <p className="eyebrow">{t("dashboard.quickShortcuts", "QUICK SHORTCUTS")}</p>
+          <h3>{t("dashboard.manageWorkspace", "Manage your workspace")}</h3>
           <p>
-            Organize reusable templates, manage your product inventory, and configure your invoice numbering.
+            {t("dashboard.workspaceDesc", "Organize reusable templates, manage your product inventory, and configure your invoice numbering.")}
           </p>
           <div className="dashboard-shortcuts-row">
-            <button
-              className="secondary-button small"
-              onClick={() => setView("templates")}
-            >
-              <FileText size={14} /> Templates
+            <button className="secondary-button small" onClick={() => setView("templates")}>
+              <FileText size={14} /> {t("dashboard.btnTemplates", "Templates")}
             </button>
-            <button
-              className="secondary-button small"
-              onClick={() => setView("products")}
-            >
-              <Package size={14} /> Products
+            <button className="secondary-button small" onClick={() => setView("products")}>
+              <Package size={14} /> {t("dashboard.btnProducts", "Products")}
             </button>
-            <button
-              className="secondary-button small"
-              onClick={() => setView("shop")}
-            >
-              <Store size={14} /> Shop Settings
+            <button className="secondary-button small" onClick={() => setView("shop")}>
+              <Store size={14} /> {t("dashboard.btnShopSettings", "Shop Settings")}
             </button>
-            <button
-              className="secondary-button small"
-              onClick={() => setView("contact")}
-            >
-              <Mail size={14} /> Contact Us
+            <button className="secondary-button small" onClick={() => setView("contact")}>
+              <Mail size={14} /> {t("nav.contact", "Contact Us")}
             </button>
           </div>
         </section>

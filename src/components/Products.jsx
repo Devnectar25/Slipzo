@@ -24,12 +24,12 @@ export function Products({ setView, requireAuth, user }) {
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [activeTab, setActiveTab] = useState("catalog") // "catalog" | "features"
-  
+
   // Add/Edit Product Modal State
   const [showModal, setShowModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  
+
   // Buyer Order Checkout Modal State
   const [buyProduct, setBuyProduct] = useState(null)
   const [buyQty, setBuyQty] = useState(1)
@@ -356,7 +356,7 @@ export function Products({ setView, requireAuth, user }) {
     const status = (p.status || 'active').toString().toLowerCase().trim()
     if (status === 'inactive') return false
 
-    const matchesSearch = search.trim() === "" || 
+    const matchesSearch = search.trim() === "" ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.category && p.category.toLowerCase().includes(search.toLowerCase())) ||
       (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
@@ -456,9 +456,9 @@ export function Products({ setView, requireAuth, user }) {
                     {/* Product Image */}
                     {product.image ? (
                       <div className="product-image-box">
-                        <img 
-                          src={product.image} 
-                          alt={product.name} 
+                        <img
+                          src={product.image}
+                          alt={product.name}
                         />
                       </div>
                     ) : (

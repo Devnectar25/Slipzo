@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react"
 import { ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, ShieldCheck, HelpCircle, Printer, RefreshCw } from "lucide-react"
 import Swal from "sweetalert2"
+import { useTranslation } from "react-i18next"
 import { getActivePlanDetails, activatePlan, syncUserQuota, call, getCurrentUserKey } from "../lib/utils"
 
 export function Pricing({ setView, setShowAuth, user }) {
+  const { t } = useTranslation()
   const [customPrints, setCustomPrints] = useState(2500)
   const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
@@ -162,70 +164,73 @@ export function Pricing({ setView, setShowAuth, user }) {
   // Preset plans: 1,000, 2,000, 5,000
   const plans = [
     {
-      name: "Starter Pack",
-      prints: "1,000 prints",
+      name: t("pricing.starterPack", "Starter Pack"),
+      rawName: "Starter Pack",
+      prints: `1,000 ${t("pricing.prints", "prints")}`,
       numericPrints: 1000,
       price: "₹250",
       numericPrice: 250,
       originalPrice: null,
-      description: "Ideal for small shops and new merchants getting started with digital billing.",
+      description: t("pricing.starterPackDesc", "Ideal for small shops and new merchants getting started with digital billing."),
       features: [
-        "1,000 prints total",
-        "₹0.25 per print standard rate",
-        "All receipt templates included",
-        "Thermal & POS printer support",
-        "Basic shop profile & logo",
-        "Email & chat support"
+        t("pricing.feature1000Prints", "1,000 prints total"),
+        t("pricing.featureRate25", "₹0.25 per print standard rate"),
+        t("pricing.featureAllTemplates", "All receipt templates included"),
+        t("pricing.featureThermalPOS", "Thermal & POS printer support"),
+        t("pricing.featureBasicProfile", "Basic shop profile & logo"),
+        t("pricing.featureEmailChat", "Email & chat support")
       ],
-      cta: "Get 1,000 Prints",
+      cta: t("pricing.getPrints", { count: "1,000", defaultValue: "Get 1,000 Prints" }),
       popular: false,
       savings: null,
-      perPrintCost: "₹0.25 / print"
+      perPrintCost: `₹0.25 ${t("pricing.perPrint", "/ print")}`
     },
     {
-      name: "Pro Growth",
-      prints: "2,000 prints",
+      name: t("pricing.proGrowth", "Pro Growth"),
+      rawName: "Pro Growth",
+      prints: `2,000 ${t("pricing.prints", "prints")}`,
       numericPrints: 2000,
       price: "₹450",
       numericPrice: 450,
       originalPrice: "₹500",
-      description: "Our most popular pack for active daily checkout counters.",
+      description: t("pricing.proGrowthDesc", "Our most popular pack for active daily checkout counters."),
       features: [
-        "2,000 prints total",
-        "Save ₹50 (10% OFF discount)",
-        "₹0.225 per print effective rate",
-        "Advanced shop customization",
-        "Sales analytics & Excel/CSV export",
-        "WhatsApp receipt sharing",
-        "Priority customer support"
+        t("pricing.feature2000Prints", "2,000 prints total"),
+        t("pricing.save50", "Save ₹50 (10% OFF)"),
+        t("pricing.featureRate225", "₹0.225 per print effective rate"),
+        t("pricing.featureAdvancedCustom", "Advanced shop customization"),
+        t("pricing.featureSalesAnalytics", "Sales analytics & Excel/CSV export"),
+        t("pricing.featureWhatsappShare", "WhatsApp receipt sharing"),
+        t("pricing.featurePrioritySupport", "Priority customer support")
       ],
-      cta: "Get 2,000 Prints",
+      cta: t("pricing.getPrints", { count: "2,000", defaultValue: "Get 2,000 Prints" }),
       popular: true,
-      savings: "Save ₹50 (10% OFF)",
-      perPrintCost: "₹0.225 / print"
+      savings: t("pricing.save50", "Save ₹50 (10% OFF)"),
+      perPrintCost: `₹0.225 ${t("pricing.perPrint", "/ print")}`
     },
     {
-      name: "Business Super",
-      prints: "5,000 prints",
+      name: t("pricing.businessSuper", "Business Super"),
+      rawName: "Business Super",
+      prints: `5,000 ${t("pricing.prints", "prints")}`,
       numericPrints: 5000,
       price: "₹1,000",
       numericPrice: 1000,
       originalPrice: "₹1,250",
-      description: "Maximum savings for high-volume retail stores & multi-counter setups.",
+      description: t("pricing.businessSuperDesc", "Maximum savings for high-volume retail stores & multi-counter setups."),
       features: [
-        "5,000 prints total",
-        "Save ₹250 (20% OFF discount)",
-        "₹0.20 per print effective rate",
-        "Everything in Pro Growth",
-        "Multi-device & counter sync",
-        "Dynamic UPI QR payment codes",
-        "Dedicated account manager",
-        "24/7 priority support"
+        t("pricing.feature5000Prints", "5,000 prints total"),
+        t("pricing.save250", "Save ₹250 (20% OFF)"),
+        t("pricing.featureRate20", "₹0.20 per print effective rate"),
+        t("pricing.featureProPlus", "Everything in Pro Growth"),
+        t("pricing.featureMultiDevice", "Multi-device & counter sync"),
+        t("pricing.featureDynamicUpi", "Dynamic UPI QR payment codes"),
+        t("pricing.featureDedicatedManager", "Dedicated account manager"),
+        t("pricing.feature247Support", "24/7 priority support")
       ],
-      cta: "Get 5,000 Prints",
+      cta: t("pricing.getPrints", { count: "5,000", defaultValue: "Get 5,000 Prints" }),
       popular: false,
-      savings: "Save ₹250 (20% OFF)",
-      perPrintCost: "₹0.20 / print"
+      savings: t("pricing.save250", "Save ₹250 (20% OFF)"),
+      perPrintCost: `₹0.20 ${t("pricing.perPrint", "/ print")}`
     }
   ]
 
@@ -271,10 +276,10 @@ export function Pricing({ setView, setShowAuth, user }) {
       {/* Header */}
       <section className="pricing-header">
         <div className="pricing-header-content">
-          <p className="eyebrow">SLIPZO PRICING</p>
-          <h1>Pay only for what you print</h1>
+          <p className="eyebrow">{t("pricing.eyebrow", "SLIPZO PRICING")}</p>
+          <h1>{t("pricing.title", "Pay only for what you print")}</h1>
           <p className="header-description">
-            Transparent pricing based on ₹0.25 per print with automatic bulk discounts up to 28% OFF. No monthly subscriptions or hidden fees.
+            {t("pricing.subtitle", "Transparent pricing based on ₹0.25 per print with automatic bulk discounts up to 28% OFF. No monthly subscriptions or hidden fees.")}
           </p>
         </div>
       </section>
@@ -308,27 +313,27 @@ export function Pricing({ setView, setShowAuth, user }) {
                   letterSpacing: '0.5px',
                   whiteSpace: 'nowrap'
                 }}>
-                  <ShieldCheck size={14} /> {activePlan.name || "Free Starter Tier"}
+                  <ShieldCheck size={14} /> {activePlan.name || t("pricing.freeStarterTier", "Free Starter Tier")}
                 </span>
-                <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>Active Plan</span>
+                <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>{t("pricing.activePlan", "Active Plan")}</span>
               </div>
               <h2 className="active-quota-heading" style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Printer size={22} style={{ color: '#0ea5e9' }} />
-                {activePlan.printsRemaining?.toLocaleString()} prints remaining
+                {activePlan.printsRemaining?.toLocaleString()} {t("pricing.printsRemaining", "prints remaining")}
               </h2>
             </div>
 
             <div className="active-quota-stats-row" style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', flexWrap: 'wrap' }}>
               <div>
-                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>TOTAL QUOTA</span>
+                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{t("pricing.totalQuota", "TOTAL QUOTA")}</span>
                 <strong style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
-                  {(activePlan.totalPrints || 10).toLocaleString()} prints
+                  {(activePlan.totalPrints || 10).toLocaleString()} {t("pricing.prints", "prints")}
                 </strong>
               </div>
               <div>
-                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>PRINTS USED</span>
+                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{t("pricing.printsUsed", "PRINTS USED")}</span>
                 <strong style={{ fontSize: '1.15rem', color: '#0ea5e9', fontWeight: 800 }}>
-                  {(activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString()} prints
+                  {(activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString()} {t("pricing.prints", "prints")}
                 </strong>
               </div>
             </div>
@@ -337,9 +342,9 @@ export function Pricing({ setView, setShowAuth, user }) {
           {/* Progress Bar */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginBottom: '0.4rem' }}>
-              <span>Print Quota Consumption</span>
+              <span>{t("pricing.quotaConsumption", "Print Quota Consumption")}</span>
               <span>
-                {Math.round(((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100)}% Used
+                {Math.round(((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100)}% {t("pricing.used", "Used")}
               </span>
             </div>
             <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -362,7 +367,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div className={`pricing-card ${plan.popular ? 'popular' : ''}`} key={index}>
               {plan.popular && (
                 <div className="popular-badge">
-                  <Zap size={14} /> Most Popular
+                  <Zap size={14} /> {t("pricing.mostPopular", "Most Popular")}
                 </div>
               )}
               {plan.savings && !plan.popular && (
@@ -417,7 +422,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               </div>
               <button 
                 className={`plan-cta ${plan.popular ? 'primary' : 'secondary'}`}
-                onClick={() => handleBuyPlan(plan.name, plan.numericPrice, plan.numericPrints)}
+                onClick={() => handleBuyPlan(plan.rawName || plan.name, plan.numericPrice, plan.numericPrints)}
               >
                 {plan.cta}
                 <ArrowRight size={16} />
@@ -459,15 +464,15 @@ export function Pricing({ setView, setShowAuth, user }) {
               textTransform: 'uppercase',
               letterSpacing: '0.5px'
             }}>
-              <Calculator size={14} /> Self-Price Custom Pack
+              <Calculator size={14} /> {t("pricing.selfPriceEyebrow", "Self-Price Custom Pack")}
             </span>
           </div>
 
           <h2 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0.25rem 0 0.5rem' }}>
-            Enter your exact print requirement
+            {t("pricing.selfPriceTitle", "Enter your exact print requirement")}
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '0.95rem', maxWidth: '650px', marginBottom: '2rem' }}>
-            Need 250, 1,500, or 10,000 prints? Drag the slider or type your custom count below to calculate your instant bulk discount.
+            {t("pricing.selfPriceDesc", "Need 250, 1,500, or 10,000 prints? Drag the slider or type your custom count below to calculate your instant bulk discount.")}
           </p>
 
           <div className="custom-pricing-grid">
@@ -476,7 +481,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               {/* Preset Buttons */}
               <div className="quick-presets-container" style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>
-                  QUICK PRESETS
+                  {t("pricing.quickPresets", "QUICK PRESETS")}
                 </label>
                 <div className="quick-presets-grid">
                   {quickPresets.map(preset => (
@@ -485,7 +490,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                       onClick={() => setCustomPrints(preset)}
                       className={`preset-card-btn ${customPrints === preset ? 'active' : ''}`}
                     >
-                      <span className="preset-count-text">{preset.toLocaleString()} prints</span>
+                      <span className="preset-count-text">{preset.toLocaleString()} {t("pricing.prints", "prints")}</span>
                     </button>
                   ))}
                 </div>
@@ -496,7 +501,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 <div className="slider-header-controls">
                   <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600 }}>
                     <Sliders size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.4rem' }} />
-                    Adjust Prints:
+                    {t("pricing.adjustPrints", "Adjust Prints:")}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <input
@@ -518,7 +523,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                         textAlign: 'center'
                       }}
                     />
-                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>prints</span>
+                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>{t("pricing.prints", "prints")}</span>
                   </div>
                 </div>
 
@@ -538,10 +543,10 @@ export function Pricing({ setView, setShowAuth, user }) {
                 />
                 
                 <div className="slider-marks" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem', gap: '0.25rem', flexWrap: 'wrap' }}>
-                  <span>100 prints</span>
-                  <span>5,000 prints</span>
-                  <span>10,000 prints</span>
-                  <span>20,000 prints</span>
+                  <span>100 {t("pricing.prints", "prints")}</span>
+                  <span>5,000 {t("pricing.prints", "prints")}</span>
+                  <span>10,000 {t("pricing.prints", "prints")}</span>
+                  <span>20,000 {t("pricing.prints", "prints")}</span>
                 </div>
               </div>
             </div>
@@ -556,7 +561,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               backdropFilter: 'blur(10px)'
             }}>
               <p style={{ fontSize: '0.78rem', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#38bdf8', fontWeight: 700, margin: '0 0 0.35rem' }}>
-                YOUR SELF PRICE
+                {t("pricing.yourSelfPrice", "YOUR SELF PRICE")}
               </p>
               
               <div className="self-price-amount" style={{ fontSize: '3rem', fontWeight: 800, color: 'white', lineHeight: 1, margin: '0.25rem 0' }}>
@@ -565,7 +570,7 @@ export function Pricing({ setView, setShowAuth, user }) {
 
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0 1rem' }}>
                 <span style={{ fontSize: '0.88rem', color: '#cbd5e1' }}>
-                  Rate: <strong>₹{calc.rate} / print</strong>
+                  {t("pricing.rate", "Rate:")} <strong>₹{calc.rate} {t("pricing.perPrint", "/ print")}</strong>
                 </span>
                 {calc.baseCost > calc.finalPrice && (
                   <span style={{ textDecoration: 'line-through', fontSize: '0.82rem', color: '#64748b' }}>
@@ -588,7 +593,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   alignItems: 'center',
                   gap: '0.4rem'
                 }}>
-                  <Sparkles size={16} /> 🎉 You Save ₹{calc.savings.toLocaleString()} ({calc.savingsPercent}% OFF)
+                  <Sparkles size={16} /> {t("pricing.youSave", { amount: calc.savings.toLocaleString(), percent: calc.savingsPercent, defaultValue: `🎉 You Save ₹${calc.savings.toLocaleString()} (${calc.savingsPercent}% OFF)` })}
                 </div>
               ) : (
                 <div style={{
@@ -599,7 +604,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   fontSize: '0.8rem',
                   marginBottom: '1.25rem'
                 }}>
-                  Add 1,500+ prints to unlock bulk discounts!
+                  {t("pricing.bulkDiscountHint", "Add 1,500+ prints to unlock bulk discounts!")}
                 </div>
               )}
 
@@ -624,13 +629,13 @@ export function Pricing({ setView, setShowAuth, user }) {
                   boxShadow: '0 6px 20px rgba(14, 165, 233, 0.4)'
                 }}
               >
-                Buy {calc.count.toLocaleString()} Prints for ₹{calc.finalPrice.toLocaleString()}
+                {t("pricing.buyCustomBtn", { count: calc.count.toLocaleString(), price: calc.finalPrice.toLocaleString(), defaultValue: `Buy ${calc.count.toLocaleString()} Prints for ₹${calc.finalPrice.toLocaleString()}` })}
                 <ArrowRight size={15} />
               </button>
 
               <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
                 <ShieldCheck size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.2rem', color: '#10b981' }} />
-                Instant activation • Prints never expire
+                {t("pricing.instantActivation", "Instant activation • Prints never expire")}
               </p>
             </div>
           </div>
@@ -647,7 +652,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             marginBottom: '1.5rem',
             color: '#0f172a'
           }}>
-            Plan Comparison Summary
+            {t("pricing.comparisonTitle", "Plan Comparison Summary")}
           </h3>
           
           {/* Desktop Comparison Table */}
@@ -658,30 +663,30 @@ export function Pricing({ setView, setShowAuth, user }) {
               gap: '0.5rem',
               fontSize: '0.9rem'
             }}>
-              <div style={{ fontWeight: 700, color: '#64748b', padding: '0.65rem' }}>Feature / Plan</div>
-              <div style={{ fontWeight: 700, color: '#0f172a', textAlign: 'center', padding: '0.65rem' }}>Starter Pack</div>
-              <div style={{ fontWeight: 700, color: '#0ea5e9', textAlign: 'center', padding: '0.65rem' }}>Pro Growth (2K)</div>
-              <div style={{ fontWeight: 700, color: '#10b981', textAlign: 'center', padding: '0.65rem' }}>Business (5K)</div>
+              <div style={{ fontWeight: 700, color: '#64748b', padding: '0.65rem' }}>{t("pricing.colFeature", "Feature / Plan")}</div>
+              <div style={{ fontWeight: 700, color: '#0f172a', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colStarter", "Starter Pack")}</div>
+              <div style={{ fontWeight: 700, color: '#0ea5e9', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colPro", "Pro Growth (2K)")}</div>
+              <div style={{ fontWeight: 700, color: '#10b981', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colBusiness", "Business (5K)")}</div>
               
-              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>Total Prints</div>
+              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>{t("pricing.rowTotalPrints", "Total Prints")}</div>
               <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', fontWeight: 600 }}>1,000</div>
               <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', fontWeight: 600 }}>2,000</div>
               <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', fontWeight: 600 }}>5,000</div>
               
-              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>Plan Price</div>
+              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>{t("pricing.rowPlanPrice", "Plan Price")}</div>
               <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>₹250</div>
               <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#0ea5e9', fontWeight: 700 }}>₹450</div>
               <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#10b981', fontWeight: 700 }}>₹1,000</div>
               
-              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>Effective Unit Rate</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>₹0.25 / print</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#0ea5e9', fontWeight: 600 }}>₹0.225 / print</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#10b981', fontWeight: 700 }}>₹0.20 / print</div>
+              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>{t("pricing.rowUnitRate", "Effective Unit Rate")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>₹0.25 {t("pricing.perPrint", "/ print")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#0ea5e9', fontWeight: 600 }}>₹0.225 {t("pricing.perPrint", "/ print")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#10b981', fontWeight: 700 }}>₹0.20 {t("pricing.perPrint", "/ print")}</div>
               
-              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>Discount & Savings</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#94a3b8' }}>Standard Base</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#0ea5e9', fontWeight: 700 }}>Save ₹50 (10% OFF)</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#10b981', fontWeight: 700 }}>Save ₹250 (20% OFF)</div>
+              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>{t("pricing.rowSavings", "Discount & Savings")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#94a3b8' }}>{t("pricing.standardBase", "Standard Base")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#0ea5e9', fontWeight: 700 }}>{t("pricing.save50", "Save ₹50 (10% OFF)")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#10b981', fontWeight: 700 }}>{t("pricing.save250", "Save ₹250 (20% OFF)")}</div>
             </div>
           </div>
 
@@ -689,58 +694,58 @@ export function Pricing({ setView, setShowAuth, user }) {
           <div className="mobile-comparison-cards">
             <div className="mobile-comp-card">
               <div className="comp-card-header">
-                <h4>Starter Pack</h4>
+                <h4>{t("pricing.colStarter", "Starter Pack")}</h4>
                 <span className="comp-price">₹250</span>
               </div>
               <div className="comp-card-row">
-                <span>Total Prints</span>
-                <strong>1,000 prints</strong>
+                <span>{t("pricing.rowTotalPrints", "Total Prints")}</span>
+                <strong>1,000 {t("pricing.prints", "prints")}</strong>
               </div>
               <div className="comp-card-row">
-                <span>Unit Rate</span>
-                <strong>₹0.25 / print</strong>
+                <span>{t("pricing.rowUnitRate", "Unit Rate")}</span>
+                <strong>₹0.25 {t("pricing.perPrint", "/ print")}</strong>
               </div>
               <div className="comp-card-row">
-                <span>Savings</span>
-                <span className="badge-standard">Standard Base</span>
+                <span>{t("pricing.rowSavings", "Savings")}</span>
+                <span className="badge-standard">{t("pricing.standardBase", "Standard Base")}</span>
               </div>
             </div>
 
             <div className="mobile-comp-card popular">
               <div className="comp-card-header">
-                <h4>Pro Growth (2K)</h4>
+                <h4>{t("pricing.colPro", "Pro Growth (2K)")}</h4>
                 <span className="comp-price">₹450</span>
               </div>
               <div className="comp-card-row">
-                <span>Total Prints</span>
-                <strong>2,000 prints</strong>
+                <span>{t("pricing.rowTotalPrints", "Total Prints")}</span>
+                <strong>2,000 {t("pricing.prints", "prints")}</strong>
               </div>
               <div className="comp-card-row">
-                <span>Unit Rate</span>
-                <strong>₹0.225 / print</strong>
+                <span>{t("pricing.rowUnitRate", "Unit Rate")}</span>
+                <strong>₹0.225 {t("pricing.perPrint", "/ print")}</strong>
               </div>
               <div className="comp-card-row">
-                <span>Savings</span>
-                <span className="badge-savings blue">Save ₹50 (10% OFF)</span>
+                <span>{t("pricing.rowSavings", "Savings")}</span>
+                <span className="badge-savings blue">{t("pricing.save50", "Save ₹50 (10% OFF)")}</span>
               </div>
             </div>
 
             <div className="mobile-comp-card best-value">
               <div className="comp-card-header">
-                <h4>Business (5K)</h4>
+                <h4>{t("pricing.colBusiness", "Business (5K)")}</h4>
                 <span className="comp-price">₹1,000</span>
               </div>
               <div className="comp-card-row">
-                <span>Total Prints</span>
-                <strong>5,000 prints</strong>
+                <span>{t("pricing.rowTotalPrints", "Total Prints")}</span>
+                <strong>5,000 {t("pricing.prints", "prints")}</strong>
               </div>
               <div className="comp-card-row">
-                <span>Unit Rate</span>
-                <strong>₹0.20 / print</strong>
+                <span>{t("pricing.rowUnitRate", "Unit Rate")}</span>
+                <strong>₹0.20 {t("pricing.perPrint", "/ print")}</strong>
               </div>
               <div className="comp-card-row">
-                <span>Savings</span>
-                <span className="badge-savings green">Save ₹250 (20% OFF)</span>
+                <span>{t("pricing.rowSavings", "Savings")}</span>
+                <span className="badge-savings green">{t("pricing.save250", "Save ₹250 (20% OFF)")}</span>
               </div>
             </div>
           </div>
@@ -755,7 +760,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             color: '#0369a1',
             textAlign: 'center'
           }}>
-            💡 <strong>Pro Tip:</strong> Buy larger packs or use our <strong>Self-Price Calculator</strong> above for up to <strong>28% volume discounts</strong> on high-volume print orders!
+            {t("pricing.proTip", "💡 Pro Tip: Buy larger packs or use our Self-Price Calculator above for up to 28% volume discounts on high-volume print orders!")}
           </div>
         </div>
       </section>
@@ -763,10 +768,10 @@ export function Pricing({ setView, setShowAuth, user }) {
       {/* CTA */}
       <section className="pricing-cta">
         <div className="cta-content">
-          <h2>Start billing with Slipzo today</h2>
-          <p>Join thousands of retail shop owners across India. Quick 1-minute setup.</p>
+          <h2>{t("pricing.ctaHeading", "Start billing with Slipzo today")}</h2>
+          <p>{t("pricing.ctaSub", "Join thousands of retail shop owners across India. Quick 1-minute setup.")}</p>
           <button className="cta-button primary large" onClick={() => user ? setView?.("bills") : (setShowAuth ? setShowAuth(true) : setView?.("bills"))}>
-            Get Started Now <ArrowRight size={18} />
+            {t("pricing.ctaButton", "Get Started Now")} <ArrowRight size={18} />
           </button>
         </div>
       </section>

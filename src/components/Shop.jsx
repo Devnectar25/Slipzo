@@ -18,8 +18,11 @@ import {
   SlidersHorizontal,
   Eye,
   BadgeCheck,
-  Receipt
+  Receipt,
+  Globe
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
 import { call, getCachedData, getActivePlanDetails, findTemplateMatch } from "../lib/utils"
 import { ButtonLoader, Skeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -43,6 +46,9 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
 }
 
 export function Shop({ user, setView } = {}) {
+  const { t, i18n } = useTranslation()
+  const currentLang = i18n.language || "en"
+
   const userKey = user?.email || user?.id
   const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
   const [copiedInvoice, setCopiedInvoice] = useState(false)
@@ -81,6 +87,17 @@ export function Shop({ user, setView } = {}) {
   const edited = useRef(false)
 
   const { success, error: toastError, warning: toastWarning } = useToast()
+
+  const handleLanguageSelect = async (langCode) => {
+    await changeAppLanguage(langCode)
+    const selectedLang = SUPPORTED_LANGUAGES.find((l) => l.code === langCode)
+    success(
+      t("profile.languageChanged", {
+        lang: selectedLang?.nativeName || langCode,
+        defaultValue: `Language switched to ${selectedLang?.nativeName || langCode}!`
+      })
+    )
+  }
 
   const validateField = (key, value, currentShop = shop) => {
     let errorMsg = ""
@@ -242,7 +259,7 @@ export function Shop({ user, setView } = {}) {
 
       setSaved(true)
       setHasUnsaved(false)
-      success("Shop profile and invoice settings saved!")
+      success(t("profile.settingsSaved", "Shop profile and invoice settings saved!"))
       setTimeout(() => setSaved(false), 3500)
     } catch (err) {
       console.error("Failed to save shop:", err)
@@ -326,24 +343,24 @@ export function Shop({ user, setView } = {}) {
           <div className="shop-brand-info">
             <div className="shop-pill-tag">
               <Sparkles size={12} />
-              <span>STORE IDENTITY & POS SETTINGS</span>
+              <span>{t("profile.storeIdentity", "STORE IDENTITY & POS SETTINGS")}</span>
             </div>
             <h1 className="shop-display-name">
-              {shop.name || "Your Store"}
+              {shop.name || t("profile.yourStore", "Your Store")}
               <span className="verified-badge" title="Thermal Receipt Ready">
-                <BadgeCheck size={18} /> Verified Store
+                <BadgeCheck size={18} /> {t("profile.verifiedStore", "Verified Store")}
               </span>
             </h1>
             <p className="shop-display-sub">
-              These details and sequence patterns appear on every thermal receipt and invoice you generate.
+              {t("profile.heroSub", "These details and sequence patterns appear on every thermal receipt and invoice you generate.")}
             </p>
           </div>
         </div>
 
         <div className="shop-quick-pills">
-          <span className="feature-pill">🖨️ 58mm / 80mm Ready</span>
-          <span className="feature-pill">🔢 Auto Sequencing</span>
-          <span className="feature-pill">⚡ Instant HMR Sync</span>
+          <span className="feature-pill">{t("profile.thermalReady", "🖨️ 58mm / 80mm Ready")}</span>
+          <span className="feature-pill">{t("profile.autoSequencing", "🔢 Auto Sequencing")}</span>
+          <span className="feature-pill">{t("profile.instantSync", "⚡ Instant HMR Sync")}</span>
         </div>
       </div>
 
@@ -356,15 +373,15 @@ export function Shop({ user, setView } = {}) {
           <div className="plan-meta-wrap">
             <div className="plan-badge-row">
               <span className={`plan-name-badge ${activePlan.isFreeTier ? "free" : "pro"}`}>
-                {activePlan.name || "Free Starter Tier"}
+                {activePlan.name || t("profile.freeStarterTier", "Free Starter Tier")}
               </span>
               <span className="plan-status-indicator">
-                <span className="status-live-dot" /> Active Plan
+                <span className="status-live-dot" /> {t("profile.activePlan", "Active Plan")}
               </span>
             </div>
             <h3 className="plan-prints-count">
               {activePlan.printsRemaining?.toLocaleString()}{" "}
-              <span className="prints-denom">/ {(activePlan.totalPrints || 10).toLocaleString()} prints available</span>
+              <span className="prints-denom">/ {(activePlan.totalPrints || 10).toLocaleString()} {t("profile.printsAvailable", "prints available")}</span>
             </h3>
             {/* Visual Quota Progress Bar */}
             <div className="quota-bar-track">
@@ -378,11 +395,84 @@ export function Shop({ user, setView } = {}) {
           onClick={() => setView?.("pricing")}
           className="plan-action-btn"
         >
-          <Zap size={15} className="zap-accent" /> Manage Plan & Top Up
+          <Zap size={15} className="zap-accent" /> {t("profile.managePlan", "Manage Plan & Top Up")}
         </button>
       </div>
 
       <form className="profile-form" onSubmit={saveShop} noValidate>
+        {/* Section: Application Language Selection (Permanent in Profile Section) */}
+        <div className="form-section-card language-profile-card" data-testid="profile-language-section">
+          <div className="section-title-wrap">
+            <div className="section-icon-pill indigo">
+              <Globe size={20} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h3 className="section-title-sm">{t("profile.languageTitle", "App Language / भाषा")}</h3>
+                <span className="lang-permanent-badge">
+                  <Check size={12} /> {t("profile.languageSavedPermanent", "Permanent Preference")}
+                </span>
+              </div>
+              <p className="section-desc-sm">
+                {t("profile.languageDesc", "Choose your preferred application language. Setting is saved permanently on this device.")}
+              </p>
+            </div>
+          </div>
+
+          <div className="language-selector-grid">
+            {SUPPORTED_LANGUAGES.map((lang) => {
+              const isSelected = currentLang === lang.code || (currentLang && currentLang.startsWith(lang.code))
+              return (
+                <div
+                  key={lang.code}
+                  data-testid={`lang-select-${lang.code}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleLanguageSelect(lang.code)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      handleLanguageSelect(lang.code)
+                    }
+                  }}
+                  className={`language-option-card ${isSelected ? "active" : ""}`}
+                  aria-pressed={isSelected}
+                >
+                  <div className="language-card-top">
+                    <span className="language-card-flag">{lang.flag}</span>
+                    {isSelected ? (
+                      <div className="language-active-check" title="Active Language">
+                        <Check size={14} strokeWidth={3} />
+                      </div>
+                    ) : (
+                      <div className="language-inactive-radio" />
+                    )}
+                  </div>
+                  <div className="language-card-main">
+                    <span className="language-card-name">{lang.nativeName}</span>
+                    <span className="language-card-sub">
+                      {lang.code === "en"
+                        ? t("profile.englishSub", "Default English UI")
+                        : lang.code === "hi"
+                        ? t("profile.hindiSub", "Hindi language interface")
+                        : t("profile.marathiSub", "Marathi language interface")}
+                    </span>
+                  </div>
+                  <div className="language-card-tag">
+                    {isSelected ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                        <CheckCircle2 size={11} /> {t("common.status", "Active")}
+                      </span>
+                    ) : (
+                      lang.badge || lang.label
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
         {/* Section 1: Business Details */}
         <div className="form-section-card">
           <div className="section-title-wrap">
@@ -390,22 +480,22 @@ export function Shop({ user, setView } = {}) {
               <Store size={18} />
             </div>
             <div>
-              <h3 className="section-title-sm">Business Details</h3>
-              <p className="section-desc-sm">Store branding and contact information printed on receipt headers</p>
+              <h3 className="section-title-sm">{t("profile.businessDetails", "Business Details")}</h3>
+              <p className="section-desc-sm">{t("profile.businessDetailsSub", "Store branding and contact information printed on receipt headers")}</p>
             </div>
           </div>
 
           <div className="form-row">
             <label className="flex-1 form-group-label">
               <span className="label-text">
-                SHOP NAME <span className="req">*</span>
+                {t("profile.shopName", "SHOP NAME")} <span className="req">*</span>
               </span>
               <div className="input-with-icon">
                 <Store size={16} className="field-adornment-icon" />
                 <input
                   data-testid="shop-name-input"
                   required
-                  placeholder="e.g. Mahajan General Store & Cafe"
+                  placeholder={t("profile.shopNamePlaceholder", "e.g. Mahajan General Store & Cafe")}
                   value={shop.name}
                   onChange={(e) => handleChange("name", e.target.value)}
                   onBlur={() => handleBlur("name")}
@@ -422,13 +512,13 @@ export function Shop({ user, setView } = {}) {
             </label>
 
             <label className="flex-1 form-group-label">
-              <span className="label-text">CONTACT PHONE NUMBER</span>
+              <span className="label-text">{t("profile.phone", "CONTACT PHONE NUMBER")}</span>
               <div className="input-with-icon">
                 <Phone size={16} className="field-adornment-icon" />
                 <input
                   data-testid="shop-phone-input"
                   type="tel"
-                  placeholder="e.g. 9876543210"
+                  placeholder={t("profile.phonePlaceholder", "e.g. 9876543210")}
                   value={shop.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
                   onBlur={() => handleBlur("phone")}
@@ -442,14 +532,14 @@ export function Shop({ user, setView } = {}) {
                   <AlertCircle size={13} /> {errors.phone}
                 </span>
               ) : (
-                <small className="field-helper-note">7–15 digits for contact header on receipt</small>
+                <small className="field-helper-note">{t("profile.phoneHelper", "7–15 digits for contact header on receipt")}</small>
               )}
             </label>
           </div>
 
           <label className="form-group-label">
             <div className="label-row-split">
-              <span className="label-text">STORE ADDRESS</span>
+              <span className="label-text">{t("profile.address", "STORE ADDRESS")}</span>
               <span className={`char-counter-tag ${shop.address.length > 300 ? "exceeded" : ""}`}>
                 {shop.address.length} / 300
               </span>
@@ -459,7 +549,7 @@ export function Shop({ user, setView } = {}) {
               <textarea
                 data-testid="shop-address-input"
                 rows="3"
-                placeholder="Street, area, landmark, city, pincode"
+                placeholder={t("profile.addressPlaceholder", "Street, area, landmark, city, pincode")}
                 value={shop.address}
                 onChange={(e) => handleChange("address", e.target.value)}
                 onBlur={() => handleBlur("address")}
@@ -473,7 +563,7 @@ export function Shop({ user, setView } = {}) {
                 <AlertCircle size={13} /> {errors.address}
               </span>
             )}
-            <small className="field-helper-note">Keeping address to 2 lines prevents long paper roll feeds</small>
+            <small className="field-helper-note">{t("profile.addressHelper", "Keeping address to 2 lines prevents long paper roll feeds")}</small>
           </label>
         </div>
 
@@ -484,14 +574,14 @@ export function Shop({ user, setView } = {}) {
               <FileText size={18} />
             </div>
             <div>
-              <h3 className="section-title-sm">Receipt Defaults & Billing</h3>
-              <p className="section-desc-sm">Default layout, automatic discount, and tax calculations applied to new bills</p>
+              <h3 className="section-title-sm">{t("profile.receiptDefaults", "Receipt Defaults & Billing")}</h3>
+              <p className="section-desc-sm">{t("profile.receiptDefaultsSub", "Default layout, automatic discount, and tax calculations applied to new bills")}</p>
             </div>
           </div>
 
           <div className="form-row">
             <label className="flex-1 form-group-label">
-              <span className="label-text">RECEIPT TEMPLATE</span>
+              <span className="label-text">{t("profile.receiptTemplate", "RECEIPT TEMPLATE")}</span>
               <div className="select-with-icon">
                 <Receipt size={16} className="field-adornment-icon" />
                 <select
@@ -500,25 +590,25 @@ export function Shop({ user, setView } = {}) {
                   className="option-select styled-select"
                 >
                   {Array.isArray(templates) && templates.length > 0 ? (
-                    templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.width || "58mm"})
+                    templates.map((tItem) => (
+                      <option key={tItem.id} value={tItem.id}>
+                        {tItem.name} ({tItem.width || "58mm"})
                       </option>
                     ))
                   ) : (
-                    BUILTIN_TEMPLATES.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.width || "58mm"})
+                    BUILTIN_TEMPLATES.map((tItem) => (
+                      <option key={tItem.id} value={tItem.id}>
+                        {tItem.name} ({tItem.width || "58mm"})
                       </option>
                     ))
                   )}
                 </select>
               </div>
-              <small className="field-helper-note">Layout loaded by default when creating bills</small>
+              <small className="field-helper-note">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</small>
             </label>
 
             <label className="flex-1 form-group-label">
-              <span className="label-text">DEFAULT DISCOUNT (₹)</span>
+              <span className="label-text">{t("profile.defaultDiscount", "DEFAULT DISCOUNT (₹)")}</span>
               <div className="input-with-icon">
                 <span className="currency-symbol-adornment">₹</span>
                 <input
@@ -531,13 +621,13 @@ export function Shop({ user, setView } = {}) {
                   className="item-input"
                 />
               </div>
-              <small className="field-helper-note">Auto-deducted when creating new bills</small>
+              <small className="field-helper-note">{t("profile.discountHelper", "Auto-deducted when creating new bills")}</small>
             </label>
           </div>
 
           <div className="form-row" style={{ marginTop: "1rem" }}>
             <label className="flex-1 form-group-label">
-              <span className="label-text">TAX INCLUSION MODE</span>
+              <span className="label-text">{t("profile.taxMode", "TAX INCLUSION MODE")}</span>
               <div className="select-with-icon">
                 <Percent size={16} className="field-adornment-icon" />
                 <select
@@ -545,9 +635,9 @@ export function Shop({ user, setView } = {}) {
                   onChange={(e) => handleChange("show_tax", Number(e.target.value))}
                   className="option-select styled-select"
                 >
-                  <option value={0}>No Tax (0% / Tax Disabled)</option>
-                  <option value={1}>Tax Included (Prices contain tax)</option>
-                  <option value={2}>Tax Extra (Added on top of bill)</option>
+                  <option value={0}>{t("profile.noTax", "No Tax (0% / Tax Disabled)")}</option>
+                  <option value={1}>{t("profile.taxIncluded", "Tax Included (Prices contain tax)")}</option>
+                  <option value={2}>{t("profile.taxExtra", "Tax Extra (Added on top of bill)")}</option>
                 </select>
               </div>
 
@@ -558,27 +648,27 @@ export function Shop({ user, setView } = {}) {
                   className={`tax-chip ${Number(shop.show_tax) === 0 ? "active" : ""}`}
                   onClick={() => handleChange("show_tax", 0)}
                 >
-                  No Tax
+                  {t("profile.taxChipNoTax", "No Tax")}
                 </button>
                 <button
                   type="button"
                   className={`tax-chip ${Number(shop.show_tax) === 1 ? "active" : ""}`}
                   onClick={() => handleChange("show_tax", 1)}
                 >
-                  Tax Included
+                  {t("profile.taxChipIncluded", "Tax Included")}
                 </button>
                 <button
                   type="button"
                   className={`tax-chip ${Number(shop.show_tax) === 2 ? "active" : ""}`}
                   onClick={() => handleChange("show_tax", 2)}
                 >
-                  Tax Extra
+                  {t("profile.taxChipExtra", "Tax Extra")}
                 </button>
               </div>
             </label>
 
             <label className="flex-1 form-group-label">
-              <span className="label-text">DEFAULT TAX RATE (%)</span>
+              <span className="label-text">{t("profile.taxRate", "DEFAULT GST / TAX RATE (%)")}</span>
               <div className="input-with-icon">
                 <Percent size={16} className="field-adornment-icon" />
                 <input
@@ -622,14 +712,14 @@ export function Shop({ user, setView } = {}) {
               <Hash size={18} />
             </div>
             <div>
-              <h3 className="section-title-sm">Invoice Numbering</h3>
-              <p className="section-desc-sm">Customize sequential receipt counters and format patterns for clean accounting</p>
+              <h3 className="section-title-sm">{t("profile.invoiceSequenceTitle", "Invoice Numbering")}</h3>
+              <p className="section-desc-sm">{t("profile.invoiceSequenceSub", "Customize sequential receipt counters and format patterns for clean accounting")}</p>
             </div>
           </div>
 
           <div className="form-row">
             <label className="flex-1 form-group-label">
-              <span className="label-text">INVOICE PREFIX</span>
+              <span className="label-text">{t("profile.invoicePrefix", "INVOICE PREFIX")}</span>
               <div className="input-with-icon">
                 <Hash size={16} className="field-adornment-icon" />
                 <input
@@ -649,12 +739,12 @@ export function Shop({ user, setView } = {}) {
                   <AlertCircle size={13} /> {errors.invoice_prefix}
                 </span>
               )}
-              <small className="field-helper-note">1–8 uppercase letters or numbers</small>
+              <small className="field-helper-note">{t("profile.invoicePrefixHelper", "1–8 uppercase letters or numbers")}</small>
             </label>
 
             <label className="flex-1 form-group-label">
               <span className="label-text">
-                NEXT SEQUENCE NUMBER <span className="req">*</span>
+                {t("profile.startingSequence", "NEXT SEQUENCE NUMBER")} <span className="req">*</span>
               </span>
               <div className="input-with-icon">
                 <span className="hash-adornment">#</span>
@@ -675,12 +765,12 @@ export function Shop({ user, setView } = {}) {
                   <AlertCircle size={13} /> {errors.invoice_sequence}
                 </span>
               )}
-              <small className="field-helper-note">Auto-increments with each printed receipt</small>
+              <small className="field-helper-note">{t("profile.startingSequenceHelper", "Auto-increments with each printed receipt")}</small>
             </label>
           </div>
 
           <label className="form-group-label">
-            <span className="label-text">NUMBER FORMAT PATTERN</span>
+            <span className="label-text">{t("profile.numberFormat", "NUMBER FORMAT PATTERN")}</span>
             <div className="select-with-icon">
               <SlidersHorizontal size={16} className="field-adornment-icon" />
               <select
@@ -688,10 +778,10 @@ export function Shop({ user, setView } = {}) {
                 onChange={(e) => handleChange("invoice_format", e.target.value)}
                 className="option-select styled-select"
               >
-                <option value="PREFIX-DATE-SEQ">PREFIX-YYYYMMDD-SEQ (e.g. SLP-20260909-1001)</option>
-                <option value="PREFIX-SHORTDATE-SEQ">PREFIX-YYMMDD-SEQ (e.g. SLP-260909-1001)</option>
-                <option value="PREFIX-SEQ">PREFIX-SEQ (e.g. SLP-1001)</option>
-                <option value="SEQ">SEQ ONLY (e.g. 1001)</option>
+                <option value="PREFIX-DATE-SEQ">{t("profile.formatPrefixDateSeq", "PREFIX-YYYYMMDD-SEQ (e.g. SLP-20260909-1001)")}</option>
+                <option value="PREFIX-SHORTDATE-SEQ">{t("profile.formatPrefixYearSeq", "PREFIX-YYMMDD-SEQ (e.g. SLP-260909-1001)")}</option>
+                <option value="PREFIX-SEQ">{t("profile.formatPrefixSeq", "PREFIX-SEQ (e.g. SLP-1001)")}</option>
+                <option value="SEQ">{t("profile.formatSeqOnly", "SEQ ONLY (e.g. 1001)")}</option>
               </select>
             </div>
           </label>
@@ -833,11 +923,11 @@ export function Shop({ user, setView } = {}) {
             disabled={loading}
           >
             {loading ? (
-              <ButtonLoader text="Saving Settings..." />
+              <ButtonLoader text={t("profile.savingSettings", "Saving Settings...")} />
             ) : (
               <>
                 <Save size={16} />
-                <span>Save Settings</span>
+                <span>{t("profile.saveSettings", "Save Settings")}</span>
                 <ArrowRight size={15} />
               </>
             )}
@@ -845,13 +935,13 @@ export function Shop({ user, setView } = {}) {
 
           {hasUnsaved && !saved && (
             <span className="unsaved-hint-tag">
-              <span className="unsaved-pulse-dot" /> You have unsaved changes
+              <span className="unsaved-pulse-dot" /> {t("profile.unsavedChanges", "You have unsaved changes")}
             </span>
           )}
 
           {saved && (
             <div data-testid="shop-saved-message" className="success-message slide-up shop-success-alert">
-              <Check size={16} /> Shop profile & invoice settings saved!
+              <Check size={16} /> {t("profile.settingsSaved", "Shop profile & invoice settings saved!")}
             </div>
           )}
         </div>
@@ -1207,6 +1297,134 @@ export function Shop({ user, setView } = {}) {
         .section-icon-pill.purple {
           background: #f3e8ff;
           color: #9333ea;
+        }
+
+        .section-icon-pill.indigo {
+          background: #e0e7ff;
+          color: #4f46e5;
+        }
+
+        .lang-permanent-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #15803d;
+          background: #dcfce7;
+          border: 1px solid #bbf7d0;
+          padding: 0.2rem 0.65rem;
+          border-radius: 999px;
+        }
+
+        .language-selector-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+
+        @media (max-width: 680px) {
+          .language-selector-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+          }
+        }
+
+        .language-option-card {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          padding: 1.15rem 1.25rem;
+          border-radius: 16px;
+          border: 2px solid #e2e8f0;
+          background: #ffffff;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          text-align: left;
+          user-select: none;
+        }
+
+        .language-option-card:hover {
+          border-color: #93c5fd;
+          background: #f8fafc;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px -4px rgba(2, 132, 199, 0.12);
+        }
+
+        .language-option-card.active {
+          border-color: #0284c7;
+          background: #f0f9ff;
+          box-shadow: 0 4px 18px rgba(2, 132, 199, 0.18);
+        }
+
+        .language-card-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 0.65rem;
+        }
+
+        .language-card-flag {
+          font-size: 1.85rem;
+          line-height: 1;
+        }
+
+        .language-active-check {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #0284c7;
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+        }
+
+        .language-inactive-radio {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          border: 2px solid #cbd5e1;
+          background: transparent;
+        }
+
+        .language-card-main {
+          display: flex;
+          flex-direction: column;
+          gap: 0.2rem;
+        }
+
+        .language-card-name {
+          font-size: 1.15rem;
+          font-weight: 800;
+          color: #0f172a;
+        }
+
+        .language-option-card.active .language-card-name {
+          color: #0369a1;
+        }
+
+        .language-card-sub {
+          font-size: 0.78rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .language-card-tag {
+          align-self: flex-start;
+          margin-top: 0.65rem;
+          font-size: 0.68rem;
+          font-weight: 700;
+          padding: 0.18rem 0.55rem;
+          border-radius: 999px;
+          background: #f1f5f9;
+          color: #475569;
+        }
+
+        .language-option-card.active .language-card-tag {
+          background: #bae6fd;
+          color: #0369a1;
         }
 
         .section-title-sm {
