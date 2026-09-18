@@ -447,18 +447,18 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
            STATIC HEADER STYLES
            ============================================ */
         .shell-static-header {
-          position: sticky !important;
-          top: 0 !important;
+          position: relative !important;
+          top: auto !important;
           left: 0 !important;
           right: 0 !important;
-          min-height: calc(56px + env(safe-area-inset-top, 0px)) !important;
+          min-height: calc(51px + env(safe-area-inset-top, 0px)) !important;
           height: auto !important;
           background: #ffffff !important;
           border-bottom: 1px solid #e2e8f0 !important;
           display: flex !important;
           align-items: center !important;
           justify-content: space-between !important;
-          padding-top: max(calc(env(safe-area-inset-top, 0px) + 6px), 12px) !important;
+          padding-top: max(calc(env(safe-area-inset-top, 0px) + 1px), 7px) !important;
           padding-bottom: 10px !important;
           padding-left: 1.25rem !important;
           padding-right: 1.25rem !important;
@@ -584,11 +584,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           }
 
           .shell-static-header {
-            padding-top: max(calc(env(safe-area-inset-top, 0px) + 28px), 32px) !important;
+            padding-top: max(calc(env(safe-area-inset-top, 0px) + 23px), 27px) !important;
             padding-bottom: 12px !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
-            min-height: calc(56px + max(env(safe-area-inset-top, 0px), 28px)) !important;
+            min-height: calc(51px + max(env(safe-area-inset-top, 0px), 23px)) !important;
             height: auto !important;
           }
 

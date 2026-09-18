@@ -1243,8 +1243,8 @@ body.is-native-app .public-footer,
 }
 
 .shell-static-header {
-  position: sticky;
-  top: 0;
+  position: relative;
+  top: auto;
   left: 0;
   right: 0;
   height: 56px;
@@ -4897,37 +4897,42 @@ body.is-native-app .public-footer,
 }
 
 .template-showcase-card.dashboard-card {
-  padding: 1.25rem 1rem 1rem;
-  border-radius: 14px;
+  padding: 1.25rem 1.1rem 1.1rem;
+  border-radius: 16px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .template-showcase-card.dashboard-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.09);
   border-color: #cbd5e1;
 }
 
 .template-showcase-card.dashboard-card.is-default-card {
-  border-color: #38bdf8;
-  box-shadow: 0 4px 18px rgba(56, 189, 248, 0.12);
+  border: 1.5px solid #0ea5e9;
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.12);
 }
 
 .default-pill-indicator {
   font-size: 0.65rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #0284c7;
   background: #e0f2fe;
   padding: 0.2rem 0.55rem;
   border-radius: 9999px;
   letter-spacing: 0.5px;
   border: 1px solid #bae6fd;
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Dashboard Card Action Rows */
@@ -8930,25 +8935,29 @@ body.is-native-app .public-footer,
 }
 
 .template-showcase-card {
-  background: white;
-  border-radius: 14px;
+  background: #ffffff;
+  border-radius: 16px;
   border: 1px solid #e2e8f0;
-  padding: 1.25rem 1rem 1rem;
+  padding: 1.25rem 1.1rem 1.1rem;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  justify-content: space-between;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
   position: relative;
   overflow: hidden;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .template-card-top {
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.75rem;
+  flex-shrink: 0;
 }
 
 .template-showcase-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.09);
   border-color: #cbd5e1;
 }
 
@@ -8958,64 +8967,65 @@ body.is-native-app .public-footer,
   left: 0;
   right: 0;
   height: 4px;
+  border-radius: 16px 16px 0 0;
 }
 
 .template-showcase-card.is-default-card {
-  border-color: #38bdf8;
-  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.12);
-}
-
-.default-pill-indicator {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
-  font-size: 0.62rem;
-  font-weight: 800;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
+  border: 1.5px solid #0ea5e9;
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.12);
 }
 
 .template-badge-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
+  min-height: 1.6rem;
 }
 
 .template-badge {
-  padding: 0.2rem 0.55rem;
+  padding: 0.22rem 0.6rem;
   border-radius: 9999px;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-weight: 800;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .template-paper-tag {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: #64748b;
   background: #f1f5f9;
-  padding: 0.2rem 0.5rem;
+  padding: 0.22rem 0.55rem;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .template-showcase-card h3 {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  font-weight: 800;
   color: #0f172a;
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.3rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .template-desc {
   font-size: 0.76rem;
   color: #64748b;
   line-height: 1.45;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0;
+  height: 2.6rem;
+  min-height: 2.6rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -9024,29 +9034,42 @@ body.is-native-app .public-footer,
 
 .template-receipt-preview {
   background: #f8fafc;
-  border-radius: 10px;
-  padding: 0.65rem 0.5rem;
-  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 0.75rem 0.5rem;
+  border: 1px solid #f1f5f9;
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
-  margin-bottom: 0.75rem;
-  min-height: 130px;
+  margin-bottom: 0.85rem;
+  height: 235px;
+  min-height: 235px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .template-receipt-preview:hover {
-  border-color: #0f172a;
-  background: #f8fafc;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .template-receipt-preview .mini-receipt {
-  box-shadow: none;
-  border: none;
-  max-width: 185px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+  border: 1px solid #e2e8f0;
+  max-width: 190px;
   width: 100%;
+  max-height: 215px;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.template-receipt-preview:hover .mini-receipt {
+  transform: scale(1.02);
 }
 
 .mock-receipt {
@@ -9111,7 +9134,7 @@ body.is-native-app .public-footer,
   inset: 0;
   background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(2px);
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9135,13 +9158,17 @@ body.is-native-app .public-footer,
 .template-features-list {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  margin-bottom: 0.75rem;
-  flex: 1;
-  padding: 0.5rem 0.55rem;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+  height: 105px;
+  min-height: 105px;
+  padding: 0.6rem 0.75rem;
   background: #f8fafc;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #f1f5f9;
+  box-sizing: border-box;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .template-feat-item {

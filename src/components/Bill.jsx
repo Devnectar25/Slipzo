@@ -383,7 +383,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     return Number(shop.show_tax)
   }, [shop])
 
-  const isTaxEnabled = shopTaxMode !== 0
+  const isTaxEnabled = false // Tax details removed completely from all bills as requested
 
   const selected = useMemo(() => {
     const list = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
@@ -391,13 +391,60 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   }, [templates, selectedId])
 
   const templateType = useMemo(() => {
-    const id = String(selected?.id || selected?.templateId || "").toLowerCase()
-    if (id === "1" || id.includes("classic")) return "classic"
-    if (id === "2" || id.includes("minimal")) return "minimal"
-    if (id === "3" || id.includes("pro")) return "pro"
-    if (id === "4" || id.includes("eco")) return "eco"
-    if (id === "5" || id.includes("modern")) return "modern"
-    if (id === "6" || id.includes("elite")) return "elite"
+    if (!selected) return "classic"
+    const id = String(selected.id || "").toLowerCase()
+    const tplId = String(selected.templateId || "").toLowerCase()
+    const name = String(selected.name || "").toLowerCase()
+    const cat = String(selected.category || "").toLowerCase()
+
+    if (
+      id === "1" || id === "classic" || id.includes("classic") ||
+      tplId === "1" || tplId === "classic" ||
+      name.includes("classic") || cat.includes("classic")
+    ) {
+      return "classic"
+    }
+
+    if (
+      id === "2" || id === "minimal" || id.includes("minimal") ||
+      tplId === "2" || tplId === "minimal" ||
+      name.includes("minimal") || cat.includes("minimal")
+    ) {
+      return "minimal"
+    }
+
+    if (
+      id === "3" || id === "pro" || id.includes("pro") ||
+      tplId === "3" || tplId === "pro" ||
+      name.includes("pro") || cat.includes("pro")
+    ) {
+      return "pro"
+    }
+
+    if (
+      id === "4" || id === "eco" || id.includes("eco") ||
+      tplId === "4" || tplId === "eco" ||
+      name.includes("eco") || cat.includes("eco")
+    ) {
+      return "eco"
+    }
+
+    if (
+      id === "5" || id === "modern" || id.includes("modern") ||
+      tplId === "5" || tplId === "modern" ||
+      name.includes("modern") || cat.includes("modern")
+    ) {
+      return "modern"
+    }
+
+    if (
+      id === "6" || id === "elite" || id.includes("elite") ||
+      tplId === "6" || tplId === "elite" ||
+      name.includes("elite") || cat.includes("elite")
+    ) {
+      return "elite"
+    }
+
     return "classic"
   }, [selected])
 
@@ -1257,21 +1304,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                   />
                 </label>
               </div>
-              <div className="option-group">
-                <label className="field-label option-field-label">
-                  <span className="option-label-text">
-                    <span>TAX RATE (%)</span>
-                  </span>
-                  <input
-                    data-testid="bill-tax-input"
-                    type="text"
-                    readOnly
-                    disabled
-                    value={!isTaxEnabled ? "0" : tax}
-                    className="option-input"
-                  />
-                </label>
-              </div>
+
             </div>
 
             {/* Payment Mode Card */}
@@ -1475,7 +1508,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                       <Phone size={12} /> {shop.phone}
                     </p>
                   )}
-                  {shop?.gstin && (
+                  {isTaxEnabled && shop?.gstin && (
                     <p className="receipt-shop-phone" style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 600 }}>
                       GSTIN: {shop.gstin}
                     </p>
@@ -1671,7 +1704,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                 <div style={{ textAlign: 'center', fontSize: '0.68rem', color: '#475569', marginBottom: '0.5rem' }}>
                   {shop?.address && <div>{shop.address}</div>}
                   {shop?.phone && <div>Tel: {shop.phone}</div>}
-                  {shop?.gstin && <div style={{ fontWeight: 700, color: "#0f172a" }}>GSTIN: {shop.gstin}</div>}
+                  {isTaxEnabled && shop?.gstin && <div style={{ fontWeight: 700, color: "#0f172a" }}>GSTIN: {shop.gstin}</div>}
                 </div>
 
                 <div className="pro-meta-bar" style={{ display: "flex", justifyContent: "space-between", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "0.35rem 0.6rem", fontSize: "0.68rem", margin: "0.5rem 0" }}>
@@ -1758,7 +1791,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                   <div style={{ fontSize: '0.68rem', color: '#475569', marginTop: '0.15rem' }}>
                     {shop?.address && <div>{shop.address}</div>}
                     {shop?.phone && <div>TEL: {shop.phone}</div>}
-                    {shop?.gstin && <div>GSTIN: {shop.gstin}</div>}
+                    {isTaxEnabled && shop?.gstin && <div>GSTIN: {shop.gstin}</div>}
                   </div>
                 </div>
 
@@ -1848,7 +1881,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                       Tel: {shop.phone}
                     </div>
                   )}
-                  {shop?.gstin && (
+                  {isTaxEnabled && shop?.gstin && (
                     <div style={{ fontSize: '0.68rem', color: '#0ea5e9', fontWeight: 600, marginTop: '0.1rem' }}>
                       GSTIN: {shop.gstin}
                     </div>
@@ -1929,7 +1962,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             {templateType === "elite" && (
               <div className="receipt-elite-container">
                 <div className="elite-tax-banner" style={{ background: "#0284c7", color: "#ffffff", padding: "0.45rem 0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.5px", borderRadius: "4px", marginBottom: "0.65rem" }}>
-                  <span>TAX INVOICE</span>
+                  <span>RECEIPT / INVOICE</span>
                   <span>ORIGINAL FOR RECIPIENT</span>
                 </div>
 
@@ -1938,7 +1971,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                   <h4 style={{ fontSize: "0.82rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.15rem" }}>{shop?.name || "Techno Computers"}</h4>
                   <p style={{ color: "#475569", margin: "0.05rem 0", fontSize: "0.68rem" }}>{shop?.address || "Main Street, Commercial Hub"}</p>
                   <p style={{ color: "#475569", margin: "0.05rem 0", fontSize: "0.68rem" }}>Tel: {shop?.phone || "N/A"}</p>
-                  {shop?.gstin && <p style={{ color: "#0f172a", fontWeight: 700, margin: "0.05rem 0", fontSize: "0.68rem" }}>GSTIN: {shop.gstin}</p>}
+                  {isTaxEnabled && shop?.gstin && <p style={{ color: "#0f172a", fontWeight: 700, margin: "0.05rem 0", fontSize: "0.68rem" }}>GSTIN: {shop.gstin}</p>}
                 </div>
 
                 <div className="classic-meta-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px", fontSize: "0.68rem", background: "#f8fafc", padding: "0.35rem 0.5rem", borderRadius: "4px", margin: "0.4rem 0" }}>

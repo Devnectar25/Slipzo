@@ -89,15 +89,15 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Standard",
       badge: "Standard",
       paperSize: "58mm Thermal",
-      description: "Clean and professional receipt template with itemized table, GST breakdown, and clear totals.",
+      description: "Clean and professional receipt template with itemized table and clear totals.",
       gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
       accentColor: "#0284c7",
-      features: ["Shop header & GSTIN", "Itemized table (Qty, Rate, Total)", "Tax / GST calculation", "Payment mode & barcode"],
+      features: ["Shop header & info", "Itemized table (Qty, Rate, Total)", "Subtotal & grand totals", "Payment mode & barcode"],
       previewData: {
         shopName: "CLASSIC MART & GROCERY",
         address: "Shop 14, Main Market, Connaught Place, New Delhi",
         phone: "+91 11 2341 5678",
-        gst: "07AAAA000A1Z5",
+        gst: "",
         invoiceNo: "CM-2026-8821",
         date: "09 Mar 2026, 01:15 PM",
         items: [
@@ -105,9 +105,9 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
           { name: "Refined Sunflower Oil 1L", qty: 1, rate: 195, total: 195 }
         ],
         subtotal: 435,
-        tax: 78.30,
+        tax: 0,
         discount: 0,
-        total: 513.30,
+        total: 435,
         payment: "Cash",
         footer: "Thank you for shopping with us! Please come again."
       }
@@ -122,12 +122,12 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       description: "Professional high-volume retail POS receipt with clean column headers, item discounts, and net totals.",
       gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
       accentColor: "#2563eb",
-      features: ["Retail store header", "Itemized table with quantity", "Tax / GST calculation", "Editable footer note"],
+      features: ["Retail store header", "Itemized table with quantity", "Clear totals summary", "Editable footer note"],
       previewData: {
         shopName: "URBAN FASHION PRO",
         address: "Level 2, Phoenix Marketcity, Mumbai",
         phone: "+91 22 6789 0011",
-        gst: "27AAACU1234M1Z2",
+        gst: "",
         invoiceNo: "UFP-INV-4401",
         date: "09 Mar 2026, 04:30 PM",
         items: [
@@ -187,7 +187,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         shopName: "LUMINA BEAUTY & SPA",
         address: "3rd Block, Koramangala, Bengaluru",
         phone: "+91 80 9988 7766",
-        gst: "29AABCL5544R1Z8",
+        gst: "",
         invoiceNo: "LUM-2026-55",
         date: "09 Mar 2026, 05:15 PM",
         items: [
@@ -209,15 +209,15 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Business",
       badge: "Premium",
       paperSize: "80mm Standard / A4",
-      description: "Formal tax invoice template designed for businesses requiring full GST details, itemized totals, and formal terms.",
+      description: "Formal receipt and invoice template designed for businesses requiring itemized totals and clear terms.",
       gradient: "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)",
       accentColor: "#0284c7",
-      features: ["Formal Tax Invoice header", "GSTIN & seller details", "Itemized table with rates", "Tax breakdown & totals"],
+      features: ["Formal receipt header", "Seller details & info", "Itemized table with rates", "Clean totals summary"],
       previewData: {
         shopName: "TECHNO COMPUTERS & PERIPHERALS",
         address: "Plot 88, Electronic City Phase 1, Bengaluru",
         phone: "+91 80 4123 9900",
-        gst: "29AABCT9981K1ZT",
+        gst: "",
         invoiceNo: "TC-INV-2026-904",
         date: "09 Mar 2026, 03:00 PM",
         items: [
@@ -225,9 +225,9 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
           { name: "Mechanical RGB Keyboard", qty: 1, rate: 2400, total: 2400 }
         ],
         subtotal: 3250,
-        tax: 585,
+        tax: 0,
         discount: 0,
-        total: 3835,
+        total: 3250,
         payment: "Bank / Online",
         footer: "Thank you for your business. Terms & conditions apply."
       }

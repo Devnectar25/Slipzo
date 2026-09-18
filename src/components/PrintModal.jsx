@@ -559,7 +559,7 @@ export function PrintModal({
                         {showShopDetails && (
                           <>
                             <p>123 Commercial Street, Indiranagar</p>
-                            <p>Ph: +91 98765 43210 · GSTIN: 29AAAAA0000A1Z5</p>
+                            <p>Ph: +91 98765 43210</p>
                           </>
                         )}
                       </div>

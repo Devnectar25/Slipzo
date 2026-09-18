@@ -79,13 +79,13 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     if (cust) cust.remove()
   }
 
-  if (!showTax) {
-    clone.querySelectorAll(".receipt-total-row").forEach(row => {
-      if (row.textContent.toLowerCase().includes("tax") || row.textContent.toLowerCase().includes("gst")) {
-        row.remove()
-      }
-    })
-  }
+  // Always remove tax/GST details from all printed receipts
+  clone.querySelectorAll(".receipt-total-row, .classic-gst-box, .elite-tax-analysis-table, .receipt-shop-phone, .gst-line").forEach(row => {
+    const text = row.textContent.toLowerCase()
+    if (text.includes("tax") || text.includes("gst") || text.includes("taxable")) {
+      row.remove()
+    }
+  })
 
   if (!showFooter) {
     const footer = clone.querySelector(".receipt-footer")
@@ -535,6 +535,51 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const paperLabel = isA4 ? "A4 Standard" : `${pageWidth} Thermal Roll`
   const receiptHTML = clone.outerHTML
 
+  const pageCssRule = isA4
+    ? "size: A4 portrait; margin: 8mm !important;"
+    : `size: ${pageWidth} ${targetHeightMm}mm !important; margin: 0 !important;`
+
+  const fullPrintHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=${isA4 ? "210mm" : pageWidth}, initial-scale=1.0" />
+  <title>Receipt – Slipzo</title>
+  <style>
+    ${receiptCSS}
+    @page { ${pageCssRule} }
+    html, body {
+      background: #ffffff !important;
+      margin: 0 !important;
+      padding: ${isA4 ? "0" : "1mm 1.5mm 0 1.5mm"} !important;
+      width: ${isA4 ? "100%" : pageWidth} !important;
+      height: auto !important;
+    }
+    #receipt-to-print,
+    .receipt-preview-content {
+      background: #ffffff !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+  </style>
+</head>
+<body>
+  ${receiptHTML}
+</body>
+</html>`
+
+  // 1. Native Android APK Print Manager Bridge
+  if (window.AndroidPrintInterface && typeof window.AndroidPrintInterface.printPage === "function") {
+    try {
+      window.AndroidPrintInterface.printPage(fullPrintHtml, "Slipzo_Receipt")
+      return
+    } catch (err) {
+      console.error("[printReceipt] AndroidPrintInterface failed:", err)
+    }
+  }
+
   const isMobileOrNative = isNativeApp || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 
   // Function to trigger print using a hidden iframe directly inside current page/app
@@ -553,10 +598,6 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     iframe.style.visibility = "hidden"
     iframe.style.zIndex = "-9999"
     document.body.appendChild(iframe)
-
-    const pageCssRule = isA4
-      ? "size: A4 portrait; margin: 8mm !important;"
-      : `size: ${pageWidth} ${targetHeightMm}mm !important; margin: 0 !important;`
 
     const doc = iframe.contentWindow.document || iframe.contentDocument
     doc.open()
@@ -635,10 +676,6 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     printWindow.moveTo(0, 0)
     printWindow.resizeTo(availW, availH)
   } catch (_) { /* browser restricted */ }
-
-  const pageCssRule = isA4
-    ? "size: A4 portrait; margin: 8mm !important;"
-    : `size: ${pageWidth} ${targetHeightMm}mm !important; margin: 0 !important;`
 
   printWindow.document.write(`<!DOCTYPE html>
 <html lang="en">

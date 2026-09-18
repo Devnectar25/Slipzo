@@ -325,7 +325,6 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 <span className="error-text"><AlertCircle size={12} /> {errors.address}</span>
               )}
             </div>
-
             {/* Invoice Prefix & Starting Sequence */}
             <div className="onboarding-grid-two">
               <div className="onboarding-field">
@@ -450,7 +449,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
                 <div className="onboarding-mock-total">
                   <span>TOTAL PAID</span>
-                  <span>₹{previewTotalPaid.toFixed(2)}</span>
+                  <span>₹350.00</span>
                 </div>
 
                 <div className="onboarding-mock-footer">

@@ -22,37 +22,33 @@ export function Dashboard({ setView, requireAuth, user }) {
     const cachedProducts = getCachedData("/products")
     return Array.isArray(cachedProducts) ? cachedProducts.length : 5
   })
-  const [loading, setLoading] = useState(() => !getCachedData("/bills/stats"))
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        const [statsData, templatesData, productsData] = await Promise.all([
-          call("/bills/stats").catch(() => null),
-          call("/templates").catch(() => []),
-          call("/products").catch(() => [])
-        ])
+    let isMounted = true
 
-        setStats({
-          total: Number(statsData?.total || 0),
-          count: Number(statsData?.count || 0)
-        })
+    // Fetch dashboard stats in parallel without blocking UI rendering
+    call("/bills/stats").then(statsData => {
+      if (!isMounted || !statsData) return
+      setStats({
+        total: Number(statsData.total || 0),
+        count: Number(statsData.count || 0)
+      })
+    }).catch(err => console.warn("Failed to load dashboard stats:", err))
 
-        setTemplateCount(
-          Array.isArray(templatesData) ? templatesData.length : 0
-        )
+    call("/templates").then(templatesData => {
+      if (!isMounted || !Array.isArray(templatesData)) return
+      setTemplateCount(templatesData.length)
+    }).catch(err => console.warn("Failed to load templates count:", err))
 
-        setProductCount(
-          Array.isArray(productsData) ? productsData.length : 0
-        )
-      } catch (err) {
-        console.error("Failed to load dashboard:", err)
-      } finally {
-        setLoading(false)
-      }
+    call("/products").then(productsData => {
+      if (!isMounted || !Array.isArray(productsData)) return
+      setProductCount(productsData.length)
+    }).catch(err => console.warn("Failed to load products count:", err))
+
+    return () => {
+      isMounted = false
     }
-
-    loadDashboard()
   }, [])
 
   return (

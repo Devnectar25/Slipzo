@@ -278,22 +278,9 @@ export function Shop({ user, setView } = {}) {
   // Mock receipt calculation
   const receiptMath = useMemo(() => {
     const subtotal = 595.0
-    const disc = Math.max(0, parseFloat(shop.default_discount) || 0)
-    const base = Math.max(0, subtotal - disc)
-    const rate = Math.max(0, parseFloat(shop.tax_rate) || 0)
-    let tax = 0
-    let total = base
-
-    if (Number(shop.show_tax) === 1 && rate > 0) {
-      tax = (base * rate) / (100 + rate)
-      total = base
-    } else if (Number(shop.show_tax) === 2 && rate > 0) {
-      tax = (base * rate) / 100
-      total = base + tax
-    }
-
-    return { subtotal, disc, tax, total }
-  }, [shop.default_discount, shop.tax_rate, shop.show_tax])
+    const total = 595.0
+    return { subtotal, disc: 0, tax: 0, total }
+  }, [])
 
   if (!ready) {
     return (
@@ -477,15 +464,15 @@ export function Shop({ user, setView } = {}) {
           </label>
         </div>
 
-        {/* Section 2: Receipt Defaults & Billing Configuration */}
+        {/* Section 2: Receipt Defaults Configuration */}
         <div className="form-section-card">
           <div className="section-title-wrap">
             <div className="section-icon-pill emerald">
               <FileText size={18} />
             </div>
             <div>
-              <h3 className="section-title-sm">Receipt Defaults & Billing</h3>
-              <p className="section-desc-sm">Default layout, automatic discount, and tax calculations applied to new bills</p>
+              <h3 className="section-title-sm">Receipt Defaults</h3>
+              <p className="section-desc-sm">Select default receipt template layout for new bills</p>
             </div>
           </div>
 
@@ -515,102 +502,6 @@ export function Shop({ user, setView } = {}) {
                 </select>
               </div>
               <small className="field-helper-note">Layout loaded by default when creating bills</small>
-            </label>
-
-            <label className="flex-1 form-group-label">
-              <span className="label-text">DEFAULT DISCOUNT (₹)</span>
-              <div className="input-with-icon">
-                <span className="currency-symbol-adornment">₹</span>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="0"
-                  value={shop.default_discount === 0 || shop.default_discount === "0" ? "" : shop.default_discount}
-                  onChange={(e) => handleChange("default_discount", e.target.value)}
-                  className="item-input"
-                />
-              </div>
-              <small className="field-helper-note">Auto-deducted when creating new bills</small>
-            </label>
-          </div>
-
-          <div className="form-row" style={{ marginTop: "1rem" }}>
-            <label className="flex-1 form-group-label">
-              <span className="label-text">TAX INCLUSION MODE</span>
-              <div className="select-with-icon">
-                <Percent size={16} className="field-adornment-icon" />
-                <select
-                  value={shop.show_tax}
-                  onChange={(e) => handleChange("show_tax", Number(e.target.value))}
-                  className="option-select styled-select"
-                >
-                  <option value={0}>No Tax (0% / Tax Disabled)</option>
-                  <option value={1}>Tax Included (Prices contain tax)</option>
-                  <option value={2}>Tax Extra (Added on top of bill)</option>
-                </select>
-              </div>
-
-              {/* Quick interactive mode pill buttons for fast toggling */}
-              <div className="quick-tax-mode-row">
-                <button
-                  type="button"
-                  className={`tax-chip ${Number(shop.show_tax) === 0 ? "active" : ""}`}
-                  onClick={() => handleChange("show_tax", 0)}
-                >
-                  No Tax
-                </button>
-                <button
-                  type="button"
-                  className={`tax-chip ${Number(shop.show_tax) === 1 ? "active" : ""}`}
-                  onClick={() => handleChange("show_tax", 1)}
-                >
-                  Tax Included
-                </button>
-                <button
-                  type="button"
-                  className={`tax-chip ${Number(shop.show_tax) === 2 ? "active" : ""}`}
-                  onClick={() => handleChange("show_tax", 2)}
-                >
-                  Tax Extra
-                </button>
-              </div>
-            </label>
-
-            <label className="flex-1 form-group-label">
-              <span className="label-text">DEFAULT TAX RATE (%)</span>
-              <div className="input-with-icon">
-                <Percent size={16} className="field-adornment-icon" />
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  disabled={Number(shop.show_tax) === 0}
-                  value={Number(shop.show_tax) === 0 ? "0" : (shop.tax_rate === undefined || shop.tax_rate === null ? "0" : String(shop.tax_rate))}
-                  onChange={(e) => handleChange("tax_rate", e.target.value)}
-                  className="item-input"
-                  style={{ opacity: Number(shop.show_tax) === 0 ? 0.6 : 1 }}
-                />
-              </div>
-
-              {/* GST Rate Quick Tap Presets */}
-              {Number(shop.show_tax) !== 0 && (
-                <div className="quick-presets-row">
-                  <span className="presets-caption">GST Presets:</span>
-                  {["5", "12", "18", "28"].map((rate) => (
-                    <button
-                      key={rate}
-                      type="button"
-                      className={`preset-pill ${String(shop.tax_rate) === rate ? "selected" : ""}`}
-                      onClick={() => handleChange("tax_rate", rate)}
-                    >
-                      {rate}%
-                    </button>
-                  ))}
-                </div>
-              )}
             </label>
           </div>
         </div>
@@ -779,24 +670,6 @@ export function Shop({ user, setView } = {}) {
                     <span>Subtotal:</span>
                     <span>₹{receiptMath.subtotal.toFixed(2)}</span>
                   </div>
-                  {receiptMath.disc > 0 && (
-                    <div className="math-row discount">
-                      <span>Discount (Offer):</span>
-                      <span>-₹{receiptMath.disc.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {Number(shop.show_tax) === 1 && receiptMath.tax > 0 && (
-                    <div className="math-row tax">
-                      <span>Incl. GST ({shop.tax_rate}%):</span>
-                      <span>₹{receiptMath.tax.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {Number(shop.show_tax) === 2 && receiptMath.tax > 0 && (
-                    <div className="math-row tax">
-                      <span>GST Extra ({shop.tax_rate}%):</span>
-                      <span>+₹{receiptMath.tax.toFixed(2)}</span>
-                    </div>
-                  )}
                   <div className="thermal-net-box">
                     <span>NET TOTAL</span>
                     <span>₹{receiptMath.total.toFixed(2)}</span>
@@ -1734,6 +1607,7 @@ export function Shop({ user, setView } = {}) {
         .shop-form-actions {
           display: flex;
           align-items: center;
+          justify-content: flex-end;
           gap: 1.25rem;
           flex-wrap: wrap;
           margin-top: 0.85rem;

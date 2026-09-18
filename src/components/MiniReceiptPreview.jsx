@@ -1,10 +1,21 @@
 import React from "react"
 
 export function MiniReceiptPreview({ template }) {
+  if (!template) return null
   const p = String(template.preview || template.id || "").toLowerCase()
+  const tplId = String(template.templateId || "").toLowerCase()
+  const name = String(template.name || "").toLowerCase()
+  const cat = String(template.category || "").toLowerCase()
+
+  const isMinimal = p === "minimal" || p === "2" || tplId === "2" || tplId === "minimal" || name.includes("minimal") || cat.includes("minimal")
+  const isClassic = p === "classic" || p === "1" || tplId === "1" || tplId === "classic" || name.includes("classic") || cat.includes("classic")
+  const isPro = p === "pro" || p === "shop-pro" || p === "3" || tplId === "3" || tplId === "pro" || name.includes("pro") || cat.includes("pro")
+  const isEco = p === "eco" || p === "eco-thermal" || p === "4" || tplId === "4" || tplId === "eco" || name.includes("eco") || cat.includes("eco")
+  const isModern = p === "modern" || p === "modern-retail" || p === "5" || tplId === "5" || tplId === "modern" || name.includes("modern") || cat.includes("modern")
+  const isElite = p === "elite" || p === "business-elite" || p === "6" || tplId === "6" || tplId === "elite" || name.includes("elite") || cat.includes("elite")
 
   // 1. MINIMAL CLEAN BILL
-  if (p === "minimal" || p === "2") {
+  if (isMinimal) {
     return (
       <div className="mini-receipt mini-receipt-minimal">
         <div className="mini-header-centered">
@@ -45,7 +56,7 @@ export function MiniReceiptPreview({ template }) {
   }
 
   // 2. CLASSIC RECEIPT
-  if (p === "classic" || p === "1") {
+  if (isClassic) {
     return (
       <div className="mini-receipt mini-receipt-classic">
         <div className="mini-header-classic">
@@ -54,7 +65,6 @@ export function MiniReceiptPreview({ template }) {
           </div>
           <span className="mini-shop">CLASSIC MART</span>
           <span className="mini-subtext">Connaught Place, New Delhi</span>
-          <span className="mini-gst-tag">GSTIN: 07AAAA000A1Z5</span>
         </div>
         <div className="mini-double-divider" />
         <div className="mini-meta-grid">
@@ -70,11 +80,10 @@ export function MiniReceiptPreview({ template }) {
         <div className="mini-dashed-divider" />
         <div className="mini-tax-breakdown">
           <div><span>Subtotal</span><span>₹435.00</span></div>
-          <div><span>GST (18%)</span><span>₹78.30</span></div>
         </div>
         <div className="mini-total-row-classic">
           <span>GRAND TOTAL</span>
-          <span style={{ color: template.color || "#0284c7" }}>₹513.30</span>
+          <span style={{ color: template.color || "#0284c7" }}>₹435.00</span>
         </div>
         <div className="mini-barcode-line">||| | |||| | |||||| || |</div>
         <div className="mini-policy-note">Thank you! Please visit again.</div>
@@ -83,7 +92,7 @@ export function MiniReceiptPreview({ template }) {
   }
 
   // 3. SHOP PRO (RETAIL POS)
-  if (p === "pro" || p === "shop-pro" || p === "3") {
+  if (isPro) {
     return (
       <div className="mini-receipt mini-receipt-pro">
         <div className="mini-pro-banner" style={{ background: template.gradient || "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)" }}>
@@ -107,11 +116,10 @@ export function MiniReceiptPreview({ template }) {
         <div className="mini-line-subtle" />
         <div className="mini-tax-breakdown">
           <div><span>Subtotal</span><span>₹3,398</span></div>
-          <div><span>Discount</span><span>-₹300</span></div>
         </div>
         <div className="mini-total">
           <span>Net Payable</span>
-          <span style={{ color: template.color || "#2563eb" }}>₹3,098</span>
+          <span style={{ color: template.color || "#2563eb" }}>₹3,398</span>
         </div>
         <div className="mini-thank-subtle">Thank you for shopping with us!</div>
       </div>
@@ -119,7 +127,7 @@ export function MiniReceiptPreview({ template }) {
   }
 
   // 4. ECO PRINT (THERMAL MONOSPACE)
-  if (p === "eco" || p === "eco-thermal" || p === "4") {
+  if (isEco) {
     return (
       <div className="mini-receipt mini-receipt-eco">
         <div className="mini-sawtooth-cut top" />
@@ -144,7 +152,7 @@ export function MiniReceiptPreview({ template }) {
   }
 
   // 5. MODERN SHOP (BOUTIQUE & CAFE)
-  if (p === "modern" || p === "modern-retail" || p === "5") {
+  if (isModern) {
     return (
       <div className="mini-receipt mini-receipt-modern">
         <span className="mini-shop-modern">Lumina Boutique & Spa</span>
@@ -173,13 +181,12 @@ export function MiniReceiptPreview({ template }) {
   }
 
   // 6. BUSINESS ELITE (FORMAL TAX INVOICE)
-  if (p === "elite" || p === "business-elite" || p === "6") {
+  if (isElite) {
     return (
       <div className="mini-receipt mini-receipt-elite">
-        <div className="mini-tax-invoice-badge">TAX INVOICE</div>
+        <div className="mini-tax-invoice-badge">RECEIPT / INVOICE</div>
         <div className="mini-party-col" style={{ textAlign: "center", margin: "0.2rem 0" }}>
           <b>Techno Corp</b>
-          <span>GSTIN: 29AABCT9981K1ZT</span>
         </div>
         <div className="mini-meta-grid" style={{ fontSize: "0.6rem" }}>
           <div><span>INV:</span> <b>#TC-904</b></div>
@@ -198,11 +205,10 @@ export function MiniReceiptPreview({ template }) {
         </div>
         <div className="mini-cgst-sgst">
           <div><span>Subtotal</span><span>₹3,250.00</span></div>
-          <div><span>GST (18%)</span><span>₹585.00</span></div>
         </div>
         <div className="mini-total-elite" style={{ background: template.gradient || "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)" }}>
           <span>TOTAL INVOICE</span>
-          <span>₹3,835.00</span>
+          <span>₹3,250.00</span>
         </div>
         <div className="mini-thank-subtle">Terms & conditions apply. Thank you!</div>
       </div>

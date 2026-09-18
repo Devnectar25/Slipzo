@@ -6,11 +6,22 @@ export function RealisticReceiptView({ template }) {
   if (!template) return null
 
   const p = String(template.preview || template.id || "").toLowerCase()
+  const tplId = String(template.templateId || "").toLowerCase()
+  const name = String(template.name || "").toLowerCase()
+  const cat = String(template.category || "").toLowerCase()
+
+  const isMinimal = p === "minimal" || p === "2" || tplId === "2" || tplId === "minimal" || name.includes("minimal") || cat.includes("minimal")
+  const isClassic = p === "classic" || p === "1" || tplId === "1" || tplId === "classic" || name.includes("classic") || cat.includes("classic")
+  const isPro = p === "pro" || p === "shop-pro" || p === "3" || tplId === "3" || tplId === "pro" || name.includes("pro") || cat.includes("pro")
+  const isEco = p === "eco" || p === "eco-thermal" || p === "4" || tplId === "4" || tplId === "eco" || name.includes("eco") || cat.includes("eco")
+  const isModern = p === "modern" || p === "modern-retail" || p === "5" || tplId === "5" || tplId === "modern" || name.includes("modern") || cat.includes("modern")
+  const isElite = p === "elite" || p === "business-elite" || p === "6" || tplId === "6" || tplId === "elite" || name.includes("elite") || cat.includes("elite")
+
   const data = template.previewData || {
     shopName: template.name || "Slipzo Mart",
     address: "Shop 14, Main Market, Connaught Place, New Delhi",
     phone: "+91 98765 43210",
-    gst: "07AAAA000A1Z5",
+    gst: "",
     invoiceNo: "SLP-2026-101",
     date: "09 Mar 2026, 02:45 PM",
     items: [
@@ -19,8 +30,8 @@ export function RealisticReceiptView({ template }) {
     ],
     subtotal: 435,
     discount: 0,
-    tax: 78.3,
-    total: 513.3,
+    tax: 0,
+    total: 435,
     payment: "Cash",
     footer: template.footer || "Thank you for shopping with us! Please come again."
   }
@@ -31,7 +42,7 @@ export function RealisticReceiptView({ template }) {
   // =========================================================================
   // 1. MINIMAL CLEAN BILL (58mm Minimalist)
   // =========================================================================
-  if (p === "minimal" || p === "2") {
+  if (isMinimal) {
     return (
       <div className="realistic-thermal-receipt tpl-style-minimal">
         <div className="receipt-paper-top" />
@@ -45,11 +56,6 @@ export function RealisticReceiptView({ template }) {
             <p style={{ color: "#64748b", fontSize: "0.72rem", margin: "0.2rem 0 0" }}>
               {[data.phone, data.address].filter(Boolean).join(" · ")}
             </p>
-            {data.gst && (
-              <p style={{ color: "#94a3b8", fontSize: "0.68rem", margin: "0.15rem 0 0" }}>
-                GSTIN: {data.gst}
-              </p>
-            )}
           </div>
 
           {/* Bill Meta */}
@@ -81,12 +87,6 @@ export function RealisticReceiptView({ template }) {
               <div className="receipt-total-row discount" style={{ display: "flex", justifyContent: "space-between", padding: "0.15rem 0", color: "#ef4444", fontSize: "0.74rem" }}>
                 <span>Discount</span>
                 <span>-₹{Number(data.discount).toFixed(2)}</span>
-              </div>
-            )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.74rem", padding: "0.15rem 0", color: "#475569" }}>
-                <span>Tax / GST</span>
-                <span>₹{Number(data.tax).toFixed(2)}</span>
               </div>
             )}
             <div className="minimal-total-hero" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #0f172a", marginTop: "0.4rem", paddingTop: "0.4rem", fontWeight: 800, fontSize: "0.95rem", color: "#0f172a" }}>
@@ -130,11 +130,6 @@ export function RealisticReceiptView({ template }) {
             </h2>
             <p style={{ fontSize: "0.72rem", color: "#475569", margin: "0.15rem 0" }}>{data.address}</p>
             <p style={{ fontSize: "0.72rem", color: "#475569", margin: "0.15rem 0" }}>Tel: {data.phone}</p>
-            {data.gst && (
-              <p style={{ fontSize: "0.72rem", color: "#0f172a", fontWeight: 700, margin: "0.15rem 0" }}>
-                GSTIN: {data.gst}
-              </p>
-            )}
           </div>
 
           {/* Meta Grid */}
@@ -177,22 +172,6 @@ export function RealisticReceiptView({ template }) {
                 <span>-₹{Number(data.discount).toFixed(2)}</span>
               </div>
             )}
-            {data.tax > 0 && (
-              <div className="classic-gst-box" style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "4px", padding: "0.35rem 0.5rem", margin: "0.3rem 0" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.1rem 0" }}>
-                  <span>Taxable Subtotal</span>
-                  <span>₹{Number(data.subtotal).toFixed(2)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.1rem 0", color: "#64748b" }}>
-                  <span>CGST (9%)</span>
-                  <span>₹{(data.tax / 2).toFixed(2)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.1rem 0", color: "#64748b" }}>
-                  <span>SGST (9%)</span>
-                  <span>₹{(data.tax / 2).toFixed(2)}</span>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Grand Total Banner */}
@@ -231,11 +210,10 @@ export function RealisticReceiptView({ template }) {
             <p style={{ fontSize: "0.65rem", margin: "0.15rem 0 0", opacity: 0.9 }}>RETAIL POS RECEIPT</p>
           </div>
 
-          {/* Contact & GSTIN */}
+          {/* Contact Details */}
           <div style={{ textAlign: "center", fontSize: "0.7rem", color: "#475569", marginBottom: "0.5rem", lineHeight: 1.3 }}>
             <div>{data.address}</div>
             <div>Tel: {data.phone}</div>
-            {data.gst && <div style={{ fontWeight: 700, color: "#0f172a" }}>GSTIN: {data.gst}</div>}
           </div>
 
           {/* Meta Bar */}
@@ -275,12 +253,6 @@ export function RealisticReceiptView({ template }) {
                 <span>-₹{Number(data.discount).toFixed(2)}</span>
               </div>
             )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.15rem 0", color: "#475569" }}>
-                <span>GST ({template.tax_rate || 18}%)</span>
-                <span>₹{Number(data.tax).toFixed(2)}</span>
-              </div>
-            )}
             <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #2563eb", color: "#1d4ed8", padding: "0.45rem 0", fontWeight: 900, fontSize: "0.95rem", marginTop: "0.3rem" }}>
               <span>NET PAYABLE</span>
               <span>₹{Number(data.total).toFixed(2)}</span>
@@ -317,7 +289,6 @@ export function RealisticReceiptView({ template }) {
             <div style={{ fontSize: "0.68rem", color: "#475569", marginTop: "0.15rem" }}>
               <div>{data.address}</div>
               <div>TEL: {data.phone}</div>
-              {data.gst && <div>GSTIN: {data.gst}</div>}
             </div>
           </div>
 
@@ -354,12 +325,6 @@ export function RealisticReceiptView({ template }) {
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0.1rem 0", color: "#dc2626" }}>
                 <span>DISCOUNT:</span>
                 <span>-₹{Number(data.discount).toFixed(2)}</span>
-              </div>
-            )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.1rem 0" }}>
-                <span>TAX:</span>
-                <span>₹{Number(data.tax).toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -409,11 +374,6 @@ export function RealisticReceiptView({ template }) {
             <div style={{ fontSize: "0.7rem", color: "#64748b" }}>
               Tel: {data.phone}
             </div>
-            {data.gst && (
-              <div style={{ fontSize: "0.68rem", color: "#0ea5e9", fontWeight: 600, marginTop: "0.1rem" }}>
-                GSTIN: {data.gst}
-              </div>
-            )}
           </div>
 
           {/* Meta Line */}
@@ -447,12 +407,6 @@ export function RealisticReceiptView({ template }) {
                 <span>-₹{Number(data.discount).toFixed(2)}</span>
               </div>
             )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.15rem 0", color: "#475569" }}>
-                <span>Tax</span>
-                <span>₹{Number(data.tax).toFixed(2)}</span>
-              </div>
-            )}
             <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #cbd5e1", paddingTop: "0.4rem", color: "#0ea5e9", fontWeight: 800, fontSize: "0.95rem", marginTop: "0.25rem" }}>
               <span>Amount Due</span>
               <span>₹{Number(data.total).toFixed(2)}</span>
@@ -476,16 +430,16 @@ export function RealisticReceiptView({ template }) {
   }
 
   // =========================================================================
-  // 6. BUSINESS ELITE (80mm GST Tax Invoice)
+  // 6. BUSINESS ELITE (80mm Thermal / Standard)
   // =========================================================================
   if (p === "elite" || p === "business-elite" || p === "6") {
     return (
       <div className="realistic-thermal-receipt tpl-style-elite">
         <div className="receipt-paper-top" />
         <div className="receipt-content" style={{ padding: "1.25rem" }}>
-          {/* Formal Tax Banner */}
+          {/* Header Banner */}
           <div className="elite-tax-banner" style={{ background: "#0284c7", color: "#ffffff", padding: "0.45rem 0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.5px", borderRadius: "4px", marginBottom: "0.65rem" }}>
-            <span>TAX INVOICE</span>
+            <span>RECEIPT / INVOICE</span>
             <span>ORIGINAL FOR RECIPIENT</span>
           </div>
 
@@ -495,7 +449,6 @@ export function RealisticReceiptView({ template }) {
             <h4 style={{ fontSize: "0.82rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.15rem" }}>{data.shopName}</h4>
             <p style={{ color: "#475569", margin: "0.05rem 0", fontSize: "0.68rem" }}>{data.address}</p>
             <p style={{ color: "#475569", margin: "0.05rem 0", fontSize: "0.68rem" }}>Tel: {data.phone}</p>
-            {data.gst && <p style={{ color: "#0f172a", fontWeight: 700, margin: "0.05rem 0", fontSize: "0.68rem" }}>GSTIN: {data.gst}</p>}
           </div>
 
           {/* Invoice Meta Grid */}
@@ -526,28 +479,6 @@ export function RealisticReceiptView({ template }) {
             ))}
           </div>
 
-          {/* Tax Analysis Table (Only if tax > 0) */}
-          {data.tax > 0 && (
-            <table className="elite-tax-analysis-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.68rem", margin: "0.5rem 0", border: "1px solid #cbd5e1" }}>
-              <thead>
-                <tr style={{ background: "#f1f5f9" }}>
-                  <th style={{ padding: "0.3rem", border: "1px solid #cbd5e1", textAlign: "left" }}>Taxable Amt</th>
-                  <th style={{ padding: "0.3rem", border: "1px solid #cbd5e1", textAlign: "right" }}>CGST (9%)</th>
-                  <th style={{ padding: "0.3rem", border: "1px solid #cbd5e1", textAlign: "right" }}>SGST (9%)</th>
-                  <th style={{ padding: "0.3rem", border: "1px solid #cbd5e1", textAlign: "right" }}>Total Tax</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{ padding: "0.3rem", border: "1px solid #e2e8f0" }}>₹{Number(data.subtotal).toFixed(2)}</td>
-                  <td style={{ padding: "0.3rem", border: "1px solid #e2e8f0", textAlign: "right" }}>₹{(Number(data.tax) / 2).toFixed(2)}</td>
-                  <td style={{ padding: "0.3rem", border: "1px solid #e2e8f0", textAlign: "right" }}>₹{(Number(data.tax) / 2).toFixed(2)}</td>
-                  <td style={{ padding: "0.3rem", border: "1px solid #e2e8f0", textAlign: "right", fontWeight: 700 }}>₹{Number(data.tax).toFixed(2)}</td>
-                </tr>
-              </tbody>
-            </table>
-          )}
-
           {/* Totals */}
           <div className="receipt-totals" style={{ fontSize: "0.74rem", margin: "0.5rem 0" }}>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "0.15rem 0" }}>
@@ -560,14 +491,8 @@ export function RealisticReceiptView({ template }) {
                 <span>-₹{Number(data.discount).toFixed(2)}</span>
               </div>
             )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.15rem 0", color: "#475569" }}>
-                <span>GST Output</span>
-                <span>₹{Number(data.tax).toFixed(2)}</span>
-              </div>
-            )}
             <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #0284c7", color: "#0284c7", padding: "0.45rem 0", fontWeight: 900, fontSize: "0.95rem", marginTop: "0.25rem" }}>
-              <span>TOTAL INVOICE VALUE</span>
+              <span>GRAND TOTAL</span>
               <span>₹{Number(data.total).toFixed(2)}</span>
             </div>
           </div>
