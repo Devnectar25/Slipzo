@@ -4,6 +4,7 @@ import { call, findTemplateMatch } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
+import { VoiceInputButton } from "./common/VoiceInputButton"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -109,10 +110,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
     if (key === "phone") {
       if (!val) return "Phone number is required for your shop profile."
-      const phoneRegex = /^(\+?[0-9]{1,4}[ -]?)?[0-9]{7,15}$/
+      const phoneRegex = /^(\+91[\s-]?)?[0-9]{10}$/
       const digitsOnly = val.replace(/[^0-9]/g, "")
-      if (!phoneRegex.test(val) || digitsOnly.length < 7 || digitsOnly.length > 15) {
-        return "Please enter a valid phone number (7–15 digits)."
+      if (!phoneRegex.test(val) || (digitsOnly.length !== 10 && !(digitsOnly.length === 12 && digitsOnly.startsWith("91")))) {
+        return "Please enter a valid 10-digit mobile number."
       }
     }
 
@@ -252,26 +253,64 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         <div className="onboarding-body">
           {/* Form Column */}
           <form className="onboarding-form" onSubmit={handleSubmit}>
+            {/* Quick Voice Fill Pill */}
+            <div style={{ marginBottom: "0.85rem", display: "flex", justifyContent: "flex-end" }}>
+              <VoiceInputButton
+                mode="shop"
+                variant="pill"
+                size="sm"
+                label="Voice Fill All Details"
+                placeholder="Speak shop name, phone and address"
+                onParsedResult={(parsed) => {
+                  if (parsed.name) {
+                    setName(parsed.name)
+                    setErrors((prev) => ({ ...prev, name: validateField("name", parsed.name) }))
+                  }
+                  if (parsed.phone) {
+                    setPhone(parsed.phone)
+                    setErrors((prev) => ({ ...prev, phone: validateField("phone", parsed.phone) }))
+                  }
+                  if (parsed.address) {
+                    setAddress(parsed.address)
+                    setErrors((prev) => ({ ...prev, address: validateField("address", parsed.address) }))
+                  }
+                }}
+              />
+            </div>
+
             {/* Shop Name */}
             <div className="onboarding-field">
-              <label className="onboarding-label">
+              <label className="onboarding-label" style={{ marginBottom: "0.25rem" }}>
                 <Store size={14} className="field-icon" />
                 <span>Shop / Business Name <b className="req-star">*</b></span>
               </label>
-              <input
-                type="text"
-                autoFocus
-                placeholder="e.g. Krishna Supermarket & Cafe"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
-                  if (touched.name) {
-                    setErrors((prev) => ({ ...prev, name: validateField("name", e.target.value) }))
-                  }
-                }}
-                onBlur={() => handleBlur("name")}
-                className={`onboarding-input ${touched.name && errors.name ? "input-error" : ""}`}
-              />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. Krishna Supermarket & Cafe"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    if (touched.name) {
+                      setErrors((prev) => ({ ...prev, name: validateField("name", e.target.value) }))
+                    }
+                  }}
+                  onBlur={() => handleBlur("name")}
+                  className={`onboarding-input ${touched.name && errors.name ? "input-error" : ""}`}
+                  style={{ paddingRight: "2.5rem" }}
+                />
+                <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 2 }}>
+                  <VoiceInputButton
+                    size="sm"
+                    placeholder="Speak shop name"
+                    onSpeechResult={(text) => {
+                      setName(text)
+                      setErrors((prev) => ({ ...prev, name: validateField("name", text) }))
+                    }}
+                  />
+                </div>
+              </div>
               {touched.name && errors.name && (
                 <span className="error-text"><AlertCircle size={12} /> {errors.name}</span>
               )}
@@ -279,23 +318,38 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
             {/* Phone Number */}
             <div className="onboarding-field">
-              <label className="onboarding-label">
+              <label className="onboarding-label" style={{ marginBottom: "0.25rem" }}>
                 <Phone size={14} className="field-icon" />
                 <span>Phone / WhatsApp Number <b className="req-star">*</b></span>
               </label>
-              <input
-                type="text"
-                placeholder="e.g. +91 98765 43210"
-                value={phone}
-                onChange={(e) => {
-                  setPhone(e.target.value)
-                  if (touched.phone) {
-                    setErrors((prev) => ({ ...prev, phone: validateField("phone", e.target.value) }))
-                  }
-                }}
-                onBlur={() => handleBlur("phone")}
-                className={`onboarding-input ${touched.phone && errors.phone ? "input-error" : ""}`}
-              />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input
+                  type="text"
+                  placeholder="e.g. +91 98765 43210"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhone(e.target.value)
+                    if (touched.phone) {
+                      setErrors((prev) => ({ ...prev, phone: validateField("phone", e.target.value) }))
+                    }
+                  }}
+                  onBlur={() => handleBlur("phone")}
+                  className={`onboarding-input ${touched.phone && errors.phone ? "input-error" : ""}`}
+                  style={{ paddingRight: "2.5rem" }}
+                />
+                <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 2 }}>
+                  <VoiceInputButton
+                    size="sm"
+                    placeholder="Speak phone number"
+                    onSpeechResult={(text) => {
+                      const digits = text.replace(/[^0-9+]/g, "")
+                      const val = digits || text
+                      setPhone(val)
+                      setErrors((prev) => ({ ...prev, phone: validateField("phone", val) }))
+                    }}
+                  />
+                </div>
+              </div>
               {touched.phone && errors.phone && (
                 <span className="error-text"><AlertCircle size={12} /> {errors.phone}</span>
               )}
@@ -303,23 +357,36 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
             {/* Address */}
             <div className="onboarding-field">
-              <label className="onboarding-label">
+              <label className="onboarding-label" style={{ marginBottom: "0.25rem" }}>
                 <MapPin size={14} className="field-icon" />
                 <span>Shop Address / City <b className="req-star">*</b></span>
               </label>
-              <textarea
-                rows={2}
-                placeholder="e.g. Shop #14, Main Commercial Street, Indiranagar, Bengaluru"
-                value={address}
-                onChange={(e) => {
-                  setAddress(e.target.value)
-                  if (touched.address) {
-                    setErrors((prev) => ({ ...prev, address: validateField("address", e.target.value) }))
-                  }
-                }}
-                onBlur={() => handleBlur("address")}
-                className={`onboarding-input textarea ${touched.address && errors.address ? "input-error" : ""}`}
-              />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Shop #14, Main Commercial Street, Indiranagar, Bengaluru"
+                  value={address}
+                  onChange={(e) => {
+                    setAddress(e.target.value)
+                    if (touched.address) {
+                      setErrors((prev) => ({ ...prev, address: validateField("address", e.target.value) }))
+                    }
+                  }}
+                  onBlur={() => handleBlur("address")}
+                  className={`onboarding-textarea ${touched.address && errors.address ? "input-error" : ""}`}
+                  style={{ paddingRight: "2.5rem" }}
+                />
+                <div style={{ position: "absolute", right: "0.5rem", top: "0.6rem", display: "flex", alignItems: "center", zIndex: 2 }}>
+                  <VoiceInputButton
+                    size="sm"
+                    placeholder="Speak store address"
+                    onSpeechResult={(text) => {
+                      setAddress(text)
+                      setErrors((prev) => ({ ...prev, address: validateField("address", text) }))
+                    }}
+                  />
+                </div>
+              </div>
 
               {touched.address && errors.address && (
                 <span className="error-text"><AlertCircle size={12} /> {errors.address}</span>

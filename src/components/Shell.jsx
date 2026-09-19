@@ -421,7 +421,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             <img src="/logo.png" alt="Slipzo" className="shell-header-logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
           </div>
 
-          <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: 'auto' }}>
             <div 
               className="header-prints-badge"
               onClick={() => setView("pricing")}
@@ -526,6 +526,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           display: flex !important;
           align-items: center !important;
           gap: 0.75rem !important;
+          margin-left: auto !important;
         }
 
         .shell-menu-btn {

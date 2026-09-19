@@ -23,6 +23,8 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^17.0.14",
     "react-router-dom": "^6.26.2",
+    "react-speech-recognition": "^4.0.1",
+    "regenerator-runtime": "^0.14.1",
     "sweetalert2": "^11.26.25",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"

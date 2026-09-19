@@ -3,6 +3,7 @@ import { Utensils, Plus, Trash2, ArrowRight, Check, X, AlertCircle } from "lucid
 import { call, money, getStoredMenuItems, saveStoredMenuItems } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { ButtonLoader } from "./common/Skeleton"
+import { VoiceInputButton } from "./common/VoiceInputButton"
 
 export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
   const [items, setItems] = useState([])
@@ -203,47 +204,82 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
 
           {/* Quick Add Form */}
           <form onSubmit={handleAddItem} style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.2rem" }}>
+              <VoiceInputButton
+                mode="menu"
+                variant="pill"
+                size="sm"
+                label="Voice Fill Item & Price"
+                placeholder="e.g. Speak 'Samosa price 20' or 'Coffee 50'"
+                onParsedResult={(parsed) => {
+                  if (parsed.name) setName(parsed.name)
+                  if (parsed.price) setPrice(parsed.price)
+                }}
+              />
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "0.6rem" }}>
               <div>
-                <label style={{ display: "block", fontSize: "0.78rem", fontWeight: "700", color: "#475569", marginBottom: "0.3rem" }}>
+                <label style={{ fontSize: "0.78rem", fontWeight: "700", color: "#475569", display: "block", marginBottom: "0.3rem" }}>
                   Item Name
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Tea, Coffee, Pizza"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.8rem",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.9rem",
-                    outline: "none"
-                  }}
-                  autoFocus
-                />
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    placeholder="e.g. Tea, Coffee, Pizza"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.6rem 2.4rem 0.6rem 0.8rem",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.9rem",
+                      outline: "none"
+                    }}
+                    autoFocus
+                  />
+                  <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 2 }}>
+                    <VoiceInputButton
+                      size="sm"
+                      placeholder="Speak item name"
+                      onSpeechResult={(text) => setName(text)}
+                    />
+                  </div>
+                </div>
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "0.78rem", fontWeight: "700", color: "#475569", marginBottom: "0.3rem" }}>
+                <label style={{ fontSize: "0.78rem", fontWeight: "700", color: "#475569", display: "block", marginBottom: "0.3rem" }}>
                   Price (₹)
                 </label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="₹ 0"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.6rem 0.8rem",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.9rem",
-                    outline: "none"
-                  }}
-                />
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder="₹ 0"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.6rem 2.4rem 0.6rem 0.8rem",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.9rem",
+                      outline: "none"
+                    }}
+                  />
+                  <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 2 }}>
+                    <VoiceInputButton
+                      size="sm"
+                      placeholder="Speak item price"
+                      onSpeechResult={(text) => {
+                        const digits = text.replace(/[^0-9.]/g, "")
+                        setPrice(digits || text)
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

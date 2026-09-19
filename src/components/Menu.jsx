@@ -1,27 +1,39 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import {
   Utensils,
   Plus,
   Search,
   Edit2,
   Trash2,
-  DollarSign,
-  AlertCircle,
   CheckCircle2,
   X,
-  Layers,
+  RefreshCw,
+  ArrowLeft,
   Sparkles,
-  ShoppingBag,
-  RefreshCw
+  Check,
+  AlertCircle,
+  Mic,
+  Volume2
 } from "lucide-react"
 import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, getCurrentUserKey } from "../lib/utils"
 import { useToast } from "./common/Toast"
-import { ButtonLoader, Spinner } from "./common/Skeleton"
+import { Spinner } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
+import { VoiceInputButton } from "./common/VoiceInputButton"
+import { useSpeechInput } from "../hooks/useSpeechInput"
+import "../styles/Menu.css"
 
 export function Menu({ setView, requireAuth, user }) {
   const { t } = useTranslation()
   const userKey = getCurrentUserKey(user)
+  const { success: toastSuccess, error: toastError } = useToast()
+
+  // View state: 'my_menu' (State A) | 'add_items' (State B)
+  const [currentView, setCurrentView] = useState("my_menu")
+
+  // ==========================================
+  // STATE A: "MY MENU" (Personal Menu)
+  // ==========================================
   const cachedItems = getCachedData("/menu")
   const [items, setItems] = useState(() => {
     if (Array.isArray(cachedItems) && cachedItems.length > 0) return cachedItems
@@ -30,516 +42,955 @@ export function Menu({ setView, requireAuth, user }) {
   })
   const [loading, setLoading] = useState(() => !cachedItems && items.length === 0)
   const [search, setSearch] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("all")
 
-  // Add / Edit Modal state
-  const [showModal, setShowModal] = useState(false)
+  // Edit personal item modal
   const [editingItem, setEditingItem] = useState(null)
-  const [name, setName] = useState("")
-  const [price, setPrice] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState("")
+  const [editPrice, setEditPrice] = useState("")
+  const [editActive, setEditActive] = useState(true)
+  const [isUpdatingPrice, setIsUpdatingPrice] = useState(false)
 
-  // Delete modal state
+  // Delete item state
   const [deletingId, setDeletingId] = useState(null)
 
-  const { success: toastSuccess, error: toastError } = useToast()
+  // ==========================================
+  // STATE B: "ADD ITEMS" (Master Catalog)
+  // ==========================================
+  const [catalogItems, setCatalogItems] = useState([])
+  const [catalogLoading, setCatalogLoading] = useState(false)
+  const [catalogSearch, setCatalogSearch] = useState("")
+  const [catalogCategory, setCatalogCategory] = useState("all")
 
-  const loadItems = async () => {
+  // Add confirmation modal
+  const [selectedCatalogItem, setSelectedCatalogItem] = useState(null)
+  const [customPrice, setCustomPrice] = useState("")
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false)
+  const [addFormError, setAddFormError] = useState("")
+
+  // ==========================================
+  // SPEECH RECOGNITION (Reusing existing hook)
+  // ==========================================
+  const {
+    isListening,
+    transcript,
+    browserSupportsSpeech,
+    errorMsg,
+    startListening,
+    stopListening,
+    resetTranscript
+  } = useSpeechInput()
+
+  // Sync spoken transcript into search query
+  useEffect(() => {
+    if (transcript) {
+      if (currentView === "my_menu") {
+        setSearch(transcript)
+      } else {
+        setCatalogSearch(transcript)
+      }
+    }
+  }, [transcript, currentView])
+
+  // Display toast if speech recognition encounters error
+  useEffect(() => {
+    if (errorMsg) {
+      toastError(errorMsg || "Couldn't recognize speech. Please try again.")
+    }
+  }, [errorMsg])
+
+  // Fetch logged-in user's personal menu
+  const loadUserMenu = async (showSpinner = true) => {
     try {
-      setLoading(true)
+      if (showSpinner) setLoading(true)
       const data = await call("/menu").catch(() => null)
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setItems(data)
         saveStoredMenuItems(data, user)
       } else {
         const local = getStoredMenuItems(user)
-        if (local.length > 0) {
-          setItems(local)
-        }
+        if (local.length > 0) setItems(local)
       }
     } catch (err) {
-      console.warn("Using offline shop menu items:", err)
+      console.warn("Failed to load user menu, using offline storage:", err)
       const local = getStoredMenuItems(user)
-      if (local.length > 0) {
-        setItems(local)
-      }
+      if (local.length > 0) setItems(local)
     } finally {
-      setLoading(false)
+      if (showSpinner) setLoading(false)
+    }
+  }
+
+  // Fetch master catalog for adding items
+  const loadMasterCatalog = async () => {
+    try {
+      setCatalogLoading(true)
+      const data = await call("/menu/catalog").catch(() => null)
+      if (Array.isArray(data)) {
+        setCatalogItems(data)
+      }
+    } catch (err) {
+      console.error("Failed to load master catalog:", err)
+      toastError("Could not load available items catalog.")
+    } finally {
+      setCatalogLoading(false)
     }
   }
 
   useEffect(() => {
     if (user) {
-      loadItems()
+      loadUserMenu()
+      loadMasterCatalog()
     }
-    const handleMenuUpdate = (e) => {
-      const activeKey = getCurrentUserKey(user)
-      if (!e?.detail?.userKey || e.detail.userKey === activeKey) {
-        const stored = getStoredMenuItems(user)
-        if (stored && stored.length > 0) {
-          setItems(stored)
-        }
-      }
-    }
-    window.addEventListener("slipzo-menu-update", handleMenuUpdate)
-    return () => window.removeEventListener("slipzo-menu-update", handleMenuUpdate)
   }, [user, userKey])
 
-  const handleOpenAddModal = () => {
-    setEditingItem(null)
-    setName("")
-    setPrice("")
-    setFormError("")
-    setShowModal(true)
+  // When switching to Add Items view, fetch catalog if not loaded
+  useEffect(() => {
+    if (currentView === "add_items" && catalogItems.length === 0) {
+      loadMasterCatalog()
+    }
+  }, [currentView, catalogItems.length])
+
+  // Derive categories from User's items
+  const userCategories = useMemo(() => {
+    const set = new Set()
+    items.forEach((it) => {
+      if (it.category) set.add(it.category)
+    })
+    return ["all", ...Array.from(set)]
+  }, [items])
+
+  // Filter user menu items
+  const filteredUserItems = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return items.filter((it) => {
+      const matchesSearch = !q ||
+        (it.name || "").toLowerCase().includes(q) ||
+        (it.category || "").toLowerCase().includes(q)
+      const matchesCat = selectedCategory === "all" ||
+        (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
+      return matchesSearch && matchesCat
+    })
+  }, [items, search, selectedCategory])
+
+  // Derive categories from Master Catalog
+  const catalogCategories = useMemo(() => {
+    const set = new Set()
+    catalogItems.forEach((it) => {
+      if (it.category) set.add(it.category)
+    })
+    return ["all", ...Array.from(set)]
+  }, [catalogItems])
+
+  // Set of menu_item_ids currently in user's menu (for instant duplicate protection)
+  const addedMenuItemIds = useMemo(() => {
+    return new Set(items.map((i) => i.menu_item_id || i.id))
+  }, [items])
+
+  // Filter master catalog items (for Add by Voice & Menu Search)
+  const filteredCatalogItemsForSearch = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return []
+    return catalogItems.filter((it) => {
+      const matchesSearch =
+        (it.name || "").toLowerCase().includes(q) ||
+        (it.category || "").toLowerCase().includes(q)
+      const matchesCat = selectedCategory === "all" ||
+        (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
+      return matchesSearch && matchesCat
+    })
+  }, [catalogItems, search, selectedCategory])
+
+  // Filter master catalog items (for Add Items page)
+  const filteredCatalogItems = useMemo(() => {
+    const q = catalogSearch.trim().toLowerCase()
+    return catalogItems.filter((it) => {
+      const matchesSearch = !q ||
+        (it.name || "").toLowerCase().includes(q) ||
+        (it.category || "").toLowerCase().includes(q)
+      const matchesCat = catalogCategory === "all" ||
+        (it.category || "").toLowerCase() === catalogCategory.toLowerCase()
+      return matchesSearch && matchesCat
+    })
+  }, [catalogItems, catalogSearch, catalogCategory])
+
+  // ==========================================
+  // HANDLERS: ADD TO MENU CONFIRMATION
+  // ==========================================
+  const handleOpenAddModal = (catalogItem) => {
+    setSelectedCatalogItem(catalogItem)
+    // Default the selling price to the master catalog base price
+    setCustomPrice(catalogItem.price !== undefined ? String(catalogItem.price) : "")
+    setAddFormError("")
   }
 
-  const handleOpenEditModal = (item) => {
-    setEditingItem(item)
-    setName(item.name || "")
-    setPrice(item.price !== undefined ? String(item.price) : "")
-    setFormError("")
-    setShowModal(true)
+  const handleCloseAddModal = () => {
+    setSelectedCatalogItem(null)
+    setCustomPrice("")
+    setAddFormError("")
   }
 
-  const handleSubmit = async (e) => {
+  const handleConfirmAddToMenu = async (e) => {
     e?.preventDefault()
-    setFormError("")
+    if (!selectedCatalogItem) return
 
-    const cleanName = name.trim()
-    const numPrice = parseFloat(price)
-
-    if (!cleanName) {
-      setFormError("Item name is required.")
+    const numPrice = parseFloat(customPrice)
+    if (customPrice === "" || isNaN(numPrice) || numPrice < 0) {
+      setAddFormError("Please enter a valid non-negative selling price.")
       return
     }
 
-    if (cleanName.length > 100) {
-      setFormError("Item name cannot exceed 100 characters.")
-      return
-    }
+    setIsSubmittingAdd(true)
+    setAddFormError("")
 
-    if (price === "" || isNaN(numPrice) || numPrice < 0) {
-      setFormError("Please enter a valid non-negative price.")
-      return
-    }
-
-    setSubmitting(true)
     try {
-      if (editingItem) {
-        // Update existing item
-        const updated = await call(`/menu/${editingItem.id}`, {
-          method: "PUT",
-          body: JSON.stringify({ name: cleanName, price: numPrice })
-        }).catch(() => ({ id: editingItem.id, name: cleanName, price: numPrice }))
-
-        setItems((prev) => {
-          const next = prev.map((it) => (it.id === editingItem.id ? updated : it))
-          saveStoredMenuItems(next, user)
-          return next
-        })
-        toastSuccess(`Updated "${cleanName}"`)
-      } else {
-        // Create new item
-        let created = await call("/menu", {
-          method: "POST",
-          body: JSON.stringify({ name: cleanName, price: numPrice })
-        }).catch((err) => {
-          console.warn("Backend API unavailable, saving item locally:", err.message)
-          return {
-            id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            name: cleanName,
-            price: numPrice,
-            created_at: new Date().toISOString()
-          }
-        })
-        setItems((prev) => {
-          const next = [created, ...prev]
-          saveStoredMenuItems(next, user)
-          return next
-        })
-        toastSuccess(`Added "${cleanName}" to Shop Menu`)
+      const payload = {
+        menu_item_id: selectedCatalogItem.id,
+        custom_price: numPrice
       }
-      setShowModal(false)
+
+      const added = await call("/menu", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+
+      // Immediately add to user's personal items list
+      setItems((prev) => {
+        const next = [added, ...prev.filter(p => p.menu_item_id !== selectedCatalogItem.id && p.id !== added.id)]
+        saveStoredMenuItems(next, user)
+        return next
+      })
+
+      // Update catalog item status to Added
+      setCatalogItems((prev) =>
+        prev.map((it) =>
+          it.id === selectedCatalogItem.id
+            ? { ...it, is_added: true, user_price: numPrice, user_menu_item_id: added.id }
+            : it
+        )
+      )
+
+      toastSuccess(`Added "${selectedCatalogItem.name}" to My Menu at ${money(numPrice)}`)
+      handleCloseAddModal()
     } catch (err) {
-      console.error("Failed to save menu item:", err)
-      setFormError(err.message || "Failed to save menu item.")
-      toastError(err.message || "Failed to save menu item.")
+      console.error("Failed to add catalog item to user menu:", err)
+      setAddFormError(err.detail || err.message || "Unable to add this item to your menu.")
+      toastError(err.detail || err.message || "Unable to add this item.")
     } finally {
-      setSubmitting(false)
+      setIsSubmittingAdd(false)
     }
   }
 
-  const handleDelete = async (id) => {
+  // ==========================================
+  // HANDLERS: EDIT USER SELLING PRICE
+  // ==========================================
+  const handleOpenEditModal = (userItem) => {
+    setEditingItem(userItem)
+    setEditPrice(userItem.price !== undefined ? String(userItem.price) : "")
+    setEditActive(userItem.is_active !== undefined ? Boolean(userItem.is_active) : true)
+  }
+
+  const handleCloseEditModal = () => {
+    setEditingItem(null)
+    setEditPrice("")
+  }
+
+  const handleSaveEditPrice = async (e) => {
+    e?.preventDefault()
+    if (!editingItem) return
+
+    const numPrice = parseFloat(editPrice)
+    if (editPrice === "" || isNaN(numPrice) || numPrice < 0) {
+      toastError("Please enter a valid price.")
+      return
+    }
+
+    setIsUpdatingPrice(true)
     try {
-      setDeletingId(id)
-      await call(`/menu/${id}`, { method: "DELETE" }).catch(() => null)
+      const updated = await call(`/menu/${editingItem.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          custom_price: numPrice,
+          is_active: editActive
+        })
+      })
+
       setItems((prev) => {
-        const next = prev.filter((it) => it.id !== id)
+        const next = prev.map((it) => (it.id === editingItem.id ? { ...it, ...updated, price: numPrice, custom_price: numPrice, is_active: editActive } : it))
         saveStoredMenuItems(next, user)
         return next
       })
-      toastSuccess("Menu item deleted")
+
+      toastSuccess(`Updated price for "${editingItem.name}" to ${money(numPrice)}`)
+      handleCloseEditModal()
     } catch (err) {
+      console.error("Failed to update user price:", err)
+      toastError(err.detail || err.message || "Unable to update selling price.")
+    } finally {
+      setIsUpdatingPrice(false)
+    }
+  }
+
+  // ==========================================
+  // HANDLERS: REMOVE FROM USER MENU
+  // ==========================================
+  const handleRemoveFromUserMenu = async (userItem) => {
+    const itemName = userItem.name || "item"
+    if (!window.confirm(`Remove "${itemName}" from your personal menu?\n\n(It will still remain available in the master catalog to add anytime).`)) {
+      return
+    }
+
+    setDeletingId(userItem.id)
+    try {
+      await call(`/menu/${userItem.id}`, { method: "DELETE" })
+
+      // Remove from user items
       setItems((prev) => {
-        const next = prev.filter((it) => it.id !== id)
+        const next = prev.filter((it) => it.id !== userItem.id)
         saveStoredMenuItems(next, user)
         return next
       })
-      toastSuccess("Menu item deleted")
+
+      // Reset catalog added state if available
+      setCatalogItems((prev) =>
+        prev.map((it) =>
+          it.id === userItem.menu_item_id || it.id === userItem.id
+            ? { ...it, is_added: false, user_price: null, user_menu_item_id: null }
+            : it
+        )
+      )
+
+      toastSuccess(`Removed "${itemName}" from My Menu`)
+    } catch (err) {
+      console.error("Failed to delete user menu item:", err)
+      toastError("Unable to remove item from your menu.")
     } finally {
       setDeletingId(null)
     }
   }
 
-  const safeItems = Array.isArray(items) ? items : []
-  const filteredItems = safeItems.filter((it) =>
-    (it.name || "").toLowerCase().includes(search.trim().toLowerCase())
-  )
+  // Active categories for the pills row
+  const activeCategories = search.trim() ? catalogCategories : userCategories
+
+  // Voice recognition result handler
+  const handleVoiceSearchResult = useCallback((spokenText) => {
+    if (!spokenText) return
+    const clean = spokenText.trim()
+    if (currentView === "my_menu") {
+      setSearch(clean)
+    } else {
+      setCatalogSearch(clean)
+    }
+  }, [currentView])
+
+  // Toggle voice search directly without navigating away
+  const handleToggleVoiceSearch = (e) => {
+    e?.preventDefault()
+    e?.stopPropagation()
+
+    if (!browserSupportsSpeech) {
+      toastError("Speech recognition is not supported in your current browser. Please try Google Chrome or Safari.")
+      return
+    }
+
+    if (isListening) {
+      stopListening()
+    } else {
+      resetTranscript()
+      startListening()
+    }
+  }
 
   return (
-    <div className="page menu-page fade-in">
-      {/* Page Header */}
-      <div className="page-intro menu-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem", marginBottom: "1.25rem" }}>
-        <div style={{ flex: 1, minWidth: "260px" }}>
-          <p className="eyebrow accent" style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "11px", fontWeight: "700", letterSpacing: "1.5px", textTransform: "uppercase", color: "#0ea5e9", margin: "0 0 0.35rem 0" }}>
-            <Utensils size={14} /> {t("menu.eyebrow", "SHOP MENU")}
-          </p>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: "700", color: "#0f172a", margin: "0 0 0.35rem 0", lineHeight: 1.25 }}>
-            {t("menu.title", "Menu & Items")}
-          </h2>
-          <p className="subtle" style={{ fontSize: "0.875rem", color: "#64748b", margin: 0, lineHeight: 1.45, maxWidth: "560px" }}>
-            {t("menu.subtitle", "Manage products and services sold by your shop for fast billing")}
-          </p>
-        </div>
-        <button className="primary-button" onClick={handleOpenAddModal} style={{ gap: "0.5rem", whiteSpace: "nowrap", flexShrink: 0, alignSelf: "flex-start" }}>
-          <Plus size={18} /> {t("menu.addNewItem", "Add New Item")}
-        </button>
-      </div>
+    <div className="menu-page-container fade-in">
+      {/* ====================================================================
+          STATE A: MY MENU (User's Personal Menu)
+          ==================================================================== */}
+      {currentView === "my_menu" && (
+        <>
+          {/* Header */}
+          <div className="menu-header-bar">
+            <div className="menu-header-titles">
+              <span className="menu-eyebrow">
+                <Utensils size={13} /> {t("menu.eyebrow", "Slipzo Menu")}
+              </span>
+              <h1 className="menu-main-title">{t("menu.title", "Menu")}</h1>
+              <p className="menu-sub-title">
+                {t("menu.subtitle", "Manage the items you use for billing")}
+              </p>
+            </div>
 
-      {/* Stats Cards Row */}
-      <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginTop: "1rem", marginBottom: "1.25rem" }}>
-        <div className="stat-card" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "0.95rem 1.15rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <div className="stat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="stat-label" style={{ fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.05em" }}>Total Saved Items</span>
-            <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Utensils size={15} style={{ color: "#0284c7" }} />
+            <div className="menu-header-actions">
+              <button
+                className="menu-primary-btn"
+                onClick={() => {
+                  setCurrentView("add_items")
+                  setCatalogSearch("")
+                }}
+              >
+                <Plus size={18} /> {t("menu.addItems", "Add Items")}
+              </button>
+
+              <button
+                type="button"
+                className={`menu-secondary-btn ${isListening ? "listening" : ""}`}
+                onClick={handleToggleVoiceSearch}
+                title={isListening ? "Click to stop listening" : "Add item by speaking its name"}
+                style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
+              >
+                {isListening ? (
+                  <>
+                    <span className="speech-pulse-dot" />
+                    <Volume2 size={16} className="speech-icon-anim" />
+                    <span>Listening...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic size={17} /> <span>Add by Voice</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
-          <div className="stat-value" style={{ fontSize: "1.4rem", fontWeight: "800", color: "#0f172a", marginTop: "0.1rem", marginBottom: "0.1rem" }}>{items.length}</div>
-          <div className="stat-footer subtle" style={{ fontSize: "0.78rem", color: "#64748b" }}>Items ready for quick billing</div>
-        </div>
 
-        <div className="stat-card" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "0.95rem 1.15rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <div className="stat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="stat-label" style={{ fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.05em" }}>{t("menu.avgItemPrice", "Average Item Price")}</span>
-            <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <DollarSign size={15} style={{ color: "#0284c7" }} />
-            </div>
-          </div>
-          <div className="stat-value" style={{ fontSize: "1.4rem", fontWeight: "800", color: "#0ea5e9", marginTop: "0.1rem", marginBottom: "0.1rem" }}>
-            {items.length > 0
-              ? money(items.reduce((acc, i) => acc + (Number(i.price) || 0), 0) / items.length)
-              : money(0)}
-          </div>
-          <div className="stat-footer subtle" style={{ fontSize: "0.78rem", color: "#64748b" }}>{t("menu.acrossActiveMenu", "Across active shop menu")}</div>
-        </div>
-
-        <div className="stat-card" style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "0.95rem 1.15rem", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          <div className="stat-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="stat-label" style={{ fontSize: "0.72rem", fontWeight: "700", textTransform: "uppercase", color: "#64748b", letterSpacing: "0.05em" }}>{t("menu.shopAccount", "Shop Account")}</span>
-            <div style={{ width: "28px", height: "28px", borderRadius: "6px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Sparkles size={15} style={{ color: "#0284c7" }} />
-            </div>
-          </div>
-          <div className="stat-value" style={{ fontSize: "1.15rem", fontWeight: "700", color: "#0f172a", marginTop: "0.1rem", marginBottom: "0.1rem", wordBreak: "break-word" }}>
-            {user?.name || "Authenticated Shop"}
-          </div>
-          <div className="stat-footer subtle" style={{ fontSize: "0.78rem", color: "#64748b" }}>{t("menu.userIsolated", "User-isolated shop items")}</div>
-        </div>
-      </div>
-
-      {/* Filter / Search Bar */}
-      <div className="filter-bar" style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-        <div className="search-box flex-1" style={{ minWidth: "240px", position: "relative" }}>
-          <Search size={16} className="search-icon" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#64748b" }} />
-          <input
-            type="text"
-            placeholder={t("menu.searchPlaceholder", "Search saved items...")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-            style={{ paddingLeft: "36px", width: "100%" }}
-          />
-          {search && (
+          {/* Search Bar + Voice Input */}
+          <div className="menu-search-wrapper">
+            <Search size={18} className="menu-search-icon" />
+            <input
+              type="text"
+              className="menu-search-input"
+              placeholder={isListening ? "Listening... Speak the item name" : t("menu.searchUserMenu", "Search or speak to find in My Menu...")}
+              value={isListening && transcript ? transcript : search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && !isListening && (
+              <button className="menu-search-clear-btn" onClick={() => setSearch("")}>
+                <X size={15} />
+              </button>
+            )}
             <button
-              onClick={() => setSearch("")}
-              style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
+              type="button"
+              className={`menu-search-mic-btn ${isListening ? "listening" : ""}`}
+              onClick={handleToggleVoiceSearch}
+              title={isListening ? "Listening... Click to stop" : "Speak item name"}
             >
-              <X size={14} />
+              {isListening ? (
+                <Volume2 size={16} className="speech-icon-anim" />
+              ) : (
+                <Mic size={16} />
+              )}
             </button>
-          )}
-        </div>
-        <button className="ghost-button" onClick={loadItems} title="Refresh items">
-          <RefreshCw size={15} /> {t("common.loading", "Refresh")}
-        </button>
-      </div>
-
-      {/* Loading State */}
-      {loading ? (
-        <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-          <Spinner />
-          <p style={{ color: "#64748b", marginTop: "1rem" }}>{t("common.loading", "Loading your shop menu...")}</p>
-        </div>
-      ) : filteredItems.length === 0 ? (
-        /* Empty State */
-        <div
-          className="empty-state-card"
-          style={{
-            background: "#ffffff",
-            border: "1px dashed #cbd5e1",
-            borderRadius: "16px",
-            padding: "3.5rem 1.5rem",
-            textAlign: "center",
-            maxWidth: "520px",
-            margin: "2rem auto"
-          }}
-        >
-          <div
-            style={{
-              width: "60px",
-              height: "60px",
-              borderRadius: "50%",
-              background: "#e0f2fe",
-              color: "#0284c7",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 1.25rem"
-            }}
-          >
-            <Utensils size={28} />
           </div>
-          <h3 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#0f172a", marginBottom: "0.5rem" }}>
-            {search ? t("menu.noMatchingItems", "No matching items found") : t("menu.noItemsYet", "No menu items yet")}
-          </h3>
-          <p style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: "1.5", marginBottom: "1.5rem" }}>
-            {search
-              ? t("menu.noMatchingDesc", `No items found matching "{{search}}". Try clearing your search filter.`, { search })
-              : t("menu.addFirstItemDesc", "Add your shop's commonly sold items to create bills faster without typing names and prices manually.")}
-          </p>
-          {search ? (
-            <button className="secondary-button" onClick={() => setSearch("")}>
-              {t("menu.clearSearch", "Clear Search Filter")}
-            </button>
-          ) : (
-            <button className="primary-button" onClick={handleOpenAddModal} style={{ margin: "0 auto" }}>
-              <Plus size={16} /> {t("menu.addFirstItem", "Add Your First Item")}
-            </button>
-          )}
-        </div>
-      ) : (
-        /* Items Grid / Table */
-        <div className="card-table-wrapper" style={{ background: "#ffffff", borderRadius: "14px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <table className="data-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-              <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-                  <th style={{ padding: "0.85rem 1.25rem", fontSize: "0.78rem", fontWeight: "700", textTransform: "uppercase", color: "#475569", letterSpacing: "0.05em" }}>
-                    {t("menu.itemName", "Item Name")}
-                  </th>
-                  <th style={{ padding: "0.85rem 1.25rem", fontSize: "0.78rem", fontWeight: "700", textTransform: "uppercase", color: "#475569", letterSpacing: "0.05em", textAlign: "right" }}>
-                    {t("menu.defaultPrice", "Default Price (₹)")}
-                  </th>
-                  <th style={{ padding: "0.85rem 1.25rem", fontSize: "0.78rem", fontWeight: "700", textTransform: "uppercase", color: "#475569", letterSpacing: "0.05em", textAlign: "right", width: "140px" }}>
-                    {t("menu.actions", "Actions")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map((item) => (
-                  <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s ease" }} className="table-row-hover">
-                    <td style={{ padding: "1rem 1.25rem" }}>
-                      <div style={{ fontWeight: "600", color: "#0f172a", fontSize: "0.95rem" }}>
-                        {item.name}
-                      </div>
-                    </td>
-                    <td style={{ padding: "1rem 1.25rem", textAlign: "right", fontWeight: "700", color: "#0ea5e9", fontSize: "1rem" }}>
-                      {money(item.price)}
-                    </td>
-                    <td style={{ padding: "1rem 1.25rem", textAlign: "right" }}>
-                      <div style={{ display: "flex", gap: "0.4rem", justifyContent: "flex-end" }}>
-                        <button
-                          className="icon-button small"
-                          title="Edit item"
-                          onClick={() => handleOpenEditModal(item)}
-                          style={{ color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd" }}
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
-                          className="icon-button small"
-                          title="Delete item"
-                          onClick={() => handleDelete(item.id)}
-                          disabled={deletingId === item.id}
-                          style={{ color: "#ef4444", background: "#fef2f2", border: "1px solid #fecaca" }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
-      {/* Add / Edit Item Modal */}
-      {showModal && (
-        <div
-          className="modal-backdrop fade-in"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(15, 23, 42, 0.55)",
-            backdropFilter: "blur(4px)",
-            zIndex: 1100,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem"
-          }}
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="modal-card scale-in"
-            style={{
-              background: "#ffffff",
-              borderRadius: "16px",
-              width: "100%",
-              maxWidth: "460px",
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-              overflow: "hidden"
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div
-              style={{
-                padding: "1.25rem 1.5rem",
-                borderBottom: "1px solid #e2e8f0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                background: "#f8fafc"
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Utensils size={18} />
+          {/* Category Filter Pills */}
+          {activeCategories.length > 2 && (
+            <div className="menu-category-pills-row">
+              {activeCategories.map((cat) => {
+                const isActive = selectedCategory.toLowerCase() === cat.toLowerCase()
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    className={`menu-category-pill ${isActive ? "active" : ""}`}
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    {cat === "all" ? (search.trim() ? "All Categories" : "All Items") : cat}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Loading state */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "3.5rem 1rem" }}>
+              <Spinner />
+              <p style={{ color: "#64748b", marginTop: "1rem", fontSize: "0.92rem" }}>
+                Loading your menu items...
+              </p>
+            </div>
+          ) : search.trim() !== "" ? (
+            /* ================================================================
+               SEARCH / VOICE RESULTS (Catalog Items with Add / Added)
+               ================================================================ */
+            filteredCatalogItemsForSearch.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem 1rem", background: "#ffffff", borderRadius: "14px", border: "1px dashed #cbd5e1" }}>
+                <AlertCircle size={32} style={{ color: "#94a3b8", margin: "0 auto 0.75rem" }} />
+                <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#0f172a", marginBottom: "0.25rem" }}>
+                  No matching items found for "{search}"
+                </h3>
+                <p style={{ color: "#64748b", fontSize: "0.88rem", marginBottom: "1rem" }}>
+                  Try speaking another item name or search manually.
+                </p>
+                <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="menu-primary-btn"
+                    style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+                    onClick={() => {
+                      setSearch("")
+                      resetTranscript()
+                      startListening()
+                    }}
+                  >
+                    <Mic size={15} /> Try Again
+                  </button>
+                  <button
+                    type="button"
+                    className="menu-secondary-btn"
+                    style={{ padding: "0.5rem 1rem", fontSize: "0.85rem" }}
+                    onClick={() => setSearch("")}
+                  >
+                    Clear Search
+                  </button>
                 </div>
-                <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#0f172a" }}>
-                  {editingItem ? t("menu.editItem", "Edit Shop Item") : t("menu.addNewItem", "Add New Shop Item")}
+              </div>
+            ) : (
+              <>
+                <div className="menu-section-subheader">
+                  <h3 className="menu-section-title">
+                    Search Results
+                    <span className="menu-items-count-badge">
+                      {filteredCatalogItemsForSearch.length} found
+                    </span>
+                  </h3>
+                  <button
+                    className="menu-secondary-btn"
+                    style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                    onClick={() => setSearch("")}
+                  >
+                    Clear Search
+                  </button>
+                </div>
+
+                <div className="menu-cards-grid">
+                  {filteredCatalogItemsForSearch.map((catItem) => {
+                    const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
+                    return (
+                      <div
+                        key={catItem.id}
+                        className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
+                      >
+                        <div className="user-menu-card-left">
+                          {catItem.image_url ? (
+                            <img
+                              src={catItem.image_url}
+                              alt={catItem.name}
+                              className="menu-card-image"
+                              onError={(e) => {
+                                e.target.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <div className="menu-card-image-placeholder">
+                              <Utensils size={20} />
+                            </div>
+                          )}
+
+                          <div className="menu-card-details">
+                            <h4 className="menu-card-item-name" title={catItem.name}>
+                              {catItem.name}
+                            </h4>
+                            <span className="menu-card-cat-badge">{catItem.category || "General"}</span>
+                            <div className="menu-card-price-row">
+                              <span className="catalog-card-base-price">{money(catItem.price)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="user-menu-card-actions">
+                          {isAlreadyAdded ? (
+                            <span className="catalog-card-added-badge">
+                              <Check size={14} /> Added
+                            </span>
+                          ) : (
+                            <button
+                              className="catalog-card-add-btn"
+                              onClick={() => handleOpenAddModal(catItem)}
+                            >
+                              <Plus size={15} /> Add
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )
+          ) : items.length === 0 ? (
+            /* ================================================================
+               PHASE 3: EMPTY STATE (Clean, no master dummy items shown!)
+               ================================================================ */
+            <div className="menu-empty-state-card">
+              <div className="menu-empty-icon-circle">
+                <Utensils size={32} />
+              </div>
+              <h2 className="menu-empty-title">Your menu is empty</h2>
+              <p className="menu-empty-desc">
+                Add the items you use regularly to create bills faster without manual entry.
+              </p>
+
+              <div className="menu-empty-actions-row">
+                <button
+                  className="menu-primary-btn"
+                  onClick={() => {
+                    setCurrentView("add_items")
+                    setCatalogSearch("")
+                  }}
+                >
+                  <Plus size={18} /> Add Items
+                </button>
+
+                <button
+                  type="button"
+                  className={`menu-secondary-btn ${isListening ? "listening" : ""}`}
+                  onClick={handleToggleVoiceSearch}
+                  title={isListening ? "Click to stop listening" : "Add item by speaking its name"}
+                  style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
+                >
+                  {isListening ? (
+                    <>
+                      <span className="speech-pulse-dot" />
+                      <Volume2 size={16} className="speech-icon-anim" />
+                      <span>Listening...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic size={17} /> <span>Add by Voice</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Step-by-step instruction guide */}
+              <div className="menu-empty-guide-box">
+                <div className="menu-empty-guide-header">Quick 4-Step Guide</div>
+                <ul className="menu-empty-guide-steps">
+                  <li>
+                    <span className="menu-empty-step-num">1</span>
+                    <span>Search or speak an item name</span>
+                  </li>
+                  <li>
+                    <span className="menu-empty-step-num">2</span>
+                    <span>Select an item from the master catalog</span>
+                  </li>
+                  <li>
+                    <span className="menu-empty-step-num">3</span>
+                    <span>Set your personal selling price</span>
+                  </li>
+                  <li>
+                    <span className="menu-empty-step-num">4</span>
+                    <span>Add it to your menu for 1-click billing</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            /* ================================================================
+               PHASE 12: USER MENU CARDS (My Menu List)
+               ================================================================ */
+            <>
+              <div className="menu-section-subheader">
+                <h3 className="menu-section-title">
+                  My Menu
+                  <span className="menu-items-count-badge">
+                    {filteredUserItems.length} {filteredUserItems.length === 1 ? "item" : "items"}
+                  </span>
                 </h3>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: "4px" }}
-              >
+
+              <div className="menu-cards-grid">
+                {filteredUserItems.map((item) => {
+                  const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
+                  return (
+                    <div key={item.id} className="user-menu-card">
+                      <div className="user-menu-card-left">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="menu-card-image"
+                            onError={(e) => {
+                              e.target.style.display = "none"
+                            }}
+                          />
+                        ) : (
+                          <div className="menu-card-image-placeholder">
+                            <Utensils size={20} />
+                          </div>
+                        )}
+
+                        <div className="menu-card-details">
+                          <h4 className="menu-card-item-name" title={item.name}>
+                            {item.name}
+                          </h4>
+                          <span className="menu-card-cat-badge">{item.category || "General"}</span>
+                          <div className="menu-card-price-row">
+                            <span className="menu-card-selling-price">{money(item.price)}</span>
+                            {isItemActive && (
+                              <span className="menu-card-status-pill">
+                                <span className="menu-card-status-dot" /> Active
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="user-menu-card-actions">
+                        <button
+                          className="menu-action-icon-btn"
+                          onClick={() => handleOpenEditModal(item)}
+                          title="Edit selling price"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          className="menu-action-icon-btn delete-btn"
+                          onClick={() => handleRemoveFromUserMenu(item)}
+                          disabled={deletingId === item.id}
+                          title="Remove from My Menu"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ====================================================================
+          STATE B: ADD ITEMS FLOW (Catalog Search & Selection)
+          ==================================================================== */}
+      {currentView === "add_items" && (
+        <>
+          {/* Back Bar */}
+          <div className="add-items-back-bar">
+            <button
+              className="add-items-back-btn"
+              onClick={() => setCurrentView("my_menu")}
+              title="Return to My Menu"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h2 className="add-items-header-title">Add Items</h2>
+              <p className="menu-sub-title">Search or speak to find items from the master catalog</p>
+            </div>
+          </div>
+
+          {/* Search bar with voice input button */}
+          <div className="menu-search-wrapper">
+            <Search size={18} className="menu-search-icon" />
+            <input
+              type="text"
+              className="menu-search-input"
+              placeholder="Search or speak to add items (e.g. Cold Coffee, Croissant)..."
+              value={catalogSearch}
+              onChange={(e) => setCatalogSearch(e.target.value)}
+              autoFocus
+            />
+            {catalogSearch && (
+              <button className="menu-search-clear-btn" onClick={() => setCatalogSearch("")}>
+                <X size={15} />
+              </button>
+            )}
+            <VoiceInputButton
+              onSpeechResult={handleVoiceSearchResult}
+              variant="icon-only"
+              placeholder="Speak item name"
+            />
+          </div>
+
+          {/* Category Filter Pills (Master Catalog) */}
+          <div className="menu-category-pills-row">
+            {catalogCategories.map((cat) => {
+              const isActive = catalogCategory.toLowerCase() === cat.toLowerCase()
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`menu-category-pill ${isActive ? "active" : ""}`}
+                  onClick={() => setCatalogCategory(cat)}
+                >
+                  {cat === "all" ? "All Categories" : cat}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Available Catalog Items */}
+          <div className="menu-section-subheader">
+            <h3 className="menu-section-title">
+              Available Items
+              <span className="menu-items-count-badge">
+                {filteredCatalogItems.length} found
+              </span>
+            </h3>
+          </div>
+
+          {catalogLoading ? (
+            <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+              <Spinner />
+              <p style={{ color: "#64748b", marginTop: "1rem" }}>Searching catalog...</p>
+            </div>
+          ) : filteredCatalogItems.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "3rem 1rem", background: "#ffffff", borderRadius: "14px", border: "1px dashed #cbd5e1" }}>
+              <AlertCircle size={32} style={{ color: "#94a3b8", margin: "0 auto 0.75rem" }} />
+              <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#0f172a", marginBottom: "0.25rem" }}>
+                No matching items found
+              </h3>
+              <p style={{ color: "#64748b", fontSize: "0.88rem", marginBottom: "1rem" }}>
+                Try another search term, speak an item name, or pick a different category.
+              </p>
+              <button className="menu-secondary-btn" onClick={() => { setCatalogSearch(""); setCatalogCategory("all"); }}>
+                Reset Filters
+              </button>
+            </div>
+          ) : (
+            <div className="menu-cards-grid">
+              {filteredCatalogItems.map((catItem) => {
+                const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
+                return (
+                  <div
+                    key={catItem.id}
+                    className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
+                  >
+                    <div className="user-menu-card-left">
+                      {catItem.image_url ? (
+                        <img
+                          src={catItem.image_url}
+                          alt={catItem.name}
+                          className="menu-card-image"
+                          onError={(e) => {
+                            e.target.style.display = "none"
+                          }}
+                        />
+                      ) : (
+                        <div className="menu-card-image-placeholder">
+                          <Utensils size={20} />
+                        </div>
+                      )}
+
+                      <div className="menu-card-details">
+                        <h4 className="menu-card-item-name" title={catItem.name}>
+                          {catItem.name}
+                        </h4>
+                        <span className="menu-card-cat-badge">{catItem.category || "General"}</span>
+                        <div className="menu-card-price-row">
+                          <span className="catalog-card-base-price">{money(catItem.price)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="user-menu-card-actions">
+                      {isAlreadyAdded ? (
+                        <span className="catalog-card-added-badge">
+                          <Check size={14} /> Added
+                        </span>
+                      ) : (
+                        <button
+                          className="catalog-card-add-btn"
+                          onClick={() => handleOpenAddModal(catItem)}
+                        >
+                          <Plus size={15} /> Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ====================================================================
+          PHASE 8: ADD TO MY MENU CONFIRMATION MODAL
+          ==================================================================== */}
+      {selectedCatalogItem && (
+        <div className="menu-modal-backdrop" onClick={handleCloseAddModal}>
+          <div className="menu-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="menu-modal-header">
+              <h3 className="menu-modal-title">Add to My Menu</h3>
+              <button className="menu-modal-close-btn" onClick={handleCloseAddModal}>
                 <X size={18} />
               </button>
             </div>
 
-            {/* Modal Body / Form */}
-            <form onSubmit={handleSubmit} style={{ padding: "1.5rem" }}>
-              {formError && (
-                <div
-                  style={{
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    color: "#dc2626",
-                    padding: "0.75rem",
-                    borderRadius: "8px",
-                    fontSize: "0.85rem",
-                    marginBottom: "1rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem"
-                  }}
-                >
-                  <AlertCircle size={16} flexShrink={0} />
-                  <span>{formError}</span>
+            <form onSubmit={handleConfirmAddToMenu}>
+              <div className="menu-modal-body">
+                {/* Item Preview */}
+                <div className="menu-modal-item-preview">
+                  {selectedCatalogItem.image_url ? (
+                    <img
+                      src={selectedCatalogItem.image_url}
+                      alt={selectedCatalogItem.name}
+                      className="menu-modal-preview-img"
+                      onError={(e) => {
+                        e.target.style.display = "none"
+                      }}
+                    />
+                  ) : (
+                    <div className="menu-card-image-placeholder" style={{ width: "60px", height: "60px" }}>
+                      <Utensils size={24} />
+                    </div>
+                  )}
+                  <div className="menu-modal-preview-details">
+                    <h4 className="menu-modal-preview-name">{selectedCatalogItem.name}</h4>
+                    <span className="menu-card-cat-badge">{selectedCatalogItem.category}</span>
+                    <div style={{ fontSize: "0.82rem", color: "#64748b", marginTop: "0.2rem" }}>
+                      Catalog base price: <strong>{money(selectedCatalogItem.price)}</strong>
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              <div style={{ marginBottom: "1.25rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", color: "#334155", marginBottom: "0.4rem" }}>
-                  {t("menu.itemName", "Item Name")} *
-                </label>
-                <input
-                  type="text"
-                  placeholder={t("menu.itemNamePlaceholder", "e.g. Tea, Coffee, Sandwich, Cold Drink")}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "0.7rem 0.9rem",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                    fontSize: "0.95rem",
-                    outline: "none"
-                  }}
-                  autoFocus
-                />
-              </div>
-
-              <div style={{ marginBottom: "1.5rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: "600", color: "#334155", marginBottom: "0.4rem" }}>
-                  {t("menu.price", "Price (₹)")} *
-                </label>
-                <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontWeight: "600", color: "#64748b" }}>
-                    ₹
+                {/* Custom Selling Price Input */}
+                <div className="menu-modal-field">
+                  <label className="menu-modal-label">Your Selling Price (₹) *</label>
+                  <div className="menu-modal-price-input-box">
+                    <span className="menu-modal-currency-symbol">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="menu-modal-input"
+                      placeholder="Enter selling price"
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(e.target.value)}
+                      autoFocus
+                      required
+                    />
+                  </div>
+                  <span style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "0.3rem", display: "block" }}>
+                    This price is personal to your shop and will appear on your customer receipts.
                   </span>
-                  <input
-                    type="number"
-                    step="any"
-                    min="0"
-                    placeholder="0.00"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "0.7rem 0.9rem 0.7rem 28px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "0.95rem",
-                      outline: "none"
-                    }}
-                  />
                 </div>
+
+                {addFormError && (
+                  <div style={{ color: "#ef4444", fontSize: "0.84rem", marginTop: "0.5rem" }}>
+                    {addFormError}
+                  </div>
+                )}
               </div>
 
-              <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+              <div className="menu-modal-footer">
                 <button
                   type="button"
-                  className="secondary-button"
-                  onClick={() => setShowModal(false)}
-                  disabled={submitting}
+                  className="menu-secondary-btn"
+                  onClick={handleCloseAddModal}
+                  disabled={isSubmittingAdd}
                 >
-                  {t("common.cancel", "Cancel")}
+                  Cancel
                 </button>
                 <button
                   type="submit"
-                  className="primary-button"
-                  disabled={submitting}
-                  style={{ minWidth: "120px" }}
+                  className="menu-primary-btn"
+                  disabled={isSubmittingAdd}
                 >
-                  {submitting ? <ButtonLoader text={t("common.saving", "Saving...")} /> : editingItem ? t("menu.updateItem", "Update Item") : t("menu.saveItem", "Save Item")}
+                  {isSubmittingAdd ? "Adding..." : "Add to Menu"}
                 </button>
               </div>
             </form>
@@ -547,142 +998,91 @@ export function Menu({ setView, requireAuth, user }) {
         </div>
       )}
 
-      <style>{`
-        @media (max-width: 768px) {
-          .menu-page {
-            padding: 1rem 0.85rem 6.5rem 0.85rem !important;
-            max-width: 100vw !important;
-            box-sizing: border-box !important;
-            overflow-x: hidden !important;
-          }
+      {/* ====================================================================
+          PHASE 13: EDIT PERSONAL SELLING PRICE MODAL
+          ==================================================================== */}
+      {editingItem && (
+        <div className="menu-modal-backdrop" onClick={handleCloseEditModal}>
+          <div className="menu-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="menu-modal-header">
+              <h3 className="menu-modal-title">Edit Selling Price</h3>
+              <button className="menu-modal-close-btn" onClick={handleCloseEditModal}>
+                <X size={18} />
+              </button>
+            </div>
 
-          .menu-page .page-header {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 0.85rem !important;
-            margin-bottom: 1.25rem !important;
-            width: 100% !important;
-          }
+            <form onSubmit={handleSaveEditPrice}>
+              <div className="menu-modal-body">
+                <div className="menu-modal-item-preview">
+                  {editingItem.image_url ? (
+                    <img
+                      src={editingItem.image_url}
+                      alt={editingItem.name}
+                      className="menu-modal-preview-img"
+                    />
+                  ) : (
+                    <div className="menu-card-image-placeholder" style={{ width: "52px", height: "52px" }}>
+                      <Utensils size={20} />
+                    </div>
+                  )}
+                  <div className="menu-modal-preview-details">
+                    <h4 className="menu-modal-preview-name">{editingItem.name}</h4>
+                    <span className="menu-card-cat-badge">{editingItem.category}</span>
+                  </div>
+                </div>
 
-          .menu-page .page-header > div {
-            width: 100% !important;
-          }
+                <div className="menu-modal-field">
+                  <label className="menu-modal-label">Your Selling Price (₹) *</label>
+                  <div className="menu-modal-price-input-box">
+                    <span className="menu-modal-currency-symbol">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="menu-modal-input"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
 
-          .menu-page .page-header h2 {
-            font-size: 1.35rem !important;
-            line-height: 1.3 !important;
-            margin-top: 0.2rem !important;
-          }
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.75rem" }}>
+                  <input
+                    type="checkbox"
+                    id="item-active-check"
+                    checked={editActive}
+                    onChange={(e) => setEditActive(e.target.checked)}
+                    style={{ width: "16px", height: "16px", accentColor: "#0284c7" }}
+                  />
+                  <label htmlFor="item-active-check" style={{ fontSize: "0.85rem", color: "#334155", fontWeight: "600", cursor: "pointer" }}>
+                    Active (Available for quick billing)
+                  </label>
+                </div>
+              </div>
 
-          .menu-page .page-header p.subtle {
-            font-size: 0.85rem !important;
-            line-height: 1.4 !important;
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
-            white-space: normal !important;
-            margin-top: 0.35rem !important;
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-
-          .menu-page .page-header .primary-button {
-            width: 100% !important;
-            justify-content: center !important;
-            padding: 0.7rem 1rem !important;
-            box-sizing: border-box !important;
-          }
-
-          .menu-page .stats-grid {
-            display: grid !important;
-            grid-template-columns: 1fr !important;
-            gap: 0.85rem !important;
-            width: 100% !important;
-            margin-top: 1rem !important;
-            margin-bottom: 1.25rem !important;
-          }
-
-          .menu-page .stat-card {
-            width: 100% !important;
-            box-sizing: border-box !important;
-            padding: 1rem 1.15rem !important;
-            border-radius: 14px !important;
-          }
-
-          .menu-page .stat-value {
-            word-break: break-word !important;
-          }
-
-          .menu-page .filter-bar {
-            width: 100% !important;
-            box-sizing: border-box !important;
-            margin-bottom: 1.25rem !important;
-            gap: 0.5rem !important;
-          }
-
-          .menu-page .search-box {
-            min-width: 0 !important;
-            width: 100% !important;
-            flex: 1 1 auto !important;
-          }
-
-          .menu-page .search-input {
-            width: 100% !important;
-            box-sizing: border-box !important;
-          }
-
-          .menu-page .card-table-wrapper {
-            width: 100% !important;
-            box-sizing: border-box !important;
-            border-radius: 12px !important;
-            overflow-x: hidden !important;
-          }
-
-          .menu-page .data-table {
-            width: 100% !important;
-            table-layout: fixed !important;
-          }
-
-          .menu-page .data-table th,
-          .menu-page .data-table td {
-            padding: 0.75rem 0.5rem !important;
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
-            white-space: normal !important;
-          }
-
-          .menu-page .data-table th {
-            font-size: 0.72rem !important;
-            letter-spacing: 0 !important;
-          }
-
-          .menu-page .data-table th:nth-child(1),
-          .menu-page .data-table td:nth-child(1) {
-            width: 44% !important;
-          }
-
-          .menu-page .data-table th:nth-child(2),
-          .menu-page .data-table td:nth-child(2) {
-            width: 32% !important;
-            font-size: 0.88rem !important;
-          }
-
-          .menu-page .data-table th:nth-child(3),
-          .menu-page .data-table td:nth-child(3) {
-            width: 24% !important;
-          }
-
-          .menu-page .data-table td:nth-child(3) > div {
-            justify-content: flex-end !important;
-            gap: 0.25rem !important;
-          }
-
-          .menu-page .data-table .icon-button.small {
-            padding: 5px !important;
-            width: 28px !important;
-            height: 28px !important;
-          }
-        }
-      `}</style>
+              <div className="menu-modal-footer">
+                <button
+                  type="button"
+                  className="menu-secondary-btn"
+                  onClick={handleCloseEditModal}
+                  disabled={isUpdatingPrice}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="menu-primary-btn"
+                  disabled={isUpdatingPrice}
+                >
+                  {isUpdatingPrice ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
