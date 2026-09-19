@@ -336,7 +336,7 @@ export function RealisticReceiptView({ template }) {
           <div className="eco-items-mono" style={{ display: "flex", flexDirection: "column", gap: "0.25rem", margin: "0.4rem 0" }}>
             {items.map((item, idx) => (
               <div className="eco-item-row-mono" key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", fontWeight: 700 }}>
-                <span>{item.qty}x {item.name}</span>
+                <span>{item.qty}x {item.name} @ ₹{item.rate}</span>
                 <span>₹{item.total}</span>
               </div>
             ))}

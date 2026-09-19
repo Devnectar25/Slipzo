@@ -76,9 +76,9 @@ export function Contact({ setView, setShowAuth, user }) {
     if (form.phone.trim()) {
       const trimmedPhone = form.phone.trim()
       const phoneDigits = trimmedPhone.replace(/\D/g, '')
-      const phoneFormatRegex = /^[\d\+\-\(\)\s]{7,20}$/
-      if (!phoneFormatRegex.test(trimmedPhone) || phoneDigits.length < 7 || phoneDigits.length > 15) {
-        errors.phone = "Please enter a valid phone number (7 to 15 digits, e.g. +91 98765 43210)"
+      const isValid10Digit = phoneDigits.length === 10 || (phoneDigits.length === 12 && phoneDigits.startsWith('91'))
+      if (!isValid10Digit) {
+        errors.phone = "Please enter a valid 10-digit mobile number (e.g. 9876543210 or +91 9876543210)"
         isValid = false
       }
     }

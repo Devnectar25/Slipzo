@@ -28,15 +28,18 @@ import {
   AlertCircle,
   DollarSign,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Utensils
 } from "lucide-react"
 import { call, invalidateApiCache } from "../../lib/utils"
 import Swal from "sweetalert2"
 import "../../styles/Admin.css"
+import { AdminMenuManagement } from "./AdminMenuManagement"
 
 const getInitialAdminTab = () => {
   if (typeof window === "undefined") return "overview"
   const cleanPath = (window.location.pathname || "").toLowerCase().trim()
+  if (cleanPath.includes("/admin/menu") || cleanPath.includes("/admin/menu-catalog")) return "menu"
   if (cleanPath.includes("/admin/products") || cleanPath.includes("/admin/product-catalog")) return "products"
   if (cleanPath.includes("/admin/plan-buyers")) return "plan_buyers"
   if (cleanPath.includes("/admin/templates")) return "templates"
@@ -50,6 +53,7 @@ const getInitialAdminTab = () => {
 const getAdminTabPath = (tab) => {
   switch (tab) {
     case "overview": return "/admin/overview"
+    case "menu": return "/admin/menu"
     case "products": return "/admin/products"
     case "plan_buyers": return "/admin/plan-buyers"
     case "templates": return "/admin/templates"
@@ -884,6 +888,14 @@ export function AdminDashboard({ admin, onLogout }) {
           </button>
 
           <button
+            className={`admin-nav-item ${activeTab === "menu" ? "active" : ""}`}
+            onClick={() => { setActiveTab("menu"); setSearchQuery(""); }}
+          >
+            <Utensils size={18} />
+            <span>Menu Catalog</span>
+          </button>
+
+          <button
             className={`admin-nav-item ${activeTab === "templates" ? "active" : ""}`}
             onClick={() => { setActiveTab("templates"); setSearchQuery(""); }}
           >
@@ -931,6 +943,7 @@ export function AdminDashboard({ admin, onLogout }) {
             {activeTab === "users" && "User & Shop Directory"}
             {activeTab === "plan_buyers" && "Plan Buyer Users & Print Quotas"}
             {activeTab === "products" && "System Product Catalog Management"}
+            {activeTab === "menu" && "Master Menu Catalog Management"}
             {activeTab === "templates" && "Manage Bill Templates"}
             {activeTab === "bills" && "System Bill Logs"}
             {activeTab === "contacts" && "Customer Support Inquiries"}
@@ -1419,6 +1432,10 @@ export function AdminDashboard({ admin, onLogout }) {
               </div>
               {renderPagination(filteredProducts.length)}
             </div>
+          )}
+
+          {activeTab === "menu" && (
+            <AdminMenuManagement getAdminHeaders={getAdminHeaders} />
           )}
 
           {activeTab === "templates" && (
