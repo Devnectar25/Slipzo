@@ -1065,6 +1065,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     <tr>
                       <th>User</th>
                       <th>Email</th>
+                      <th>Shop Profile</th>
                       <th>Shop Name</th>
                       <th>Phone</th>
                       <th>Bills</th>
@@ -1081,6 +1082,45 @@ export function AdminDashboard({ admin, onLogout }) {
                           <div style={{ fontSize: "0.75rem", color: "#64748b" }}>@{u.username || "user"}</div>
                         </td>
                         <td>{u.email}</td>
+                        <td>
+                          {u.shop_profile || u.shop_logo_url ? (
+                            <img
+                              src={u.shop_profile || u.shop_logo_url}
+                              alt={u.shop_name || "Shop Profile"}
+                              style={{
+                                width: "38px",
+                                height: "38px",
+                                borderRadius: "8px",
+                                objectFit: "cover",
+                                border: "1.5px solid #e2e8f0",
+                                display: "block",
+                                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+                              }}
+                              onError={(e) => {
+                                e.target.style.display = "none"
+                                if (e.target.nextSibling) e.target.nextSibling.style.display = "flex"
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            style={{
+                              display: (u.shop_profile || u.shop_logo_url) ? "none" : "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: "38px",
+                              height: "38px",
+                              borderRadius: "8px",
+                              background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                              border: "1.5px solid #bae6fd",
+                              color: "#0284c7",
+                              fontWeight: 700,
+                              fontSize: "0.88rem"
+                            }}
+                            title={u.shop_name ? `${u.shop_name} (Initial fallback)` : "No profile logo"}
+                          >
+                            {u.shop_name ? u.shop_name.trim().charAt(0).toUpperCase() : <Store size={16} />}
+                          </div>
+                        </td>
                         <td>
                           {u.shop_name ? (
                             <span className="admin-tag admin-tag-blue">{u.shop_name}</span>
@@ -1108,7 +1148,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     ))}
                     {filteredUsers.length === 0 && (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={9} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
                           No matching users found.
                         </td>
                       </tr>
