@@ -83,10 +83,11 @@ export function Menu({ setView, requireAuth, user }) {
   // Sync spoken transcript into search query
   useEffect(() => {
     if (transcript) {
+      const clean = transcript.trim().replace(/\s*[.,!?;:]+$/, "").trim()
       if (currentView === "my_menu") {
-        setSearch(transcript)
+        setSearch(clean)
       } else {
-        setCatalogSearch(transcript)
+        setCatalogSearch(clean)
       }
     }
   }, [transcript, currentView])

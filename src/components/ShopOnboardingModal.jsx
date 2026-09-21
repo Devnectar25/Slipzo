@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle } from "lucide-react"
 import { call, findTemplateMatch } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { VoiceInputButton } from "./common/VoiceInputButton"
+import { RealisticReceiptView } from "./RealisticReceiptView"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -96,8 +97,6 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
       }
     }
   }, [isOpen])
-
-  if (!isOpen) return null
 
   const validateField = (key, value) => {
     const val = String(value || "").trim()
@@ -219,6 +218,36 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   // Live calculation for preview
   const sampleItemsTotal = 350.00
   const previewTotalPaid = sampleItemsTotal
+
+  const selectedTemplate = useMemo(() => {
+    const tplList = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
+    const matched = findTemplateMatch(tplList, defaultTemplateId) || tplList.find(t => t.id === defaultTemplateId) || tplList[0] || BUILTIN_TEMPLATES[0]
+    if (!matched) return null
+
+    return {
+      ...matched,
+      previewData: {
+        shopName: (name || "Your Shop Name").trim(),
+        address: (address || "Shop address will appear here").trim(),
+        phone: (phone || "+91 00000 00000").trim(),
+        gst: "",
+        invoiceNo: liveInvoiceNo,
+        date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+        items: [
+          { name: "Sample Item 1", qty: 1, rate: 150, total: 150 },
+          { name: "Sample Item 2", qty: 2, rate: 100, total: 200 }
+        ],
+        subtotal: 350,
+        discount: 0,
+        tax: Number(matched.show_tax) ? (350 * (Number(matched.tax_rate) || 18)) / 100 : 0,
+        total: previewTotalPaid,
+        payment: "CASH / UPI",
+        footer: matched.footer || "Thank you for shopping with us! Please come again."
+      }
+    }
+  }, [templates, defaultTemplateId, name, address, phone, liveInvoiceNo, previewTotalPaid])
+
+  if (!isOpen) return null
 
   return (
     <div 
@@ -476,56 +505,11 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           <div className="onboarding-preview-col">
             <div className="preview-pill-header">
               <span className="pill-title">LIVE RECEIPT PREVIEW</span>
-              <span className="paper-pill">58mm Thermal</span>
+              <span className="paper-pill">{selectedTemplate?.width ? `${selectedTemplate.width} Thermal` : "58mm Thermal"}</span>
             </div>
 
-            <div className="onboarding-receipt-box">
-              <div className="onboarding-zigzag-top" />
-              <div className="onboarding-receipt-content">
-                <div className="onboarding-mock-shop">
-                  <h3>{name || "Your Shop Name"}</h3>
-                  {address ? <p className="mock-addr">{address}</p> : <p className="mock-placeholder-addr">Shop address will appear here</p>}
-                  {phone ? <p className="mock-phone">Tel: {phone}</p> : <p className="mock-placeholder-phone">Tel: +91 00000 00000</p>}
-                </div>
-
-                <div className="onboarding-mock-meta">
-                  <span>#{liveInvoiceNo}</span>
-                  <span>{new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                </div>
-
-                <div className="onboarding-mock-divider" />
-
-                <div className="onboarding-mock-items">
-                  <div className="onboarding-mock-row head">
-                    <span>ITEM</span>
-                    <span>QTY</span>
-                    <span>AMT</span>
-                  </div>
-                  <div className="onboarding-mock-row">
-                    <span>Sample Item 1</span>
-                    <span>1</span>
-                    <span>₹150.00</span>
-                  </div>
-                  <div className="onboarding-mock-row">
-                    <span>Sample Item 2</span>
-                    <span>2</span>
-                    <span>₹200.00</span>
-                  </div>
-                </div>
-
-                <div className="onboarding-mock-divider" />
-
-                <div className="onboarding-mock-total">
-                  <span>TOTAL PAID</span>
-                  <span>₹{previewTotalPaid.toFixed(2)}</span>
-                </div>
-
-                <div className="onboarding-mock-footer">
-                  <p>Thank you for shopping with us!</p>
-                  <small>Powered by Slipzo</small>
-                </div>
-              </div>
-              <div className="onboarding-zigzag-bottom" />
+            <div className="onboarding-receipt-box" style={{ background: "transparent", boxShadow: "none", overflow: "visible", maxWidth: selectedTemplate?.width === "80mm" ? "340px" : "280px" }}>
+              <RealisticReceiptView template={selectedTemplate} />
             </div>
           </div>
         </div>

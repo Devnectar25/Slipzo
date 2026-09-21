@@ -14,12 +14,17 @@ import {
   Utensils,
   ArrowLeft,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   CreditCard,
   Building,
   Phone,
   Hash,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Save,
+  Lightbulb
 } from "lucide-react"
 import {
   call,
@@ -257,6 +262,22 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     return Math.max(0, taxableAmount + taxAmount)
   }, [taxableAmount, taxAmount])
 
+  // Total quantity of items in current bill
+  const totalItemsInBill = useMemo(() => {
+    return items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+  }, [items])
+
+  // Helper for category emoji matching reference design
+  const getCategoryIcon = (catName) => {
+    const c = (catName || "").toLowerCase().trim()
+    if (c.includes("beverage") || c.includes("drink") || c.includes("coffee") || c.includes("tea")) return "☕ "
+    if (c.includes("snack") || c.includes("burger") || c.includes("pizza") || c.includes("fast food")) return "🍟 "
+    if (c.includes("bakery") || c.includes("cake") || c.includes("bread")) return "🥐 "
+    if (c.includes("main") || c.includes("meal") || c.includes("thali") || c.includes("rice")) return "🍲 "
+    if (c.includes("dessert") || c.includes("sweet") || c.includes("ice cream")) return "🧁 "
+    return ""
+  }
+
   // Categories list from User's menu items
   const menuCategories = useMemo(() => {
     const set = new Set()
@@ -279,11 +300,35 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     })
   }, [userMenuItems, search, selectedCategory])
 
-  // Map of added item quantities (for card button feedback)
-  const addedQuantitiesMap = useMemo(() => {
+  // Pagination for My Menu Items on New Bill page
+  const [menuPage, setMenuPage] = useState(1)
+  const menuPageSize = 6
+
+  // Reset page when search or category filter changes
+  useEffect(() => {
+    setMenuPage(1)
+  }, [search, selectedCategory])
+
+  const totalMenuPages = Math.ceil(filteredMenuItems.length / menuPageSize) || 1
+  const startItemIndex = filteredMenuItems.length > 0 ? (menuPage - 1) * menuPageSize + 1 : 0
+  const endItemIndex = Math.min(menuPage * menuPageSize, filteredMenuItems.length)
+
+  const paginatedMenuItems = useMemo(() => {
+    const start = (menuPage - 1) * menuPageSize
+    return filteredMenuItems.slice(start, start + menuPageSize)
+  }, [filteredMenuItems, menuPage, menuPageSize])
+
+  useEffect(() => {
+    if (menuPage > totalMenuPages) {
+      setMenuPage(Math.max(1, totalMenuPages))
+    }
+  }, [totalMenuPages, menuPage])
+
+  // Map of added bill items by clean name (for card button and quantity controls)
+  const addedItemMap = useMemo(() => {
     const map = new Map()
     items.forEach((it) => {
-      map.set(it.name.trim().toLowerCase(), it.quantity)
+      map.set((it.name || "").trim().toLowerCase(), it)
     })
     return map
   }, [items])
@@ -347,11 +392,16 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   }
 
   const handleAddMoreItemsClick = () => {
-    const searchEl = document.querySelector(".nb-search-input")
-    if (searchEl) {
-      searchEl.scrollIntoView({ behavior: "smooth", block: "center" })
-      searchEl.focus()
+    if (flowStep === "success") {
+      setFlowStep("bill")
     }
+    setTimeout(() => {
+      const searchEl = document.querySelector(".nb-search-input")
+      if (searchEl) {
+        searchEl.scrollIntoView({ behavior: "smooth", block: "center" })
+        searchEl.focus()
+      }
+    }, 50)
   }
 
   // ==========================================
@@ -536,18 +586,25 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           ==================================================================== */}
       <header className="nb-top-header">
         <div className="nb-header-left">
-          <img src="/logo.png" alt="Slipzo" className="nb-logo" />
+          <div className="nb-header-icon-box">
+            <FileText size={22} className="nb-header-icon" />
+          </div>
           <div className="nb-header-titles">
             <h1 className="nb-page-title">New Bill</h1>
-            <p className="nb-page-subtitle">Add items and create a bill</p>
+            <p className="nb-page-subtitle">Add items from your menu and create a bill</p>
           </div>
         </div>
 
         <div className="nb-header-right">
-          <div className="nb-invoice-badge" title="Live Invoice Number">
-            <Hash size={13} style={{ color: "#0284c7" }} />
-            <span>{customBillNumber || "INV-2026"}</span>
-          </div>
+          <button
+            type="button"
+            className="nb-top-add-more-btn"
+            onClick={handleAddMoreItemsClick}
+            title="Add more items to bill"
+          >
+            <Plus size={15} />
+            <span>Add More Items</span>
+          </button>
 
           <button
             className="nb-top-print-btn"
@@ -577,10 +634,6 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           </div>
 
           <h2 className="nb-success-title">Bill Created Successfully!</h2>
-
-          <div className="nb-success-inv-badge">
-            #{customBillNumber}
-          </div>
 
           <p className="nb-success-text">
             Your bill has been saved. You can print it now using your selected receipt template (
@@ -626,312 +679,347 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           )}
         </div>
       ) : (
-        /* ====================================================================
-           STEPS 1, 2, 3: ADD ITEMS, MANAGE ADDED ITEMS, FINALIZE & SAVE
-           ==================================================================== */
-        <div className="nb-desktop-layout">
-          {/* LEFT COLUMN: Item Search, Category Filters, Available Items */}
-          <div className="nb-left-col">
-            {/* Step 1: Search Bar with Voice Recognition */}
-            <div className="nb-search-bar">
-              <Search size={18} className="nb-search-icon" />
-              <input
-                type="text"
-                className="nb-search-input"
-                placeholder="Search item or speak to add..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search && (
-                <button className="nb-search-clear-btn" onClick={() => setSearch("")}>
-                  <X size={15} />
-                </button>
-              )}
-              <VoiceInputButton
-                onSpeechResult={(text) => setSearch(text)}
-                variant="icon-only"
-                placeholder="Speak item name"
-              />
-            </div>
-
-            {/* Step 1: Category Filter Chips */}
-            {menuCategories.length > 2 && (
-              <div className="nb-category-chips-row">
-                {menuCategories.map((cat) => {
-                  const isActive = selectedCategory.toLowerCase() === cat.toLowerCase()
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      className={`nb-category-chip ${isActive ? "active" : ""}`}
-                      onClick={() => setSelectedCategory(cat)}
-                    >
-                      {cat === "all" ? "All Items" : cat}
-                    </button>
-                  )
-                })}
-              </div>
+        <>
+          {/* Step 1: Search Bar with Voice Recognition */}
+          <div className="nb-search-bar">
+            <Search size={18} className="nb-search-icon" />
+            <input
+              type="text"
+              className="nb-search-input"
+              placeholder="Search items or speak to add (e.g. Tea, Coffee, Pizza...)"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                type="button"
+                className="nb-search-clear-btn"
+                onClick={() => setSearch("")}
+                title="Clear search"
+              >
+                <X size={15} />
+              </button>
             )}
-
-            {/* Step 1: Available / My Menu Items */}
-            <div className="nb-section-title-row">
-              <h3 className="nb-section-title">My Menu Items</h3>
-              <span className="nb-badge-counter">
-                {filteredMenuItems.length} available
-              </span>
-            </div>
-
-            {loadingMenu ? (
-              <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-                <Spinner />
-                <p style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.75rem" }}>
-                  Loading your menu items...
-                </p>
-              </div>
-            ) : userMenuItems.length === 0 ? (
-              /* Phase 38: Empty Menu State */
-              <div className="nb-empty-menu-card">
-                <div className="nb-empty-icon">
-                  <Utensils size={28} />
-                </div>
-                <h4 className="nb-empty-title">Your Menu is Empty</h4>
-                <p className="nb-empty-desc">
-                  Add items to your personal menu first to start creating bills with fast 1-click adding.
-                </p>
-                <button
-                  type="button"
-                  className="nb-add-btn"
-                  onClick={() => setView?.("menu")}
-                  style={{ margin: "0 auto", padding: "0.6rem 1.25rem", fontSize: "0.9rem" }}
-                >
-                  <Plus size={16} /> Go to Menu
-                </button>
-              </div>
-            ) : filteredMenuItems.length === 0 ? (
-              /* Phase 39: No Search Results */
-              <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #cbd5e1", marginBottom: "1.5rem" }}>
-                <AlertCircle size={28} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
-                <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "0.95rem" }}>No items found</div>
-                <p style={{ color: "#64748b", fontSize: "0.82rem", margin: "0.2rem 0 0.85rem" }}>
-                  Try another item name or category.
-                </p>
-                <button
-                  type="button"
-                  className="nb-add-more-btn"
-                  onClick={() => { setSearch(""); setSelectedCategory("all"); }}
-                >
-                  Reset Filter
-                </button>
-              </div>
-            ) : (
-              /* Menu Item Cards */
-              <div className="nb-available-grid">
-                {filteredMenuItems.map((menuItem) => {
-                  const nameKey = (menuItem.name || "").trim().toLowerCase()
-                  const addedQty = addedQuantitiesMap.get(nameKey) || 0
-                  return (
-                    <div key={menuItem.id} className="nb-item-card">
-                      <div className="nb-item-left">
-                        {menuItem.image_url ? (
-                          <img
-                            src={menuItem.image_url}
-                            alt={menuItem.name}
-                            className="nb-item-thumb"
-                            onError={(e) => { e.target.style.display = "none"; }}
-                          />
-                        ) : (
-                          <div className="nb-item-thumb-placeholder">
-                            <Utensils size={18} />
-                          </div>
-                        )}
-
-                        <div className="nb-item-info">
-                          <h4 className="nb-item-name" title={menuItem.name}>{menuItem.name}</h4>
-                          <span className="nb-item-category">{menuItem.category || "General"}</span>
-                          <div className="nb-item-price">{money(menuItem.price)}</div>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        className={`nb-add-btn ${addedQty > 0 ? "in-cart" : ""}`}
-                        onClick={() => handleAddItemFromMenu(menuItem)}
-                        title="Add item to current bill"
-                      >
-                        {addedQty > 0 ? (
-                          <>
-                            <Check size={13} /> {addedQty} in Bill
-                          </>
-                        ) : (
-                          <>
-                            <Plus size={14} /> Add
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+            <VoiceInputButton
+              onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
+              variant="icon-only"
+              placeholder="Speak item name"
+            />
           </div>
 
-          {/* RIGHT COLUMN: Added Items, Bill Summary, Payment Mode & Save Bill */}
-          <div className="nb-right-col">
-            {/* Step 2: Manage Added Items */}
-            <div className="nb-added-items-card">
-              <div className="nb-added-items-header">
-                <h3 className="nb-section-title">
-                  Added Items ({items.length})
-                </h3>
-                {items.length > 0 && (
+          {/* Step 1: Category Filter Chips */}
+          {menuCategories.length > 2 && (
+            <div className="nb-category-chips-row">
+              {menuCategories.map((cat) => {
+                const isActive = selectedCategory.toLowerCase() === cat.toLowerCase()
+                const icon = cat === "all" ? "" : getCategoryIcon(cat)
+                return (
                   <button
+                    key={cat}
                     type="button"
-                    className="nb-clear-all-btn"
-                    onClick={handleClearAll}
+                    className={`nb-category-chip ${isActive ? "active" : ""}`}
+                    onClick={() => setSelectedCategory(cat)}
                   >
-                    Clear All
+                    {icon}{cat === "all" ? "All Items" : cat}
                   </button>
-                )}
-              </div>
+                )
+              })}
+            </div>
+          )}
 
-              {items.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "2rem 1rem", color: "#64748b", fontSize: "0.85rem" }}>
-                  <p style={{ margin: "0 0 0.5rem" }}>No items added to current bill yet.</p>
-                  <small style={{ color: "#94a3b8" }}>Click "+ Add" on items above to build your bill.</small>
+          {/* Main 2-Column Content Layout */}
+          <div className="nb-desktop-layout">
+            {/* LEFT COLUMN: Main Menu-Items Container */}
+            <div className="nb-left-col">
+              <div className="nb-menu-card-container">
+                <div className="nb-menu-card-header">
+                  <h3 className="nb-menu-card-title">My Menu Items</h3>
+                  <span className="nb-menu-items-count">
+                    {filteredMenuItems.length} {filteredMenuItems.length === 1 ? "item" : "items"}
+                  </span>
                 </div>
-              ) : (
-                <>
-                  <div className="nb-added-items-list">
-                    {items.map((item) => (
-                      <div key={item.id} className="nb-added-item-row">
-                        <div className="nb-added-item-left">
-                          {item.image_url ? (
-                            <img
-                              src={item.image_url}
-                              alt={item.name}
-                              className="nb-added-thumb"
-                              onError={(e) => { e.target.style.display = "none"; }}
-                            />
-                          ) : (
-                            <div className="nb-item-thumb-placeholder" style={{ width: "38px", height: "38px" }}>
-                              <Utensils size={15} />
-                            </div>
-                          )}
-                          <div className="nb-added-details">
-                            <div className="nb-added-name" title={item.name}>{item.name}</div>
-                            <div className="nb-added-calc-line">
-                              {money(item.rate)} × {item.quantity} ={" "}
-                              <span className="nb-added-calc-total">{money(item.quantity * item.rate)}</span>
-                            </div>
-                          </div>
-                        </div>
 
-                        {/* Quantity Controls: [ - ] [ qty ] [ + ] [ trash ] */}
-                        <div className="nb-qty-controls-group">
-                          <button
-                            type="button"
-                            className="nb-qty-btn"
-                            onClick={() => handleUpdateQuantity(item.id, -1)}
-                            title="Decrease quantity"
-                          >
-                            −
-                          </button>
-                          <span className="nb-qty-value">{item.quantity}</span>
-                          <button
-                            type="button"
-                            className="nb-qty-btn"
-                            onClick={() => handleUpdateQuantity(item.id, 1)}
-                            title="Increase quantity"
-                          >
-                            +
-                          </button>
-                          <button
-                            type="button"
-                            className="nb-item-del-btn"
-                            onClick={() => handleDeleteItem(item.id)}
-                            title="Remove item"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                {loadingMenu ? (
+                  <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+                    <Spinner />
+                    <p style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.75rem" }}>
+                      Loading your menu items...
+                    </p>
                   </div>
-
-                  <div className="nb-added-actions-row">
+                ) : userMenuItems.length === 0 ? (
+                  /* Empty Menu State */
+                  <div className="nb-empty-menu-card">
+                    <div className="nb-empty-icon">
+                      <Utensils size={28} />
+                    </div>
+                    <h4 className="nb-empty-title">Your Menu is Empty</h4>
+                    <p className="nb-empty-desc">
+                      Add items to your personal menu first to start creating bills with fast 1-click adding.
+                    </p>
+                    <button
+                      type="button"
+                      className="nb-add-btn"
+                      onClick={() => setView?.("menu")}
+                      style={{ margin: "0 auto", padding: "0.6rem 1.25rem", fontSize: "0.9rem" }}
+                    >
+                      <Plus size={16} /> Go to Menu
+                    </button>
+                  </div>
+                ) : filteredMenuItems.length === 0 ? (
+                  /* No Search Results */
+                  <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #cbd5e1", marginBottom: "1rem" }}>
+                    <AlertCircle size={28} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
+                    <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "0.95rem" }}>No items found</div>
+                    <p style={{ color: "#64748b", fontSize: "0.82rem", margin: "0.2rem 0 0.85rem" }}>
+                      Try another item name or category.
+                    </p>
                     <button
                       type="button"
                       className="nb-add-more-btn"
-                      onClick={handleAddMoreItemsClick}
+                      onClick={() => { setSearch(""); setSelectedCategory("all"); }}
                     >
-                      <Plus size={14} /> Add More Items
+                      Reset Filter
                     </button>
                   </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    {/* Menu Item Cards List */}
+                    <div className="nb-menu-items-list">
+                      {paginatedMenuItems.map((menuItem) => {
+                        const nameKey = (menuItem.name || "").trim().toLowerCase()
+                        const addedItem = addedItemMap.get(nameKey)
+                        return (
+                          <div key={menuItem.id} className="nb-item-card">
+                            <div className="nb-item-left">
+                              {menuItem.image_url ? (
+                                <img
+                                  src={menuItem.image_url}
+                                  alt={menuItem.name}
+                                  className="nb-item-thumb"
+                                  onError={(e) => { e.target.style.display = "none"; }}
+                                />
+                              ) : (
+                                <div className="nb-item-thumb-placeholder">
+                                  <Utensils size={18} />
+                                </div>
+                              )}
+
+                              <div className="nb-item-info">
+                                <h4 className="nb-item-name" title={menuItem.name}>{menuItem.name}</h4>
+                                <span className="nb-item-category">{menuItem.category || "General"}</span>
+                                <div className="nb-item-price nb-item-price-desktop">
+                                  {money(menuItem.price !== undefined ? menuItem.price : menuItem.custom_price || 0)}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="nb-item-actions-wrapper">
+                              <div className="nb-item-price nb-item-price-mobile">
+                                {money(menuItem.price !== undefined ? menuItem.price : menuItem.custom_price || 0)}
+                              </div>
+
+                              {addedItem ? (
+                                <div className="nb-qty-controls-group">
+                                  <button
+                                    type="button"
+                                    className="nb-qty-btn"
+                                    onClick={() => handleUpdateQuantity(addedItem.id, -1)}
+                                    title="Decrease quantity"
+                                    aria-label="Decrease quantity"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="nb-qty-value">{addedItem.quantity}</span>
+                                  <button
+                                    type="button"
+                                    className="nb-qty-btn"
+                                    onClick={() => handleUpdateQuantity(addedItem.id, 1)}
+                                    title="Increase quantity"
+                                    aria-label="Increase quantity"
+                                  >
+                                    +
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="nb-item-del-btn"
+                                    onClick={() => handleDeleteItem(addedItem.id)}
+                                    title="Remove from bill"
+                                    aria-label="Remove from bill"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="nb-add-btn"
+                                  onClick={() => handleAddItemFromMenu(menuItem)}
+                                  title="Add item to current bill"
+                                >
+                                  <Plus size={14} /> Add
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Step 3: Finalize & Save (Bill Summary & Payment Mode) */}
-            <div className="nb-summary-card">
-              <h4 className="nb-summary-header">Bill Summary</h4>
-
-              <div className="nb-summary-row">
-                <span>Subtotal</span>
-                <strong>{money(subtotal)}</strong>
-              </div>
-
-              {discountAmount > 0 && (
-                <div className="nb-summary-row" style={{ color: "#16a34a" }}>
-                  <span>Discount</span>
-                  <strong>-{money(discountAmount)}</strong>
+            {/* RIGHT COLUMN: Bill Summary & Tip Card */}
+            <div className="nb-right-col">
+              <div className="nb-summary-card">
+                <div className="nb-summary-header-row">
+                  <div className="nb-summary-icon-box">
+                    <FileText size={18} className="nb-summary-icon" />
+                  </div>
+                  <h4 className="nb-summary-header">Bill Summary</h4>
                 </div>
-              )}
 
-              {isTaxEnabled && taxRate > 0 && (
-                <div className="nb-summary-row">
-                  <span>GST ({taxRate}%)</span>
-                  <strong>{money(taxAmount)}</strong>
+                <div className="nb-summary-details">
+                  <div className="nb-summary-row">
+                    <span className="nb-summary-label">Items in Bill</span>
+                    <span className="nb-summary-val">{totalItemsInBill}</span>
+                  </div>
+
+                  <div className="nb-summary-row">
+                    <span className="nb-summary-label">Subtotal</span>
+                    <span className="nb-summary-val">{money(subtotal)}</span>
+                  </div>
+
+                  {discountAmount > 0 && (
+                    <div className="nb-summary-row discount-row" style={{ color: "#16a34a" }}>
+                      <span className="nb-summary-label">Discount</span>
+                      <span className="nb-summary-val">-{money(discountAmount)}</span>
+                    </div>
+                  )}
+
+                  {isTaxEnabled && taxRate > 0 && (
+                    <div className="nb-summary-row">
+                      <span className="nb-summary-label">GST ({taxRate}%)</span>
+                      <span className="nb-summary-val">{money(taxAmount)}</span>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              <div className="nb-summary-row total-row">
-                <span>Total Amount</span>
-                <span className="nb-summary-val-total">{money(total)}</span>
-              </div>
+                <div className="nb-summary-divider" />
 
-              {/* Payment Mode */}
-              <div className="nb-payment-section">
-                <label className="nb-payment-label">Payment Mode</label>
-                <select
-                  value={payment}
-                  onChange={(e) => setPayment(e.target.value)}
-                  className="nb-payment-select"
+                <div className="nb-summary-row total-row">
+                  <span className="nb-total-label">Total Amount</span>
+                  <span className="nb-summary-val-total">{money(total)}</span>
+                </div>
+
+                {/* Payment Mode */}
+                <div className="nb-payment-section">
+                  <label className="nb-payment-label">
+                    <CreditCard size={15} style={{ color: "#0f172a" }} />
+                    <span>Payment Mode</span>
+                  </label>
+                  <select
+                    value={payment}
+                    onChange={(e) => setPayment(e.target.value)}
+                    className="nb-payment-select"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Card</option>
+                    <option value="Credit">Credit</option>
+                  </select>
+                </div>
+
+                {saveError && (
+                  <div style={{ color: "#ef4444", fontSize: "0.82rem", background: "#fef2f2", padding: "0.5rem 0.75rem", borderRadius: "6px", marginTop: "0.75rem" }}>
+                    {saveError}
+                  </div>
+                )}
+
+                {/* Save Bill Button - Consumes 0 print credits! */}
+                <button
+                  type="button"
+                  className="nb-save-bill-btn"
+                  onClick={handleSaveBill}
+                  disabled={isSaving || items.length === 0}
                 >
-                  <option value="Cash">Cash</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Card">Card</option>
-                  <option value="Credit">Credit</option>
-                </select>
+                  <Save size={18} />
+                  <span>{isSaving ? "Saving Bill..." : "Save Bill"}</span>
+                </button>
               </div>
 
-              {saveError && (
-                <div style={{ color: "#ef4444", fontSize: "0.82rem", background: "#fef2f2", padding: "0.5rem 0.75rem", borderRadius: "6px", marginTop: "0.75rem" }}>
-                  {saveError}
+              {/* Tip Card directly below Bill Summary */}
+              <div className="nb-tip-card">
+                <Lightbulb size={20} className="nb-tip-icon" />
+                <div className="nb-tip-content">
+                  <h4 className="nb-tip-title">Tip</h4>
+                  <p className="nb-tip-desc">
+                    Search and add items from your menu. Adjust quantity using + / - or remove items anytime.
+                  </p>
                 </div>
-              )}
-
-              {/* Save Bill Button - Consumes 0 print credits! */}
-              <button
-                type="button"
-                className="nb-save-bill-btn"
-                onClick={handleSaveBill}
-                disabled={isSaving || items.length === 0}
-              >
-                {isSaving ? "Saving Bill..." : "Save Bill"}
-              </button>
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Full Page Width Standalone Pagination Bar (Moved down below both columns) */}
+          {filteredMenuItems.length > 0 && (
+            <div className="nb-standalone-pagination">
+              <div className="pagination-info nb-standalone-pagination-info">
+                Showing <span>{startItemIndex}</span> to <span>{endItemIndex}</span> of <span>{filteredMenuItems.length}</span> items
+              </div>
+
+              <div className="pagination-controls">
+                <button
+                  type="button"
+                  className="pagination-btn"
+                  disabled={menuPage <= 1}
+                  onClick={() => setMenuPage((p) => Math.max(1, p - 1))}
+                  title="Previous Page"
+                  aria-label="Previous Page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                <div className="page-numbers">
+                  {Array.from({ length: totalMenuPages }).map((_, i) => {
+                    const pageNum = i + 1
+                    if (
+                      pageNum === 1 ||
+                      pageNum === totalMenuPages ||
+                      (pageNum >= menuPage - 1 && pageNum <= menuPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          className={`page-num-btn ${menuPage === pageNum ? "active" : ""}`}
+                          onClick={() => setMenuPage(pageNum)}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    }
+                    if (pageNum === menuPage - 2 || pageNum === menuPage + 2) {
+                      return <span key={pageNum} className="page-ellipsis">…</span>
+                    }
+                    return null
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="pagination-btn"
+                  disabled={menuPage >= totalMenuPages}
+                  onClick={() => setMenuPage((p) => Math.min(totalMenuPages, p + 1))}
+                  title="Next Page"
+                  aria-label="Next Page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ====================================================================
