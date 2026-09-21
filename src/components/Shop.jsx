@@ -1,25 +1,21 @@
 import { useEffect, useState, useRef, useMemo } from "react"
 import {
-  ArrowRight,
   Store,
   Hash,
   Check,
   Save,
   AlertCircle,
-  Printer,
-  Zap,
-  FileText,
   Phone,
   MapPin,
-  Sparkles,
   Percent,
-  Copy,
-  CheckCircle2,
-  SlidersHorizontal,
-  Eye,
-  BadgeCheck,
   Receipt,
-  Globe
+  Globe,
+  Camera,
+  Upload,
+  Edit2,
+  ChevronDown,
+  Settings,
+  SlidersHorizontal
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
@@ -42,7 +38,7 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
   const seqStr = String(sequence || 1001).padStart(4, "0")
 
   if (format === "PREFIX-SEQ") return `${cleanPrefix}-${seqStr}`
-  if (format === "PREFIX-YEAR-SEQ") return `${cleanPrefix}-${shortYear}-${seqStr}`
+  if (format === "PREFIX-YEAR-SEQ" || format === "PREFIX-SHORTDATE-SEQ") return `${cleanPrefix}-${shortDateStr}-${seqStr}`
   if (format === "SEQ") return seqStr
   return `${cleanPrefix}-${dateStr}-${seqStr}`
 }
@@ -53,8 +49,11 @@ export function Shop({ user, setView } = {}) {
 
   const userKey = user?.email || user?.id
   const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
-  const [copiedInvoice, setCopiedInvoice] = useState(false)
   const [hasUnsaved, setHasUnsaved] = useState(false)
+  const [previewPaperWidth, setPreviewPaperWidth] = useState("58mm")
+
+  const logoInputRef = useRef(null)
+  const shopNameInputRef = useRef(null)
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -75,12 +74,17 @@ export function Shop({ user, setView } = {}) {
       name: data?.name || "",
       address: data?.address || "",
       phone: data?.phone || "",
-      invoice_prefix: data?.invoice_prefix || "SLP",
-      invoice_sequence: data?.invoice_sequence || 1001,
+      invoice_prefix: data?.invoice_prefix || "HB",
+      invoice_sequence: data?.invoice_sequence || 7,
       invoice_format: data?.invoice_format || "PREFIX-DATE-SEQ",
-      default_template_id: data?.default_template_id || ""
+      default_template_id: data?.default_template_id || "",
+      default_discount: data?.default_discount !== undefined ? data.default_discount : 0,
+      show_tax: data?.show_tax !== undefined ? data.show_tax : 0,
+      tax_rate: data?.tax_rate !== undefined ? data.tax_rate : 0,
+      logo_url: data?.logo_url || ""
     }
   })
+
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [ready, setReady] = useState(() => Boolean(getCachedData("/shop")))
@@ -133,7 +137,7 @@ export function Shop({ user, setView } = {}) {
         if (!val) {
           errorMsg = "Invoice prefix is required."
         } else if (!/^[A-Za-z0-9]{1,8}$/.test(val)) {
-          errorMsg = "Prefix must be 1–8 letters or numbers (e.g. SLP, INV)."
+          errorMsg = "Prefix must be 1–8 letters or numbers (e.g. HB, SLP)."
         }
       }
     }
@@ -188,10 +192,14 @@ export function Shop({ user, setView } = {}) {
             name: data.name || "",
             address: data.address || "",
             phone: data.phone || "",
-            invoice_prefix: data.invoice_prefix || "SLP",
-            invoice_sequence: data.invoice_sequence || 1001,
+            invoice_prefix: data.invoice_prefix || "HB",
+            invoice_sequence: data.invoice_sequence || 7,
             invoice_format: data.invoice_format || "PREFIX-DATE-SEQ",
-            default_template_id: resolvedDefaultTplId
+            default_template_id: resolvedDefaultTplId,
+            default_discount: data.default_discount !== undefined ? data.default_discount : 0,
+            show_tax: data.show_tax !== undefined ? data.show_tax : 0,
+            tax_rate: data.tax_rate !== undefined ? data.tax_rate : 0,
+            logo_url: data.logo_url || ""
           }
           setShop(loadedShop)
         }
@@ -223,8 +231,29 @@ export function Shop({ user, setView } = {}) {
     setErrors((prev) => ({ ...prev, [key]: fieldError }))
   }
 
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      toastError("Please select a valid image file.")
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toastError("Logo image must be smaller than 2MB.")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result
+      if (dataUrl) {
+        handleChange("logo_url", dataUrl)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   const saveShop = async (e) => {
-    e.preventDefault()
+    e?.preventDefault?.()
 
     setTouched({
       name: true,
@@ -278,22 +307,7 @@ export function Shop({ user, setView } = {}) {
     )
   }, [shop.invoice_prefix, shop.invoice_sequence, shop.invoice_format])
 
-  const copyInvoiceFormat = () => {
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(liveInvoicePreview)
-      setCopiedInvoice(true)
-      setTimeout(() => setCopiedInvoice(false), 2000)
-    }
-  }
-
-  // Quota percentage calculation
-  const quotaPct = useMemo(() => {
-    const total = activePlan.totalPrints || 10
-    const remaining = activePlan.printsRemaining !== undefined ? activePlan.printsRemaining : 10
-    return Math.max(0, Math.min(100, Math.round((remaining / total) * 100)))
-  }, [activePlan])
-
-  // Mock receipt calculation
+  // Mock receipt calculations
   const receiptMath = useMemo(() => {
     const subtotal = 595.0
     const disc = Math.max(0, parseFloat(shop.default_discount) || 0)
@@ -315,15 +329,16 @@ export function Shop({ user, setView } = {}) {
 
   const selectedTemplate = useMemo(() => {
     const tplList = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
-    const matched = findTemplateMatch(tplList, shop.default_template_id) || tplList.find(t => t.id === shop.default_template_id) || tplList[0] || BUILTIN_TEMPLATES[0]
+    const matched = findTemplateMatch(tplList, shop.default_template_id) || tplList.find((t) => t.id === shop.default_template_id) || tplList[0] || BUILTIN_TEMPLATES[0]
     if (!matched) return null
 
     return {
       ...matched,
+      width: previewPaperWidth || matched.width || "58mm",
       previewData: {
-        shopName: (shop.name || "YOUR SHOP NAME").trim(),
-        address: (shop.address || "123 Market Street, City").trim(),
-        phone: (shop.phone || "+91 00000 00000").trim(),
+        shopName: (shop.name || "HYDRABADI BIRYANI , CHOPDA").trim(),
+        address: (shop.address || "Shop no:12 , Hated Road Parisar , Lasur").trim(),
+        phone: (shop.phone || "8329300932").trim(),
         gst: (shop.gstin || "").trim(),
         invoiceNo: liveInvoicePreview,
         date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
@@ -336,1702 +351,1587 @@ export function Shop({ user, setView } = {}) {
         discount: receiptMath.disc,
         tax: receiptMath.tax,
         total: receiptMath.total,
-        payment: "CASH / UPI",
-        footer: matched.footer || "Thank you for shopping with us! Please come again."
+        payment: "CASH",
+        footer: matched.footer || "Thank you for shopping with us!"
       }
     }
-  }, [templates, shop.default_template_id, shop.name, shop.address, shop.phone, shop.gstin, liveInvoicePreview, receiptMath])
+  }, [templates, shop.default_template_id, shop.name, shop.address, shop.phone, shop.gstin, liveInvoicePreview, receiptMath, previewPaperWidth])
 
   if (!ready) {
     return (
       <div className="page shop-page fade-in">
-        <div className="page-intro">
-          <div>
-            <p className="eyebrow accent">YOUR BUSINESS</p>
-            <h2>Shop profile & invoice settings.</h2>
-          </div>
+        <div className="sp-header">
+          <Skeleton width="200px" height="32px" borderRadius="8px" />
+          <Skeleton width="340px" height="18px" borderRadius="6px" style={{ marginTop: "0.4rem" }} />
         </div>
-        <div className="profile-form">
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <Skeleton width="100%" height="90px" borderRadius="16px" />
-          <Skeleton width="100%" height="260px" borderRadius="16px" />
-          <Skeleton width="100%" height="240px" borderRadius="16px" />
+          <Skeleton width="100%" height="280px" borderRadius="16px" />
         </div>
-        <Skeleton width="100%" height="70px" borderRadius="12px" style={{ marginTop: "1.5rem" }} />
       </div>
     )
   }
 
   return (
     <div className="page shop-page fade-in">
-      {/* Store Brand Showcase Hero Header */}
-      <div className="shop-hero-banner">
-        <div className="shop-hero-brand">
-          <div className="shop-brand-avatar">
-            {shop.name ? shop.name.trim().charAt(0).toUpperCase() : <Store size={26} />}
-            <span className="shop-avatar-ring" />
-          </div>
-          <div className="shop-brand-info">
-            <div className="shop-pill-tag">
-              <Sparkles size={12} />
-              <span>{t("profile.storeIdentity", "STORE IDENTITY & POS SETTINGS")}</span>
-            </div>
-            <h1 className="shop-display-name">
-              {shop.name || t("profile.yourStore", "Your Store")}
-              <span className="verified-badge" title="Thermal Receipt Ready">
-                <BadgeCheck size={18} /> {t("profile.verifiedStore", "Verified Store")}
-              </span>
-            </h1>
-            <p className="shop-display-sub">
-              {t("profile.heroSub", "These details and sequence patterns appear on every thermal receipt and invoice you generate.")}
-            </p>
-          </div>
+      {/* Top Page Header with Top-Right Save Settings */}
+      <div className="sp-header">
+        <div className="sp-header-left">
+          <h1 className="sp-title">Shop Profile</h1>
+          <p className="sp-subtitle">Manage your shop details, receipt settings and preferences</p>
         </div>
 
-        <div className="shop-quick-pills">
-          <span className="feature-pill">{t("profile.thermalReady", "🖨️ 58mm / 80mm Ready")}</span>
-          <span className="feature-pill">{t("profile.autoSequencing", "🔢 Auto Sequencing")}</span>
-          <span className="feature-pill">{t("profile.instantSync", "⚡ Instant HMR Sync")}</span>
-        </div>
-      </div>
-
-      {/* Active Plan & Print Quota Summary Card */}
-      <div className="shop-plan-summary-card">
-        <div className="plan-summary-left">
-          <div className={`plan-avatar-icon ${activePlan.isFreeTier ? "free" : "pro"}`}>
-            <Printer size={24} />
-          </div>
-          <div className="plan-meta-wrap">
-            <div className="plan-badge-row">
-              <span className={`plan-name-badge ${activePlan.isFreeTier ? "free" : "pro"}`}>
-                {activePlan.name || t("profile.freeStarterTier", "Free Starter Tier")}
-              </span>
-              <span className="plan-status-indicator">
-                <span className="status-live-dot" /> {t("profile.activePlan", "Active Plan")}
-              </span>
-            </div>
-            <h3 className="plan-prints-count">
-              {activePlan.printsRemaining?.toLocaleString()}{" "}
-              <span className="prints-denom">/ {(activePlan.totalPrints || 10).toLocaleString()} {t("profile.printsAvailable", "prints available")}</span>
-            </h3>
-            {/* Visual Quota Progress Bar */}
-            <div className="quota-bar-track">
-              <div className="quota-bar-fill" style={{ width: `${quotaPct}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setView?.("pricing")}
-          className="plan-action-btn"
-        >
-          <Zap size={15} className="zap-accent" /> {t("profile.managePlan", "Manage Plan & Top Up")}
-        </button>
-      </div>
-
-      <form className="profile-form" onSubmit={saveShop} noValidate>
-        {/* Section: Application Language Selection (Permanent in Profile Section) */}
-        <div className="form-section-card language-profile-card" data-testid="profile-language-section">
-          <div className="section-title-wrap">
-            <div className="section-icon-pill indigo">
-              <Globe size={20} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h3 className="section-title-sm">{t("profile.languageTitle", "App Language / भाषा")}</h3>
-                <span className="lang-permanent-badge">
-                  <Check size={12} /> {t("profile.languageSavedPermanent", "Permanent Preference")}
-                </span>
-              </div>
-              <p className="section-desc-sm">
-                {t("profile.languageDesc", "Choose your preferred application language. Setting is saved permanently on this device.")}
-              </p>
-            </div>
-          </div>
-
-          <div className="language-selector-grid">
-            {SUPPORTED_LANGUAGES.map((lang) => {
-              const isSelected = currentLang === lang.code || (currentLang && currentLang.startsWith(lang.code))
-              return (
-                <div
-                  key={lang.code}
-                  data-testid={`lang-select-${lang.code}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleLanguageSelect(lang.code)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      handleLanguageSelect(lang.code)
-                    }
-                  }}
-                  className={`language-option-card ${isSelected ? "active" : ""}`}
-                  aria-pressed={isSelected}
-                >
-                  <div className="language-card-top">
-                    <span className="language-card-flag">{lang.flag}</span>
-                    {isSelected ? (
-                      <div className="language-active-check" title="Active Language">
-                        <Check size={14} strokeWidth={3} />
-                      </div>
-                    ) : (
-                      <div className="language-inactive-radio" />
-                    )}
-                  </div>
-                  <div className="language-card-main">
-                    <span className="language-card-name">{lang.nativeName}</span>
-                    <span className="language-card-sub">
-                      {lang.code === "en"
-                        ? t("profile.englishSub", "Default English UI")
-                        : lang.code === "hi"
-                        ? t("profile.hindiSub", "Hindi language interface")
-                        : t("profile.marathiSub", "Marathi language interface")}
-                    </span>
-                  </div>
-                  <div className="language-card-tag">
-                    {isSelected ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-                        <CheckCircle2 size={11} /> {t("common.status", "Active")}
-                      </span>
-                    ) : (
-                      lang.badge || lang.label
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Section 1: Business Details */}
-        <div className="form-section-card">
-          <div className="section-title-wrap" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <div className="section-icon-pill blue">
-                <Store size={18} />
-              </div>
-              <div>
-                <h3 className="section-title-sm">{t("profile.businessDetails", "Business Details")}</h3>
-                <p className="section-desc-sm">{t("profile.businessDetailsSub", "Store branding and contact information printed on receipt headers")}</p>
-              </div>
-            </div>
-            {/* Quick Voice Fill for All Business Details */}
-            <VoiceInputButton
-              mode="shop"
-              variant="pill"
-              size="sm"
-              label="Voice Fill Details"
-              placeholder="Speak shop name, phone and address"
-              onParsedResult={(parsed) => {
-                if (parsed.name) handleChange("name", parsed.name)
-                if (parsed.phone) handleChange("phone", parsed.phone.replace(/[^0-9]/g, "").slice(0, 10))
-                if (parsed.address) handleChange("address", parsed.address)
-              }}
-            />
-          </div>
-
-          <div className="form-row">
-            <label className="flex-1 form-group-label">
-              <span className="label-text">
-                {t("profile.shopName", "SHOP NAME")} <span className="req">*</span>
-              </span>
-              <div className="input-with-icon">
-                <Store size={16} className="field-adornment-icon" />
-                <input
-                  data-testid="shop-name-input"
-                  required
-                  placeholder={t("profile.shopNamePlaceholder", "e.g. Mahajan General Store & Cafe")}
-                  value={shop.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  onBlur={() => handleBlur("name")}
-                  style={{
-                    borderColor: touched.name && errors.name ? "#ef4444" : undefined
-                  }}
-                />
-                <div className="field-voice-btn-wrap">
-                  <VoiceInputButton
-                    size="sm"
-                    placeholder="Speak shop name"
-                    onSpeechResult={(text) => handleChange("name", text)}
-                  />
-                </div>
-              </div>
-              {touched.name && errors.name && (
-                <span className="field-error-text">
-                  <AlertCircle size={13} /> {errors.name}
-                </span>
-              )}
-            </label>
-
-            <label className="flex-1 form-group-label">
-              <span className="label-text">{t("profile.phone", "Contact Number")}</span>
-              <div className="input-with-icon">
-                <Phone size={16} className="field-adornment-icon" />
-                <input
-                  data-testid="shop-phone-input"
-                  type="tel"
-                  maxLength={10}
-                  placeholder={t("profile.phonePlaceholder", "e.g. 9876543210")}
-                  value={shop.phone}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, 10)
-                    handleChange("phone", digits)
-                  }}
-                  onBlur={() => handleBlur("phone")}
-                  style={{
-                    borderColor: touched.phone && errors.phone ? "#ef4444" : undefined
-                  }}
-                />
-                <div className="field-voice-btn-wrap">
-                  <VoiceInputButton
-                    size="sm"
-                    placeholder="Speak 10-digit contact number"
-                    onSpeechResult={(text) => {
-                      const digits = text.replace(/[^0-9]/g, "").slice(0, 10)
-                      handleChange("phone", digits)
-                    }}
-                  />
-                </div>
-              </div>
-              {touched.phone && errors.phone ? (
-                <span className="field-error-text">
-                  <AlertCircle size={13} /> {errors.phone}
-                </span>
-              ) : (
-                <small className="field-helper-note">{t("profile.phoneHelper", "10-digit mobile number for contact header on receipt")}</small>
-              )}
-            </label>
-          </div>
-
-          <label className="form-group-label">
-            <div className="label-row-split">
-              <span className="label-text">{t("profile.address", "STORE ADDRESS")}</span>
-              <span className={`char-counter-tag ${shop.address.length > 300 ? "exceeded" : ""}`}>
-                {shop.address.length} / 300
-              </span>
-            </div>
-            <div className="textarea-with-icon">
-              <MapPin size={16} className="textarea-adornment-icon" />
-              <textarea
-                data-testid="shop-address-input"
-                rows="3"
-                placeholder={t("profile.addressPlaceholder", "Street, area, landmark, city, pincode")}
-                value={shop.address}
-                onChange={(e) => handleChange("address", e.target.value)}
-                onBlur={() => handleBlur("address")}
-                style={{
-                  borderColor: touched.address && errors.address ? "#ef4444" : undefined
-                }}
-              />
-              <div className="textarea-voice-btn-wrap">
-                <VoiceInputButton
-                  size="sm"
-                  placeholder="Speak store address"
-                  onSpeechResult={(text) => handleChange("address", text)}
-                />
-              </div>
-            </div>
-            {touched.address && errors.address && (
-              <span className="field-error-text">
-                <AlertCircle size={13} /> {errors.address}
-              </span>
-            )}
-            <small className="field-helper-note">{t("profile.addressHelper", "Keeping address to 2 lines prevents long paper roll feeds")}</small>
-          </label>
-        </div>
-
-        {/* Section 2: Receipt Defaults */}
-        <div className="form-section-card">
-          <div className="section-title-wrap">
-            <div className="section-icon-pill emerald">
-              <FileText size={18} />
-            </div>
-            <div>
-              <h3 className="section-title-sm">{t("profile.receiptDefaults", "Receipt Template")}</h3>
-              <p className="section-desc-sm">{t("profile.receiptDefaultsSub", "Layout loaded by default when creating bills")}</p>
-            </div>
-          </div>
-
-          <label className="form-group-label" style={{ marginBottom: 0 }}>
-            <span className="label-text">{t("profile.receiptTemplate", "RECEIPT TEMPLATE")}</span>
-            <div className="select-with-icon">
-              <Receipt size={16} className="field-adornment-icon" />
-              <select
-                value={shop.default_template_id}
-                onChange={(e) => handleChange("default_template_id", e.target.value)}
-                className="option-select styled-select"
-              >
-                {Array.isArray(templates) && templates.length > 0 ? (
-                  templates.map((tItem) => (
-                    <option key={tItem.id} value={tItem.id}>
-                      {tItem.name} ({tItem.width || "58mm"})
-                    </option>
-                  ))
-                ) : (
-                  BUILTIN_TEMPLATES.map((tItem) => (
-                    <option key={tItem.id} value={tItem.id}>
-                      {tItem.name} ({tItem.width || "58mm"})
-                    </option>
-                  ))
-                )}
-              </select>
-              <div className="select-voice-btn-wrap">
-                <VoiceInputButton
-                  size="sm"
-                  placeholder="Speak template name"
-                  onSpeechResult={(text) => {
-                    const query = text.toLowerCase().trim()
-                    const allT = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
-                    const match = allT.find((tItem) =>
-                      (tItem.name && tItem.name.toLowerCase().includes(query)) ||
-                      (tItem.id && tItem.id.toLowerCase().includes(query)) ||
-                      (query.includes("80") && String(tItem.width).includes("80")) ||
-                      (query.includes("58") && String(tItem.width).includes("58"))
-                    )
-                    if (match) {
-                      handleChange("default_template_id", match.id)
-                    }
-                  }}
-                />
-              </div>
-            </div>
-            <small className="field-helper-note">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</small>
-          </label>
-        </div>
-
-        {/* Section 3: Invoice Numbering Configuration & Realistic Thermal Preview */}
-        <div className="form-section-card">
-          <div className="section-title-wrap">
-            <div className="section-icon-pill purple">
-              <Hash size={18} />
-            </div>
-            <div>
-              <h3 className="section-title-sm">{t("profile.invoiceSequenceTitle", "Invoice Numbering")}</h3>
-              <p className="section-desc-sm">{t("profile.invoiceSequenceSub", "Customize sequential receipt counters and format patterns for clean accounting")}</p>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <label className="flex-1 form-group-label">
-              <span className="label-text">{t("profile.invoicePrefix", "INVOICE PREFIX")}</span>
-              <div className="input-with-icon">
-                <Hash size={16} className="field-adornment-icon" />
-                <input
-                  type="text"
-                  maxLength="8"
-                  placeholder="e.g. SLP, INV, BILL"
-                  value={shop.invoice_prefix}
-                  onChange={(e) => handleChange("invoice_prefix", e.target.value.toUpperCase())}
-                  onBlur={() => handleBlur("invoice_prefix")}
-                  style={{
-                    borderColor: touched.invoice_prefix && errors.invoice_prefix ? "#ef4444" : undefined
-                  }}
-                />
-                <div className="field-voice-btn-wrap">
-                  <VoiceInputButton
-                    size="sm"
-                    placeholder="Speak invoice prefix (e.g. SLP, INV)"
-                    onSpeechResult={(text) => {
-                      const clean = text.replace(/[^a-zA-Z0-9_-]/g, "").toUpperCase()
-                      if (clean) {
-                        handleChange("invoice_prefix", clean.slice(0, 8))
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              {touched.invoice_prefix && errors.invoice_prefix && (
-                <span className="field-error-text">
-                  <AlertCircle size={13} /> {errors.invoice_prefix}
-                </span>
-              )}
-              <small className="field-helper-note">{t("profile.invoicePrefixHelper", "1–8 uppercase letters or numbers")}</small>
-            </label>
-
-            <label className="flex-1 form-group-label">
-              <span className="label-text">
-                {t("profile.startingSequence", "NEXT SEQUENCE NUMBER")} <span className="req">*</span>
-              </span>
-              <div className="input-with-icon">
-                <span className="hash-adornment">#</span>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="1001"
-                  value={shop.invoice_sequence}
-                  onChange={(e) => handleChange("invoice_sequence", e.target.value)}
-                  onBlur={() => handleBlur("invoice_sequence")}
-                  style={{
-                    borderColor: touched.invoice_sequence && errors.invoice_sequence ? "#ef4444" : undefined
-                  }}
-                />
-                <div className="field-voice-btn-wrap">
-                  <VoiceInputButton
-                    size="sm"
-                    placeholder="Speak sequence number (e.g. 1001)"
-                    onSpeechResult={(text) => {
-                      const digits = text.replace(/[^0-9]/g, "")
-                      if (digits) {
-                        handleChange("invoice_sequence", digits)
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              {touched.invoice_sequence && errors.invoice_sequence && (
-                <span className="field-error-text">
-                  <AlertCircle size={13} /> {errors.invoice_sequence}
-                </span>
-              )}
-              <small className="field-helper-note">{t("profile.startingSequenceHelper", "Auto-increments with each printed receipt")}</small>
-            </label>
-          </div>
-
-          <label className="form-group-label">
-            <span className="label-text">{t("profile.numberFormat", "NUMBER FORMAT PATTERN")}</span>
-            <div className="select-with-icon">
-              <SlidersHorizontal size={16} className="field-adornment-icon" />
-              <select
-                value={shop.invoice_format}
-                onChange={(e) => handleChange("invoice_format", e.target.value)}
-                className="option-select styled-select"
-              >
-                <option value="PREFIX-DATE-SEQ">{t("profile.formatPrefixDateSeq", "PREFIX-YYYYMMDD-SEQ (e.g. SLP-20260909-1001)")}</option>
-                <option value="PREFIX-SHORTDATE-SEQ">{t("profile.formatPrefixYearSeq", "PREFIX-YYMMDD-SEQ (e.g. SLP-260909-1001)")}</option>
-                <option value="PREFIX-SEQ">{t("profile.formatPrefixSeq", "PREFIX-SEQ (e.g. SLP-1001)")}</option>
-                <option value="SEQ">{t("profile.formatSeqOnly", "SEQ ONLY (e.g. 1001)")}</option>
-              </select>
-              <div className="select-voice-btn-wrap">
-                <VoiceInputButton
-                  size="sm"
-                  placeholder="Speak numbering pattern"
-                  onSpeechResult={(text) => {
-                    const q = text.toLowerCase()
-                    if (q.includes("short") || q.includes("yymmdd")) {
-                      handleChange("invoice_format", "PREFIX-SHORTDATE-SEQ")
-                    } else if (q.includes("date") || q.includes("year") || q.includes("yyyymmdd")) {
-                      handleChange("invoice_format", "PREFIX-DATE-SEQ")
-                    } else if (q.includes("seq only") || q.includes("sequence only") || q.includes("only")) {
-                      handleChange("invoice_format", "SEQ")
-                    } else if (q.includes("prefix") || q.includes("seq")) {
-                      handleChange("invoice_format", "PREFIX-SEQ")
-                    }
-                  }}
-                />
-              </div>
-            </div>
-          </label>
-
-          {/* Live Preview Box with Copy Button */}
-          <div className="invoice-format-preview-box">
-            <div className="preview-box-left">
-              <span className="preview-label">Next Bill Format Preview:</span>
-              <strong className="preview-code">{liveInvoicePreview}</strong>
-            </div>
-            <button
-              type="button"
-              onClick={copyInvoiceFormat}
-              className="copy-format-btn"
-              title="Copy next invoice pattern"
-            >
-              {copiedInvoice ? (
-                <>
-                  <Check size={14} className="text-emerald-400" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={14} />
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Authentic Embedded Thermal Paper Roll Preview */}
-          <div className="embedded-receipt-card">
-            <div className="embedded-receipt-header">
-              <div className="receipt-status-pill">
-                <span className="live-dot" /> LIVE RECEIPT PREVIEW
-              </div>
-              <span className="receipt-paper-pill">{selectedTemplate?.width ? `${selectedTemplate.width} Thermal` : "58mm Thermal"}</span>
-            </div>
-
-            <RealisticReceiptView template={selectedTemplate} />
-          </div>
-        </div>
-
-        {/* Save CTA & Success Feedback */}
-        <div className="shop-form-actions">
+        <div className="sp-header-right">
           <button
             data-testid="save-shop-button"
-            className="primary-button shop-save-btn"
-            type="submit"
+            className="sp-top-save-btn"
+            type="button"
+            onClick={saveShop}
             disabled={loading}
+            title="Save all shop profile and receipt settings"
           >
             {loading ? (
-              <ButtonLoader text={t("profile.savingSettings", "Saving Settings...")} />
+              <ButtonLoader text="Saving..." />
             ) : (
               <>
-                <Save size={16} />
-                <span>{t("profile.saveSettings", "Save Settings")}</span>
-                <ArrowRight size={15} />
+                <Save size={15} />
+                <span>Save Settings</span>
               </>
             )}
           </button>
 
           {hasUnsaved && !saved && (
-            <span className="unsaved-hint-tag">
-              <span className="unsaved-pulse-dot" /> {t("profile.unsavedChanges", "You have unsaved changes")}
+            <span className="sp-unsaved-hint top">
+              <span className="sp-unsaved-dot" /> You have unsaved changes
             </span>
           )}
 
           {saved && (
-            <div data-testid="shop-saved-message" className="success-message slide-up shop-success-alert">
-              <Check size={16} /> {t("profile.settingsSaved", "Shop profile & invoice settings saved!")}
+            <div data-testid="shop-saved-message" className="sp-saved-badge top">
+              <Check size={13} strokeWidth={3} /> Settings Saved!
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Top Card: Store Details */}
+      <div className="sp-store-details-card">
+        {/* Mobile Header Row (Visible only on mobile) */}
+        <div className="sp-store-mobile-header mobile-only">
+          <div className="sp-icon-box blue">
+            <Store size={18} />
+          </div>
+          <div className="sp-store-header-text">
+            <span className="sp-store-eyebrow">STORE DETAILS</span>
+            <h2 className="sp-store-name">{shop.name || "Hydrabadi Biryani , Chopda"}</h2>
+            <span className="sp-verified-badge">
+              <Check size={12} strokeWidth={3} /> Verified Store
+            </span>
+          </div>
+          <button
+            type="button"
+            className="sp-edit-icon-btn"
+            onClick={() => shopNameInputRef.current?.focus()}
+            title="Edit Shop Name"
+            aria-label="Edit Shop Name"
+          >
+            <Edit2 size={16} />
+          </button>
+        </div>
+
+        <div className="sp-store-left">
+          <div className="sp-avatar-wrap" onClick={() => logoInputRef.current?.click()} title="Click to change logo">
+            {shop.logo_url ? (
+              <img src={shop.logo_url} alt="Shop Logo" className="sp-avatar-img" />
+            ) : (
+              <span className="sp-avatar-letter">{shop.name ? shop.name.trim().charAt(0).toUpperCase() : "H"}</span>
+            )}
+            <button type="button" className="sp-camera-btn" title="Change logo" aria-label="Change logo">
+              <Camera size={13} />
+            </button>
+          </div>
+
+          <div className="sp-store-info">
+            <span className="sp-store-eyebrow desktop-only">STORE DETAILS</span>
+            <div className="sp-store-name-row desktop-only">
+              <h2 className="sp-store-name">{shop.name || "Hydrabadi Biryani , Chopda"}</h2>
+              <button
+                type="button"
+                className="sp-edit-icon-btn"
+                onClick={() => shopNameInputRef.current?.focus()}
+                title="Edit Shop Name"
+                aria-label="Edit Shop Name"
+              >
+                <Edit2 size={15} />
+              </button>
+              <span className="sp-verified-badge">
+                <Check size={12} strokeWidth={3} /> Verified Store
+              </span>
+            </div>
+            <p className="sp-store-subtext">These details will appear on your thermal receipt and invoice.</p>
+            <div className="sp-store-pills-row">
+              {shop.phone && (
+                <span className="sp-info-pill">
+                  <Phone size={13} /> {shop.phone}
+                </span>
+              )}
+              {shop.address && (
+                <span className="sp-info-pill" title={shop.address}>
+                  <MapPin size={13} /> {shop.address}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="sp-store-right">
+          <input
+            type="file"
+            ref={logoInputRef}
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleLogoUpload}
+          />
+          <button
+            type="button"
+            className="sp-change-logo-btn"
+            onClick={() => logoInputRef.current?.click()}
+          >
+            <Upload size={14} /> Change Logo
+          </button>
+          <span className="sp-logo-hint">Recommended size: 512 × 512</span>
+        </div>
+      </div>
+
+      {/* Main Two-Column Desktop Grid Layout */}
+      <form className="sp-desktop-layout" onSubmit={saveShop} noValidate>
+        {/* LEFT COLUMN: Business Info, Receipt Settings, Invoice Sequencing */}
+        <div className="sp-left-col">
+          {/* Card 1: Business Information */}
+          <div className="sp-card">
+            <div className="sp-card-header">
+              <div className="sp-icon-box blue">
+                <Store size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">Business Information</h3>
+                <p className="sp-card-subtitle">Basic information about your shop</p>
+              </div>
+            </div>
+
+            <div className="sp-form-row two-col">
+              <div className="sp-field-group">
+                <label className="sp-label">
+                  Shop Name <span className="sp-req">*</span>
+                </label>
+                <div className={`sp-input-wrap ${touched.name && errors.name ? "error" : ""}`}>
+                  <Store size={16} className="sp-input-icon" />
+                  <input
+                    ref={shopNameInputRef}
+                    data-testid="shop-name-input"
+                    type="text"
+                    required
+                    placeholder="Hydrabadi Biryani , Chopda"
+                    value={shop.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    onBlur={() => handleBlur("name")}
+                    className="sp-input"
+                  />
+                  <div className="sp-voice-wrap">
+                    <VoiceInputButton
+                      size="sm"
+                      placeholder="Speak shop name"
+                      onSpeechResult={(text) => handleChange("name", text)}
+                    />
+                  </div>
+                </div>
+                {touched.name && errors.name && (
+                  <span className="sp-field-error">
+                    <AlertCircle size={12} /> {errors.name}
+                  </span>
+                )}
+              </div>
+
+              <div className="sp-field-group">
+                <label className="sp-label">Contact Phone Number</label>
+                <div className={`sp-input-wrap ${touched.phone && errors.phone ? "error" : ""}`}>
+                  <Phone size={16} className="sp-input-icon" />
+                  <input
+                    data-testid="shop-phone-input"
+                    type="tel"
+                    maxLength={10}
+                    placeholder="8329300932"
+                    value={shop.phone}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, 10)
+                      handleChange("phone", digits)
+                    }}
+                    onBlur={() => handleBlur("phone")}
+                    className="sp-input"
+                  />
+                  <div className="sp-voice-wrap">
+                    <VoiceInputButton
+                      size="sm"
+                      placeholder="Speak contact number"
+                      onSpeechResult={(text) => {
+                        const digits = text.replace(/[^0-9]/g, "").slice(0, 10)
+                        handleChange("phone", digits)
+                      }}
+                    />
+                  </div>
+                </div>
+                {touched.phone && errors.phone ? (
+                  <span className="sp-field-error">
+                    <AlertCircle size={12} /> {errors.phone}
+                  </span>
+                ) : (
+                  <span className="sp-helper-text">7-15 digits for contact header on receipt</span>
+                )}
+              </div>
+            </div>
+
+            <div className="sp-field-group full-width">
+              <div className="sp-label-split">
+                <label className="sp-label">Store Address</label>
+                <span className={`sp-char-count ${shop.address?.length > 300 ? "exceeded" : ""}`}>
+                  {shop.address?.length || 0} / 300
+                </span>
+              </div>
+              <div className={`sp-textarea-wrap ${touched.address && errors.address ? "error" : ""}`}>
+                <MapPin size={16} className="sp-textarea-icon" />
+                <textarea
+                  data-testid="shop-address-input"
+                  rows={3}
+                  placeholder="Shop no:12 , Hated Road Parisar , Lasur"
+                  value={shop.address}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                  onBlur={() => handleBlur("address")}
+                  className="sp-textarea"
+                />
+                <div className="sp-voice-wrap textarea-voice">
+                  <VoiceInputButton
+                    size="sm"
+                    placeholder="Speak store address"
+                    onSpeechResult={(text) => handleChange("address", text)}
+                  />
+                </div>
+              </div>
+              {touched.address && errors.address ? (
+                <span className="sp-field-error">
+                  <AlertCircle size={12} /> {errors.address}
+                </span>
+              ) : (
+                <span className="sp-helper-text">Keep address to 2 lines for better receipt layout.</span>
+              )}
+            </div>
+          </div>
+
+          {/* Card 2: Receipt Settings */}
+          <div className="sp-card">
+            <div className="sp-card-header">
+              <div className="sp-icon-box green">
+                <Receipt size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">Receipt Settings</h3>
+                <p className="sp-card-subtitle">Customize how your bills look</p>
+              </div>
+            </div>
+
+            <div className="sp-field-group full-width">
+              <label className="sp-label">Receipt Template</label>
+              <div className="sp-select-wrap">
+                <Receipt size={16} className="sp-input-icon" />
+                <select
+                  value={shop.default_template_id}
+                  onChange={(e) => handleChange("default_template_id", e.target.value)}
+                  className="sp-select"
+                >
+                  {templates.map((tItem) => (
+                    <option key={tItem.id} value={tItem.id}>
+                      {tItem.name} ({tItem.width || "58mm"})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="sp-select-arrow" />
+              </div>
+              <span className="sp-helper-text">Layout loaded by default when creating bills</span>
+            </div>
+          </div>
+
+          {/* Card 3: Invoice Sequencing */}
+          <div className="sp-card">
+            <div className="sp-card-header">
+              <div className="sp-icon-box purple">
+                <Hash size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">Invoice Sequencing</h3>
+                <p className="sp-card-subtitle">Set your invoice numbering format</p>
+              </div>
+            </div>
+
+            <div className="sp-form-row two-col">
+              <div className="sp-field-group">
+                <label className="sp-label">Invoice Prefix</label>
+                <div className={`sp-input-wrap ${touched.invoice_prefix && errors.invoice_prefix ? "error" : ""}`}>
+                  <Hash size={16} className="sp-input-icon" />
+                  <input
+                    type="text"
+                    maxLength={8}
+                    placeholder="HB"
+                    value={shop.invoice_prefix}
+                    onChange={(e) => handleChange("invoice_prefix", e.target.value.toUpperCase())}
+                    onBlur={() => handleBlur("invoice_prefix")}
+                    className="sp-input"
+                  />
+                  <div className="sp-voice-wrap">
+                    <VoiceInputButton
+                      size="sm"
+                      placeholder="Speak invoice prefix"
+                      onSpeechResult={(text) => {
+                        const clean = text.replace(/[^a-zA-Z0-9_-]/g, "").toUpperCase()
+                        if (clean) handleChange("invoice_prefix", clean.slice(0, 8))
+                      }}
+                    />
+                  </div>
+                </div>
+                {touched.invoice_prefix && errors.invoice_prefix ? (
+                  <span className="sp-field-error">
+                    <AlertCircle size={12} /> {errors.invoice_prefix}
+                  </span>
+                ) : (
+                  <span className="sp-helper-text">Short letters identifying your store</span>
+                )}
+              </div>
+
+              <div className="sp-field-group">
+                <label className="sp-label">
+                  Next Invoice Number <span className="sp-req">*</span>
+                </label>
+                <div className={`sp-input-wrap ${touched.invoice_sequence && errors.invoice_sequence ? "error" : ""}`}>
+                  <span className="sp-hash-adornment">#</span>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="7"
+                    value={shop.invoice_sequence}
+                    onChange={(e) => handleChange("invoice_sequence", e.target.value)}
+                    onBlur={() => handleBlur("invoice_sequence")}
+                    className="sp-input"
+                  />
+                  <div className="sp-voice-wrap">
+                    <VoiceInputButton
+                      size="sm"
+                      placeholder="Speak sequence number"
+                      onSpeechResult={(text) => {
+                        const digits = text.replace(/[^0-9]/g, "")
+                        if (digits) handleChange("invoice_sequence", digits)
+                      }}
+                    />
+                  </div>
+                </div>
+                {touched.invoice_sequence && errors.invoice_sequence ? (
+                  <span className="sp-field-error">
+                    <AlertCircle size={12} /> {errors.invoice_sequence}
+                  </span>
+                ) : (
+                  <span className="sp-helper-text">Auto-increments by 1 after each bill</span>
+                )}
+              </div>
+            </div>
+
+            <div className="sp-field-group full-width" style={{ marginTop: "0.5rem" }}>
+              <label className="sp-label">Numbering Format Pattern</label>
+              <div className="sp-select-wrap">
+                <SlidersHorizontal size={16} className="sp-input-icon" />
+                <select
+                  value={shop.invoice_format}
+                  onChange={(e) => handleChange("invoice_format", e.target.value)}
+                  className="sp-select"
+                >
+                  <option value="PREFIX-DATE-SEQ">
+                    Prefix + Date + Number (e.g. {shop.invoice_prefix || "HB"}-{new Date().toISOString().slice(0, 10).replace(/-/g, "")}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
+                  </option>
+                  <option value="PREFIX-SHORTDATE-SEQ">
+                    Prefix + Short Date + Number (e.g. {shop.invoice_prefix || "HB"}-{new Date().toISOString().slice(2, 10).replace(/-/g, "")}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
+                  </option>
+                  <option value="PREFIX-SEQ">
+                    Prefix + Number (e.g. {shop.invoice_prefix || "HB"}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
+                  </option>
+                  <option value="SEQ">
+                    Number Only (e.g. {String(shop.invoice_sequence || 1).padStart(4, "0")})
+                  </option>
+                </select>
+                <ChevronDown size={15} className="sp-select-arrow" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Live Receipt Preview, App Settings, Save Button */}
+        <div className="sp-right-col">
+          {/* Card 1: Live Receipt Preview */}
+          <div className="sp-preview-card">
+            <div className="sp-preview-header">
+              <div className="sp-live-badge">
+                <span className="sp-pulse-dot" /> Live Preview
+              </div>
+              <select
+                value={previewPaperWidth}
+                onChange={(e) => setPreviewPaperWidth(e.target.value)}
+                className="sp-paper-dropdown"
+              >
+                <option value="58mm">58mm Thermal</option>
+                <option value="80mm">80mm Thermal</option>
+              </select>
+            </div>
+
+            <div className="sp-receipt-wrapper">
+              <RealisticReceiptView template={selectedTemplate} />
+            </div>
+          </div>
+
+          {/* Card 2: App Settings */}
+          <div className="sp-card">
+            <div className="sp-card-header">
+              <div className="sp-icon-box blue">
+                <Settings size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">App Settings</h3>
+                <p className="sp-card-subtitle">Language & App Preferences</p>
+              </div>
+            </div>
+
+            <div className="sp-field-group">
+              <label className="sp-label">App Language</label>
+              <div className="sp-select-wrap">
+                <Globe size={16} className="sp-input-icon" />
+                <select
+                  value={currentLang}
+                  onChange={(e) => handleLanguageSelect(e.target.value)}
+                  className="sp-select"
+                >
+                  {SUPPORTED_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.flag} {l.nativeName} ({l.label})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="sp-select-arrow" />
+              </div>
+              <span className="sp-helper-text">Choose your preferred application language</span>
+            </div>
+          </div>
+
+          {/* Mobile-Only Bottom Save Settings Button */}
+          <div className="sp-mobile-save-section mobile-only">
+            <button
+              data-testid="save-shop-button-mobile"
+              className="sp-mobile-save-btn"
+              type="button"
+              onClick={saveShop}
+              disabled={loading}
+              title="Save all shop profile and receipt settings"
+            >
+              {loading ? (
+                <ButtonLoader text="Saving..." />
+              ) : (
+                <>
+                  <Save size={16} />
+                  <span>Save Settings</span>
+                </>
+              )}
+            </button>
+
+            {hasUnsaved && !saved && (
+              <span className="sp-unsaved-hint bottom">
+                <span className="sp-unsaved-dot" /> You have unsaved changes
+              </span>
+            )}
+
+            {saved && (
+              <div data-testid="shop-saved-message-mobile" className="sp-saved-badge bottom">
+                <Check size={13} strokeWidth={3} /> Settings Saved!
+              </div>
+            )}
+          </div>
         </div>
       </form>
 
       <style>{`
         /* ============================================================
-           SLIPZO ULTRA-PREMIUM SHOP PROFILE REDESIGN STYLES
+           SLIPZO SHOP PROFILE — EXACT REFERENCE UI DESIGN
            ============================================================ */
         .shop-page {
-          max-width: 920px;
+          max-width: 1280px;
           margin: 0 auto;
-          padding-bottom: 4rem;
+          padding: 1.25rem 1.5rem 2rem;
+          color: #0f172a;
+          box-sizing: border-box;
         }
 
-        /* Remove double card styling from outer profile-form */
-        .shop-page .profile-form {
-          max-width: 100% !important;
-          background: transparent !important;
-          border: none !important;
-          padding: 0 !important;
-          box-shadow: none !important;
-        }
-
-        /* Hero Store Brand Showcase Banner */
-        .shop-hero-banner {
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          border: 1px solid #e2e8f0;
-          border-radius: 20px;
-          padding: 1.6rem 2rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+        /* Page Header */
+        .sp-header {
           display: flex;
-          align-items: center;
           justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1.15rem;
           flex-wrap: wrap;
-          gap: 1.25rem;
-          position: relative;
-          overflow: hidden;
         }
 
-        .shop-hero-banner::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 320px;
-          height: 100%;
-          background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 70%);
-          pointer-events: none;
-        }
-
-        .shop-hero-brand {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-
-        .shop-brand-avatar {
-          width: 58px;
-          height: 58px;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-          color: #ffffff;
-          font-size: 1.6rem;
-          font-weight: 800;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 6px 18px rgba(2, 132, 199, 0.28);
-          position: relative;
-          flex-shrink: 0;
-        }
-
-        .shop-avatar-ring {
-          position: absolute;
-          inset: -3px;
-          border-radius: 19px;
-          border: 2px solid rgba(2, 132, 199, 0.25);
-          pointer-events: none;
-        }
-
-        .shop-brand-info {
+        .sp-header-left {
           display: flex;
           flex-direction: column;
-          gap: 0.2rem;
         }
 
-        .shop-pill-tag {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          font-size: 0.68rem;
-          font-weight: 800;
-          letter-spacing: 0.06em;
-          color: #0284c7;
-          background: #e0f2fe;
-          padding: 0.2rem 0.6rem;
-          border-radius: 999px;
-          width: fit-content;
+        .sp-header-right {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.3rem;
         }
 
-        .shop-display-name {
-          font-size: 1.6rem;
+        .sp-title {
+          font-size: 1.55rem;
           font-weight: 800;
           color: #0f172a;
-          margin: 0;
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-          letter-spacing: -0.02em;
+          margin: 0 0 0.2rem 0;
+          line-height: 1.2;
         }
 
-        .verified-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.3rem;
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: #059669;
-          background: #dcfce7;
-          padding: 0.2rem 0.55rem;
-          border-radius: 999px;
-          letter-spacing: normal;
-        }
-
-        .shop-display-sub {
+        .sp-subtitle {
           font-size: 0.85rem;
           color: #64748b;
           margin: 0;
-          max-width: 580px;
-          line-height: 1.45;
         }
 
-        .shop-quick-pills {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-        }
-
-        .feature-pill {
+        /* Store Details Top Card */
+        .sp-store-details-card {
           background: #ffffff;
-          border: 1px solid #e2e8f0;
-          color: #475569;
-          padding: 0.35rem 0.75rem;
-          border-radius: 8px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-        }
-
-        /* Active Plan Card */
-        .shop-plan-summary-card {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 18px;
-          padding: 1.35rem 1.75rem;
-          margin-bottom: 1.75rem;
-          box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.03);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 1.25rem;
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .shop-plan-summary-card:hover {
-          box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.05);
-        }
-
-        .plan-summary-left {
-          display: flex;
-          align-items: center;
-          gap: 1.15rem;
-          flex: 1;
-          min-width: 280px;
-        }
-
-        .plan-avatar-icon {
-          width: 50px;
-          height: 50px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .plan-avatar-icon.free {
-          background: #fef3c7;
-          color: #d97706;
-          box-shadow: 0 4px 12px rgba(217, 119, 6, 0.15);
-        }
-
-        .plan-avatar-icon.pro {
-          background: #e0f2fe;
-          color: #0284c7;
-          box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
-        }
-
-        .plan-meta-wrap {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .plan-badge-row {
-          display: flex;
-          align-items: center;
-          gap: 0.55rem;
-        }
-
-        .plan-name-badge {
-          font-size: 0.72rem;
-          font-weight: 800;
-          padding: 0.18rem 0.6rem;
-          border-radius: 999px;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-        }
-
-        .plan-name-badge.free {
-          background: #fef3c7;
-          color: #b45309;
-        }
-
-        .plan-name-badge.pro {
-          background: #dcfce7;
-          color: #15803d;
-        }
-
-        .plan-status-indicator {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          font-size: 0.78rem;
-          color: #64748b;
-          font-weight: 600;
-        }
-
-        .status-live-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #10b981;
-          display: inline-block;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
-        }
-
-        .plan-prints-count {
-          font-size: 1.18rem;
-          font-weight: 800;
-          color: #0f172a;
-          margin: 0;
-          letter-spacing: -0.01em;
-        }
-
-        .prints-denom {
-          font-size: 0.88rem;
-          font-weight: 600;
-          color: #64748b;
-        }
-
-        .quota-bar-track {
-          width: 100%;
-          max-width: 320px;
-          height: 6px;
-          background: #f1f5f9;
-          border-radius: 999px;
-          overflow: hidden;
-          margin-top: 0.2rem;
-        }
-
-        .quota-bar-fill {
-          height: 100%;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #0284c7, #38bdf8);
-          transition: width 0.4s ease;
-        }
-
-        .plan-action-btn {
-          background: #0f172a;
-          color: #ffffff;
-          border: none;
-          padding: 0.65rem 1.25rem;
-          border-radius: 11px;
-          font-size: 0.84rem;
-          font-weight: 700;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.45rem;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
-        }
-
-        .plan-action-btn:hover {
-          background: #1e293b;
-          transform: translateY(-1px);
-          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
-        }
-
-        .zap-accent {
-          color: #38bdf8;
-        }
-
-        /* Section Cards */
-        .shop-page .form-section-card {
-          background: #ffffff !important;
-          border: 1px solid #e2e8f0 !important;
-          border-radius: 20px !important;
-          padding: 1.85rem 2.25rem !important;
-          margin-bottom: 1.75rem !important;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02), 0 8px 24px -4px rgba(0, 0, 0, 0.03) !important;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .shop-page .form-section-card:hover {
-          border-color: #cbd5e1 !important;
-        }
-
-        .section-title-wrap {
-          display: flex;
-          align-items: center;
-          gap: 0.95rem;
-          margin-bottom: 1.5rem;
-          padding-bottom: 1rem;
-          border-bottom: 1px solid #f1f5f9;
-        }
-
-        .section-icon-pill {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .section-icon-pill.blue {
-          background: #e0f2fe;
-          color: #0284c7;
-        }
-
-        .section-icon-pill.emerald {
-          background: #dcfce7;
-          color: #059669;
-        }
-
-        .section-icon-pill.purple {
-          background: #f3e8ff;
-          color: #9333ea;
-        }
-
-        .section-icon-pill.indigo {
-          background: #e0e7ff;
-          color: #4f46e5;
-        }
-
-        .lang-permanent-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.3rem;
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: #15803d;
-          background: #dcfce7;
-          border: 1px solid #bbf7d0;
-          padding: 0.2rem 0.65rem;
-          border-radius: 999px;
-        }
-
-        .language-selector-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-        }
-
-        @media (max-width: 680px) {
-          .language-selector-grid {
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-          }
-        }
-
-        .language-option-card {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          padding: 1.15rem 1.25rem;
+          border: 1.5px solid #e2e8f0;
           border-radius: 16px;
-          border: 2px solid #e2e8f0;
-          background: #ffffff;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          text-align: left;
-          user-select: none;
+          padding: 1.15rem 1.5rem;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+          margin-bottom: 1.25rem;
         }
 
-        .language-option-card:hover {
-          border-color: #93c5fd;
-          background: #f8fafc;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px -4px rgba(2, 132, 199, 0.12);
-        }
-
-        .language-option-card.active {
-          border-color: #0284c7;
-          background: #f0f9ff;
-          box-shadow: 0 4px 18px rgba(2, 132, 199, 0.18);
-        }
-
-        .language-card-top {
+        .sp-store-left {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          margin-bottom: 0.65rem;
+          gap: 1.25rem;
+          min-width: 0;
+          flex: 1;
         }
 
-        .language-card-flag {
-          font-size: 1.85rem;
+        .sp-avatar-wrap {
+          width: 66px;
+          height: 66px;
+          border-radius: 18px;
+          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          flex-shrink: 0;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+        }
+
+        .sp-avatar-letter {
+          font-size: 1.75rem;
+          font-weight: 800;
           line-height: 1;
         }
 
-        .language-active-check {
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .sp-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 18px;
+        }
+
+        .sp-camera-btn {
+          position: absolute;
+          bottom: -4px;
+          right: -4px;
           width: 24px;
           height: 24px;
           border-radius: 50%;
           background: #0284c7;
+          border: 2px solid #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           color: #ffffff;
-          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+          cursor: pointer;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
         }
 
-        .language-inactive-radio {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          border: 2px solid #cbd5e1;
-          background: transparent;
-        }
-
-        .language-card-main {
+        .sp-store-info {
           display: flex;
           flex-direction: column;
-          gap: 0.2rem;
+          min-width: 0;
+          flex: 1;
         }
 
-        .language-card-name {
-          font-size: 1.15rem;
-          font-weight: 800;
-          color: #0f172a;
-        }
-
-        .language-option-card.active .language-card-name {
-          color: #0369a1;
-        }
-
-        .language-card-sub {
-          font-size: 0.78rem;
-          color: #64748b;
-          font-weight: 500;
-        }
-
-        .language-card-tag {
-          align-self: flex-start;
-          margin-top: 0.65rem;
-          font-size: 0.68rem;
-          font-weight: 700;
-          padding: 0.18rem 0.55rem;
-          border-radius: 999px;
-          background: #f1f5f9;
-          color: #475569;
-        }
-
-        .language-option-card.active .language-card-tag {
-          background: #bae6fd;
-          color: #0369a1;
-        }
-
-        .section-title-sm {
-          font-size: 1.12rem !important;
-          font-weight: 800 !important;
-          color: #0f172a !important;
-          margin: 0 !important;
-          letter-spacing: -0.01em;
-        }
-
-        .section-desc-sm {
-          font-size: 0.82rem;
-          color: #64748b;
-          margin: 0.15rem 0 0 0;
-          font-weight: 400;
-        }
-
-        /* 2-Column Row */
-        .shop-page .form-row {
-          display: grid !important;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.35rem;
-          margin-bottom: 0.35rem;
-        }
-
-        /* Labels & Inputs with Leading Icons */
-        .shop-page .form-group-label {
-          display: flex !important;
-          flex-direction: column !important;
-          margin-bottom: 1.25rem !important;
-        }
-
-        .label-text {
-          font-size: 0.72rem !important;
-          font-weight: 700 !important;
-          color: #475569 !important;
-          text-transform: uppercase !important;
-          letter-spacing: 0.05em !important;
-          margin-bottom: 0.35rem;
-        }
-
-        .label-row-split {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.35rem;
-        }
-
-        .label-text .req {
-          color: #ef4444;
-          font-weight: 800;
-          margin-left: 2px;
-        }
-
-        .char-counter-tag {
-          font-size: 0.72rem;
-          font-weight: 600;
-          color: #94a3b8;
-        }
-
-        .char-counter-tag.exceeded {
-          color: #ef4444;
-        }
-
-        .input-with-icon,
-        .select-with-icon {
-          position: relative;
-          display: flex;
-          align-items: center;
-          width: 100%;
-        }
-
-        .textarea-with-icon {
-          position: relative;
-          display: flex;
-          width: 100%;
-        }
-
-        .field-adornment-icon {
-          position: absolute;
-          left: 1rem;
-          color: #94a3b8;
-          pointer-events: none;
-          z-index: 1;
-        }
-
-        .textarea-adornment-icon {
-          position: absolute;
-          left: 1rem;
-          top: 0.95rem;
-          color: #94a3b8;
-          pointer-events: none;
-          z-index: 1;
-        }
-
-        .currency-symbol-adornment,
-        .hash-adornment {
-          position: absolute;
-          left: 1rem;
-          color: #64748b;
-          font-weight: 800;
-          font-size: 0.95rem;
-          pointer-events: none;
-          z-index: 1;
-        }
-
-        .field-voice-btn-wrap {
-          position: absolute;
-          right: 0.55rem;
-          top: 50%;
-          transform: translateY(-50%);
-          display: flex;
-          align-items: center;
-          z-index: 2;
-        }
-
-        .textarea-voice-btn-wrap {
-          position: absolute;
-          right: 0.55rem;
-          top: 0.65rem;
-          display: flex;
-          align-items: center;
-          z-index: 2;
-        }
-
-        .select-voice-btn-wrap {
-          position: absolute;
-          right: 2.1rem;
-          top: 50%;
-          transform: translateY(-50%);
-          display: flex;
-          align-items: center;
-          z-index: 2;
-        }
-
-        .shop-page input,
-        .shop-page select,
-        .shop-page textarea {
-          width: 100% !important;
-          font-size: 0.92rem !important;
-          font-weight: 500 !important;
-          color: #0f172a !important;
-          background: #f8fafc !important;
-          border: 1.5px solid #e2e8f0 !important;
-          border-radius: 11px !important;
-          padding: 0 1rem 0 2.65rem !important;
-          outline: none !important;
-          font-family: inherit !important;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-          box-sizing: border-box !important;
-        }
-
-        .shop-page input {
-          height: 46px !important;
-          padding-right: 2.85rem !important;
-        }
-
-        .shop-page select {
-          height: 46px !important;
-          cursor: pointer !important;
-          padding-right: 4.4rem !important;
-        }
-
-        .shop-page textarea {
-          padding: 0.75rem 2.85rem 0.75rem 2.65rem !important;
-          resize: vertical !important;
-          min-height: 85px !important;
-          line-height: 1.5 !important;
-        }
-
-        .shop-page input:focus,
-        .shop-page select:focus,
-        .shop-page textarea:focus {
-          border-color: #0284c7 !important;
-          background: #ffffff !important;
-          box-shadow: 0 0 0 3.5px rgba(2, 132, 199, 0.12) !important;
-        }
-
-        .field-helper-note {
-          font-size: 0.73rem !important;
-          color: #94a3b8 !important;
-          margin-top: 0.35rem !important;
-          display: block !important;
-          text-transform: none !important;
-          letter-spacing: normal !important;
-          font-weight: 500 !important;
-        }
-
-        .field-error-text {
-          color: #ef4444 !important;
-          font-size: 0.76rem !important;
-          margin-top: 0.35rem !important;
-          display: flex !important;
-          align-items: center !important;
-          gap: 0.35rem !important;
-          font-weight: 600 !important;
-          text-transform: none !important;
-          letter-spacing: normal !important;
-        }
-
-        /* Interactive Tax Chips */
-        .quick-tax-mode-row {
-          display: flex;
-          gap: 0.45rem;
-          margin-top: 0.5rem;
-        }
-
-        .tax-chip {
-          background: #f1f5f9;
-          border: 1px solid #e2e8f0;
-          color: #475569;
+        .sp-store-eyebrow {
           font-size: 0.72rem;
           font-weight: 700;
-          padding: 0.3rem 0.65rem;
-          border-radius: 7px;
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-
-        .tax-chip:hover {
-          background: #e2e8f0;
-        }
-
-        .tax-chip.active {
-          background: #0284c7;
-          border-color: #0284c7;
-          color: #ffffff;
-        }
-
-        /* Preset Tax Rate Pills */
-        .quick-presets-row {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          margin-top: 0.5rem;
-        }
-
-        .presets-caption {
-          font-size: 0.7rem;
-          font-weight: 700;
+          letter-spacing: 0.05em;
           color: #64748b;
           text-transform: uppercase;
+          margin-bottom: 0.2rem;
         }
 
-        .preset-pill {
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-          color: #334155;
-          padding: 0.25rem 0.6rem;
-          border-radius: 7px;
-          font-size: 0.75rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-
-        .preset-pill:hover {
-          border-color: #0284c7;
-          color: #0284c7;
-        }
-
-        .preset-pill.selected {
-          background: #0284c7;
-          border-color: #0284c7;
-          color: #ffffff;
-        }
-
-        /* Live Preview Box Callout */
-        .shop-page .invoice-format-preview-box {
-          background: #0f172a !important;
-          border: 1px solid #1e293b !important;
-          border-radius: 14px !important;
-          padding: 1rem 1.4rem !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: space-between !important;
-          flex-wrap: wrap !important;
-          gap: 0.85rem !important;
-          margin-top: 0.95rem !important;
-          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1) !important;
-        }
-
-        .preview-box-left {
+        .sp-store-name-row {
           display: flex;
           align-items: center;
-          gap: 0.85rem;
+          gap: 0.65rem;
           flex-wrap: wrap;
-        }
-
-        .shop-page .preview-label {
-          font-size: 0.84rem !important;
-          color: #94a3b8 !important;
-          font-weight: 600 !important;
-        }
-
-        .shop-page .preview-code {
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-          color: #38bdf8 !important;
-          background: rgba(56, 189, 248, 0.12) !important;
-          padding: 0.35rem 0.85rem !important;
-          border-radius: 7px !important;
-          border: 1px solid rgba(56, 189, 248, 0.3) !important;
-          font-size: 0.98rem !important;
-          font-weight: 800 !important;
-          letter-spacing: 0.05em !important;
-        }
-
-        .copy-format-btn {
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #ffffff;
-          padding: 0.4rem 0.85rem;
-          border-radius: 8px;
-          font-size: 0.78rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          transition: all 0.15s;
-        }
-
-        .copy-format-btn:hover {
-          background: rgba(255, 255, 255, 0.16);
-        }
-
-        /* Embedded Realistic Thermal Receipt Roll */
-        .embedded-receipt-card {
-          margin-top: 1.5rem;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 1.35rem;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .embedded-receipt-header {
-          width: 100%;
-          max-width: 380px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.85rem;
-        }
-
-        .receipt-status-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.35rem;
-          font-size: 0.68rem;
-          font-weight: 800;
-          color: #059669;
-          background: #dcfce7;
-          padding: 0.2rem 0.55rem;
-          border-radius: 999px;
-          letter-spacing: 0.04em;
-        }
-
-        .live-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #10b981;
-        }
-
-        .receipt-paper-pill {
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: #64748b;
-          background: #ffffff;
-          border: 1px solid #cbd5e1;
-          padding: 0.18rem 0.55rem;
-          border-radius: 6px;
-        }
-
-        .thermal-roll-paper {
-          width: 100%;
-          max-width: 380px;
-          background: #ffffff;
-          border-left: 1px solid #e2e8f0;
-          border-right: 1px solid #e2e8f0;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
-          position: relative;
-        }
-
-        .tear-edge {
-          height: 10px;
-          background: radial-gradient(circle, transparent, transparent 50%, #ffffff 50%, #ffffff 100%);
-          background-size: 12px 12px;
-        }
-
-        .tear-edge.top {
-          background-position: 0 -6px;
-        }
-
-        .tear-edge.bottom {
-          background-position: 0 6px;
-        }
-
-        .roll-content {
-          padding: 1.25rem 1.4rem;
-          font-size: 0.78rem;
-          color: #1e293b;
-          line-height: 1.35;
-        }
-
-        .thermal-shop-name {
-          text-align: center;
-          font-size: 1.15rem;
-          font-weight: 900;
-          margin: 0 0 0.25rem 0;
-          letter-spacing: 0.04em;
-          color: #0f172a;
-        }
-
-        .thermal-address,
-        .thermal-phone {
-          text-align: center;
-          font-size: 0.74rem;
-          color: #475569;
-          margin: 0 0 0.15rem 0;
-        }
-
-        .thermal-dash {
-          border-top: 1.5px dashed #64748b;
-          margin: 0.65rem 0;
-          opacity: 0.7;
-        }
-
-        .thermal-meta-line {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.72rem;
-          font-weight: 700;
-          color: #1e293b;
-        }
-
-        .thermal-items-header {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1.2fr;
-          font-weight: 800;
-          font-size: 0.73rem;
-          color: #0f172a;
           margin-bottom: 0.25rem;
         }
 
-        .thermal-items-list {
-          display: flex;
-          flex-direction: column;
+        .sp-store-name {
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+          line-height: 1.2;
+        }
+
+        .sp-edit-icon-btn {
+          background: none;
+          border: none;
+          color: #0284c7;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          padding: 2px;
+          border-radius: 4px;
+          transition: background-color 0.15s;
+        }
+
+        .sp-edit-icon-btn:hover {
+          background: #f0f9ff;
+        }
+
+        .sp-verified-badge {
+          background: #ecfdf5;
+          color: #059669;
+          border: 1px solid #a7f3d0;
+          border-radius: 9999px;
+          padding: 0.18rem 0.55rem;
+          font-size: 0.75rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
           gap: 0.3rem;
         }
 
-        .thermal-row {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1.2fr;
-          font-size: 0.73rem;
-        }
-
-        .thermal-math {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .math-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.74rem;
-          font-weight: 600;
-        }
-
-        .math-row.discount {
-          color: #dc2626;
-        }
-
-        .math-row.tax {
-          color: #0284c7;
-        }
-
-        .thermal-net-box {
-          border-top: 1.5px solid #0f172a;
-          border-bottom: 1.5px solid #0f172a;
-          padding: 0.4rem 0;
-          margin: 0.3rem 0;
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.95rem;
-          font-weight: 900;
-          color: #0f172a;
-        }
-
-        .math-row.payment {
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: #475569;
-          align-items: center;
-        }
-
-        .pay-badge {
-          background: #f1f5f9;
-          padding: 1px 6px;
-          border-radius: 4px;
-        }
-
-        .thermal-footer {
-          text-align: center;
-          margin-top: 0.5rem;
-        }
-
-        .footer-ty {
-          font-size: 0.76rem;
-          font-weight: 700;
-          margin: 0;
-        }
-
-        .barcode-box {
-          margin: 0.6rem auto 0.3rem auto;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.2rem;
-        }
-
-        .barcode-stripes {
-          width: 140px;
-          height: 24px;
-          background: repeating-linear-gradient(
-            90deg,
-            #0f172a,
-            #0f172a 2px,
-            transparent 2px,
-            transparent 4px,
-            #0f172a 4px,
-            #0f172a 7px,
-            transparent 7px,
-            transparent 9px,
-            #0f172a 9px,
-            #0f172a 12px
-          );
-        }
-
-        .barcode-text {
-          font-size: 0.65rem;
-          letter-spacing: 0.08em;
+        .sp-store-subtext {
+          font-size: 0.82rem;
           color: #64748b;
+          margin: 0 0 0.5rem 0;
         }
 
-        .slipzo-brand {
-          font-size: 0.65rem;
-          color: #94a3b8;
-        }
-
-        /* Save Button & Actions */
-        .shop-form-actions {
+        .sp-store-pills-row {
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 0.6rem;
           flex-wrap: wrap;
-          margin-top: 0.85rem;
         }
 
-        .shop-save-btn {
-          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
-          color: #ffffff !important;
-          border: none !important;
-          padding: 0.85rem 1.95rem !important;
-          border-radius: 13px !important;
-          font-size: 0.95rem !important;
-          font-weight: 700 !important;
-          cursor: pointer !important;
-          display: inline-flex !important;
-          align-items: center !important;
-          gap: 0.6rem !important;
-          box-shadow: 0 4px 16px rgba(2, 132, 199, 0.32) !important;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-          width: fit-content !important;
-        }
-
-        .shop-save-btn:hover:not(:disabled) {
-          transform: translateY(-2px) !important;
-          box-shadow: 0 8px 24px rgba(2, 132, 199, 0.42) !important;
-          filter: brightness(1.05) !important;
-        }
-
-        .shop-save-btn:disabled {
-          opacity: 0.7 !important;
-          cursor: not-allowed !important;
-        }
-
-        .unsaved-hint-tag {
+        .sp-info-pill {
           display: inline-flex;
           align-items: center;
           gap: 0.4rem;
+          background: #f0f9ff;
+          border: 1px solid #bae6fd;
+          border-radius: 8px;
+          padding: 0.28rem 0.7rem;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #0284c7;
+          max-width: 420px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .sp-store-right {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        .sp-change-logo-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          background: #ffffff;
+          color: #0284c7;
+          border: 1.5px solid #bae6fd;
+          border-radius: 10px;
+          padding: 0.55rem 1.15rem;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .sp-change-logo-btn:hover {
+          background: #f0f9ff;
+          border-color: #7dd3fc;
+        }
+
+        .sp-logo-hint {
+          font-size: 0.72rem;
+          color: #94a3b8;
+          margin-top: 0.35rem;
+        }
+
+        /* Two-Column Desktop Grid Layout */
+        .sp-desktop-layout {
+          display: grid;
+          grid-template-columns: 1.55fr 1fr;
+          gap: 1.25rem;
+          align-items: start;
+        }
+
+        .sp-left-col {
+          display: flex;
+          flex-direction: column;
+          gap: 1.15rem;
+          min-width: 0;
+        }
+
+        .sp-right-col {
+          display: flex;
+          flex-direction: column;
+          gap: 1.15rem;
+          min-width: 0;
+        }
+
+        /* Reusable Card Style */
+        .sp-card {
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 1.25rem 1.35rem;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .sp-card-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1.15rem;
+        }
+
+        .sp-icon-box {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .sp-icon-box.blue {
+          background: #f0f9ff;
+          border: 1.5px solid #bae6fd;
+          color: #0284c7;
+        }
+
+        .sp-icon-box.green {
+          background: #ecfdf5;
+          border: 1.5px solid #a7f3d0;
+          color: #059669;
+        }
+
+        .sp-icon-box.purple {
+          background: #f5f3ff;
+          border: 1.5px solid #ddd6fe;
+          color: #7c3aed;
+        }
+
+        .sp-card-titles {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .sp-card-title {
+          font-size: 1.05rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+          line-height: 1.25;
+        }
+
+        .sp-card-subtitle {
+          font-size: 0.8rem;
+          color: #64748b;
+          margin: 0.15rem 0 0 0;
+        }
+
+        /* Form Layout Elements */
+        .sp-form-row {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .sp-form-row.two-col {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-bottom: 0.85rem;
+        }
+
+        .sp-field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+          min-width: 0;
+        }
+
+        .sp-field-group.full-width {
+          margin-bottom: 0;
+        }
+
+        .sp-label {
           font-size: 0.82rem;
           font-weight: 700;
-          color: #d97706;
-          background: #fef3c7;
-          padding: 0.35rem 0.85rem;
-          border-radius: 999px;
+          color: #334155;
+          margin: 0;
         }
 
-        .unsaved-pulse-dot {
-          width: 7px;
-          height: 7px;
+        .sp-label-split {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .sp-req {
+          color: #ef4444;
+          margin-left: 2px;
+        }
+
+        .sp-char-count {
+          font-size: 0.75rem;
+          color: #94a3b8;
+          font-weight: 600;
+        }
+
+        .sp-char-count.exceeded {
+          color: #ef4444;
+        }
+
+        /* Input & Select Wrappers */
+        .sp-input-wrap,
+        .sp-select-wrap,
+        .sp-textarea-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 10px;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .sp-input-wrap:focus-within,
+        .sp-select-wrap:focus-within,
+        .sp-textarea-wrap:focus-within {
+          border-color: #0284c7;
+          box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+        }
+
+        .sp-input-wrap.error,
+        .sp-textarea-wrap.error {
+          border-color: #ef4444;
+        }
+
+        .sp-input-icon {
+          position: absolute;
+          left: 0.85rem;
+          color: #94a3b8;
+          pointer-events: none;
+          flex-shrink: 0;
+        }
+
+        .sp-hash-adornment {
+          position: absolute;
+          left: 0.85rem;
+          color: #94a3b8;
+          font-weight: 700;
+          font-size: 0.95rem;
+          pointer-events: none;
+        }
+
+        .sp-input {
+          width: 100%;
+          border: none;
+          outline: none;
+          background: transparent;
+          padding: 0.55rem 2.5rem 0.55rem 2.4rem;
+          font-size: 0.9rem;
+          color: #0f172a;
+          box-sizing: border-box;
+        }
+
+        .sp-select {
+          width: 100%;
+          border: none;
+          outline: none;
+          background: transparent;
+          padding: 0.55rem 2.2rem 0.55rem 2.4rem;
+          font-size: 0.88rem;
+          color: #0f172a;
+          cursor: pointer;
+          appearance: none;
+          box-sizing: border-box;
+        }
+
+        .sp-select-arrow {
+          position: absolute;
+          right: 0.85rem;
+          color: #94a3b8;
+          pointer-events: none;
+        }
+
+        .sp-textarea-wrap {
+          align-items: flex-start;
+          padding-top: 0.4rem;
+        }
+
+        .sp-textarea-icon {
+          position: absolute;
+          left: 0.85rem;
+          top: 0.75rem;
+          color: #94a3b8;
+          pointer-events: none;
+        }
+
+        .sp-textarea {
+          width: 100%;
+          border: none;
+          outline: none;
+          background: transparent;
+          padding: 0.35rem 2.5rem 0.55rem 2.4rem;
+          font-size: 0.88rem;
+          color: #0f172a;
+          resize: vertical;
+          min-height: 56px;
+          font-family: inherit;
+          box-sizing: border-box;
+          line-height: 1.4;
+        }
+
+        .sp-voice-wrap {
+          position: absolute;
+          right: 0.55rem;
+          display: flex;
+          align-items: center;
+        }
+
+        .sp-voice-wrap.textarea-voice {
+          top: 0.55rem;
+        }
+
+        .sp-helper-text {
+          font-size: 0.75rem;
+          color: #94a3b8;
+          margin-top: 0.15rem;
+        }
+
+        .sp-field-error {
+          font-size: 0.75rem;
+          color: #ef4444;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          margin-top: 0.15rem;
+        }
+
+        /* Preset Buttons Row */
+        .sp-presets-row {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          margin-top: 0.45rem;
+          flex-wrap: wrap;
+        }
+
+        .sp-presets-label {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #64748b;
+          margin-right: 0.15rem;
+        }
+
+        .sp-preset-btn {
+          padding: 0.22rem 0.65rem;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          color: #475569;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .sp-preset-btn:hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+          color: #0f172a;
+        }
+
+        .sp-preset-btn.active {
+          background: #0284c7;
+          border-color: #0284c7;
+          color: #ffffff;
+        }
+
+        /* Live Receipt Preview Card */
+        .sp-preview-card {
+          background: #ffffff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 1.15rem 1.25rem;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        .sp-preview-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 0.85rem;
+        }
+
+        .sp-live-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          font-size: 0.82rem;
+          font-weight: 700;
+          color: #16a34a;
+        }
+
+        .sp-pulse-dot {
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
-          background: #d97706;
+          background: #16a34a;
+          box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
         }
 
-        .shop-success-alert {
-          background: #dcfce7 !important;
-          border: 1px solid #86efac !important;
-          color: #15803d !important;
-          border-radius: 12px !important;
-          padding: 0.75rem 1.25rem !important;
-          font-size: 0.88rem !important;
-          font-weight: 700 !important;
-          display: inline-flex !important;
-          align-items: center !important;
-          gap: 0.5rem !important;
-          box-shadow: 0 2px 8px rgba(21, 128, 61, 0.12) !important;
+        .sp-paper-dropdown {
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 0.28rem 0.65rem;
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #334155;
+          background: #ffffff;
+          outline: none;
+          cursor: pointer;
         }
 
-        /* Responsive */
+        .sp-receipt-wrapper {
+          background: #f8fafc;
+          border: 1px solid #f1f5f9;
+          border-radius: 12px;
+          padding: 0.5rem;
+          display: flex;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        /* Desktop / Mobile Visibility Helpers */
+        .mobile-only {
+          display: none !important;
+        }
+
+        .desktop-only {
+          display: flex;
+        }
+
+        /* Compact Attractive Top-Right Save Settings Button & Alerts */
+        .sp-top-save-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          background: #0284c7;
+          color: #ffffff;
+          border: none;
+          border-radius: 9px;
+          padding: 0.52rem 1.25rem;
+          font-size: 0.88rem;
+          font-weight: 700;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+          transition: all 0.15s ease;
+          white-space: nowrap;
+        }
+
+        .sp-top-save-btn:hover:not(:disabled) {
+          background: #0369a1;
+          box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+          transform: translateY(-1px);
+        }
+
+        .sp-top-save-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .sp-top-save-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .sp-unsaved-hint.top {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          font-size: 0.75rem;
+          color: #f59e0b;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .sp-unsaved-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #f59e0b;
+        }
+
+        .sp-saved-badge.top {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          background: #ecfdf5;
+          color: #059669;
+          border: 1px solid #a7f3d0;
+          border-radius: 6px;
+          padding: 0.15rem 0.55rem;
+          font-size: 0.75rem;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+
+        /* ============================================================
+           RESPONSIVENESS (TABLET & MOBILE)
+           ============================================================ */
+        @media (max-width: 960px) {
+          .sp-desktop-layout {
+            grid-template-columns: 1fr;
+          }
+        }
+
         @media (max-width: 640px) {
-          .shop-hero-banner {
-            padding: 1.25rem;
+          .desktop-only {
+            display: none !important;
           }
 
-          .shop-display-name {
-            font-size: 1.35rem;
-            flex-wrap: wrap;
+          .mobile-only {
+            display: flex !important;
           }
 
-          .shop-page .form-row {
-            grid-template-columns: 1fr !important;
-            gap: 0 !important;
+          .shop-page {
+            padding: 0.6rem 0.5rem calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
           }
 
-          .shop-page .form-section-card {
-            padding: 1.35rem 1.25rem !important;
-          }
-
-          .shop-save-btn {
+          /* Header: Compact, left title only, top Save Settings hidden */
+          .sp-header {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.2rem !important;
+            margin-bottom: 0.85rem !important;
             width: 100% !important;
+          }
+
+          .sp-header-right {
+            display: none !important;
+          }
+
+          .sp-header-left {
+            width: 100% !important;
+          }
+
+          .sp-title {
+            font-size: 1.45rem !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+            margin: 0 0 0.25rem 0 !important;
+            line-height: 1.2 !important;
+          }
+
+          .sp-subtitle {
+            font-size: 0.82rem !important;
+            color: #64748b !important;
+            margin: 0 !important;
+            line-height: 1.35 !important;
+          }
+
+          /* All Mobile Cards: Consistent border radius, padding, border and shadow */
+          .sp-card,
+          .sp-store-details-card,
+          .sp-preview-card {
+            background: #ffffff !important;
+            border: 1.5px solid #e2e8f0 !important;
+            border-radius: 14px !important;
+            padding: 1rem 0.95rem !important;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            margin-bottom: 0.85rem !important;
+          }
+
+          /* Store Details Mobile Presentation */
+          .sp-store-details-card {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.85rem !important;
+          }
+
+          .sp-store-mobile-header {
+            display: flex !important;
+            align-items: flex-start !important;
+            justify-content: space-between !important;
+            gap: 0.75rem !important;
+            width: 100% !important;
+            margin-bottom: 0.15rem !important;
+          }
+
+          .sp-store-mobile-header .sp-icon-box {
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 10px !important;
+            flex-shrink: 0 !important;
+          }
+
+          .sp-store-header-text {
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+
+          .sp-store-eyebrow {
+            font-size: 0.7rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.05em !important;
+            color: #64748b !important;
+            text-transform: uppercase !important;
+            margin-bottom: 0.15rem !important;
+          }
+
+          .sp-store-name {
+            font-size: 1.15rem !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+            margin: 0 0 0.35rem 0 !important;
+            line-height: 1.25 !important;
+            word-break: break-word !important;
+          }
+
+          .sp-verified-badge {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.25rem !important;
+            background: #ecfdf5 !important;
+            color: #059669 !important;
+            border: 1px solid #a7f3d0 !important;
+            border-radius: 9999px !important;
+            padding: 0.15rem 0.5rem !important;
+            font-size: 0.72rem !important;
+            font-weight: 700 !important;
+            width: fit-content !important;
+          }
+
+          .sp-edit-icon-btn {
+            color: #0284c7 !important;
+            padding: 4px !important;
+            background: transparent !important;
+            border: none !important;
+            cursor: pointer !important;
+            flex-shrink: 0 !important;
+          }
+
+          .sp-store-left {
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 0.85rem !important;
+            width: 100% !important;
+          }
+
+          .sp-avatar-wrap {
+            width: 54px !important;
+            height: 54px !important;
+            border-radius: 14px !important;
+            flex-shrink: 0 !important;
+          }
+
+          .sp-avatar-letter {
+            font-size: 1.55rem !important;
+          }
+
+          .sp-camera-btn {
+            width: 20px !important;
+            height: 20px !important;
+            bottom: -3px !important;
+            right: -3px !important;
+          }
+
+          .sp-camera-btn svg {
+            width: 11px !important;
+            height: 11px !important;
+          }
+
+          .sp-store-info {
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+
+          .sp-store-subtext {
+            font-size: 0.78rem !important;
+            color: #64748b !important;
+            margin: 0 0 0.5rem 0 !important;
+            line-height: 1.35 !important;
+          }
+
+          .sp-store-pills-row {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.4rem !important;
+            width: 100% !important;
+          }
+
+          .sp-info-pill {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.45rem !important;
+            background: #f0f9ff !important;
+            border: 1px solid #bae6fd !important;
+            border-radius: 8px !important;
+            padding: 0.35rem 0.65rem !important;
+            font-size: 0.78rem !important;
+            font-weight: 600 !important;
+            color: #0284c7 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            max-width: 100% !important;
+          }
+
+          .sp-store-right {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            width: 100% !important;
+            border-top: none !important;
+            padding-top: 0 !important;
+            margin-top: 0.25rem !important;
+          }
+
+          .sp-change-logo-btn {
+            width: 100% !important;
+            height: 38px !important;
+            display: flex !important;
+            align-items: center !important;
             justify-content: center !important;
+            gap: 0.45rem !important;
+            background: #ffffff !important;
+            color: #0284c7 !important;
+            border: 1.5px solid #bae6fd !important;
+            border-radius: 10px !important;
+            font-size: 0.84rem !important;
+            font-weight: 700 !important;
           }
 
-          .shop-plan-summary-card {
-            padding: 1rem 1.25rem;
+          .sp-logo-hint {
+            font-size: 0.7rem !important;
+            color: #94a3b8 !important;
+            text-align: center !important;
+            margin-top: 0.35rem !important;
           }
 
-          .plan-action-btn {
-            width: 100%;
-            justify-content: center;
+          /* Form & Card Flow */
+          .sp-desktop-layout {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.85rem !important;
+            width: 100% !important;
           }
 
-          .quick-tax-mode-row {
-            flex-wrap: wrap;
+          .sp-left-col,
+          .sp-right-col {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.85rem !important;
+            width: 100% !important;
+          }
+
+          .sp-card-header {
+            margin-bottom: 0.95rem !important;
+          }
+
+          .sp-card-title {
+            font-size: 1rem !important;
+          }
+
+          .sp-card-subtitle {
+            font-size: 0.78rem !important;
+          }
+
+          /* Input Fields: 1 field per row, full width */
+          .sp-form-row.two-col {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+            margin-bottom: 0.75rem !important;
+          }
+
+          .sp-field-group {
+            width: 100% !important;
+          }
+
+          .sp-input-wrap,
+          .sp-select-wrap {
+            height: 42px !important;
+            box-sizing: border-box !important;
+          }
+
+          .sp-input {
+            font-size: 0.88rem !important;
+            padding: 0 2.2rem 0 2.3rem !important;
+            height: 100% !important;
+          }
+
+          .sp-select {
+            font-size: 0.88rem !important;
+            padding: 0 2.1rem 0 2.3rem !important;
+            height: 100% !important;
+          }
+
+          .sp-textarea {
+            font-size: 0.88rem !important;
+            padding: 0.45rem 2.2rem 0.45rem 2.3rem !important;
+            min-height: 64px !important;
+          }
+
+          /* Live Receipt Preview Card */
+          .sp-preview-card {
+            padding: 1rem 0.95rem !important;
+          }
+
+          .sp-preview-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin-bottom: 0.75rem !important;
+          }
+
+          .sp-receipt-wrapper {
+            background: #f8fafc !important;
+            border: 1px solid #f1f5f9 !important;
+            border-radius: 12px !important;
+            padding: 0.5rem 0.25rem !important;
+            display: flex !important;
+            justify-content: center !important;
+            overflow: hidden !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          .sp-preview-card .realistic-thermal-receipt {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+          }
+
+          /* Mobile Bottom Save Settings Button */
+          .sp-mobile-save-section {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            width: 100% !important;
+            margin-top: 0.5rem !important;
+            margin-bottom: 2rem !important;
+            box-sizing: border-box !important;
+          }
+
+          .sp-mobile-save-btn {
+            width: 100% !important;
+            height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.5rem !important;
+            background: #0284c7 !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-size: 0.92rem !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25) !important;
+            transition: background-color 0.15s ease, transform 0.1s ease !important;
+          }
+
+          .sp-mobile-save-btn:active {
+            transform: scale(0.99) !important;
+            background: #0369a1 !important;
+          }
+
+          .sp-mobile-save-btn:disabled {
+            opacity: 0.65 !important;
+            cursor: not-allowed !important;
+          }
+
+          .sp-unsaved-hint.bottom {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+            font-size: 0.78rem !important;
+            color: #d97706 !important;
+            font-weight: 600 !important;
+            text-align: center !important;
+          }
+
+          .sp-saved-badge.bottom {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 0.35rem !important;
+            background: #ecfdf5 !important;
+            color: #059669 !important;
+            border: 1px solid #a7f3d0 !important;
+            border-radius: 6px !important;
+            padding: 0.25rem 0.65rem !important;
+            font-size: 0.78rem !important;
+            font-weight: 700 !important;
+            text-align: center !important;
           }
         }
       `}</style>
