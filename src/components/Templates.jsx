@@ -495,18 +495,6 @@ export function Templates({ setView, user }) {
             Pick from our pre-designed receipt styles or create your own custom layout.
           </p>
         </div>
-        <button
-          data-testid="create-template-button"
-          className="primary-button"
-          onClick={() => {
-            setEditMode(false)
-            setEditingTemplate(null)
-            setName("")
-            setShow(true)
-          }}
-        >
-          <Plus size={18} /> New template
-        </button>
       </div>
 
       {show && (
@@ -675,31 +663,6 @@ export function Templates({ setView, user }) {
                     >
                       <Eye size={16} />
                     </button>
-                  </div>
-
-                  <div className="actions-sub-row">
-                    <button
-                      data-testid={`edit-template-${template.id}-button`}
-                      className="template-sub-btn"
-                      onClick={() => {
-                        setEditingTemplate(template)
-                        setName(template.name)
-                        setEditMode(true)
-                        setShow(true)
-                      }}
-                    >
-                      <Edit size={13} /> Edit
-                    </button>
-                    <button
-                      data-testid={`duplicate-template-${template.id}-button`}
-                      className="template-sub-btn"
-                      title="Duplicate template"
-                      onClick={() => duplicate(template)}
-                      disabled={actionLoadingId === template.id}
-                    >
-                      {actionLoadingId === template.id ? <Spinner size={12} /> : <Copy size={13} />} Duplicate
-                    </button>
-
                   </div>
                 </div>
               </div>

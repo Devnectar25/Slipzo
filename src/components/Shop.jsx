@@ -27,6 +27,8 @@ import { call, getCachedData, getActivePlanDetails, findTemplateMatch } from "..
 import { ButtonLoader, Skeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
+import { RealisticReceiptView } from "./RealisticReceiptView"
+import { VoiceInputButton } from "./common/VoiceInputButton"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -114,10 +116,9 @@ export function Shop({ user, setView } = {}) {
     }
 
     if (key === "phone" && val) {
-      const phoneRegex = /^(\+?[0-9]{1,4}[ -]?)?[0-9]{7,15}$/
       const digitsOnly = val.replace(/[^0-9]/g, "")
-      if (!phoneRegex.test(val) || digitsOnly.length < 7 || digitsOnly.length > 15) {
-        errorMsg = "Please enter a valid phone number (7–15 digits)."
+      if (digitsOnly.length !== 10) {
+        errorMsg = "Please enter a valid 10-digit contact number."
       }
     }
 
@@ -312,6 +313,35 @@ export function Shop({ user, setView } = {}) {
     return { subtotal, disc, tax, total }
   }, [shop.default_discount, shop.tax_rate, shop.show_tax])
 
+  const selectedTemplate = useMemo(() => {
+    const tplList = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
+    const matched = findTemplateMatch(tplList, shop.default_template_id) || tplList.find(t => t.id === shop.default_template_id) || tplList[0] || BUILTIN_TEMPLATES[0]
+    if (!matched) return null
+
+    return {
+      ...matched,
+      previewData: {
+        shopName: (shop.name || "YOUR SHOP NAME").trim(),
+        address: (shop.address || "123 Market Street, City").trim(),
+        phone: (shop.phone || "+91 00000 00000").trim(),
+        gst: (shop.gstin || "").trim(),
+        invoiceNo: liveInvoicePreview,
+        date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+        items: [
+          { name: "Basmati Rice 1kg", qty: 2, rate: 120, total: 240 },
+          { name: "Assam Tea 250g", qty: 1, rate: 160, total: 160 },
+          { name: "Sunflower Oil 1L", qty: 1, rate: 195, total: 195 }
+        ],
+        subtotal: receiptMath.subtotal,
+        discount: receiptMath.disc,
+        tax: receiptMath.tax,
+        total: receiptMath.total,
+        payment: "CASH / UPI",
+        footer: matched.footer || "Thank you for shopping with us! Please come again."
+      }
+    }
+  }, [templates, shop.default_template_id, shop.name, shop.address, shop.phone, shop.gstin, liveInvoicePreview, receiptMath])
+
   if (!ready) {
     return (
       <div className="page shop-page fade-in">
@@ -475,14 +505,29 @@ export function Shop({ user, setView } = {}) {
 
         {/* Section 1: Business Details */}
         <div className="form-section-card">
-          <div className="section-title-wrap">
-            <div className="section-icon-pill blue">
-              <Store size={18} />
+          <div className="section-title-wrap" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <div className="section-icon-pill blue">
+                <Store size={18} />
+              </div>
+              <div>
+                <h3 className="section-title-sm">{t("profile.businessDetails", "Business Details")}</h3>
+                <p className="section-desc-sm">{t("profile.businessDetailsSub", "Store branding and contact information printed on receipt headers")}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="section-title-sm">{t("profile.businessDetails", "Business Details")}</h3>
-              <p className="section-desc-sm">{t("profile.businessDetailsSub", "Store branding and contact information printed on receipt headers")}</p>
-            </div>
+            {/* Quick Voice Fill for All Business Details */}
+            <VoiceInputButton
+              mode="shop"
+              variant="pill"
+              size="sm"
+              label="Voice Fill Details"
+              placeholder="Speak shop name, phone and address"
+              onParsedResult={(parsed) => {
+                if (parsed.name) handleChange("name", parsed.name)
+                if (parsed.phone) handleChange("phone", parsed.phone.replace(/[^0-9]/g, "").slice(0, 10))
+                if (parsed.address) handleChange("address", parsed.address)
+              }}
+            />
           </div>
 
           <div className="form-row">
@@ -503,6 +548,13 @@ export function Shop({ user, setView } = {}) {
                     borderColor: touched.name && errors.name ? "#ef4444" : undefined
                   }}
                 />
+                <div className="field-voice-btn-wrap">
+                  <VoiceInputButton
+                    size="sm"
+                    placeholder="Speak shop name"
+                    onSpeechResult={(text) => handleChange("name", text)}
+                  />
+                </div>
               </div>
               {touched.name && errors.name && (
                 <span className="field-error-text">
@@ -512,27 +564,41 @@ export function Shop({ user, setView } = {}) {
             </label>
 
             <label className="flex-1 form-group-label">
-              <span className="label-text">{t("profile.phone", "CONTACT PHONE NUMBER")}</span>
+              <span className="label-text">{t("profile.phone", "Contact Number")}</span>
               <div className="input-with-icon">
                 <Phone size={16} className="field-adornment-icon" />
                 <input
                   data-testid="shop-phone-input"
                   type="tel"
+                  maxLength={10}
                   placeholder={t("profile.phonePlaceholder", "e.g. 9876543210")}
                   value={shop.phone}
-                  onChange={(e) => handleChange("phone", e.target.value)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, 10)
+                    handleChange("phone", digits)
+                  }}
                   onBlur={() => handleBlur("phone")}
                   style={{
                     borderColor: touched.phone && errors.phone ? "#ef4444" : undefined
                   }}
                 />
+                <div className="field-voice-btn-wrap">
+                  <VoiceInputButton
+                    size="sm"
+                    placeholder="Speak 10-digit contact number"
+                    onSpeechResult={(text) => {
+                      const digits = text.replace(/[^0-9]/g, "").slice(0, 10)
+                      handleChange("phone", digits)
+                    }}
+                  />
+                </div>
               </div>
               {touched.phone && errors.phone ? (
                 <span className="field-error-text">
                   <AlertCircle size={13} /> {errors.phone}
                 </span>
               ) : (
-                <small className="field-helper-note">{t("profile.phoneHelper", "7–15 digits for contact header on receipt")}</small>
+                <small className="field-helper-note">{t("profile.phoneHelper", "10-digit mobile number for contact header on receipt")}</small>
               )}
             </label>
           </div>
@@ -557,6 +623,13 @@ export function Shop({ user, setView } = {}) {
                   borderColor: touched.address && errors.address ? "#ef4444" : undefined
                 }}
               />
+              <div className="textarea-voice-btn-wrap">
+                <VoiceInputButton
+                  size="sm"
+                  placeholder="Speak store address"
+                  onSpeechResult={(text) => handleChange("address", text)}
+                />
+              </div>
             </div>
             {touched.address && errors.address && (
               <span className="field-error-text">
@@ -567,142 +640,63 @@ export function Shop({ user, setView } = {}) {
           </label>
         </div>
 
-        {/* Section 2: Receipt Defaults & Billing Configuration */}
+        {/* Section 2: Receipt Defaults */}
         <div className="form-section-card">
           <div className="section-title-wrap">
             <div className="section-icon-pill emerald">
               <FileText size={18} />
             </div>
             <div>
-              <h3 className="section-title-sm">{t("profile.receiptDefaults", "Receipt Defaults & Billing")}</h3>
-              <p className="section-desc-sm">{t("profile.receiptDefaultsSub", "Default layout, automatic discount, and tax calculations applied to new bills")}</p>
+              <h3 className="section-title-sm">{t("profile.receiptDefaults", "Receipt Template")}</h3>
+              <p className="section-desc-sm">{t("profile.receiptDefaultsSub", "Layout loaded by default when creating bills")}</p>
             </div>
           </div>
 
-          <div className="form-row">
-            <label className="flex-1 form-group-label">
-              <span className="label-text">{t("profile.receiptTemplate", "RECEIPT TEMPLATE")}</span>
-              <div className="select-with-icon">
-                <Receipt size={16} className="field-adornment-icon" />
-                <select
-                  value={shop.default_template_id}
-                  onChange={(e) => handleChange("default_template_id", e.target.value)}
-                  className="option-select styled-select"
-                >
-                  {Array.isArray(templates) && templates.length > 0 ? (
-                    templates.map((tItem) => (
-                      <option key={tItem.id} value={tItem.id}>
-                        {tItem.name} ({tItem.width || "58mm"})
-                      </option>
-                    ))
-                  ) : (
-                    BUILTIN_TEMPLATES.map((tItem) => (
-                      <option key={tItem.id} value={tItem.id}>
-                        {tItem.name} ({tItem.width || "58mm"})
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-              <small className="field-helper-note">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</small>
-            </label>
-
-            <label className="flex-1 form-group-label">
-              <span className="label-text">{t("profile.defaultDiscount", "DEFAULT DISCOUNT (₹)")}</span>
-              <div className="input-with-icon">
-                <span className="currency-symbol-adornment">₹</span>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="0"
-                  value={shop.default_discount === 0 || shop.default_discount === "0" ? "" : shop.default_discount}
-                  onChange={(e) => handleChange("default_discount", e.target.value)}
-                  className="item-input"
+          <label className="form-group-label" style={{ marginBottom: 0 }}>
+            <span className="label-text">{t("profile.receiptTemplate", "RECEIPT TEMPLATE")}</span>
+            <div className="select-with-icon">
+              <Receipt size={16} className="field-adornment-icon" />
+              <select
+                value={shop.default_template_id}
+                onChange={(e) => handleChange("default_template_id", e.target.value)}
+                className="option-select styled-select"
+              >
+                {Array.isArray(templates) && templates.length > 0 ? (
+                  templates.map((tItem) => (
+                    <option key={tItem.id} value={tItem.id}>
+                      {tItem.name} ({tItem.width || "58mm"})
+                    </option>
+                  ))
+                ) : (
+                  BUILTIN_TEMPLATES.map((tItem) => (
+                    <option key={tItem.id} value={tItem.id}>
+                      {tItem.name} ({tItem.width || "58mm"})
+                    </option>
+                  ))
+                )}
+              </select>
+              <div className="select-voice-btn-wrap">
+                <VoiceInputButton
+                  size="sm"
+                  placeholder="Speak template name"
+                  onSpeechResult={(text) => {
+                    const query = text.toLowerCase().trim()
+                    const allT = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
+                    const match = allT.find((tItem) =>
+                      (tItem.name && tItem.name.toLowerCase().includes(query)) ||
+                      (tItem.id && tItem.id.toLowerCase().includes(query)) ||
+                      (query.includes("80") && String(tItem.width).includes("80")) ||
+                      (query.includes("58") && String(tItem.width).includes("58"))
+                    )
+                    if (match) {
+                      handleChange("default_template_id", match.id)
+                    }
+                  }}
                 />
               </div>
-              <small className="field-helper-note">{t("profile.discountHelper", "Auto-deducted when creating new bills")}</small>
-            </label>
-          </div>
-
-          <div className="form-row" style={{ marginTop: "1rem" }}>
-            <label className="flex-1 form-group-label">
-              <span className="label-text">{t("profile.taxMode", "TAX INCLUSION MODE")}</span>
-              <div className="select-with-icon">
-                <Percent size={16} className="field-adornment-icon" />
-                <select
-                  value={shop.show_tax}
-                  onChange={(e) => handleChange("show_tax", Number(e.target.value))}
-                  className="option-select styled-select"
-                >
-                  <option value={0}>{t("profile.noTax", "No Tax (0% / Tax Disabled)")}</option>
-                  <option value={1}>{t("profile.taxIncluded", "Tax Included (Prices contain tax)")}</option>
-                  <option value={2}>{t("profile.taxExtra", "Tax Extra (Added on top of bill)")}</option>
-                </select>
-              </div>
-
-              {/* Quick interactive mode pill buttons for fast toggling */}
-              <div className="quick-tax-mode-row">
-                <button
-                  type="button"
-                  className={`tax-chip ${Number(shop.show_tax) === 0 ? "active" : ""}`}
-                  onClick={() => handleChange("show_tax", 0)}
-                >
-                  {t("profile.taxChipNoTax", "No Tax")}
-                </button>
-                <button
-                  type="button"
-                  className={`tax-chip ${Number(shop.show_tax) === 1 ? "active" : ""}`}
-                  onClick={() => handleChange("show_tax", 1)}
-                >
-                  {t("profile.taxChipIncluded", "Tax Included")}
-                </button>
-                <button
-                  type="button"
-                  className={`tax-chip ${Number(shop.show_tax) === 2 ? "active" : ""}`}
-                  onClick={() => handleChange("show_tax", 2)}
-                >
-                  {t("profile.taxChipExtra", "Tax Extra")}
-                </button>
-              </div>
-            </label>
-
-            <label className="flex-1 form-group-label">
-              <span className="label-text">{t("profile.taxRate", "DEFAULT GST / TAX RATE (%)")}</span>
-              <div className="input-with-icon">
-                <Percent size={16} className="field-adornment-icon" />
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  disabled={Number(shop.show_tax) === 0}
-                  value={Number(shop.show_tax) === 0 ? "0" : (shop.tax_rate === undefined || shop.tax_rate === null ? "0" : String(shop.tax_rate))}
-                  onChange={(e) => handleChange("tax_rate", e.target.value)}
-                  className="item-input"
-                  style={{ opacity: Number(shop.show_tax) === 0 ? 0.6 : 1 }}
-                />
-              </div>
-
-              {/* GST Rate Quick Tap Presets */}
-              {Number(shop.show_tax) !== 0 && (
-                <div className="quick-presets-row">
-                  <span className="presets-caption">GST Presets:</span>
-                  {["5", "12", "18", "28"].map((rate) => (
-                    <button
-                      key={rate}
-                      type="button"
-                      className={`preset-pill ${String(shop.tax_rate) === rate ? "selected" : ""}`}
-                      onClick={() => handleChange("tax_rate", rate)}
-                    >
-                      {rate}%
-                    </button>
-                  ))}
-                </div>
-              )}
-            </label>
-          </div>
+            </div>
+            <small className="field-helper-note">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</small>
+          </label>
         </div>
 
         {/* Section 3: Invoice Numbering Configuration & Realistic Thermal Preview */}
@@ -733,6 +727,18 @@ export function Shop({ user, setView } = {}) {
                     borderColor: touched.invoice_prefix && errors.invoice_prefix ? "#ef4444" : undefined
                   }}
                 />
+                <div className="field-voice-btn-wrap">
+                  <VoiceInputButton
+                    size="sm"
+                    placeholder="Speak invoice prefix (e.g. SLP, INV)"
+                    onSpeechResult={(text) => {
+                      const clean = text.replace(/[^a-zA-Z0-9_-]/g, "").toUpperCase()
+                      if (clean) {
+                        handleChange("invoice_prefix", clean.slice(0, 8))
+                      }
+                    }}
+                  />
+                </div>
               </div>
               {touched.invoice_prefix && errors.invoice_prefix && (
                 <span className="field-error-text">
@@ -759,6 +765,18 @@ export function Shop({ user, setView } = {}) {
                     borderColor: touched.invoice_sequence && errors.invoice_sequence ? "#ef4444" : undefined
                   }}
                 />
+                <div className="field-voice-btn-wrap">
+                  <VoiceInputButton
+                    size="sm"
+                    placeholder="Speak sequence number (e.g. 1001)"
+                    onSpeechResult={(text) => {
+                      const digits = text.replace(/[^0-9]/g, "")
+                      if (digits) {
+                        handleChange("invoice_sequence", digits)
+                      }
+                    }}
+                  />
+                </div>
               </div>
               {touched.invoice_sequence && errors.invoice_sequence && (
                 <span className="field-error-text">
@@ -783,6 +801,24 @@ export function Shop({ user, setView } = {}) {
                 <option value="PREFIX-SEQ">{t("profile.formatPrefixSeq", "PREFIX-SEQ (e.g. SLP-1001)")}</option>
                 <option value="SEQ">{t("profile.formatSeqOnly", "SEQ ONLY (e.g. 1001)")}</option>
               </select>
+              <div className="select-voice-btn-wrap">
+                <VoiceInputButton
+                  size="sm"
+                  placeholder="Speak numbering pattern"
+                  onSpeechResult={(text) => {
+                    const q = text.toLowerCase()
+                    if (q.includes("short") || q.includes("yymmdd")) {
+                      handleChange("invoice_format", "PREFIX-SHORTDATE-SEQ")
+                    } else if (q.includes("date") || q.includes("year") || q.includes("yyyymmdd")) {
+                      handleChange("invoice_format", "PREFIX-DATE-SEQ")
+                    } else if (q.includes("seq only") || q.includes("sequence only") || q.includes("only")) {
+                      handleChange("invoice_format", "SEQ")
+                    } else if (q.includes("prefix") || q.includes("seq")) {
+                      handleChange("invoice_format", "PREFIX-SEQ")
+                    }
+                  }}
+                />
+              </div>
             </div>
           </label>
 
@@ -816,101 +852,12 @@ export function Shop({ user, setView } = {}) {
           <div className="embedded-receipt-card">
             <div className="embedded-receipt-header">
               <div className="receipt-status-pill">
-                <span className="live-dot" /> LIVE THERMAL PREVIEW
+                <span className="live-dot" /> LIVE RECEIPT PREVIEW
               </div>
-              <span className="receipt-paper-pill">58mm Thermal</span>
+              <span className="receipt-paper-pill">{selectedTemplate?.width ? `${selectedTemplate.width} Thermal` : "58mm Thermal"}</span>
             </div>
 
-            <div className="thermal-roll-paper font-mono">
-              <div className="tear-edge top" />
-
-              <div className="roll-content">
-                <h4 className="thermal-shop-name">{(shop.name || "YOUR SHOP NAME").toUpperCase()}</h4>
-                <p className="thermal-address">{shop.address || "123 Market Street, City"}</p>
-                {shop.phone && <p className="thermal-phone">Tel: {shop.phone}</p>}
-
-                <div className="thermal-dash" />
-
-                <div className="thermal-meta-line">
-                  <span>BILL: {liveInvoicePreview}</span>
-                  <span>{new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
-                </div>
-
-                <div className="thermal-dash" />
-
-                <div className="thermal-items-header">
-                  <span>ITEM</span>
-                  <span className="text-center">QTY</span>
-                  <span className="text-right">AMT</span>
-                </div>
-
-                <div className="thermal-items-list">
-                  <div className="thermal-row">
-                    <span>Basmati Rice 1kg</span>
-                    <span className="text-center">2</span>
-                    <span className="text-right">₹240.00</span>
-                  </div>
-                  <div className="thermal-row">
-                    <span>Assam Tea 250g</span>
-                    <span className="text-center">1</span>
-                    <span className="text-right">₹160.00</span>
-                  </div>
-                  <div className="thermal-row">
-                    <span>Sunflower Oil 1L</span>
-                    <span className="text-center">1</span>
-                    <span className="text-right">₹195.00</span>
-                  </div>
-                </div>
-
-                <div className="thermal-dash" />
-
-                <div className="thermal-math">
-                  <div className="math-row">
-                    <span>Subtotal:</span>
-                    <span>₹{receiptMath.subtotal.toFixed(2)}</span>
-                  </div>
-                  {receiptMath.disc > 0 && (
-                    <div className="math-row discount">
-                      <span>Discount (Offer):</span>
-                      <span>-₹{receiptMath.disc.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {Number(shop.show_tax) === 1 && receiptMath.tax > 0 && (
-                    <div className="math-row tax">
-                      <span>Incl. GST ({shop.tax_rate}%):</span>
-                      <span>₹{receiptMath.tax.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {Number(shop.show_tax) === 2 && receiptMath.tax > 0 && (
-                    <div className="math-row tax">
-                      <span>GST Extra ({shop.tax_rate}%):</span>
-                      <span>+₹{receiptMath.tax.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="thermal-net-box">
-                    <span>NET TOTAL</span>
-                    <span>₹{receiptMath.total.toFixed(2)}</span>
-                  </div>
-                  <div className="math-row payment">
-                    <span>PAID VIA:</span>
-                    <span className="pay-badge">CASH / UPI</span>
-                  </div>
-                </div>
-
-                <div className="thermal-dash" />
-
-                <div className="thermal-footer">
-                  <p className="footer-ty">Thank you for shopping with us!</p>
-                  <div className="barcode-box">
-                    <div className="barcode-stripes" />
-                    <span className="barcode-text">*{liveInvoicePreview}*</span>
-                  </div>
-                  <small className="slipzo-brand">Slipzo Thermal POS</small>
-                </div>
-              </div>
-
-              <div className="tear-edge bottom" />
-            </div>
+            <RealisticReceiptView template={selectedTemplate} />
           </div>
         </div>
 
@@ -1531,6 +1478,35 @@ export function Shop({ user, setView } = {}) {
           z-index: 1;
         }
 
+        .field-voice-btn-wrap {
+          position: absolute;
+          right: 0.55rem;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          align-items: center;
+          z-index: 2;
+        }
+
+        .textarea-voice-btn-wrap {
+          position: absolute;
+          right: 0.55rem;
+          top: 0.65rem;
+          display: flex;
+          align-items: center;
+          z-index: 2;
+        }
+
+        .select-voice-btn-wrap {
+          position: absolute;
+          right: 2.1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          align-items: center;
+          z-index: 2;
+        }
+
         .shop-page input,
         .shop-page select,
         .shop-page textarea {
@@ -1550,15 +1526,17 @@ export function Shop({ user, setView } = {}) {
 
         .shop-page input {
           height: 46px !important;
+          padding-right: 2.85rem !important;
         }
 
         .shop-page select {
           height: 46px !important;
           cursor: pointer !important;
+          padding-right: 4.4rem !important;
         }
 
         .shop-page textarea {
-          padding: 0.75rem 1rem 0.75rem 2.65rem !important;
+          padding: 0.75rem 2.85rem 0.75rem 2.65rem !important;
           resize: vertical !important;
           min-height: 85px !important;
           line-height: 1.5 !important;

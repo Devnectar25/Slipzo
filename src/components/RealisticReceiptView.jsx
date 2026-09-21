@@ -5,7 +5,24 @@ import { money } from "../lib/utils"
 export function RealisticReceiptView({ template }) {
   if (!template) return null
 
-  const p = String(template.preview || template.id || "").toLowerCase()
+  const rawId = String(template.id || "").toLowerCase()
+  const rawName = String(template.name || "").toLowerCase()
+  const rawPreview = String(template.preview || template.templateId || "").toLowerCase()
+
+  let p = rawPreview || rawId
+  if (rawName.includes("minimal") || rawId.includes("minimal") || rawId === "bcaa2c28-0aeb-468e-8789-d5edfd2eee0c" || rawPreview === "minimal" || rawPreview === "2") {
+    p = "minimal"
+  } else if (rawName.includes("classic") || rawId.includes("classic") || rawId === "0442d846-0a89-4d90-800a-48278ec089d7" || rawPreview === "classic" || rawPreview === "1") {
+    p = "classic"
+  } else if (rawName.includes("pro") || rawId.includes("pro") || rawId === "b55d6642-d218-43c3-b8a8-918e87d9712d" || rawPreview === "pro" || rawPreview === "3") {
+    p = "pro"
+  } else if (rawName.includes("eco") || rawId.includes("eco") || rawId === "cc510d5f-07bf-4ce4-8c50-6ec1995c85f4" || rawPreview === "eco" || rawPreview === "4") {
+    p = "eco"
+  } else if (rawName.includes("modern") || rawId.includes("modern") || rawId === "4638c377-7094-4325-bf15-eb7c6de54ff6" || rawPreview === "modern" || rawPreview === "5") {
+    p = "modern"
+  } else if (rawName.includes("elite") || rawId.includes("elite") || rawId === "ee17a09d-5b86-47bc-b862-2fc6bbcba2b9" || rawPreview === "elite" || rawPreview === "6") {
+    p = "elite"
+  }
   const data = template.previewData || {
     shopName: template.name || "Slipzo Mart",
     address: "Shop 14, Main Market, Connaught Place, New Delhi",
@@ -308,7 +325,7 @@ export function RealisticReceiptView({ template }) {
         <div className="receipt-paper-top" />
         <div className="receipt-content" style={{ padding: "1rem" }}>
           <div className="eco-sawtooth-top" />
-          
+
           {/* Monospace Header */}
           <div className="eco-header-box" style={{ textAlign: "center", borderBottom: "1px dashed #0d9488", paddingBottom: "0.4rem", marginBottom: "0.4rem" }}>
             <h2 style={{ fontSize: "0.95rem", fontWeight: 900, letterSpacing: "0.5px", margin: 0 }}>

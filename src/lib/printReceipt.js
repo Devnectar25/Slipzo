@@ -534,36 +534,33 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const paperLabel = isA4 ? "A4 Standard" : `${pageWidth} Thermal Roll`
   const receiptHTML = clone.outerHTML
 
-  // Open dedicated print preview window
-  const availW = window.screen.availWidth || 1200
-  const availH = window.screen.availHeight || 800
-
-  const printWindow = window.open(
-    "",
-    "SlipzoThermalReceipt",
-    `width=${availW},height=${availH},left=0,top=0,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
-  )
-
-  if (!printWindow) {
-    Swal.fire({
-      title: "Popup Blocked",
-      text: "Please allow popups in your browser to enable thermal receipt printing.",
-      icon: "warning",
-      confirmButtonColor: "#0ea5e9"
-    })
-    return
-  }
-
-  try {
-    printWindow.moveTo(0, 0)
-    printWindow.resizeTo(availW, availH)
-  } catch (_) { /* browser restricted */ }
-
   const pageCssRule = isA4
     ? "size: A4 portrait; margin: 8mm !important;"
     : `size: ${pageWidth} ${targetHeightMm}mm !important; margin: 0 !important;`
 
-  printWindow.document.write(`<!DOCTYPE html>
+  // Clean up any existing print iframe from prior prints
+  const existingFrame = document.getElementById("slipzo-silent-print-frame")
+  if (existingFrame && existingFrame.parentNode) {
+    existingFrame.parentNode.removeChild(existingFrame)
+  }
+
+  // Create an invisible offscreen iframe for direct printing without window popups or about:blank flashes
+  const iframe = document.createElement("iframe")
+  iframe.id = "slipzo-silent-print-frame"
+  iframe.setAttribute("aria-hidden", "true")
+  iframe.setAttribute("tabindex", "-1")
+  iframe.style.position = "fixed"
+  iframe.style.right = "0"
+  iframe.style.bottom = "0"
+  iframe.style.width = "0"
+  iframe.style.height = "0"
+  iframe.style.border = "none"
+  iframe.style.visibility = "hidden"
+  iframe.style.zIndex = "-9999"
+
+  document.body.appendChild(iframe)
+
+  const printHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -577,182 +574,25 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       ${pageCssRule}
     }
 
-    /* Screen UI container styles */
-    html {
-      background: #0f172a;
-      width: ${isA4 ? "210mm" : pageWidth};
-      max-width: 100%;
-      margin: 0 auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    body {
-      background: #ffffff;
-      color: #000000;
+    html, body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: ${isA4 ? "210mm" : pageWidth} !important;
+      max-width: ${isA4 ? "210mm" : pageWidth} !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
       font-size: ${fontSize}px;
       line-height: ${lineHeight};
-      width: ${isA4 ? "210mm" : pageWidth};
-      max-width: ${isA4 ? "210mm" : pageWidth};
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      letter-spacing: normal;
     }
 
-    .screen-control-bar {
-      width: 100%;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 14px;
-      padding: 14px 16px;
-      margin-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      color: #f8fafc;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-    }
-
-    .screen-control-bar *, .screen-control-bar button, .screen-control-bar span {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-    }
-
-    .screen-control-bar .bar-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .screen-control-bar .bar-info {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-    }
-
-    .screen-control-bar .paper-pill {
-      background: #0ea5e9;
-      color: #ffffff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 6px;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      display: inline-block;
-    }
-
-    .screen-control-bar .stats-pill {
-      font-size: 11.5px;
-      color: #94a3b8;
-      font-weight: 500;
-      margin-top: 2px;
-    }
-
-    .screen-control-bar .print-trigger-btn {
-      background: #10b981;
-      color: #ffffff;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 13.5px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s ease;
-      box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
-      flex-shrink: 0;
-    }
-
-    .screen-control-bar .print-trigger-btn:hover {
-      background: #059669;
-      transform: translateY(-1px);
-    }
-
-    .screen-control-bar .bar-tips {
-      font-size: 11.5px;
-      color: #cbd5e1;
-      line-height: 1.5;
-      border-top: 1px solid #334155;
-      padding-top: 10px;
-    }
-
-    .screen-control-bar .bar-tips strong {
-      color: #38bdf8;
-    }
-
-    .screen-receipt-wrapper {
-      background: #ffffff;
-      width: 100%;
-      max-width: 100%;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      border-radius: 4px;
-      overflow: visible;
-      position: relative;
-      padding: ${isA4 ? "12mm 15mm" : "1mm 1.5mm 0 1.5mm"};
-      box-sizing: border-box;
-    }
-
-    /* Print media overrides */
     @media print {
-      .screen-control-bar {
-        display: none !important;
-      }
-
-      @page {
-        ${pageCssRule}
-      }
-
-      html {
-        background: #ffffff !important;
-        display: block !important;
-        width: ${isA4 ? "100%" : pageWidth} !important;
-        max-width: ${isA4 ? "100%" : pageWidth} !important;
+      html, body {
+        width: ${isA4 ? "210mm" : pageWidth} !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: visible !important;
-      }
-
-      body {
         background: #ffffff !important;
-        display: block !important;
-        width: ${isA4 ? "100%" : pageWidth} !important;
-        max-width: ${isA4 ? "100%" : pageWidth} !important;
-        margin: 0 !important;
-        padding: ${isA4 ? "0" : "1mm 1.5mm 0 1.5mm"} !important;
-        height: auto !important;
-        min-height: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-        overflow: visible !important;
-        transform: none !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
       }
-
-      .screen-receipt-wrapper {
-        background: #ffffff !important;
-        width: ${isA4 ? "100%" : pageWidth} !important;
-        max-width: ${isA4 ? "100%" : pageWidth} !important;
-        height: auto !important;
-        min-height: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-        border-radius: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-      }
-
       #receipt-to-print,
       .receipt-preview-content {
         background: #ffffff !important;
@@ -775,61 +615,45 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   </style>
 </head>
 <body>
-  <div class="screen-control-bar">
-    <div class="bar-top">
-      <div class="bar-info">
-        <span class="paper-pill">${paperLabel}</span>
-        <span class="stats-pill">Scale: ${Math.round(scale * 100)}% · Font: ${fontSize}px</span>
-      </div>
-      <button class="print-trigger-btn" onclick="window.print()">
-        🖨️ Print Now
-      </button>
-    </div>
-    <div class="bar-tips">
-      <strong>Thermal Tip:</strong> In the browser print dialog, select your thermal printer, set <strong>Margins</strong> to <strong>None</strong>, and verify <strong>Paper size</strong> matches ${paperLabel}.
-    </div>
-  </div>
+  ${receiptHTML}
+</body>
+</html>`
 
-  <div class="screen-receipt-wrapper">
-    ${receiptHTML}
-  </div>
+  const doc = iframe.contentDocument || iframe.contentWindow?.document
+  if (!doc) {
+    window.print()
+    return
+  }
 
-  <script>
-    // Verify popup rendered dimensions and trigger print
-    window.addEventListener('load', function () {
-      if (!${isA4}) {
+  doc.open()
+  doc.write(printHtml)
+  doc.close()
+
+  const executePrint = () => {
+    try {
+      const cw = iframe.contentWindow
+      if (cw) {
+        cw.focus()
+        cw.print()
+      } else {
+        window.print()
+      }
+    } catch (err) {
+      console.warn("[printReceiptElement] iframe print error, falling back to window.print:", err)
+      window.print()
+    } finally {
+      setTimeout(() => {
         try {
-          var wrapper = document.querySelector('.screen-receipt-wrapper');
-          if (wrapper) {
-            var actualPx = Math.ceil(wrapper.getBoundingClientRect().height || wrapper.offsetHeight);
-            var actualMm = Math.ceil(actualPx * (25.4 / 96)) + 2.5;
-            // If actual rendered size in popup is larger, adjust @page to prevent any 2nd page spill
-            if (actualMm > ${targetHeightMm}) {
-              var dynStyle = document.createElement('style');
-              dynStyle.textContent = '@media print { @page { size: ${pageWidth} ' + actualMm + 'mm !important; margin: 0 !important; } }';
-              document.head.appendChild(dynStyle);
-            }
+          if (iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe)
           }
         } catch (_) {}
-      }
+      }, 1500)
+    }
+  }
 
-      setTimeout(function () {
-        window.print();
-      }, 150);
-    });
-
-    // Automatically close window after printing is done or canceled
-    window.addEventListener('afterprint', function () {
-      setTimeout(function () {
-        window.close();
-      }, 500);
-    });
-  </script>
-</body>
-</html>`)
-
-  printWindow.document.close()
-  printWindow.focus()
+  // Trigger print directly without intermediate window or about:blank popup
+  setTimeout(executePrint, 60)
 }
 
 const loadHtml2Pdf = () => {

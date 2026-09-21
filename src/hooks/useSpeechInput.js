@@ -1,6 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 
 /**
+ * Helper to remove trailing punctuation (. ? ! , ; :) auto-appended by speech recognition engines
+ */
+export function cleanSpeechText(text) {
+  if (!text || typeof text !== "string") return ""
+  return text.trim().replace(/\s*[.,!?;:]+$/, "").trim()
+}
+
+/**
  * Helper to parse spoken text into Menu Item Name and Price
  * Examples:
  *  "Coffee 50 rupees" => { name: "Coffee", price: "50" }
@@ -12,7 +20,7 @@ export function parseMenuItemSpeech(transcript) {
     return { name: "", price: "" }
   }
 
-  const clean = transcript.trim()
+  const clean = cleanSpeechText(transcript)
   
   // Regex to capture trailing or embedded price: "price 150", "rs 150", "150 rupees", "150 rs", "for 150", or standalone number at end
   const priceRegex = /(?:price|cost|rs\.?|rupees|for)?\s*(\d+(?:\.\d{1,2})?)\s*(?:rupees|rs\.?|price)?/i
@@ -26,6 +34,7 @@ export function parseMenuItemSpeech(transcript) {
     // Clean up trailing words like "price", "rs", "rupees", "for", "-"
     nameVal = nameVal.replace(/(?:price|cost|rs\.?|rupees|for)\s*$/i, "").trim()
     nameVal = nameVal.replace(/^[-:]\s*/, "").trim()
+    nameVal = cleanSpeechText(nameVal)
 
     // Capitalize first letter of item name
     if (nameVal) {
@@ -36,7 +45,7 @@ export function parseMenuItemSpeech(transcript) {
   }
 
   // If no price digit was found, treat entire text as name
-  const formattedName = clean.charAt(0).toUpperCase() + clean.slice(1)
+  const formattedName = clean ? clean.charAt(0).toUpperCase() + clean.slice(1) : ""
   return { name: formattedName, price: "" }
 }
 
@@ -50,7 +59,7 @@ export function parseShopProfileSpeech(transcript) {
     return { name: "", phone: "", address: "" }
   }
 
-  const text = transcript.trim()
+  const text = cleanSpeechText(transcript)
   let name = ""
   let phone = ""
   let address = ""
@@ -65,15 +74,15 @@ export function parseShopProfileSpeech(transcript) {
   }
 
   // Extract shop name keyword: "shop name X", "name X"
-  const nameMatch = text.match(/(?:shop\s*name|store\prefix|name)\s*(?:is|=|:)?\s*([a-zA-Z0-9\s&'-]+?)(?=\s*(?:phone|mobile|address|location|$))/i)
+  const nameMatch = text.match(/(?:shop\s*name|store\s*name|name)\s*(?:is|=|:)?\s*([a-zA-Z0-9\s&'-]+?)(?=\s*(?:phone|mobile|address|location|$))/i)
   if (nameMatch && nameMatch[1]) {
-    name = nameMatch[1].trim()
+    name = cleanSpeechText(nameMatch[1].trim())
   }
 
   // Extract address keyword: "address X", "location X"
   const addressMatch = text.match(/(?:address|location)\s*(?:is|=|:)?\s*(.+)$/i)
   if (addressMatch && addressMatch[1]) {
-    address = addressMatch[1].trim()
+    address = cleanSpeechText(addressMatch[1].trim())
   }
 
   // If no keyword patterns matched, return entire text as shop name if no digits present
@@ -81,7 +90,8 @@ export function parseShopProfileSpeech(transcript) {
     if (/^\d{10,12}$/.test(text.replace(/[^0-9]/g, ""))) {
       phone = text.replace(/[^0-9+]/g, "")
     } else {
-      name = text.charAt(0).toUpperCase() + text.slice(1)
+      const cleaned = cleanSpeechText(text)
+      name = cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : ""
     }
   }
 
@@ -177,15 +187,18 @@ export function useSpeechInput() {
         const result = event.results[i]
         const text = result[0]?.transcript || ""
         if (result.isFinal) {
-          finalStr += text
+          finalStr += (finalStr && !finalStr.endsWith(" ") ? " " : "") + text
         } else {
-          interimStr += text
+          interimStr += (interimStr && !interimStr.endsWith(" ") ? " " : "") + text
         }
       }
 
-      const currentTranscript = (finalStr + (interimStr ? " " + interimStr : "")).trim()
+      const rawCombined = (finalStr + (interimStr ? (finalStr ? " " : "") + interimStr : "")).trim()
+      const currentTranscript = cleanSpeechText(rawCombined)
+      const currentInterim = cleanSpeechText(interimStr)
+
       setTranscript(currentTranscript)
-      setInterimTranscript(interimStr)
+      setInterimTranscript(currentInterim)
 
       if (options.onResult) {
         options.onResult(currentTranscript)

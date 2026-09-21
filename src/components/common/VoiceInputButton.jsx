@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import { Mic, Sparkles, Volume2, AlertCircle } from "lucide-react"
-import { useSpeechInput, parseMenuItemSpeech, parseShopProfileSpeech } from "../../hooks/useSpeechInput"
+import { useSpeechInput, parseMenuItemSpeech, parseShopProfileSpeech, cleanSpeechText } from "../../hooks/useSpeechInput"
 
 export function VoiceInputButton({
   onSpeechResult,
@@ -49,17 +49,18 @@ export function VoiceInputButton({
 
   // Deliver live and final transcript to callbacks as speech arrives
   useEffect(() => {
-    if (transcript && transcript.trim()) {
+    const cleaned = cleanSpeechText(transcript)
+    if (cleaned) {
       if (onSpeechResultRef.current) {
-        onSpeechResultRef.current(transcript)
+        onSpeechResultRef.current(cleaned)
       }
 
       if (onParsedResultRef.current) {
         if (mode === "menu") {
-          const parsed = parseMenuItemSpeech(transcript)
+          const parsed = parseMenuItemSpeech(cleaned)
           onParsedResultRef.current(parsed)
         } else if (mode === "shop") {
-          const parsed = parseShopProfileSpeech(transcript)
+          const parsed = parseShopProfileSpeech(cleaned)
           onParsedResultRef.current(parsed)
         }
       }

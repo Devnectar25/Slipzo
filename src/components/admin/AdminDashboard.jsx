@@ -546,6 +546,8 @@ export function AdminDashboard({ admin, onLogout }) {
           headers: getAdminHeaders()
         });
         Swal.fire({ title: 'Deleted!', text: 'Template has been deleted', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        invalidateApiCache('/admin/templates');
+        invalidateApiCache('/templates');
         loadAdminData();
       } catch (err) {
         Swal.fire('Error', err?.detail || err?.message || 'Failed to delete template', 'error');
@@ -1490,11 +1492,11 @@ export function AdminDashboard({ admin, onLogout }) {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <button
                               className="admin-refresh-btn"
-                              style={{ background: "#e0f2fe", color: "#0284c7", border: "1px solid #bae6fd", padding: "0.35rem 0.65rem" }}
-                              onClick={() => handleEditTemplate(t)}
-                              title="Edit Template"
+                              style={{ background: "#fee2e2", color: "#ef4444", border: "1px solid #fecaca", padding: "0.35rem 0.65rem" }}
+                              onClick={() => handleDeleteTemplate(t)}
+                              title="Delete Template"
                             >
-                              <Edit2 size={13} /> Edit
+                              <Trash2 size={13} /> Delete
                             </button>
                           </div>
                         </td>
