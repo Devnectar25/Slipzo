@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle } from "lucide-react"
-import { call, findTemplateMatch } from "../lib/utils"
+import { call, findTemplateMatch, setCachedData } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
@@ -190,16 +190,23 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         localStorage.setItem(`slipzo_shop_setup_${user.id}`, "true")
       }
 
+      const fullShop = {
+        name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        invoice_prefix: prefix.trim().toUpperCase(),
+        invoice_sequence: Number(sequence),
+        invoice_format: format,
+        default_template_id: defaultTemplateId
+      }
+
+      setCachedData("/shop", fullShop)
+      if (defaultTemplateId) {
+        localStorage.setItem("slipzo_default_template_id", defaultTemplateId)
+      }
+
       window.dispatchEvent(new CustomEvent("slipzo_shop_updated", {
-        detail: {
-          name: name.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          invoice_prefix: prefix.trim().toUpperCase(),
-          invoice_sequence: Number(sequence),
-          invoice_format: format,
-          default_template_id: defaultTemplateId
-        }
+        detail: fullShop
       }))
 
       success("🎉 Shop profile saved! Welcome to Slipzo.")

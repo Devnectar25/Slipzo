@@ -99,10 +99,13 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [templates, setTemplates] = useState(() => (Array.isArray(cachedTemplates) ? cachedTemplates : []))
   const [selectedId, setSelectedId] = useState(() => {
     const list = Array.isArray(cachedTemplates) && cachedTemplates.length > 0 ? cachedTemplates : BUILTIN_TEMPLATES
-    const targetTplId = initialShop?.default_template_id || cachedShop?.default_template_id
+    const targetTplId = initialShop?.default_template_id || 
+                        cachedShop?.default_template_id || 
+                        (typeof window !== "undefined" ? localStorage.getItem("slipzo_default_template_id") : null)
     if (targetTplId) {
       const match = findTemplateMatch(list, targetTplId)
       if (match) return match.id
+      return targetTplId
     }
     return ""
   })
@@ -200,14 +203,18 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
         // Automatically resolve the user's selected template from Shop Profile
         let resolvedTpl = null
-        if (shopData?.default_template_id) {
-          resolvedTpl = findTemplateMatch(combinedTemplates, shopData.default_template_id)
-        }
-        if (!resolvedTpl && combinedTemplates.length > 0) {
-          resolvedTpl = combinedTemplates.find(t => t.is_default) || combinedTemplates[0]
+        const targetTpl = shopData?.default_template_id || (typeof window !== "undefined" ? localStorage.getItem("slipzo_default_template_id") : null)
+        if (targetTpl) {
+          resolvedTpl = findTemplateMatch(combinedTemplates, targetTpl)
+          if (!resolvedTpl) {
+            resolvedTpl = findTemplateMatch(BUILTIN_TEMPLATES, targetTpl)
+          }
         }
         if (resolvedTpl) {
           setSelectedId(resolvedTpl.id)
+        } else if (combinedTemplates.length > 0 && !selectedId) {
+          resolvedTpl = combinedTemplates.find(t => t.is_default) || combinedTemplates[0]
+          if (resolvedTpl) setSelectedId(resolvedTpl.id)
         }
 
         // Set default discount and tax from shop profile
@@ -455,7 +462,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
     try {
       const billData = {
-        template_id: activeTemplate?.id || "",
+        template_id: activeTemplate?.id || selectedId || "",
+        template_name: activeTemplate?.name || "",
+        template_width: activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm"),
         items: validItems.map((item) => ({
           name: item.name.trim(),
           quantity: Number(item.quantity) || 1,
@@ -526,7 +535,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
     try {
       const billData = {
-        template_id: activeTemplate?.id || "",
+        template_id: activeTemplate?.id || selectedId || "",
+        template_name: activeTemplate?.name || "",
+        template_width: activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm"),
         items: validItems.map((item) => ({
           name: item.name.trim(),
           quantity: Number(item.quantity) || 1,
@@ -1141,10 +1152,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       <div style={{ position: "absolute", left: "-9999px", top: "-9999px", opacity: 0, pointerEvents: "none" }}>
         {(() => {
           const isNarrow = activeTemplate?.width === "58mm" || activeTemplate?.width === "55mm" || shop?.printer_width === "58mm" || shop?.printer_width === "55mm"
-          const baseSize = isNarrow ? "12px" : "13.5px"
-          const shopNameSize = isNarrow ? "18px" : "21px"
-          const totalSize = isNarrow ? "16.5px" : "19px"
-          const footerSize = isNarrow ? "11.5px" : "12.5px"
+          const baseSize = isNarrow ? "13.5px" : "15px"
+          const shopNameSize = isNarrow ? "20px" : "23px"
+          const totalSize = isNarrow ? "18px" : "21px"
+          const footerSize = isNarrow ? "12.5px" : "13.5px"
           return (
             <div
               id="receipt-to-print"
