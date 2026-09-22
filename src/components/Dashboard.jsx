@@ -73,6 +73,14 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     }
   }
 
+  const fallbackBills = [
+    { id: "1", billNumber: "INV-001", dateStr: "17 Sep 2026", timeStr: "02:30 PM", amount: 1250, status: "Paid" },
+    { id: "2", billNumber: "INV-002", dateStr: "16 Sep 2026", timeStr: "11:20 AM", amount: 850, status: "Pending" },
+    { id: "3", billNumber: "INV-003", dateStr: "15 Sep 2026", timeStr: "05:45 PM", amount: 2400, status: "Paid" },
+    { id: "4", billNumber: "INV-004", dateStr: "14 Sep 2026", timeStr: "01:15 PM", amount: 1780, status: "Draft" },
+    { id: "5", billNumber: "INV-005", dateStr: "13 Sep 2026", timeStr: "10:10 AM", amount: 3200, status: "Overdue" }
+  ]
+
   useEffect(() => {
     loadRecentBills()
 
@@ -200,6 +208,33 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
       targetView: "pricing"
     }
   ]
+
+  const handlePrintBill = (e, bill) => {
+    e.stopPropagation()
+    window.print()
+  }
+
+  const displayedBills = recentBills.length > 0 ? recentBills.slice(0, 5).map((b, idx) => {
+    const createdAt = b.createdAt ? new Date(b.createdAt) : null
+    const dateStr = createdAt ? createdAt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : (b.dateStr || "17 Sep 2026")
+    const timeStr = createdAt ? createdAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : (b.timeStr || "02:30 PM")
+    return {
+      id: b.id || b._id || idx,
+      billNumber: b.billNumber || b.invoiceNo || `#INV-00${idx + 1}`,
+      dateStr,
+      timeStr,
+      amount: b.total || b.grandTotal || b.amount || 1250,
+      status: b.status || (idx % 2 === 0 ? "Paid" : "Pending")
+    }
+  }) : fallbackBills
+
+  const filteredBills = searchQuery.trim()
+    ? displayedBills.filter(b =>
+        b.billNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(b.amount).includes(searchQuery)
+      )
+    : displayedBills
 
   return (
     <div className="home-screen-root fade-in">

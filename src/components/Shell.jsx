@@ -18,7 +18,9 @@ import {
   Printer,
   Utensils,
   List,
-  Globe
+  Globe,
+  Home,
+  ChevronDown
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
@@ -28,6 +30,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   const { t, i18n } = useTranslation()
   const currentLang = i18n.language || "en"
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0]
+  const [langOpen, setLangOpen] = useState(false)
 
   const navItems = [
     { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard, protected: false },
@@ -36,17 +39,18 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
     { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
     { id: "products", label: t("nav.products", "Products"), icon: Package, protected: true },
     { id: "history", label: t("nav.history", "Bill history"), icon: Store, protected: true },
-    { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
+    { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#FFF0E5", badgeColor: "#F66016" },
     { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings, protected: true },
     { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, protected: false }
   ]
 
-  // Mobile bottom navigation items
+  // Mobile bottom navigation items matching Figma reference
   const mobileNavItems = [
-    { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard },
+    { id: "dashboard", label: t("nav.home", "Home"), icon: Home },
     { id: "bills", label: t("nav.newBill", "New Bill"), icon: PlusCircle },
-    { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
-    { id: "history", label: t("nav.history", "History"), icon: History }
+    { id: "templates", label: t("nav.templates", "Templates"), icon: FileText },
+    { id: "history", label: t("nav.history", "Bill History"), icon: History },
+    { id: "menu", label: t("nav.menu", "Menu"), icon: Menu }
   ]
   const [isOpen, setIsOpen] = useState(false)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
@@ -186,8 +190,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           bottom: 0,
           height: '100vh',
           width: '280px',
-          background: 'white',
-          borderLeft: '1px solid #e2e8f0',
+          background: '#FDFAF6',
+          borderLeft: '1px solid #F7CDAB',
           padding: '0.85rem 1.15rem 0.65rem 1.15rem',
           display: 'flex',
           flexDirection: 'column',
@@ -212,7 +216,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               display: 'none',
               background: 'transparent',
               border: 'none',
-              color: '#0f172a',
+              color: '#0C1F41',
               cursor: 'pointer',
               padding: '4px',
               marginLeft: 'auto',
@@ -248,11 +252,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 gap: '0.7rem',
                 padding: '0.4rem 0.75rem',
                 border: 'none',
-                background: view === item.id ? '#f1f5f9' : 'transparent',
+                outline: 'none',
+                background: view === item.id ? '#FFF0E5' : 'transparent',
                 borderRadius: '8px',
                 fontSize: '0.84rem',
-                fontWeight: view === item.id ? '600' : '500',
-                color: view === item.id ? '#0f172a' : '#64748b',
+                fontWeight: view === item.id ? '700' : '500',
+                color: view === item.id ? '#F66016' : '#5A6B82',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
                 textAlign: 'left',
@@ -263,8 +268,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge && (
                 <span style={{
-                  background: item.badgeBg || '#e0f2fe',
-                  color: item.badgeColor || '#0284c7',
+                  background: item.badgeBg || '#FFF0E5',
+                  color: item.badgeColor || '#F66016',
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   padding: '0.1rem 0.45rem',
@@ -282,7 +287,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           className="side-bottom"
           style={{
             padding: '0.6rem 0 0 0',
-            borderTop: '1px solid #f1f5f9',
+            borderTop: '1px solid #F7CDAB',
             marginTop: '0.5rem',
             marginBottom: 0,
             flexShrink: 0,
@@ -294,8 +299,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           <div 
             className="sidebar-quota-widget"
             style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: '#FDF4EB',
+              border: '1px solid #F7CDAB',
               borderRadius: '10px',
               padding: '0.45rem 0.65rem',
               marginBottom: '0.55rem',
@@ -304,16 +309,16 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             onClick={() => handleNavClick("pricing")}
             title="Click to view pricing plans"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.3rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444' }} /> {activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}
+                <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#F66016' : '#EF4444' }} /> {activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}
               </span>
               <span style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444', fontWeight: 700 }}>
                 {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 10).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
               </span>
             </div>
-            <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(100, Math.max(0, ((activePlan.printsRemaining || 0) / (activePlan.totalPrints || 10)) * 100))}%`, height: '100%', background: (activePlan.printsRemaining || 0) > 2 ? 'linear-gradient(90deg, #38bdf8, #0ea5e9)' : '#ef4444', transition: 'width 0.3s ease' }} />
+            <div style={{ width: '100%', height: '5px', background: '#FADCC3', borderRadius: '9999px', overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(100, Math.max(0, ((activePlan.printsRemaining || 0) / (activePlan.totalPrints || 10)) * 100))}%`, height: '100%', background: (activePlan.printsRemaining || 0) > 2 ? 'linear-gradient(90deg, #FB821B, #F66016)' : '#EF4444', transition: 'width 0.3s ease' }} />
             </div>
           </div>
 
@@ -329,7 +334,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: '#0ea5e9',
+              background: '#F66016',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
@@ -341,10 +346,10 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               {(user?.name || "S")[0].toUpperCase()}
             </div>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <b style={{ display: 'block', fontSize: '0.82rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <b style={{ display: 'block', fontSize: '0.82rem', color: '#0C1F41', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.name || "User"}
               </b>
-              <small style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <small style={{ fontSize: '0.68rem', color: '#8A94A6', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.email || ""}
               </small>
             </span>
@@ -359,8 +364,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '0.35rem 0.6rem',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: '#FDFAF6',
+              border: '1px solid #F7CDAB',
               borderRadius: '9px',
               marginBottom: '0.45rem',
               cursor: 'pointer',
@@ -369,11 +374,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             }}
             title="Profile language settings"
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600, color: '#334155' }}>
-              <Globe size={13} style={{ color: '#0284c7' }} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600, color: '#0C1F41' }}>
+              <Globe size={13} style={{ color: '#F66016' }} />
               <span>{currentLangObj.flag} {currentLangObj.nativeName}</span>
             </span>
-            <span style={{ fontSize: '0.66rem', color: '#0284c7', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.66rem', color: '#F66016', fontWeight: 700 }}>
               {t("common.edit", "Change")}
             </span>
           </div>
@@ -444,6 +449,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               <Printer size={14} />
               <span>{formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} {activePlan.isFreeTier ? t("header.free", "free") + ' ' : ''}{(activePlan.printsRemaining || 0) === 1 ? t("header.print", "print") : t("header.printsLeft", "prints left")}</span>
             </div>
+
             <button
               data-testid="shell-menu-button"
               className="shell-menu-btn"
@@ -451,7 +457,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               aria-label="Toggle navigation menu"
               title="Menu"
             >
-              {isOpen ? <X size={22} /> : <Menu size={22} />}
+              {isOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
         </header>
@@ -463,17 +469,22 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
 
       {/* Mobile Bottom Navigation */}
       <div className="mobile-bottom-nav">
-        {mobileNavItems.map((item) => (
-          <button
-            key={item.id}
-            className={`mobile-nav-btn ${isMobileNavActive(item.id) ? 'active' : ''}`}
-            onClick={() => handleMobileNavClick(item.id)}
-            aria-label={item.label}
-          >
-            <item.icon size={22} />
-            <span>{item.label}</span>
-          </button>
-        ))}
+        {mobileNavItems.map((item) => {
+          const active = isMobileNavActive(item.id)
+          return (
+            <button
+              key={item.id}
+              className={`mobile-nav-btn ${active ? 'active' : ''}`}
+              onClick={() => handleMobileNavClick(item.id)}
+              aria-label={item.label}
+            >
+              <div className="mobile-nav-icon-wrap">
+                <item.icon size={20} />
+              </div>
+              <span>{item.label}</span>
+            </button>
+          )
+        })}
       </div>
 
       <style>{`
@@ -487,8 +498,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           right: 0 !important;
           min-height: calc(56px + env(safe-area-inset-top, 0px)) !important;
           height: auto !important;
-          background: #ffffff !important;
-          border-bottom: 1px solid #e2e8f0 !important;
+          background: #FDFAF6 !important;
+          border-bottom: 1px solid #F7CDAB !important;
           display: flex !important;
           align-items: center !important;
           justify-content: space-between !important;
@@ -518,7 +529,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         .shell-header-name {
           font-size: 1.25rem !important;
           font-weight: 800 !important;
-          color: #0f172a !important;
+          color: #0C1F41 !important;
           letter-spacing: -0.02em !important;
         }
 
@@ -535,22 +546,30 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           justify-content: center !important;
           width: 38px !important;
           height: 38px !important;
-          background: #f8fafc !important;
-          border: 1px solid #e2e8f0 !important;
+          background: #F6F6F7 !important;
+          border: 1px solid #F7CDAB !important;
           border-radius: 10px !important;
-          color: #0f172a !important;
+          color: #0C1F41 !important;
           cursor: pointer !important;
           transition: all 0.2s ease !important;
         }
 
         .shell-menu-btn:hover {
-          background: #f1f5f9 !important;
-          border-color: #cbd5e1 !important;
-          color: #0ea5e9 !important;
+          background: #FFF0E5 !important;
+          border-color: #F7CDAB !important;
+          color: #F66016 !important;
         }
 
         .shell-menu-btn:active {
           transform: scale(0.96) !important;
+        }
+
+        .app-shell aside nav button,
+        .app-shell aside nav button:focus,
+        .app-shell aside nav button:focus-visible,
+        .app-shell aside nav button:active {
+          outline: none !important;
+          box-shadow: none !important;
         }
 
         /* ============================================
@@ -584,7 +603,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             right: auto !important;
             left: 0 !important;
             border-left: none !important;
-            border-right: 1px solid #e2e8f0 !important;
+            border-right: 1px solid #F7CDAB !important;
+            background: #FDFAF6 !important;
             transition: transform 0.3s ease !important;
           }
 
@@ -644,8 +664,9 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           .app-shell aside {
             left: auto !important;
             right: 0 !important;
-            border-left: 1px solid #e2e8f0 !important;
+            border-left: 1px solid #F7CDAB !important;
             border-right: none !important;
+            background: #FDFAF6 !important;
             transform: translateX(100%) !important;
             transition: transform 0.3s ease !important;
             z-index: 999 !important;
@@ -654,7 +675,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             max-height: 100dvh !important;
             overflow: hidden !important;
             padding: max(calc(env(safe-area-inset-top, 0px) + 28px), 32px) 1rem max(0.65rem, env(safe-area-inset-bottom, 0.65rem)) 1rem !important;
-            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12) !important;
+            box-shadow: -4px 0 24px rgba(12, 31, 65, 0.12) !important;
             width: 280px !important;
             max-width: 85vw !important;
           }
@@ -708,26 +729,25 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             padding-bottom: 0 !important;
             padding-top: 0.55rem !important;
             margin-top: 0.45rem !important;
-            border-top: 1px solid #f1f5f9 !important;
+            border-top: 1px solid #F7CDAB !important;
           }
 
-          /* Mobile Bottom Navigation */
+          /* Mobile Bottom Navigation - Matching Figma Reference */
           .mobile-bottom-nav {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: #ffffff;
-            border-top: 1px solid #e2e8f0;
+            background: rgba(253, 250, 246, 0.96);
+            border-top: 1px solid #F7CDAB;
             display: flex !important;
             justify-content: space-around;
             align-items: center;
-            padding: 0.5rem 0.5rem env(safe-area-inset-bottom);
+            padding: 0.35rem 0.25rem env(safe-area-inset-bottom);
             z-index: 100;
-            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
-            height: 68px;
+            box-shadow: 0 -4px 16px rgba(12, 31, 65, 0.05);
+            height: 64px;
             backdrop-filter: blur(12px);
-            background: rgba(255, 255, 255, 0.95);
           }
 
           .mobile-nav-btn {
@@ -738,54 +758,61 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             gap: 2px;
             background: transparent;
             border: none;
-            padding: 0.25rem 0.75rem;
-            color: #94a3b8;
-            font-size: 0.6rem;
+            padding: 0.2rem 0.35rem;
+            color: #575B6B;
+            font-size: 0.65rem;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
-            min-width: 60px;
-            border-radius: 8px;
-            position: relative;
+            min-width: 56px;
+            border-radius: 16px;
             text-decoration: none;
           }
 
-          .mobile-nav-btn svg {
+          .mobile-nav-btn .mobile-nav-icon-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 28px;
+            border-radius: 14px;
             transition: all 0.2s ease;
-            width: 22px;
-            height: 22px;
-            stroke-width: 1.8;
+          }
+
+          .mobile-nav-btn svg {
+            width: 20px;
+            height: 20px;
+            stroke-width: 2;
+            color: #0C1F41;
           }
 
           .mobile-nav-btn span {
-            font-size: 0.6rem;
-            letter-spacing: 0.2px;
-            font-weight: 500;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #575B6B;
+            letter-spacing: 0.1px;
           }
 
           .mobile-nav-btn.active {
-            color: #0f172a;
+            color: #F66016;
+          }
+
+          .mobile-nav-btn.active .mobile-nav-icon-wrap {
+            background: #FFF0E5;
           }
 
           .mobile-nav-btn.active svg {
-            color: #0f172a;
-            stroke-width: 2.2;
+            color: #F66016 !important;
+            stroke-width: 2.3;
           }
 
-          .mobile-nav-btn.active::after {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 24px;
-            height: 3px;
-            background: #0f172a;
-            border-radius: 0 0 4px 4px;
+          .mobile-nav-btn.active span {
+            color: #F66016 !important;
+            font-weight: 700;
           }
 
           .mobile-nav-btn:hover:not(.active) {
-            color: #475569;
+            color: #0C1F41;
           }
 
           .mobile-nav-btn:active {
