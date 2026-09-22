@@ -86,7 +86,8 @@ export function Reprint({ billId, setView, requireAuth, user }) {
   // Set default print format based on bill template width
   useEffect(() => {
     if (bill) {
-      const matched = findTemplateMatch(BUILTIN_TEMPLATES, bill.template_id || bill.template_name)
+      const matched = findTemplateMatch(BUILTIN_TEMPLATES, bill.template_id) || 
+                      findTemplateMatch(BUILTIN_TEMPLATES, bill.template_name)
       const width = bill.template_width || matched?.width
       if (width === "58mm" || width === "55mm" || width === "55") {
         setPrintFormat("55mm")
@@ -99,7 +100,9 @@ export function Reprint({ billId, setView, requireAuth, user }) {
   // Resolve template object and populated preview data for dynamic realistic rendering
   const templateForView = useMemo(() => {
     if (!bill) return null
-    const matched = findTemplateMatch(BUILTIN_TEMPLATES, bill.template_id || bill.template_name) || BUILTIN_TEMPLATES[0]
+    const matched = findTemplateMatch(BUILTIN_TEMPLATES, bill.template_id) || 
+                    findTemplateMatch(BUILTIN_TEMPLATES, bill.template_name) || 
+                    BUILTIN_TEMPLATES[0]
 
     const itemsList = Array.isArray(bill.items)
       ? bill.items.map((it) => {

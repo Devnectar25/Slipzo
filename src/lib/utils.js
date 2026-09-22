@@ -111,6 +111,19 @@ export const getCachedData = (path) => {
   return null
 }
 
+export const setCachedData = (path, data) => {
+  if (!path || !data) return
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  const cacheItem = { data, timestamp: Date.now() }
+  memoryCache.set(cleanPath, cacheItem)
+  try {
+    sessionStorage.setItem(`slipzo_cache_${cleanPath}`, JSON.stringify(cacheItem))
+  } catch (e) {}
+  try {
+    localStorage.setItem(`slipzo_cache_${cleanPath}`, JSON.stringify(cacheItem))
+  } catch (e) {}
+}
+
 export const call = async (path, options = {}) => {
   // Ensure path starts with slash
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
@@ -613,42 +626,64 @@ export function findTemplateMatch(templatesList, targetId) {
   const targetStr = String(targetId).trim().toLowerCase()
 
   // 1. Direct ID match or templateId match
-  let matched = templatesList.find(t => t.id === targetId || String(t.templateId) === String(targetId))
+  let matched = templatesList.find(t => 
+    String(t.id || "").toLowerCase() === targetStr || 
+    String(t.templateId || "").toLowerCase() === targetStr
+  )
   if (matched) return matched
 
   // 2. Name exact match
   matched = templatesList.find(t => (t.name || "").trim().toLowerCase() === targetStr)
   if (matched) return matched
 
-  // 3. Known aliases / key mappings between builtin template keys & DB template names/IDs
-  const aliasMap = {
-    "classic": ["classic", "1", "classic receipt"],
-    "1": ["classic", "1", "classic receipt"],
-    "minimal": ["minimal", "2", "minimal clean bill"],
-    "2": ["minimal", "2", "minimal clean bill"],
-    "pro": ["pro", "3", "shop pro"],
-    "3": ["pro", "3", "shop pro"],
-    "eco": ["eco", "4", "eco print"],
-    "4": ["eco", "4", "eco print"],
-    "modern": ["modern", "5", "modern shop"],
-    "5": ["modern", "5", "modern shop"],
-    "elite": ["elite", "6", "business elite"],
-    "6": ["elite", "6", "business elite"]
-  }
+  // 3. Known aliases / key mappings between builtin template keys & DB template names/IDs/UUIDs
+  const aliasGroups = [
+    {
+      key: "classic",
+      aliases: ["classic", "1", "classic receipt", "0442d846-0a89-4d90-800a-48278ec089d7"]
+    },
+    {
+      key: "minimal",
+      aliases: ["minimal", "2", "minimal clean bill", "minimal bill", "bcaa2c28-0aeb-468e-8789-d5edfd2eee0c"]
+    },
+    {
+      key: "pro",
+      aliases: ["pro", "3", "shop pro", "shop pro (80mm)", "b55d6642-d218-43c3-b8a8-918e87d9712d"]
+    },
+    {
+      key: "eco",
+      aliases: ["eco", "4", "eco print", "eco thermal", "cc510d5f-07bf-4ce4-8c50-6ec1995c85f4"]
+    },
+    {
+      key: "modern",
+      aliases: ["modern", "5", "modern shop", "modern store", "4638c377-7094-4325-bf15-eb7c6de54ff6"]
+    },
+    {
+      key: "elite",
+      aliases: ["elite", "6", "business elite", "elite retail", "ee17a09d-5b86-47bc-b862-2fc6bbcba2b9"]
+    }
+  ]
 
-  const aliases = aliasMap[targetStr]
-  if (aliases) {
+  // Direct alias match
+  const matchedGroup = aliasGroups.find(g => 
+    g.aliases.some(a => a === targetStr || targetStr.includes(a) || a.includes(targetStr))
+  )
+
+  if (matchedGroup) {
     matched = templatesList.find(t => {
       const tId = String(t.id || "").toLowerCase()
       const tTplId = String(t.templateId || "").toLowerCase()
       const tName = String(t.name || "").toLowerCase()
-      return aliases.some(a => tId === a || tTplId === a || tName.includes(a))
+      return matchedGroup.aliases.some(a => tId === a || tTplId === a || tName === a || tName.includes(a))
     })
     if (matched) return matched
   }
 
   // 4. Partial name match
-  matched = templatesList.find(t => (t.name || "").toLowerCase().includes(targetStr))
+  matched = templatesList.find(t => 
+    (t.name || "").toLowerCase().includes(targetStr) || 
+    targetStr.includes((t.name || "").toLowerCase())
+  )
   if (matched) return matched
 
   return null

@@ -53,7 +53,7 @@ export function PrintModal({
         if (parsed.fontSize) return Number(parsed.fontSize)
       } catch (_) { }
     }
-    return (defaultWidth === "55mm") ? 10.5 : 12.5
+    return (defaultWidth === "55mm") ? 13.5 : 15.5
   })
 
   const [density, setDensity] = useState(() => {
@@ -79,9 +79,9 @@ export function PrintModal({
       const sanitized = (defaultWidth === "55mm") ? "55mm" : "80mm"
       setPageWidth(sanitized)
       if (sanitized === "55mm") {
-        setFontSize(10.5)
+        setFontSize(13.5)
       } else if (sanitized === "80mm") {
-        setFontSize(12.5)
+        setFontSize(15.5)
       }
     }
   }, [defaultWidth, isOpen])
@@ -340,7 +340,7 @@ export function PrintModal({
     const resetWidth = (defaultWidth === "55mm") ? "55mm" : "80mm"
     setPageWidth(resetWidth)
     setScale(100)
-    setFontSize(resetWidth === "55mm" ? 10.5 : 12.5)
+    setFontSize(resetWidth === "55mm" ? 13.5 : 15.5)
     setDensity("normal")
     setHighContrast(true)
     setShowShopDetails(true)
@@ -359,7 +359,7 @@ export function PrintModal({
 
   const titleSize = Math.round(fontSize * 1.35)
   const bodySize = fontSize
-  const subSize = Math.max(9, Math.round(fontSize * 0.9))
+  const subSize = Math.max(12, Math.round(fontSize * 0.9))
   const grandTotalSize = Math.round(fontSize * 1.25)
 
   return (
@@ -393,7 +393,7 @@ export function PrintModal({
                   className={`paper-format-btn ${pageWidth === "55mm" ? "active" : ""}`}
                   onClick={() => {
                     setPageWidth("55mm")
-                    setFontSize(10.5)
+                    setFontSize(13.5)
                   }}
                 >
                   <span className="format-name">55mm Thermal</span>
@@ -404,7 +404,7 @@ export function PrintModal({
                   className={`paper-format-btn ${pageWidth === "80mm" ? "active" : ""}`}
                   onClick={() => {
                     setPageWidth("80mm")
-                    setFontSize(12.5)
+                    setFontSize(15.5)
                   }}
                 >
                   <span className="format-name">80mm Thermal</span>

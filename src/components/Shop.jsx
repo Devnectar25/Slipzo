@@ -19,7 +19,7 @@ import {
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
-import { call, getCachedData, getActivePlanDetails, findTemplateMatch } from "../lib/utils"
+import { call, getCachedData, setCachedData, getActivePlanDetails, findTemplateMatch } from "../lib/utils"
 import { ButtonLoader, Skeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
@@ -293,7 +293,12 @@ export function Shop({ user, setView } = {}) {
 
       setSaved(true)
       setHasUnsaved(false)
-      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: { ...shop, ...(updatedShop || {}) } }))
+      const fullShop = { ...shop, ...(updatedShop || {}) }
+      setCachedData("/shop", fullShop)
+      if (fullShop.default_template_id) {
+        localStorage.setItem("slipzo_default_template_id", fullShop.default_template_id)
+      }
+      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: fullShop }))
       success(t("profile.settingsSaved", "Shop profile and invoice settings saved!"))
       setTimeout(() => setSaved(false), 3500)
     } catch (err) {
