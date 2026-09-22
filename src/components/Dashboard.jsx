@@ -209,33 +209,6 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     }
   ]
 
-  const handlePrintBill = (e, bill) => {
-    e.stopPropagation()
-    window.print()
-  }
-
-  const displayedBills = recentBills.length > 0 ? recentBills.slice(0, 5).map((b, idx) => {
-    const createdAt = b.createdAt ? new Date(b.createdAt) : null
-    const dateStr = createdAt ? createdAt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : (b.dateStr || "17 Sep 2026")
-    const timeStr = createdAt ? createdAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : (b.timeStr || "02:30 PM")
-    return {
-      id: b.id || b._id || idx,
-      billNumber: b.billNumber || b.invoiceNo || `#INV-00${idx + 1}`,
-      dateStr,
-      timeStr,
-      amount: b.total || b.grandTotal || b.amount || 1250,
-      status: b.status || (idx % 2 === 0 ? "Paid" : "Pending")
-    }
-  }) : fallbackBills
-
-  const filteredBills = searchQuery.trim()
-    ? displayedBills.filter(b =>
-        b.billNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        String(b.amount).includes(searchQuery)
-      )
-    : displayedBills
-
   return (
     <div className="home-screen-root fade-in">
       <style>{`

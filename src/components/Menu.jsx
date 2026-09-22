@@ -659,8 +659,9 @@ export function Menu({ setView, requireAuth, user }) {
                 )
               })}
             </div>
+          )}
 
-            {/* Section Subheader: My Menu count & Sort */}
+          {/* Section Subheader: My Menu count & Sort */}
             <div className="mob-menu-subheader">
               <div className="mob-menu-count-wrap">
                 <h3 className="mob-menu-heading">My Menu</h3>
@@ -1029,87 +1030,152 @@ export function Menu({ setView, requireAuth, user }) {
               </div>
             </div>
 
-              {/* Step-by-step instruction guide */}
-              <div className="menu-empty-guide-box">
-                <div className="menu-empty-guide-header">{t("menu.quickGuide", "Quick 4-Step Guide")}</div>
-                <ul className="menu-empty-guide-steps">
-                  <li>
-                    <span className="menu-empty-step-num">{formatNum(1)}</span>
-                    <span>{t("menu.guideStep1", "Search or speak an item name")}</span>
-                  </li>
-                  <li>
-                    <span className="menu-empty-step-num">{formatNum(2)}</span>
-                    <span>{t("menu.guideStep2", "Select an item from the master catalog")}</span>
-                  </li>
-                  <li>
-                    <span className="menu-empty-step-num">{formatNum(3)}</span>
-                    <span>{t("menu.guideStep3", "Set your personal selling price")}</span>
-                  </li>
-                  <li>
-                    <span className="menu-empty-step-num">{formatNum(4)}</span>
-                    <span>{t("menu.guideStep4", "Add it to your menu for 1-click billing")}</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          ) : (
-            /* ================================================================
-               PHASE 12: USER MENU CARDS (My Menu List)
-               ================================================================ */
-            <>
-              <div className="menu-section-subheader">
-                <h3 className="menu-section-title">
-                  {t("menu.myMenu", "My Menu")}
-                  <span className="menu-items-count-badge">
-                    {formatNum(filteredUserItems.length)} {filteredUserItems.length === 1 ? t("history.item", "item") : t("history.items", "items")}
-                  </span>
-                </h3>
-              </div>
+            {/* Empty State vs User Menu Cards */}
+            {items.length === 0 ? (
+              /* ================================================================
+                 PHASE 3: EMPTY STATE (Clean, no master dummy items shown!)
+                 ================================================================ */
+              <div className="menu-empty-state-card">
+                <div className="menu-empty-icon-circle">
+                  <Utensils size={32} />
+                </div>
+                <h2 className="menu-empty-title">{t("menu.emptyTitle", "Your menu is empty")}</h2>
+                <p className="menu-empty-desc">
+                  {t("menu.emptyDesc", "Add the items you use regularly to create bills faster without manual entry.")}
+                </p>
 
-            {/* Menu Cards Grid */}
-            <div className="menu-section-subheader">
-              <h3 className="menu-section-title">
-                My Menu
-                <span className="menu-items-count-badge">
-                  {filteredUserItems.length} {filteredUserItems.length === 1 ? "item" : "items"}
-                </span>
-              </h3>
-            </div>
+                <div className="menu-empty-actions-row">
+                  <button
+                    className="menu-primary-btn"
+                    onClick={() => {
+                      setCurrentView("add_items")
+                      setCatalogSearch("")
+                    }}
+                  >
+                    <Plus size={18} /> {t("menu.addItems", "Add Items")}
+                  </button>
 
-                        <div className="menu-card-details">
-                          <h4 className="menu-card-item-name" title={item.name}>
-                            {tDb(item.name)}
-                          </h4>
-                          <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
-                          <div className="menu-card-price-row">
-                            <span className="menu-card-selling-price">{money(item.price)}</span>
-                            {isItemActive && (
-                              <span className="menu-card-status-pill">
-                                <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
-                              </span>
-                            )}
+                  <button
+                    type="button"
+                    className={`menu-secondary-btn ${isListening ? "listening" : ""}`}
+                    onClick={handleToggleVoiceSearch}
+                    title={isListening ? t("menu.clickToStop", "Click to stop listening") : t("menu.addByVoice", "Add item by speaking its name")}
+                    style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
+                  >
+                    {isListening ? (
+                      <>
+                        <span className="speech-pulse-dot" />
+                        <Volume2 size={16} className="speech-icon-anim" />
+                        <span>{t("menu.listening", "Listening...")}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic size={17} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Step-by-step instruction guide */}
+                <div className="menu-empty-guide-box">
+                  <div className="menu-empty-guide-header">{t("menu.quickGuide", "Quick 4-Step Guide")}</div>
+                  <ul className="menu-empty-guide-steps">
+                    <li>
+                      <span className="menu-empty-step-num">{formatNum(1)}</span>
+                      <span>{t("menu.guideStep1", "Search or speak an item name")}</span>
+                    </li>
+                    <li>
+                      <span className="menu-empty-step-num">{formatNum(2)}</span>
+                      <span>{t("menu.guideStep2", "Select an item from the master catalog")}</span>
+                    </li>
+                    <li>
+                      <span className="menu-empty-step-num">{formatNum(3)}</span>
+                      <span>{t("menu.guideStep3", "Set your personal selling price")}</span>
+                    </li>
+                    <li>
+                      <span className="menu-empty-step-num">{formatNum(4)}</span>
+                      <span>{t("menu.guideStep4", "Add it to your menu for 1-click billing")}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              /* ================================================================
+                 PHASE 12: USER MENU CARDS (My Menu List)
+                 ================================================================ */
+              <>
+                <div className="menu-section-subheader">
+                  <h3 className="menu-section-title">
+                    {t("menu.myMenu", "My Menu")}
+                    <span className="menu-items-count-badge">
+                      {formatNum(filteredUserItems.length)} {filteredUserItems.length === 1 ? t("history.item", "item") : t("history.items", "items")}
+                    </span>
+                  </h3>
+                </div>
+
+                <div className="menu-cards-grid">
+                  {filteredUserItems.map((item) => {
+                    const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
+                    return (
+                      <div key={item.id} className="user-menu-card">
+                        <div className="user-menu-card-left">
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.name}
+                              className="menu-card-image"
+                              onError={(e) => {
+                                e.target.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <div className="menu-card-image-placeholder">
+                              <Utensils size={20} />
+                            </div>
+                          )}
+
+                          <div className="menu-card-details">
+                            <h4 className="menu-card-item-name" title={item.name}>
+                              {tDb(item.name)}
+                            </h4>
+                            <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
+                            <div className="menu-card-price-row">
+                              <span className="menu-card-selling-price">{money(item.price)}</span>
+                              {isItemActive && (
+                                <span className="menu-card-status-pill">
+                                  <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="user-menu-card-actions">
-                        <button
-                          className="menu-action-icon-btn"
-                          onClick={() => handleOpenEditModal(item)}
-                          title={t("menu.editPrice", "Edit selling price")}
-                        >
-                          <Edit2 size={15} />
-                        </button>
-                        <button
-                          className="menu-action-icon-btn delete-btn"
-                          onClick={() => handleRemoveFromUserMenu(item)}
-                          disabled={deletingId === item.id}
-                          title={t("menu.removeMenu", "Remove from My Menu")}
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <div className="user-menu-card-actions">
+                          <button
+                            className="menu-action-icon-btn"
+                            onClick={() => handleOpenEditModal(item)}
+                            title={t("menu.editPrice", "Edit selling price")}
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                          <button
+                            className="menu-action-icon-btn delete-btn"
+                            onClick={() => handleRemoveFromUserMenu(item)}
+                            disabled={deletingId === item.id}
+                            title={t("menu.removeMenu", "Remove from My Menu")}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
 
       {/* ====================================================================
           STATE B: ADD ITEMS FLOW (Catalog Search & Selection)
@@ -1129,8 +1195,7 @@ export function Menu({ setView, requireAuth, user }) {
               <h2 className="add-items-header-title">{t("menu.addItems", "Add Items")}</h2>
               <p className="menu-sub-title">{t("menu.catalogSubtitle", "Search or speak to find items from the master catalog")}</p>
             </div>
-          </>
-        )}
+          </div>
 
           {/* Search bar with voice input button */}
           <div className="menu-search-wrapper">
@@ -1200,8 +1265,7 @@ export function Menu({ setView, requireAuth, user }) {
                 {t("menu.resetFilters", "Reset Filters")}
               </button>
             </div>
-
-            {/* Available Catalog Items */}
+          ) : (
             <div className="menu-cards-grid">
               {filteredCatalogItems.map((catItem) => {
                 const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
@@ -1248,9 +1312,9 @@ export function Menu({ setView, requireAuth, user }) {
                 )
               })}
             </div>
-          </>
-        )}
-      </div>
+          )}
+        </>
+      )}
 
       {/* ====================================================================
           SHARED MODAL: ADD TO MY MENU CONFIRMATION
