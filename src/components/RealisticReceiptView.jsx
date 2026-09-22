@@ -427,7 +427,7 @@ export function RealisticReceiptView({ template }) {
               Tel: {data.phone}
             </div>
             {data.gst && (
-              <div style={{ fontSize: "0.68rem", color: "#0ea5e9", fontWeight: 600, marginTop: "0.1rem" }}>
+              <div style={{ fontSize: "0.68rem", color: "#F66016", fontWeight: 600, marginTop: "0.1rem" }}>
                 GSTIN: {data.gst}
               </div>
             )}
@@ -447,7 +447,7 @@ export function RealisticReceiptView({ template }) {
                   <div className="item-name" style={{ fontWeight: 700, fontSize: "0.78rem", color: "#0f172a" }}>{item.name}</div>
                   <small className="item-details" style={{ fontSize: "0.68rem", color: "#64748b" }}>{item.qty} qty @ ₹{item.rate}</small>
                 </div>
-                <span className="item-amt-badge" style={{ background: "#e0f2fe", color: "#0284c7", fontWeight: 800, fontSize: "0.78rem", padding: "0.2rem 0.5rem", borderRadius: "6px" }}>₹{item.total}</span>
+                <span className="item-amt-badge" style={{ background: "#FFF0E5", color: "#F66016", fontWeight: 800, fontSize: "0.78rem", padding: "0.2rem 0.5rem", borderRadius: "6px" }}>₹{item.total}</span>
               </div>
             ))}
           </div>
@@ -470,7 +470,7 @@ export function RealisticReceiptView({ template }) {
                 <span>₹{Number(data.tax).toFixed(2)}</span>
               </div>
             )}
-            <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #cbd5e1", paddingTop: "0.4rem", color: "#0ea5e9", fontWeight: 800, fontSize: "0.95rem", marginTop: "0.25rem" }}>
+            <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #cbd5e1", paddingTop: "0.4rem", color: "#F66016", fontWeight: 800, fontSize: "0.95rem", marginTop: "0.25rem" }}>
               <span>Amount Due</span>
               <span>₹{Number(data.total).toFixed(2)}</span>
             </div>
@@ -501,14 +501,14 @@ export function RealisticReceiptView({ template }) {
         <div className="receipt-paper-top" />
         <div className="receipt-content" style={{ padding: "1.25rem" }}>
           {/* Formal Tax Banner */}
-          <div className="elite-tax-banner" style={{ background: "#0284c7", color: "#ffffff", padding: "0.45rem 0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.5px", borderRadius: "4px", marginBottom: "0.65rem" }}>
+          <div className="elite-tax-banner" style={{ background: "#F66016", color: "#ffffff", padding: "0.45rem 0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 800, fontSize: "0.78rem", letterSpacing: "0.5px", borderRadius: "4px", marginBottom: "0.65rem" }}>
             <span>TAX INVOICE</span>
             <span>ORIGINAL FOR RECIPIENT</span>
           </div>
 
           {/* Seller Details Box */}
           <div className="elite-party-card" style={{ border: "1px solid #cbd5e1", borderRadius: "6px", padding: "0.45rem 0.6rem", background: "#f8fafc", fontSize: "0.7rem", marginBottom: "0.5rem" }}>
-            <div style={{ fontSize: "0.6rem", fontWeight: 800, color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "0.2rem" }}>Supplier / Seller</div>
+            <div style={{ fontSize: "0.6rem", fontWeight: 800, color: "#F66016", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "0.2rem" }}>Supplier / Seller</div>
             <h4 style={{ fontSize: "0.82rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.15rem" }}>{data.shopName}</h4>
             <p style={{ color: "#475569", margin: "0.05rem 0", fontSize: "0.68rem" }}>{data.address}</p>
             <p style={{ color: "#475569", margin: "0.05rem 0", fontSize: "0.68rem" }}>Tel: {data.phone}</p>
@@ -583,7 +583,7 @@ export function RealisticReceiptView({ template }) {
                 <span>₹{Number(data.tax).toFixed(2)}</span>
               </div>
             )}
-            <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #0284c7", color: "#0284c7", padding: "0.45rem 0", fontWeight: 900, fontSize: "0.95rem", marginTop: "0.25rem" }}>
+            <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #F66016", color: "#F66016", padding: "0.45rem 0", fontWeight: 900, fontSize: "0.95rem", marginTop: "0.25rem" }}>
               <span>TOTAL INVOICE VALUE</span>
               <span>₹{Number(data.total).toFixed(2)}</span>
             </div>

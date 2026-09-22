@@ -151,7 +151,7 @@ export function Contact({ setView, setShowAuth, user }) {
       description: t("contact.emailDesc", "Send us your queries and receive a comprehensive reply in < 24h."),
       actionText: "support@slipzo.com",
       actionLink: "mailto:support@slipzo.com",
-      accent: "#0ea5e9",
+      accent: "#FB821B",
       badge: t("contact.inbox247", "24/7 inbox")
     },
     {
@@ -160,7 +160,7 @@ export function Contact({ setView, setShowAuth, user }) {
       description: t("contact.phoneDesc", "Speak to our hardware and setup specialists over phone call."),
       actionText: "+91 98765 43210",
       actionLink: "tel:+919876543210",
-      accent: "#0ea5e9",
+      accent: "#FB821B",
       badge: t("contact.phoneHours", "9 AM - 8 PM IST")
     },
     {

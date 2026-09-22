@@ -157,7 +157,7 @@ export function PrintModal({
               text: errMsg,
               icon: "warning",
               confirmButtonText: "View Pricing Plans",
-              confirmButtonColor: "#0ea5e9"
+              confirmButtonColor: "#F66016"
             })
           }
           return
@@ -259,7 +259,7 @@ export function PrintModal({
               text: errMsg,
               icon: "warning",
               confirmButtonText: "View Pricing Plans",
-              confirmButtonColor: "#0ea5e9"
+              confirmButtonColor: "#F66016"
             })
           }
           return
@@ -646,9 +646,9 @@ export function PrintModal({
             disabled={isSubmittingPrint}
             style={{
               flex: '1 1 auto',
-              background: '#f0f9ff',
-              color: '#0284c7',
-              borderColor: '#bae6fd',
+              background: '#FFF0E5',
+              color: '#F66016',
+              borderColor: '#F7CDAB',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',

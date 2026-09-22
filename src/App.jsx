@@ -790,7 +790,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
               >
                 <div className="footer-logo-box">
                   <img
-                    src="/Footer_Logo.png"
+                    src="/logo.png"
                     alt="Slipzo"
                     className="footer-logo"
                   />
