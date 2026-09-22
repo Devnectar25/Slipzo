@@ -34,7 +34,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   }
 
   const scale = Number(config.scale) || 1
-  const fontSize = Number(config.fontSize) || (pageWidth === "80mm" ? 12 : (isA4 ? 14 : (pageWidth === "55mm" ? 10 : 11)))
+  const fontSize = Number(config.fontSize) || (pageWidth === "80mm" ? 13.5 : (isA4 ? 15 : (pageWidth === "55mm" ? 12 : 12.5)))
   const density = config.density || "normal" // "tight" | "normal" | "relaxed"
   const highContrast = config.highContrast !== false
   const showShopDetails = config.showShopDetails !== false
@@ -42,15 +42,15 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const showTax = config.showTax !== false
   const showFooter = config.showFooter !== false
 
-  // Balanced, highly legible font sizes for thermal printing
-  const shopTitleSize = isA4 ? "20px" : (pageWidth === "80mm" ? "18px" : (pageWidth === "55mm" ? "14px" : "15px"))
-  const shopSubSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : (pageWidth === "55mm" ? "10px" : "11px"))
-  const metaSize = isA4 ? "13px" : (pageWidth === "80mm" ? "11.5px" : (pageWidth === "55mm" ? "9.5px" : "10.5px"))
-  const itemHeaderSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : (pageWidth === "55mm" ? "10px" : "11px"))
-  const itemRowSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : (pageWidth === "55mm" ? "10px" : "11px"))
-  const totalRowSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12px" : (pageWidth === "55mm" ? "10px" : "11px"))
-  const grandTotalSize = isA4 ? "18px" : (pageWidth === "80mm" ? "16px" : (pageWidth === "55mm" ? "13.5px" : "14px"))
-  const footerSize = isA4 ? "13px" : (pageWidth === "80mm" ? "11.5px" : (pageWidth === "55mm" ? "9.5px" : "10.5px"))
+  // Balanced, highly legible, crisp bold font sizes for thermal printing (80mm & 55mm/58mm)
+  const shopTitleSize = isA4 ? "22px" : (pageWidth === "80mm" ? "21px" : (pageWidth === "55mm" ? "17.5px" : "18px"))
+  const shopSubSize = isA4 ? "14.5px" : (pageWidth === "80mm" ? "13.5px" : (pageWidth === "55mm" ? "12px" : "12.5px"))
+  const metaSize = isA4 ? "14px" : (pageWidth === "80mm" ? "13.5px" : (pageWidth === "55mm" ? "12px" : "12.5px"))
+  const itemHeaderSize = isA4 ? "14.5px" : (pageWidth === "80mm" ? "13.5px" : (pageWidth === "55mm" ? "12px" : "12.5px"))
+  const itemRowSize = isA4 ? "14.5px" : (pageWidth === "80mm" ? "13.5px" : (pageWidth === "55mm" ? "12px" : "12.5px"))
+  const totalRowSize = isA4 ? "14.5px" : (pageWidth === "80mm" ? "13.5px" : (pageWidth === "55mm" ? "12px" : "12.5px"))
+  const grandTotalSize = isA4 ? "20px" : (pageWidth === "80mm" ? "19px" : (pageWidth === "55mm" ? "16.5px" : "17px"))
+  const footerSize = isA4 ? "13.5px" : (pageWidth === "80mm" ? "12.5px" : (pageWidth === "55mm" ? "11.5px" : "12px"))
   const gridColumns = isA4
     ? "2.5fr 0.6fr 1fr 1fr"
     : (pageWidth === "80mm"
@@ -118,10 +118,32 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       max-width: 100% !important;
       background: #ffffff !important;
       color: #000000 !important;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, monospace;
       font-size: ${fontSize}px;
       line-height: ${lineHeight};
       letter-spacing: normal;
+    }
+
+    .receipt-paper-top,
+    .receipt-paper-bottom {
+      display: none !important;
+    }
+
+    .realistic-thermal-receipt {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .realistic-thermal-receipt .receipt-content {
+      padding: 0 !important;
+      margin: 0 !important;
     }
 
     .receipt-shop {
@@ -581,7 +603,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       padding: 0 !important;
       width: ${isA4 ? "210mm" : pageWidth} !important;
       max-width: ${isA4 ? "210mm" : pageWidth} !important;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", Courier, monospace;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, monospace;
       font-size: ${fontSize}px;
       line-height: ${lineHeight};
     }

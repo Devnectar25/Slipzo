@@ -113,9 +113,9 @@
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
-    font-size: 11px !important;
-    line-height: 1.35 !important;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace, sans-serif !important;
+    font-size: 13.5px !important;
+    line-height: 1.45 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, monospace !important;
     width: 80mm !important;
     max-width: 80mm !important;
     height: auto !important;
@@ -130,6 +130,7 @@
   #receipt-to-print.format-55mm {
     width: 55mm !important;
     max-width: 55mm !important;
+    font-size: 12px !important;
   }
 
   .width-58mm #receipt-to-print,
@@ -138,6 +139,7 @@
   #receipt-to-print.format-58mm {
     width: 58mm !important;
     max-width: 58mm !important;
+    font-size: 12px !important;
   }
 
   .width-80mm #receipt-to-print,
@@ -146,6 +148,7 @@
   #receipt-to-print.format-80mm {
     width: 80mm !important;
     max-width: 80mm !important;
+    font-size: 13.5px !important;
   }
 
   .format-a4 #receipt-to-print,
@@ -173,7 +176,7 @@
   }
 
   .receipt-shop .receipt-shop-name {
-    font-size: 17px !important;
+    font-size: 21px !important;
     font-weight: 900 !important;
     margin: 0 0 2px 0 !important;
     color: #000000 !important;
@@ -182,7 +185,7 @@
   }
 
   .receipt-shop p {
-    font-size: 11px !important;
+    font-size: 13.5px !important;
     font-weight: 700 !important;
     margin: 1px 0 !important;
     color: #000000 !important;
@@ -202,10 +205,10 @@
     align-items: center !important;
     flex-wrap: wrap !important;
     gap: 4px !important;
-    font-size: 11px !important;
+    font-size: 13.5px !important;
     font-weight: 700 !important;
     color: #000000 !important;
-    padding: 2px 0 !important;
+    padding: 3px 0 !important;
     word-break: break-word !important;
   }
 
@@ -217,8 +220,8 @@
   }
 
   .receipt-divider {
-    border-top: 1px dashed #000000 !important;
-    margin: 4px 0 !important;
+    border-top: 1.5px dashed #000000 !important;
+    margin: 5px 0 !important;
   }
 
   /* Items Table */
@@ -226,10 +229,10 @@
     display: grid !important;
     grid-template-columns: 2fr 0.6fr 0.8fr 1fr !important;
     gap: 2px !important;
-    font-size: 11px !important;
+    font-size: 13.5px !important;
     font-weight: 900 !important;
-    padding: 2px 0 !important;
-    border-bottom: 1px solid #000000 !important;
+    padding: 3px 0 !important;
+    border-bottom: 1.5px solid #000000 !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
@@ -238,9 +241,9 @@
     display: grid !important;
     grid-template-columns: 2fr 0.6fr 0.8fr 1fr !important;
     gap: 2px !important;
-    font-size: 11px !important;
+    font-size: 13.5px !important;
     font-weight: 700 !important;
-    padding: 2px 0 !important;
+    padding: 3px 0 !important;
     width: 100% !important;
     box-sizing: border-box !important;
     align-items: start !important;
@@ -276,7 +279,7 @@
 
   /* Totals */
   .receipt-totals {
-    padding-top: 4px !important;
+    padding-top: 5px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
@@ -284,9 +287,9 @@
   .receipt-total-row {
     display: flex !important;
     justify-content: space-between !important;
-    font-size: 11px !important;
+    font-size: 13.5px !important;
     font-weight: 700 !important;
-    padding: 1px 0 !important;
+    padding: 2px 0 !important;
   }
 
   .receipt-total-row span:last-child {
@@ -300,10 +303,10 @@
   .receipt-grand-total {
     display: flex !important;
     justify-content: space-between !important;
-    font-size: 15px !important;
+    font-size: 19px !important;
     font-weight: 900 !important;
-    padding-top: 4px !important;
-    margin-top: 4px !important;
+    padding-top: 5px !important;
+    margin-top: 5px !important;
     border-top: 2px solid #000000 !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
@@ -316,9 +319,9 @@
   /* Footer */
   .receipt-footer {
     text-align: center !important;
-    padding-top: 4px !important;
-    border-top: 1px dashed #000000 !important;
-    margin-top: 4px !important;
+    padding-top: 5px !important;
+    border-top: 1.5px dashed #000000 !important;
+    margin-top: 5px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
@@ -326,15 +329,68 @@
   .receipt-payment {
     display: flex !important;
     justify-content: space-between !important;
-    font-size: 11px !important;
+    font-size: 13.5px !important;
     font-weight: 800 !important;
   }
 
   .receipt-thanks {
-    font-size: 10.5px !important;
+    font-size: 12.5px !important;
     font-weight: 700 !important;
     color: #000000 !important;
-    margin: 3px 0 0 0 !important;
+    margin: 4px 0 0 0 !important;
+  }
+
+  /* Narrow Roll (55mm / 58mm) Font Scaling */
+  .width-55mm .receipt-shop .receipt-shop-name,
+  .width-58mm .receipt-shop .receipt-shop-name,
+  .format-55mm .receipt-shop .receipt-shop-name,
+  .format-58mm .receipt-shop .receipt-shop-name {
+    font-size: 18px !important;
+  }
+
+  .width-55mm .receipt-shop p,
+  .width-58mm .receipt-shop p,
+  .format-55mm .receipt-shop p,
+  .format-58mm .receipt-shop p,
+  .width-55mm .receipt-meta,
+  .width-58mm .receipt-meta,
+  .format-55mm .receipt-meta,
+  .format-58mm .receipt-meta,
+  .width-55mm .receipt-customer-line,
+  .width-58mm .receipt-customer-line,
+  .format-55mm .receipt-customer-line,
+  .format-58mm .receipt-customer-line,
+  .width-55mm .receipt-items-header,
+  .width-58mm .receipt-items-header,
+  .format-55mm .receipt-items-header,
+  .format-58mm .receipt-items-header,
+  .width-55mm .receipt-item-row,
+  .width-58mm .receipt-item-row,
+  .format-55mm .receipt-item-row,
+  .format-58mm .receipt-item-row,
+  .width-55mm .receipt-total-row,
+  .width-58mm .receipt-total-row,
+  .format-55mm .receipt-total-row,
+  .format-58mm .receipt-total-row,
+  .width-55mm .receipt-payment,
+  .width-58mm .receipt-payment,
+  .format-55mm .receipt-payment,
+  .format-58mm .receipt-payment {
+    font-size: 12px !important;
+  }
+
+  .width-55mm .receipt-grand-total,
+  .width-58mm .receipt-grand-total,
+  .format-55mm .receipt-grand-total,
+  .format-58mm .receipt-grand-total {
+    font-size: 16.5px !important;
+  }
+
+  .width-55mm .receipt-thanks,
+  .width-58mm .receipt-thanks,
+  .format-55mm .receipt-thanks,
+  .format-58mm .receipt-thanks {
+    font-size: 11.5px !important;
   }
 
   /* Structural Templates Print Rules */

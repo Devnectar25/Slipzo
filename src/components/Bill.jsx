@@ -43,6 +43,8 @@ import {
 import { Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { VoiceInputButton } from "./common/VoiceInputButton"
+import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 import "../styles/NewBillFlow.css"
 
 function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
@@ -69,7 +71,9 @@ function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PRE
   }
 }
 
-export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: parentSetShop }) {
+export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: initialShop, setShop: parentSetShop }) {
+  const { t } = useTranslation()
+  const { tDb, formatNum, lang } = useDbTranslation()
   const userKey = getCurrentUserKey(user)
   const [shop, setShopState] = useState(initialShop || {})
 
@@ -92,9 +96,36 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
   const cachedTemplates = getCachedData("/templates")
   const cachedMenuItems = getCachedData("/menu")
 
-  // Shop & Templates State
   const [templates, setTemplates] = useState(() => (Array.isArray(cachedTemplates) ? cachedTemplates : []))
-  const [selectedId, setSelectedId] = useState("")
+  const [selectedId, setSelectedId] = useState(() => {
+    const list = Array.isArray(cachedTemplates) && cachedTemplates.length > 0 ? cachedTemplates : BUILTIN_TEMPLATES
+    const targetTplId = initialShop?.default_template_id || cachedShop?.default_template_id
+    if (targetTplId) {
+      const match = findTemplateMatch(list, targetTplId)
+      if (match) return match.id
+    }
+    return ""
+  })
+
+  // Listen for shop updates (e.g. template changed in Shop Profile or Onboarding)
+  useEffect(() => {
+    const handleShopUpdated = (e) => {
+      if (e?.detail) {
+        setShop(e.detail)
+        if (e.detail.default_template_id) {
+          const list = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
+          const match = findTemplateMatch(list, e.detail.default_template_id)
+          if (match) {
+            setSelectedId(match.id)
+          } else {
+            setSelectedId(e.detail.default_template_id)
+          }
+        }
+      }
+    }
+    window.addEventListener("slipzo_shop_updated", handleShopUpdated)
+    return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdated)
+  }, [templates])
 
   // Logged-in User's Personal Menu Items
   const [userMenuItems, setUserMenuItems] = useState(() => {
@@ -447,6 +478,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
       })
 
       setSaved(bill)
+      window.dispatchEvent(new CustomEvent("slipzo_bill_saved", { detail: bill }))
       if (bill?.number) {
         setCustomBillNumber(bill.number)
       }
@@ -455,6 +487,79 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
       setFlowStep("success")
     } catch (err) {
       console.error("Failed to save bill:", err)
+      const msg = err.detail || err.message || "Failed to save bill. Please try again."
+      setSaveError(msg)
+      toastError(msg)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // ==========================================
+  // HANDLERS: PRINT BILL -> DIRECT TO FINAL PRINT PREVIEW
+  // ==========================================
+  const handlePrintBill = async () => {
+    if (isSaving) return
+
+    if (!user) {
+      requireAuth?.("bills")
+      return
+    }
+
+    const validItems = items.filter((item) => item.name && item.name.trim() && Number(item.quantity) > 0)
+    if (validItems.length === 0) {
+      toastError(t("bills.addItemsBeforePrint", "Please add items to bill before printing."))
+      return
+    }
+
+    // If bill already saved, directly navigate to final print preview
+    if (saved?.id) {
+      setSelectedBillId?.(saved.id)
+      sessionStorage.setItem("slipzo-reprint-id", saved.id)
+      sessionStorage.setItem("slipzo-print-origin", "bills")
+      setView("reprint")
+      return
+    }
+
+    setIsSaving(true)
+    setSaveError(null)
+
+    try {
+      const billData = {
+        template_id: activeTemplate?.id || "",
+        items: validItems.map((item) => ({
+          name: item.name.trim(),
+          quantity: Number(item.quantity) || 1,
+          rate: Number(item.rate) || 0
+        })),
+        subtotal: subtotal,
+        discount: discountAmount,
+        tax_rate: taxRate,
+        tax_mode: shopTaxMode,
+        tax_amount: taxAmount,
+        total: total,
+        payment_mode: payment,
+        number: customBillNumber || ""
+      }
+
+      const bill = await call("/bills", {
+        method: "POST",
+        body: JSON.stringify(billData)
+      })
+
+      setSaved(bill)
+      window.dispatchEvent(new CustomEvent("slipzo_bill_saved", { detail: bill }))
+      if (bill?.number) {
+        setCustomBillNumber(bill.number)
+      }
+
+      // DIRECTLY navigate to existing final print preview without showing any intermediate page!
+      setSelectedBillId?.(bill.id)
+      sessionStorage.setItem("slipzo-reprint-id", bill.id)
+      sessionStorage.setItem("slipzo-print-origin", "bills")
+      setView("reprint")
+    } catch (err) {
+      console.error("Failed to save and print bill:", err)
       const msg = err.detail || err.message || "Failed to save bill. Please try again."
       setSaveError(msg)
       toastError(msg)
@@ -493,48 +598,11 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
     }
 
     try {
-      if (user) {
-        // Authenticated user: deduct exactly 1 print credit
-        let quota = null
-        try {
-          const res = await call("/subscriptions/consume-print", { method: "POST" })
-          if (res && res.quota) {
-            quota = res.quota
-            syncUserQuota(res.quota, userAuthKey)
-          }
-        } catch (err) {
-          console.error("Print quota deduction failed:", err)
-          const errMsg = err?.detail || err?.message || "No print credits available"
-          Swal.fire({
-            title: "Print Quota Reached",
-            text: errMsg,
-            icon: "warning",
-            confirmButtonText: "View Plans",
-            confirmButtonColor: "#F66016"
-          })
-          isPrintingRef.current = false
-          return
-        }
-
-        // Execute print using user's Shop Profile template width
-        const templateWidth = activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm")
-        printReceiptElement("receipt-to-print", {
-          pageWidth: templateWidth === "58mm" ? "58mm" : "80mm"
-        })
-
-        toastSuccess("Printed successfully!")
-
-        if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
-          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
-        }
-      } else {
-        // Guest user local print
-        incrementFreePrintCount(userAuthKey)
-        const templateWidth = activeTemplate?.width || "80mm"
-        printReceiptElement("receipt-to-print", {
-          pageWidth: templateWidth === "58mm" ? "58mm" : "80mm"
-        })
-      }
+      const templateWidth = activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm")
+      printReceiptElement("receipt-to-print", {
+        pageWidth: templateWidth === "58mm" ? "58mm" : "80mm"
+      })
+      toastSuccess("Printed successfully!")
     } catch (err) {
       console.error("Printing failed:", err)
       toastError("Printing failed. Please check printer connection.")
@@ -590,8 +658,8 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             <FileText size={22} className="nb-header-icon" />
           </div>
           <div className="nb-header-titles">
-            <h1 className="nb-page-title">New Bill</h1>
-            <p className="nb-page-subtitle">Add items from your menu and create a bill</p>
+            <h1 className="nb-page-title">{t("bills.newBillTitle", "New Bill")}</h1>
+            <p className="nb-page-subtitle">{t("bills.newBillSubtitle", "Add items from your menu and create a bill")}</p>
           </div>
         </div>
 
@@ -600,26 +668,20 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             type="button"
             className="nb-top-add-more-btn"
             onClick={handleAddMoreItemsClick}
-            title="Add more items to bill"
+            title={t("bills.addMoreItems", "Add More Items")}
           >
             <Plus size={15} />
-            <span>Add More Items</span>
+            <span>{t("bills.addMoreItems", "Add More Items")}</span>
           </button>
 
           <button
             className="nb-top-print-btn"
-            onClick={() => {
-              if (items.length === 0) {
-                toastError("Please add items to bill before printing.")
-                return
-              }
-              handleDirectPrint()
-            }}
-            disabled={items.length === 0}
-            title="Print Receipt"
+            onClick={handlePrintBill}
+            disabled={isSaving || items.length === 0}
+            title={t("bills.print", "Print")}
           >
             <Printer size={15} />
-            <span>Print</span>
+            <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.print", "Print")}</span>
           </button>
         </div>
       </header>
@@ -633,7 +695,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             <Check size={36} />
           </div>
 
-          <h2 className="nb-success-title">Bill Created Successfully!</h2>
+          <h2 className="nb-success-title">{t("bills.createdSuccess", "Bill Created Successfully!")}</h2>
 
           <p className="nb-success-text">
             Your bill has been saved. You can print it now using your selected receipt template (
@@ -641,19 +703,28 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           </p>
 
           <div className="nb-success-actions">
-            <button className="nb-success-print-btn" onClick={handleDirectPrint}>
-              <Printer size={18} /> Print Receipt
+            <button className="nb-success-print-btn" onClick={() => {
+              if (saved?.id) {
+                setSelectedBillId?.(saved.id)
+                sessionStorage.setItem("slipzo-reprint-id", saved.id)
+                sessionStorage.setItem("slipzo-print-origin", "bills")
+                setView("reprint")
+              } else {
+                handlePrintBill()
+              }
+            }}>
+              <Printer size={18} /> {t("bills.printReceipt", "Print Receipt")}
             </button>
 
             <button
               className="nb-success-view-btn"
               onClick={() => setShowPreviewDrawer(!showPreviewDrawer)}
             >
-              <Eye size={16} /> {showPreviewDrawer ? "Hide Details" : "View Bill Details"}
+              <Eye size={16} /> {showPreviewDrawer ? "Hide Details" : t("bills.viewReceipt", "View Bill Details")}
             </button>
 
             <button className="nb-success-new-btn" onClick={handleCreateNewBill}>
-              <Plus size={16} /> Create New Bill
+              <Plus size={16} /> {t("bills.createNewBill", "Create New Bill")}
             </button>
           </div>
 
@@ -666,12 +737,12 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
               <div style={{ fontSize: "0.82rem", color: "#575B6B", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                 {items.map((it, idx) => (
                   <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>{it.name} (×{it.quantity})</span>
+                    <span>{tDb(it.name)} (×{it.quantity})</span>
                     <span>{money(it.quantity * it.rate)}</span>
                   </div>
                 ))}
-                <div style={{ borderTop: "1px solid #D9DDE4", marginTop: "0.4rem", paddingTop: "0.4rem", fontWeight: "800", color: "#0C1F41", display: "flex", justifyContent: "space-between" }}>
-                  <span>Total Amount Paid ({payment})</span>
+                <div style={{ borderTop: "1px solid #cbd5e1", marginTop: "0.4rem", paddingTop: "0.4rem", fontWeight: "800", color: "#0f172a", display: "flex", justifyContent: "space-between" }}>
+                  <span>{t("bills.totalAmount", "Total Amount")} ({tDb(payment)})</span>
                   <span>{money(total)}</span>
                 </div>
               </div>
@@ -686,7 +757,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             <input
               type="text"
               className="nb-search-input"
-              placeholder="Search items or speak to add (e.g. Tea, Coffee, Pizza...)"
+              placeholder={t("bills.searchPlaceholder", "Search items or speak to add (e.g. Tea, Coffee, Pizza...)")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -695,7 +766,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                 type="button"
                 className="nb-search-clear-btn"
                 onClick={() => setSearch("")}
-                title="Clear search"
+                title={t("bills.clearSearch", "Clear search")}
               >
                 <X size={15} />
               </button>
@@ -703,7 +774,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             <VoiceInputButton
               onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
               variant="icon-only"
-              placeholder="Speak item name"
+              placeholder={t("bills.speakItemName", "Speak item name")}
             />
           </div>
 
@@ -720,7 +791,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                     className={`nb-category-chip ${isActive ? "active" : ""}`}
                     onClick={() => setSelectedCategory(cat)}
                   >
-                    {icon}{cat === "all" ? "All Items" : cat}
+                    {icon}{cat === "all" ? t("bills.allItems", "All Items") : tDb(cat)}
                   </button>
                 )
               })}
@@ -733,9 +804,9 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             <div className="nb-left-col">
               <div className="nb-menu-card-container">
                 <div className="nb-menu-card-header">
-                  <h3 className="nb-menu-card-title">My Menu Items</h3>
+                  <h3 className="nb-menu-card-title">{t("bills.myMenuItems", "My Menu Items")}</h3>
                   <span className="nb-menu-items-count">
-                    {filteredMenuItems.length} {filteredMenuItems.length === 1 ? "item" : "items"}
+                    {formatNum(filteredMenuItems.length)} {filteredMenuItems.length === 1 ? t("bills.item", "item") : t("bills.items", "items")}
                   </span>
                 </div>
 
@@ -805,8 +876,8 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                               )}
 
                               <div className="nb-item-info">
-                                <h4 className="nb-item-name" title={menuItem.name}>{menuItem.name}</h4>
-                                <span className="nb-item-category">{menuItem.category || "General"}</span>
+                                <h4 className="nb-item-name" title={menuItem.name}>{tDb(menuItem.name)}</h4>
+                                <span className="nb-item-category">{tDb(menuItem.category || "General")}</span>
                                 <div className="nb-item-price nb-item-price-desktop">
                                   {money(menuItem.price !== undefined ? menuItem.price : menuItem.custom_price || 0)}
                                 </div>
@@ -829,7 +900,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                                   >
                                     −
                                   </button>
-                                  <span className="nb-qty-value">{addedItem.quantity}</span>
+                                  <span className="nb-qty-value">{formatNum(addedItem.quantity)}</span>
                                   <button
                                     type="button"
                                     className="nb-qty-btn"
@@ -843,8 +914,8 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                                     type="button"
                                     className="nb-item-del-btn"
                                     onClick={() => handleDeleteItem(addedItem.id)}
-                                    title="Remove from bill"
-                                    aria-label="Remove from bill"
+                                    title={t("bills.removeFromBill", "Remove from bill")}
+                                    aria-label={t("bills.removeFromBill", "Remove from bill")}
                                   >
                                     <Trash2 size={14} />
                                   </button>
@@ -854,9 +925,9 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                                   type="button"
                                   className="nb-add-btn"
                                   onClick={() => handleAddItemFromMenu(menuItem)}
-                                  title="Add item to current bill"
+                                  title={t("bills.addItemToBill", "Add item to current bill")}
                                 >
-                                  <Plus size={14} /> Add
+                                  <Plus size={14} /> {t("bills.add", "Add")}
                                 </button>
                               )}
                             </div>
@@ -876,30 +947,30 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                   <div className="nb-summary-icon-box">
                     <FileText size={18} className="nb-summary-icon" />
                   </div>
-                  <h4 className="nb-summary-header">Bill Summary</h4>
+                  <h4 className="nb-summary-header">{t("bills.billSummary", "Bill Summary")}</h4>
                 </div>
 
                 <div className="nb-summary-details">
                   <div className="nb-summary-row">
-                    <span className="nb-summary-label">Items in Bill</span>
-                    <span className="nb-summary-val">{totalItemsInBill}</span>
+                    <span className="nb-summary-label">{t("bills.itemsInBill", "Items in Bill")}</span>
+                    <span className="nb-summary-val">{formatNum(totalItemsInBill)}</span>
                   </div>
 
                   <div className="nb-summary-row">
-                    <span className="nb-summary-label">Subtotal</span>
+                    <span className="nb-summary-label">{t("common.subtotal", "Subtotal")}</span>
                     <span className="nb-summary-val">{money(subtotal)}</span>
                   </div>
 
                   {discountAmount > 0 && (
                     <div className="nb-summary-row discount-row" style={{ color: "#16a34a" }}>
-                      <span className="nb-summary-label">Discount</span>
+                      <span className="nb-summary-label">{t("common.discount", "Discount")}</span>
                       <span className="nb-summary-val">-{money(discountAmount)}</span>
                     </div>
                   )}
 
                   {isTaxEnabled && taxRate > 0 && (
                     <div className="nb-summary-row">
-                      <span className="nb-summary-label">GST ({taxRate}%)</span>
+                      <span className="nb-summary-label">{t("common.tax", "GST")} ({formatNum(taxRate)}%)</span>
                       <span className="nb-summary-val">{money(taxAmount)}</span>
                     </div>
                   )}
@@ -908,25 +979,25 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                 <div className="nb-summary-divider" />
 
                 <div className="nb-summary-row total-row">
-                  <span className="nb-total-label">Total Amount</span>
+                  <span className="nb-total-label">{t("bills.totalAmount", "Total Amount")}</span>
                   <span className="nb-summary-val-total">{money(total)}</span>
                 </div>
 
                 {/* Payment Mode */}
                 <div className="nb-payment-section">
                   <label className="nb-payment-label">
-                    <CreditCard size={15} style={{ color: "#0C1F41" }} />
-                    <span>Payment Mode</span>
+                    <CreditCard size={15} style={{ color: "#0f172a" }} />
+                    <span>{t("bills.paymentMode", "Payment Mode")}</span>
                   </label>
                   <select
                     value={payment}
                     onChange={(e) => setPayment(e.target.value)}
                     className="nb-payment-select"
                   >
-                    <option value="Cash">Cash</option>
-                    <option value="UPI">UPI</option>
-                    <option value="Card">Card</option>
-                    <option value="Credit">Credit</option>
+                    <option value="Cash">{t("bills.cash", "Cash")}</option>
+                    <option value="UPI">{t("bills.upi", "UPI")}</option>
+                    <option value="Card">{t("bills.card", "Card")}</option>
+                    <option value="Credit">{t("bills.credit", "Credit")}</option>
                   </select>
                 </div>
 
@@ -936,25 +1007,60 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                   </div>
                 )}
 
-                {/* Save Bill Button - Consumes 0 print credits! */}
-                <button
-                  type="button"
-                  className="nb-save-bill-btn"
-                  onClick={handleSaveBill}
-                  disabled={isSaving || items.length === 0}
-                >
-                  <Save size={18} />
-                  <span>{isSaving ? "Saving Bill..." : "Save Bill"}</span>
-                </button>
+                {/* Direct Print Bill button + Save Bill Button */}
+                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
+                  <button
+                    type="button"
+                    className="nb-save-bill-btn"
+                    onClick={handlePrintBill}
+                    disabled={isSaving || items.length === 0}
+                    style={{
+                      flex: 1,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.45rem",
+                      background: "#0284c7",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "10px",
+                      padding: "0.75rem 1rem",
+                      fontSize: "0.9rem",
+                      fontWeight: "700",
+                      cursor: (isSaving || items.length === 0) ? "not-allowed" : "pointer",
+                      opacity: (isSaving || items.length === 0) ? 0.6 : 1,
+                      transition: "all 0.15s ease",
+                      boxShadow: "0 1px 3px rgba(2, 132, 199, 0.25)"
+                    }}
+                  >
+                    <Printer size={18} />
+                    <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.print", "Print Bill")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="nb-save-bill-btn"
+                    onClick={handleSaveBill}
+                    disabled={isSaving || items.length === 0}
+                    style={{
+                      flex: 1,
+                      background: "#f1f5f9",
+                      color: "#334155",
+                      border: "1px solid #cbd5e1"
+                    }}
+                  >
+                    <Save size={18} />
+                    <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.saveBill", "Save Bill")}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Tip Card directly below Bill Summary */}
               <div className="nb-tip-card">
                 <Lightbulb size={20} className="nb-tip-icon" />
                 <div className="nb-tip-content">
-                  <h4 className="nb-tip-title">Tip</h4>
+                  <h4 className="nb-tip-title">{t("bills.tipTitle", "Tip")}</h4>
                   <p className="nb-tip-desc">
-                    Search and add items from your menu. Adjust quantity using + / - or remove items anytime.
+                    {t("bills.tipDesc", "Search and add items from your menu. Adjust quantity using + / - or remove items anytime.")}
                   </p>
                 </div>
               </div>
@@ -965,7 +1071,12 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           {filteredMenuItems.length > 0 && (
             <div className="nb-standalone-pagination">
               <div className="pagination-info nb-standalone-pagination-info">
-                Showing <span>{startItemIndex}</span> to <span>{endItemIndex}</span> of <span>{filteredMenuItems.length}</span> items
+                {t("bills.showing", {
+                  start: formatNum(startItemIndex),
+                  end: formatNum(endItemIndex),
+                  total: formatNum(filteredMenuItems.length),
+                  defaultValue: `Showing ${formatNum(startItemIndex)} to ${formatNum(endItemIndex)} of ${formatNum(filteredMenuItems.length)} items`
+                })}
               </div>
 
               <div className="pagination-controls">
@@ -995,7 +1106,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                           className={`page-num-btn ${menuPage === pageNum ? "active" : ""}`}
                           onClick={() => setMenuPage(pageNum)}
                         >
-                          {pageNum}
+                          {formatNum(pageNum)}
                         </button>
                       )
                     }
@@ -1028,85 +1139,96 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           so printReceiptElement can print the full receipt without popups!
           ==================================================================== */}
       <div style={{ position: "absolute", left: "-9999px", top: "-9999px", opacity: 0, pointerEvents: "none" }}>
-        <div
-          id="receipt-to-print"
-          className="receipt-preview-inner"
-          style={{
-            width: activeTemplate?.width === "58mm" ? "58mm" : "80mm",
-            background: "#ffffff",
-            padding: "10px",
-            fontFamily: "Courier, monospace",
-            color: "#000000"
-          }}
-        >
-          <div style={{ textAlign: "center", marginBottom: "8px" }}>
-            <h2 style={{ fontSize: "16px", fontWeight: "800", margin: "0 0 2px" }}>
-              {shop?.name || "Shop Receipt"}
-            </h2>
-            {shop?.address && <div style={{ fontSize: "11px" }}>{shop.address}</div>}
-            {shop?.phone && <div style={{ fontSize: "11px" }}>Tel: {shop.phone}</div>}
-            {shop?.gstin && <div style={{ fontSize: "11px" }}>GSTIN: {shop.gstin}</div>}
-          </div>
-
-          <div style={{ borderTop: "1px dashed #000", borderBottom: "1px dashed #000", padding: "4px 0", fontSize: "11px", margin: "4px 0", display: "flex", justifyContent: "space-between" }}>
-            <span>Invoice: #{customBillNumber}</span>
-            <span>{formattedDate} {formattedTime}</span>
-          </div>
-
-          <div style={{ margin: "6px 0" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px" }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid #000" }}>
-                  <th style={{ textAlign: "left", paddingBottom: "2px" }}>Item</th>
-                  <th style={{ textAlign: "center", paddingBottom: "2px" }}>Qty</th>
-                  <th style={{ textAlign: "right", paddingBottom: "2px" }}>Rate</th>
-                  <th style={{ textAlign: "right", paddingBottom: "2px" }}>Amt</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td style={{ padding: "2px 0" }}>{item.name}</td>
-                    <td style={{ textAlign: "center", padding: "2px 0" }}>{item.quantity}</td>
-                    <td style={{ textAlign: "right", padding: "2px 0" }}>{money(item.rate)}</td>
-                    <td style={{ textAlign: "right", padding: "2px 0" }}>{money(item.quantity * item.rate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{ borderTop: "1px dashed #000", paddingTop: "4px", fontSize: "11px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", margin: "2px 0" }}>
-              <span>Subtotal:</span>
-              <span>{money(subtotal)}</span>
-            </div>
-            {discountAmount > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", margin: "2px 0" }}>
-                <span>Discount:</span>
-                <span>-{money(discountAmount)}</span>
+        {(() => {
+          const isNarrow = activeTemplate?.width === "58mm" || activeTemplate?.width === "55mm" || shop?.printer_width === "58mm" || shop?.printer_width === "55mm"
+          const baseSize = isNarrow ? "12px" : "13.5px"
+          const shopNameSize = isNarrow ? "18px" : "21px"
+          const totalSize = isNarrow ? "16.5px" : "19px"
+          const footerSize = isNarrow ? "11.5px" : "12.5px"
+          return (
+            <div
+              id="receipt-to-print"
+              className={`receipt-preview-inner ${isNarrow ? "width-58mm format-58mm" : "width-80mm format-80mm"}`}
+              style={{
+                width: isNarrow ? "58mm" : "80mm",
+                background: "#ffffff",
+                padding: isNarrow ? "6px" : "10px",
+                fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, monospace",
+                color: "#000000",
+                fontSize: baseSize,
+                lineHeight: 1.45
+              }}
+            >
+              <div style={{ textAlign: "center", marginBottom: "8px" }}>
+                <h2 style={{ fontSize: shopNameSize, fontWeight: "900", margin: "0 0 2px", color: "#000000" }}>
+                  {shop?.name || "Shop Receipt"}
+                </h2>
+                {shop?.address && <div style={{ fontSize: baseSize, fontWeight: "600", color: "#000000" }}>{shop.address}</div>}
+                {shop?.phone && <div style={{ fontSize: baseSize, fontWeight: "600", color: "#000000" }}>Tel: {shop.phone}</div>}
+                {shop?.gstin && <div style={{ fontSize: baseSize, fontWeight: "600", color: "#000000" }}>GSTIN: {shop.gstin}</div>}
               </div>
-            )}
-            {isTaxEnabled && taxRate > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", margin: "2px 0" }}>
-                <span>GST ({taxRate}%):</span>
-                <span>{money(taxAmount)}</span>
-              </div>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", margin: "4px 0 2px", fontWeight: "800", fontSize: "13px", borderTop: "1px solid #000", paddingTop: "3px" }}>
-              <span>Total:</span>
-              <span>{money(total)}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", margin: "2px 0" }}>
-              <span>Payment Mode:</span>
-              <span>{payment}</span>
-            </div>
-          </div>
 
-          <div style={{ textAlign: "center", fontSize: "10px", marginTop: "10px", borderTop: "1px dashed #000", paddingTop: "4px" }}>
-            {activeTemplate?.footer || shop?.receipt_footer || "Thank you for shopping with us!"}
-          </div>
-        </div>
+              <div style={{ borderTop: "1.5px dashed #000", borderBottom: "1.5px dashed #000", padding: "5px 0", fontSize: baseSize, fontWeight: "700", margin: "5px 0", display: "flex", justifyContent: "space-between" }}>
+                <span>{tDb("Invoice")}: #{formatNum(customBillNumber)}</span>
+                <span>{formatNum(formattedDate)} {formatNum(formattedTime)}</span>
+              </div>
+
+              <div style={{ margin: "6px 0" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: baseSize }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1.5px solid #000" }}>
+                      <th style={{ textAlign: "left", paddingBottom: "4px", fontWeight: "900" }}>{t("bills.colItemName", "Item")}</th>
+                      <th style={{ textAlign: "center", paddingBottom: "4px", fontWeight: "900" }}>{t("bills.qty", "Qty")}</th>
+                      <th style={{ textAlign: "right", paddingBottom: "4px", fontWeight: "900" }}>{t("bills.rate", "Rate")}</th>
+                      <th style={{ textAlign: "right", paddingBottom: "4px", fontWeight: "900" }}>{t("bills.amt", "Amt")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={idx} style={{ fontWeight: "700" }}>
+                        <td style={{ padding: "3px 0", wordBreak: "break-word" }}>{tDb(item.name)}</td>
+                        <td style={{ textAlign: "center", padding: "3px 0" }}>{formatNum(item.quantity)}</td>
+                        <td style={{ textAlign: "right", padding: "3px 0" }}>{money(item.rate)}</td>
+                        <td style={{ textAlign: "right", padding: "3px 0" }}>{money(item.quantity * item.rate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ borderTop: "1.5px dashed #000", paddingTop: "5px", fontSize: baseSize }}>
+                <div style={{ display: "flex", justifyContent: "space-between", margin: "3px 0", fontWeight: "600" }}>
+                  <span>{t("common.subtotal", "Subtotal")}:</span>
+                  <span>{money(subtotal)}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", margin: "3px 0", fontWeight: "600" }}>
+                    <span>{t("common.discount", "Discount")}:</span>
+                    <span>-{money(discountAmount)}</span>
+                  </div>
+                )}
+                {isTaxEnabled && taxRate > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", margin: "3px 0", fontWeight: "600" }}>
+                    <span>{t("common.tax", "GST")} ({formatNum(taxRate)}%):</span>
+                    <span>{money(taxAmount)}</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "space-between", margin: "5px 0 3px", fontWeight: "900", fontSize: totalSize, borderTop: "2px solid #000", paddingTop: "5px" }}>
+                  <span>{t("bills.totalAmount", "Total")}:</span>
+                  <span>{money(total)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: baseSize, margin: "3px 0", fontWeight: "700" }}>
+                  <span>{t("bills.paymentMode", "Payment Mode")}:</span>
+                  <span>{tDb(payment)}</span>
+                </div>
+              </div>
+
+              <div style={{ textAlign: "center", fontSize: footerSize, fontWeight: "600", marginTop: "10px", borderTop: "1.5px dashed #000", paddingTop: "5px", lineHeight: 1.4 }}>
+                {activeTemplate?.footer || shop?.receipt_footer || "Thank you for shopping with us!"}
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

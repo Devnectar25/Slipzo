@@ -26,9 +26,11 @@ import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 
 export function History({ setView, setSelectedBillId, user }) {
   const { t } = useTranslation()
+  const { tDb, formatNum, lang } = useDbTranslation()
   const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10")
   const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
 
@@ -134,8 +136,9 @@ export function History({ setView, setSelectedBillId, user }) {
   }
 
   const handleReprint = (billId) => {
-    setSelectedBillId(billId)
+    setSelectedBillId?.(billId)
     sessionStorage.setItem("slipzo-reprint-id", billId)
+    sessionStorage.setItem("slipzo-print-origin", "history")
     setView("reprint")
   }
 
@@ -235,14 +238,20 @@ export function History({ setView, setSelectedBillId, user }) {
 
   return (
     <div className="page history-page fade-in">
-      {/* 📱 MOBILE VIEW: Exact match with uploaded reference design */}
-      <div className="mobile-history-top">
-        <span className="mobile-history-eyebrow-pill">{t("history.eyebrow", "YOUR RECEIPTS")}</span>
-        <h2 className="mobile-history-title">{t("history.billHistoryTitle", "Bill History")}</h2>
+      <div className="page-intro">
+        <div>
+          <span className="menu-eyebrow">
+            <Receipt size={13} /> {t("history.eyebrow", "YOUR RECEIPTS")}
+          </span>
+          <h1 className="menu-main-title">{t("history.title", "Bill history.")}</h1>
+          <p className="menu-sub-title">{t("history.subtitle", "Every saved receipt, ready to find and reprint again.")}</p>
+        </div>
+      </div>
 
-        {/* Search Bar & Voice Mic */}
-        <div className="mobile-history-search-bar">
-          <Search size={18} className="mobile-history-search-icon" />
+      {/* Filters & Search Control Bar */}
+      <div className="table-controls-bar">
+        <div className="search-input-wrapper">
+          <Search size={16} className="search-icon" />
           <input
             type="text"
             value={search}
@@ -308,56 +317,60 @@ export function History({ setView, setSelectedBillId, user }) {
             </select>
           </div>
         </div>
+      </div>
 
-        {/* Mobile Cards List */}
-        <div className="mobile-history-cards-list">
-          {filteredBills.map((bill) => (
-            <div key={bill.id} className="mobile-history-card">
-              {/* Top Row: Date Pill & Time on left, Amount & MoreVertical on right */}
-              <div className="mobile-history-card-top-row">
-                <div className="mobile-history-date-time">
-                  <span className="mobile-history-date-pill">{bill.dateFormatted}</span>
-                  <span className="mobile-history-time">{bill.timeFormatted}</span>
-                </div>
-                <div className="mobile-history-amount-more">
-                  <span className="mobile-history-amount">
-                    ₹{Number(bill.total || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <div className="mobile-history-more-wrapper">
-                    <button
-                      type="button"
-                      className="mobile-history-more-btn"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setActiveMenuBillId(activeMenuBillId === bill.id ? null : bill.id)
-                      }}
-                      aria-label="Options"
-                    >
-                      <MoreVertical size={16} />
-                    </button>
-                    {activeMenuBillId === bill.id && (
-                      <div className="mobile-history-dropdown-menu">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveMenuBillId(null)
-                            handleReprint(bill.id)
-                          }}
-                        >
-                          <Printer size={13} /> {t("history.reprint", "Reprint")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveMenuBillId(null)
-                            handleDeleteBill(bill)
-                          }}
-                          style={{ color: "#EF4444" }}
-                        >
-                          <Trash2 size={13} /> {t("common.delete", "Delete")}
-                        </button>
-                      </div>
-                    )}
+      {/* Bills Content */}
+      {loading ? (
+        <TableSkeleton rows={limit > 10 ? 10 : limit} cols={4} />
+      ) : Array.isArray(bills) && bills.length > 0 ? (
+        <>
+          <div className="history-list">
+            {bills.map((bill) => {
+              const itemsCount = Array.isArray(bill.items)
+                ? bill.items.length
+                : typeof bill.items === "string"
+                ? (() => { try { const p = JSON.parse(bill.items); return Array.isArray(p) ? p.length : 0 } catch(e) { return 0 } })()
+                : 0
+              return (
+              <div
+                data-testid={`history-bill-${bill.id}`}
+                className="history-row"
+                key={bill.id}
+              >
+                <div className="history-main-content">
+                  <div className="history-date">
+                    <b>
+                      {formatNum(new Date(bill.created_at).toLocaleDateString(lang === "mr" ? "mr-IN" : lang === "hi" ? "hi-IN" : "en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric"
+                      }))}
+                    </b>
+                    <small>
+                      {formatNum(new Date(bill.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      }))}
+                    </small>
+                  </div>
+
+                  <div className="history-details-col">
+                    <div className="history-bill-number">
+                      <b>{formatNum(bill.number)}</b>
+                    </div>
+
+                    <div className="history-meta-badges-row">
+                      {bill.customer_name && (
+                        <span className="customer-tag">
+                          <User size={11} /> {bill.customer_name}
+                        </span>
+                      )}
+                      <span className="payment-badge">{tDb(bill.payment_mode || "Cash")}</span>
+                    </div>
+
+                    <div className="history-items-count text-muted">
+                      {formatNum(itemsCount)} {itemsCount === 1 ? t("history.item", "item") : t("history.items", "items")}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -412,48 +425,10 @@ export function History({ setView, setSelectedBillId, user }) {
             })}
           </div>
 
-          <div className="mobile-pagination-controls">
-            <button
-              type="button"
-              className="mobile-page-arrow-btn"
-              disabled={page <= 1}
-              onClick={() => {
-                setPage((p) => Math.max(1, p - 1))
-                window.scrollTo({ top: 0, behavior: "smooth" })
-              }}
-              title="Previous Page"
-              aria-label="Previous Page"
-            >
-              <ChevronLeft size={18} />
-            </button>
-
-            <div className="mobile-page-numbers-group">
-              {Array.from({ length: Math.max(1, effectiveTotalPages) }).map((_, i) => {
-                const pageNum = i + 1
-                if (
-                  pageNum === 1 ||
-                  pageNum === effectiveTotalPages ||
-                  (pageNum >= page - 1 && pageNum <= page + 1)
-                ) {
-                  return (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      className={`mobile-page-num-btn ${page === pageNum ? "active" : ""}`}
-                      onClick={() => {
-                        setPage(pageNum)
-                        window.scrollTo({ top: 0, behavior: "smooth" })
-                      }}
-                    >
-                      {pageNum}
-                    </button>
-                  )
-                }
-                if (pageNum === page - 2 || pageNum === page + 2) {
-                  return <span key={pageNum} className="mobile-page-ellipsis">…</span>
-                }
-                return null
-              })}
+          {/* Pagination Navigation Bar */}
+          <div className="pagination-bar">
+            <div className="pagination-info">
+              {t("history.showing", { start: totalRecords > 0 ? formatNum(startRecord) : formatNum(0), end: formatNum(endRecord), total: formatNum(totalRecords), defaultValue: `Showing ${totalRecords > 0 ? formatNum(startRecord) : formatNum(0)} to ${formatNum(endRecord)} of ${formatNum(totalRecords)} receipts` })}
             </div>
 
             <button
@@ -473,15 +448,30 @@ export function History({ setView, setSelectedBillId, user }) {
         </div>
       </div>
 
-      {/* 💻 DESKTOP VIEW: Preserved for desktop users */}
-      <div className="desktop-history-view">
-        <div className="page-intro">
-          <div>
-            <p className="eyebrow accent">{t("history.eyebrow", "YOUR RECEIPTS")}</p>
-            <h2>{t("history.title", "Bill history.")}</h2>
-            <p className="subtle">{t("history.subtitle", "Every saved receipt, ready to find and reprint again.")}</p>
-          </div>
-        </div>
+              <div className="page-numbers">
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const pageNum = i + 1
+                  if (
+                    pageNum === 1 ||
+                    pageNum === totalPages ||
+                    (pageNum >= page - 1 && pageNum <= page + 1)
+                  ) {
+                    return (
+                      <button
+                        key={pageNum}
+                        className={`page-num-btn ${page === pageNum ? "active" : ""}`}
+                        onClick={() => setPage(pageNum)}
+                      >
+                        {formatNum(pageNum)}
+                      </button>
+                    )
+                  }
+                  if (pageNum === page - 2 || pageNum === page + 2) {
+                    return <span key={pageNum} className="page-ellipsis">…</span>
+                  }
+                  return null
+                })}
+              </div>
 
         {/* Filters & Search Control Bar */}
         <div className="table-controls-bar">

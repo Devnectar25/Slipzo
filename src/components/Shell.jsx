@@ -23,8 +23,8 @@ import {
   ChevronDown
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
-import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call } from "../lib/utils"
+import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
+import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang } from "../lib/utils"
 
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const { t, i18n } = useTranslation()
@@ -33,7 +33,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   const [langOpen, setLangOpen] = useState(false)
 
   const navItems = [
-    { id: "dashboard", label: t("nav.overview", "Overview"), icon: LayoutDashboard, protected: false },
+    { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard, protected: false },
     { id: "bills", label: t("nav.newBill", "New bill"), icon: Receipt, protected: true },
     { id: "menu", label: t("nav.menu", "Menu"), icon: List, protected: true },
     { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
@@ -313,8 +313,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#F66016' : '#EF4444' }} /> {activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}
               </span>
-              <span style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#F66016' : '#EF4444', fontWeight: 700 }}>
-                {(activePlan.printsRemaining || 0).toLocaleString()} / {(activePlan.totalPrints || 10).toLocaleString()} {t("sidebar.printsLeft", "left")}
+              <span style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444', fontWeight: 700 }}>
+                {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 10).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
               </span>
             </div>
             <div style={{ width: '100%', height: '5px', background: '#FADCC3', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -426,81 +426,28 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             <img src="/logo.png" alt="Slipzo" className="shell-header-logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
           </div>
 
-          <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginLeft: 'auto' }}>
-            {/* Header Language Selector - Matching Figma Reference */}
-            <div className="shell-header-lang-wrapper" style={{ position: 'relative' }}>
-              <button
-                type="button"
-                className="shell-header-lang-btn"
-                onClick={() => setLangOpen((prev) => !prev)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  background: '#FFFFFF',
-                  border: '1.5px solid #F7CDAB',
-                  borderRadius: '10px',
-                  padding: '0.35rem 0.65rem',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  color: '#0C1F41',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 1px 3px rgba(12, 31, 65, 0.04)'
-                }}
-                aria-label="Select Language"
-              >
-                <Globe size={15} color="#F66016" />
-                <span>{currentLangObj.label || currentLangObj.nativeName || 'English'}</span>
-                <ChevronDown size={14} color="#74788A" />
-              </button>
-
-              {langOpen && (
-                <div
-                  className="shell-header-lang-menu"
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 6px)',
-                    right: 0,
-                    background: '#FFFFFF',
-                    border: '1.5px solid #F7CDAB',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(12, 31, 65, 0.12)',
-                    padding: '0.35rem',
-                    zIndex: 1000,
-                    minWidth: '135px'
-                  }}
-                >
-                  {SUPPORTED_LANGUAGES.map((lang) => (
-                    <button
-                      key={lang.code}
-                      type="button"
-                      onClick={() => {
-                        changeAppLanguage(lang.code)
-                        setLangOpen(false)
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.45rem 0.65rem',
-                        background: lang.code === currentLang ? '#FFF0E5' : 'transparent',
-                        color: lang.code === currentLang ? '#F66016' : '#0C1F41',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: lang.code === currentLang ? 700 : 500,
-                        cursor: 'pointer',
-                        textAlign: 'left'
-                      }}
-                    >
-                      <span>{lang.nativeName}</span>
-                      {lang.code === currentLang && <span style={{ color: '#F66016', fontWeight: 800 }}>✓</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
+          <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: 'auto' }}>
+            <div 
+              className="header-prints-badge"
+              onClick={() => setView("pricing")}
+              title="Click to view pricing plans"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '9999px',
+                background: (activePlan.printsRemaining || 0) > 2 ? '#f0fdf4' : '#fef2f2',
+                border: `1px solid ${(activePlan.printsRemaining || 0) > 2 ? '#bbf7d0' : '#fecaca'}`,
+                color: (activePlan.printsRemaining || 0) > 2 ? '#166534' : '#991b1b',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Printer size={14} />
+              <span>{formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} {activePlan.isFreeTier ? t("header.free", "free") + ' ' : ''}{(activePlan.printsRemaining || 0) === 1 ? t("header.print", "print") : t("header.printsLeft", "prints left")}</span>
             </div>
 
             <button

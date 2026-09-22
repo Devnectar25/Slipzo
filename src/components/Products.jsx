@@ -5,6 +5,8 @@ import {
   RefreshCw, Layers, Printer, Zap, Store, ChevronRight, X,
   Truck, CreditCard, Check, Heart
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
@@ -84,6 +86,8 @@ export const getProductImage = (product) => {
 }
 
 export function Products({ setView, requireAuth, user }) {
+  const { t } = useTranslation()
+  const { tDb, formatNum } = useDbTranslation()
   const [products, setProducts] = useState(() => {
     const cached = getCachedData("/products")
     if (Array.isArray(cached) && cached.length > 0) return cached
@@ -469,11 +473,11 @@ export function Products({ setView, requireAuth, user }) {
               <Package size={22} />
             </div>
             <h1 className="products-title">
-              Hardware & Products Store
+              {t("products.storeTitle", "Hardware & Products Store")}
             </h1>
           </div>
           <p className="products-description">
-            Buy thermal receipt printers, paper rolls & accessories, or add custom products for billing.
+            {t("products.storeSubtitle", "Buy thermal receipt printers, paper rolls & accessories, or add custom products for billing.")}
           </p>
         </div>
       </div>
@@ -484,13 +488,13 @@ export function Products({ setView, requireAuth, user }) {
           onClick={() => setActiveTab("catalog")}
           className={`products-tab-btn ${activeTab === "catalog" ? 'active' : ''}`}
         >
-          <Layers size={16} /> Products Catalog ({products.length})
+          <Layers size={16} /> {t("products.catalogTab", "Products Catalog")} ({products.length})
         </button>
         <button
           onClick={() => setActiveTab("features")}
           className={`products-tab-btn ${activeTab === "features" ? 'active' : ''}`}
         >
-          <Sparkles size={16} /> Printer Compatibility & Specs
+          <Sparkles size={16} /> {t("products.specsTab", "Printer Compatibility & Specs")}
         </button>
       </div>
 
@@ -502,7 +506,7 @@ export function Products({ setView, requireAuth, user }) {
               <Search size={16} className="products-search-icon" />
               <input
                 type="text"
-                placeholder="Search products by name, SKU, or category..."
+                placeholder={t("products.searchPlaceholder", "Search products by name, SKU, or category...")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="products-search-input"
@@ -519,7 +523,7 @@ export function Products({ setView, requireAuth, user }) {
                 onClick={() => setSelectedCategory("all")}
                 className={`products-cat-btn ${selectedCategory === "all" ? 'active' : ''}`}
               >
-                All
+                {t("products.all", "All")}
               </button>
               {categories.map(cat => (
                 <button
@@ -527,7 +531,7 @@ export function Products({ setView, requireAuth, user }) {
                   onClick={() => setSelectedCategory(cat)}
                   className={`products-cat-btn ${selectedCategory === cat ? 'active' : ''}`}
                 >
-                  {cat}
+                  {cat === "Hardware" ? t("products.hardware", "Hardware") : cat === "Stationery" ? t("products.stationery", "Stationery") : cat === "Electronics" ? t("products.electronics", "Electronics") : cat}
                 </button>
               ))}
             </div>
@@ -537,7 +541,7 @@ export function Products({ setView, requireAuth, user }) {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#74788A' }}>
               <RefreshCw size={24} className="spin" style={{ margin: '0 auto 0.5rem' }} />
-              <p>Loading products catalog...</p>
+              <p>{t("products.loading", "Loading products catalog...")}</p>
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="products-cards-grid">
@@ -548,84 +552,38 @@ export function Products({ setView, requireAuth, user }) {
                 >
                   <div style={{ position: 'relative' }}>
                     {/* Product Image */}
-                    {(() => {
-                      const imgSrc = getProductImage(product)
-                      return imgSrc ? (
-                        <div className="product-image-box" style={{ position: 'relative' }}>
-                          <img
-                            src={imgSrc}
-                            alt={product.name}
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none'
-                              if (e.currentTarget.nextElementSibling) {
-                                e.currentTarget.nextElementSibling.style.display = 'flex'
-                              }
-                            }}
-                          />
-                          <div className="product-image-box placeholder" style={{ display: 'none', position: 'absolute', inset: 0 }}>
-                            <Package size={36} />
-                          </div>
-                          <button
-                            type="button"
-                            className="product-fav-btn"
-                            style={{
-                              position: 'absolute',
-                              top: '8px',
-                              right: '8px',
-                              width: '28px',
-                              height: '28px',
-                              borderRadius: '50%',
-                              background: '#FFFFFF',
-                              border: '1px solid #F7CDAB',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#575B6B',
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(12, 31, 65, 0.08)'
-                            }}
-                            title="Add to wishlist"
-                          >
-                            <Heart size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="product-image-box placeholder" style={{ position: 'relative' }}>
-                          <Package size={36} />
-                          <button
-                            type="button"
-                            className="product-fav-btn"
-                            style={{
-                              position: 'absolute',
-                              top: '8px',
-                              right: '8px',
-                              width: '28px',
-                              height: '28px',
-                              borderRadius: '50%',
-                              background: '#FFFFFF',
-                              border: '1px solid #F7CDAB',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#575B6B',
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(12, 31, 65, 0.08)'
-                            }}
-                          >
-                            <Heart size={14} />
-                          </button>
-                        </div>
-                      )
-                    })()}
+                    {product.image ? (
+                      <div className="product-image-box">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                        />
+                      </div>
+                    ) : (
+                      <div className="product-image-box placeholder">
+                        <Package size={36} />
+                      </div>
+                    )}
 
-                    <h3 className="product-card-title" style={{ fontSize: '0.96rem', fontWeight: 700, color: '#0C1F41', margin: '0.4rem 0 0.5rem 0' }}>
-                      {product.name}
+                    <div className="product-card-meta">
+                      <span className="product-category-tag">
+                        {tDb(product.category || "Hardware")}
+                      </span>
+                    </div>
+
+                    <h3 className="product-card-title">
+                      {tDb(product.name)}
                     </h3>
 
-                    {/* Price and Add button on same row - Matching Figma Screen 1 */}
-                    <div className="product-card-price-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                      <span className="product-price-val" style={{ color: '#F66016', fontSize: '1.15rem', fontWeight: 800 }}>
-                        ₹{Number(product.price).toFixed(2)}
+                    {product.description && (
+                      <p className="product-card-desc">
+                        {tDb(product.description)}
+                      </p>
+                    )}
+
+                    <div className="product-card-price-row">
+                      <span className="product-price-val">
+                        ₹{formatNum(product.price)}
                       </span>
                       <button
                         onClick={() => handleBuyNow(product)}
@@ -646,14 +604,24 @@ export function Products({ setView, requireAuth, user }) {
                       </button>
                     </div>
                   </div>
+
+                  {/* Card Actions */}
+                  <div className="product-card-actions">
+                    <button
+                      onClick={() => handleBuyNow(product)}
+                      className="product-buy-now-btn"
+                    >
+                      <ShoppingBag size={14} /> {t("products.buyNow", "Buy Now")}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ background: '#ffffff', border: '1px solid #F7CDAB', borderRadius: '12px', padding: '3rem 1.5rem', textAlign: 'center' }}>
-              <Package size={40} style={{ color: '#D9DDE4', margin: '0 auto 0.75rem' }} />
-              <h3 style={{ fontSize: '1.1rem', color: '#0C1F41', margin: '0 0 0.25rem 0' }}>No products found</h3>
-              <p style={{ color: '#74788A', fontSize: '0.88rem', margin: 0 }}>
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '3rem 1.5rem', textAlign: 'center' }}>
+              <Package size={40} style={{ color: '#cbd5e1', margin: '0 auto 0.75rem' }} />
+              <h3 style={{ fontSize: '1.1rem', color: '#0f172a', margin: '0 0 0.25rem 0' }}>{t("products.noProducts", "No products found")}</h3>
+              <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
                 {search || selectedCategory !== "all" ? "Try adjusting your search or category filter" : "No products available in the catalog"}
               </p>
             </div>

@@ -1,22 +1,31 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { ArrowLeft, Printer, User } from "lucide-react"
-import { call, money, cleanTextLines, canPrintFree, getActivePlanDetails } from "../lib/utils"
+import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
+import { call, money, cleanTextLines, canPrintFree, getActivePlanDetails, syncUserQuota, incrementFreePrintCount, getCurrentUserKey, findTemplateMatch } from "../lib/utils"
 import { printReceiptElement } from "../lib/printReceipt"
-import { PrintModal } from "./PrintModal"
 import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
+import { BUILTIN_TEMPLATES } from "./Templates"
+import { RealisticReceiptView } from "./RealisticReceiptView"
 import Swal from "sweetalert2"
 
 export function Reprint({ billId, setView, requireAuth, user }) {
+  const { t } = useTranslation()
+  const { tDb, formatNum, lang } = useDbTranslation()
   const [bill, setBill] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isPrinting, setIsPrinting] = useState(false)
-  const [showPrintModal, setShowPrintModal] = useState(false)
 
-  const { success } = useToast()
+  const { success, error: toastError } = useToast()
 
-  const actualBillId = billId || sessionStorage.getItem("slipzo-reprint-id")
+  const actualBillId = sessionStorage.getItem("slipzo-reprint-id") || billId
+
+  const handleBack = () => {
+    const origin = sessionStorage.getItem("slipzo-print-origin") || "history"
+    setView(origin)
+  }
 
   useEffect(() => {
     const loadBill = async () => {
@@ -74,26 +83,148 @@ export function Reprint({ billId, setView, requireAuth, user }) {
     localStorage.setItem("slipzo_print_settings", JSON.stringify(settings))
   }
 
-  const printReceipt = () => {
-    const userKey = user?.email || user?.id
-    if (!canPrintFree(userKey)) {
-      const plan = getActivePlanDetails(userKey)
+  // Set default print format based on bill template width
+  useEffect(() => {
+    if (bill) {
+      const matched = findTemplateMatch(BUILTIN_TEMPLATES, bill.template_id || bill.template_name)
+      const width = bill.template_width || matched?.width
+      if (width === "58mm" || width === "55mm" || width === "55") {
+        setPrintFormat("55mm")
+      } else if (width === "80mm" || width === "80") {
+        setPrintFormat("80mm")
+      }
+    }
+  }, [bill])
+
+  // Resolve template object and populated preview data for dynamic realistic rendering
+  const templateForView = useMemo(() => {
+    if (!bill) return null
+    const matched = findTemplateMatch(BUILTIN_TEMPLATES, bill.template_id || bill.template_name) || BUILTIN_TEMPLATES[0]
+
+    const itemsList = Array.isArray(bill.items)
+      ? bill.items.map((it) => {
+          const qty = Number(it.quantity !== undefined ? it.quantity : (it.qty !== undefined ? it.qty : 0))
+          const rate = Number(it.rate !== undefined ? it.rate : (it.price !== undefined ? it.price : 0))
+          const tot = Number(it.total !== undefined ? it.total : (it.amount !== undefined ? it.amount : (qty * rate)))
+          return {
+            name: it.name || "Item",
+            qty,
+            rate,
+            total: tot
+          }
+        })
+      : []
+
+    const formattedDate = bill.created_at
+      ? new Date(bill.created_at).toLocaleDateString(lang === "mr" ? "mr-IN" : lang === "hi" ? "hi-IN" : "en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        })
+      : ""
+
+    return {
+      ...matched,
+      id: matched.id,
+      templateId: matched.templateId,
+      name: bill.template_name || matched.name,
+      width: printFormat === "a4" ? "80mm" : (printFormat === "55mm" ? "58mm" : (printFormat || matched.width || "58mm")),
+      footer: bill.footer || matched.footer || "Thank you for shopping with us! Please come again.",
+      previewData: {
+        shopName: bill.shop_name || "Slipzo Mart",
+        address: bill.shop_address || "",
+        phone: bill.shop_phone || "",
+        gst: bill.gst || bill.gstin || "",
+        customerName: bill.customer_name || "",
+        customerPhone: bill.customer_phone || "",
+        invoiceNo: bill.number || "",
+        date: formattedDate,
+        items: itemsList,
+        subtotal: Number(bill.subtotal || 0),
+        discount: Number(bill.discount || 0),
+        taxRate: Number(bill.tax_rate || 0),
+        tax: Number(bill.tax_amount || 0),
+        total: Number(bill.total || 0),
+        payment: bill.payment_mode || "Cash",
+        footer: bill.footer || matched.footer || "Thank you for shopping with us! Please come again."
+      }
+    }
+  }, [bill, printFormat, lang])
+
+  const printReceipt = async () => {
+    if (isPrinting) return
+    setIsPrinting(true)
+
+    const userAuthKey = user?.email || user?.id || getCurrentUserKey(user)
+
+    if (!canPrintFree(userAuthKey)) {
+      const plan = getActivePlanDetails(userAuthKey)
       if (plan?.isFreeTier) {
         window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
       } else {
         Swal.fire({
-          title: "Print Quota Reached",
-          text: "You have used all available prints in your plan. Please select a plan to add print credits and continue.",
+          title: "Print Quota Limit Reached",
+          text: "You have used all available prints in your plan. Please view pricing plans to add print credits.",
           icon: "warning",
           confirmButtonText: "View Pricing Plans",
-          confirmButtonColor: "#FB821B"
+          confirmButtonColor: "#0284c7"
         }).then(() => {
           setView?.("pricing")
         })
       }
+      setIsPrinting(false)
       return
     }
-    setShowPrintModal(true)
+
+    try {
+      if (user) {
+        let quota = null
+        try {
+          const res = await call("/subscriptions/consume-print", { method: "POST" })
+          if (res && res.quota) {
+            quota = res.quota
+            syncUserQuota(res.quota, userAuthKey)
+          }
+        } catch (err) {
+          console.error("Print quota deduction failed:", err)
+          const errMsg = err?.detail || err?.message || "No print credits available"
+          Swal.fire({
+            title: "Print Quota Reached",
+            text: errMsg,
+            icon: "warning",
+            confirmButtonText: "View Plans",
+            confirmButtonColor: "#0284c7"
+          })
+          setIsPrinting(false)
+          return
+        }
+
+        printReceiptElement("receipt-to-print", {
+          pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
+        })
+
+        success(t("bills.printedSuccess", "Printed successfully!"))
+
+        if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
+          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
+        }
+      } else {
+        incrementFreePrintCount(userAuthKey)
+        printReceiptElement("receipt-to-print", {
+          pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
+        })
+        success(t("bills.printedSuccess", "Printed successfully!"))
+      }
+    } catch (err) {
+      console.error("Printing failed:", err)
+      toastError?.("Printing failed. Please check printer connection.")
+    } finally {
+      setTimeout(() => {
+        setIsPrinting(false)
+      }, 800)
+    }
   }
 
   if (loading) {
@@ -118,10 +249,10 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         <div className="error-message">{error || "Bill not found"}</div>
         <button
           className="secondary-button"
-          onClick={() => setView("history")}
+          onClick={handleBack}
           style={{ marginTop: "1rem" }}
         >
-          <ArrowLeft size={16} /> Back to history
+          <ArrowLeft size={16} /> {t("common.back", "Back")}
         </button>
       </div>
     )
@@ -131,7 +262,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
     <div className="page reprint-page fade-in">
       <div className="page-intro">
         <div>
-          <p className="eyebrow accent">SAVED RECEIPT</p>
+          <p className="eyebrow accent">{t("history.savedReceipt", "SAVED RECEIPT")}</p>
           <h2>{bill.number}</h2>
           <p className="subtle">
             {new Date(bill.created_at).toLocaleString("en-IN", {
@@ -144,19 +275,20 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           </p>
         </div>
         <div className="bill-header-actions">
-          <button className="secondary-button" onClick={() => setView("history")}>
-            <ArrowLeft size={16} /> Back
+          <button className="secondary-button" onClick={handleBack}>
+            <ArrowLeft size={16} /> {t("common.back", "Back")}
           </button>
           <button className="primary-button" onClick={printReceipt} disabled={isPrinting}>
-            {isPrinting ? <ButtonLoader text="Printing..." /> : <><Printer size={16} /> Print</>}
+            {isPrinting ? <ButtonLoader text={t("bills.printing", "Printing...")} /> : <><Printer size={16} /> {t("bills.print", "Print")}</>}
           </button>
         </div>
       </div>
 
-      <div className="receipt-preview-panel" style={{ maxWidth: printFormat === "a4" ? "600px" : (printFormat === "80mm" ? "400px" : "280px"), margin: "0 auto", transition: "max-width 0.2s ease" }}>
+      <div className="receipt-preview-panel" style={{ maxWidth: printFormat === "a4" ? "600px" : (printFormat === "80mm" ? "400px" : "320px"), margin: "0 auto", transition: "max-width 0.2s ease" }}>
         <div className="preview-header" style={{ marginBottom: "0.75rem" }}>
           <div className="preview-title-wrap">
             <span className="preview-badge">
+              {templateForView?.name ? `${templateForView.name} • ` : ""}
               {printFormat === "a4" ? "A4 Sheet" : `${printFormat} Thermal`}
             </span>
           </div>
@@ -187,117 +319,20 @@ export function Reprint({ billId, setView, requireAuth, user }) {
             </button>
           </div>
         </div>
-        <div id="receipt-to-print" className={`receipt-preview-content format-${printFormat}`}>
-          {/* Shop Header */}
-          <div className="receipt-shop">
-            <div className="receipt-logo">S</div>
-            <h2 className="receipt-shop-name">
-              {cleanTextLines(bill.shop_name || "Slipzo Shop").map((line, idx) => (
-                <div key={idx}>{line}</div>
-              ))}
-            </h2>
-            {bill.shop_address && cleanTextLines(bill.shop_address).length > 0 && (
-              <div className="receipt-shop-address">
-                {cleanTextLines(bill.shop_address).map((line, idx) => (
-                  <div key={idx}>{line}</div>
-                ))}
-              </div>
-            )}
-            {bill.shop_phone && (
-              <p className="receipt-shop-phone">{bill.shop_phone}</p>
-            )}
-          </div>
-
-          {/* Receipt Meta */}
-          <div className="receipt-meta">
-            <span className="receipt-number" style={{ whiteSpace: 'nowrap' }}>#{bill.number}</span>
-            <span className="receipt-date" style={{ whiteSpace: 'nowrap' }}>
-              {new Date(bill.created_at).toLocaleDateString("en-IN", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric"
-              })}
-            </span>
-          </div>
-
-          {/* Customer Line */}
-          {bill.customer_name && (
-            <div className="receipt-customer-line">
-              <span>Customer: <b>{bill.customer_name}</b></span>
-              {bill.customer_phone && <small>Ph: {bill.customer_phone}</small>}
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="receipt-divider"></div>
-
-          {/* Items */}
-          <div className="receipt-items">
-            <div className="receipt-items-header">
-              <span>Item</span>
-              <span>Qty</span>
-              <span>Rate</span>
-              <span>Amount</span>
-            </div>
-            {Array.isArray(bill.items) && bill.items.length > 0 ? (
-              bill.items.map((item, index) => {
-                const qty = Number(item.quantity) || 0
-                const rate = Number(item.rate) || 0
-                const amount = qty * rate
-                return (
-                  <div className="receipt-item-row" key={item.id || index}>
-                    <span className="receipt-item-name">{item.name}</span>
-                    <span className="receipt-item-qty">{qty}</span>
-                    <span className="receipt-item-rate">{money(rate)}</span>
-                    <span className="receipt-item-amount">{money(amount)}</span>
-                  </div>
-                )
-              })
-            ) : (
-              <div className="receipt-empty-items">
-                <p>No items found</p>
-              </div>
-            )}
-          </div>
-
-          {/* Totals */}
-          <div className="receipt-totals">
-            <div className="receipt-total-row">
-              <span>Subtotal</span>
-              <span>{money(bill.subtotal || 0)}</span>
-            </div>
-
-            {Number(bill.discount) > 0 && (
-              <div className="receipt-total-row discount">
-                <span>Discount</span>
-                <span>-{money(bill.discount)}</span>
-              </div>
-            )}
-
-            {Number(bill.tax_rate) > 0 && (
-              <div className="receipt-total-row">
-                <span>Tax ({bill.tax_rate}%)</span>
-                <span>{money(bill.tax_amount || 0)}</span>
-              </div>
-            )}
-
-            <div className="receipt-grand-total">
-              <span>Grand Total</span>
-              <span>{money(bill.total || 0)}</span>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="receipt-divider"></div>
-
-          {/* Footer */}
-          <div className="receipt-footer">
-            <div className="receipt-payment">
-              <span>Payment</span>
-              <span>{bill.payment_mode || "Cash"}</span>
-            </div>
-            <p className="receipt-thanks">Thank you for shopping with us!</p>
-          </div>
+        <div 
+          id="receipt-to-print" 
+          className={`receipt-preview-content format-${printFormat}`}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            boxShadow: "none",
+            width: "100%",
+            display: "flex",
+            justifyContent: "center"
+          }}
+        >
+          <RealisticReceiptView template={templateForView} />
         </div>
       </div>
 
@@ -388,15 +423,6 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           }
         }
       `}</style>
-
-      {/* Thermal Print Setup & Adjustment Modal */}
-      <PrintModal
-        isOpen={showPrintModal}
-        onClose={() => setShowPrintModal(false)}
-        defaultWidth={printFormat}
-        elementId="receipt-to-print"
-        user={user}
-      />
     </div>
   )
 }

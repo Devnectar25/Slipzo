@@ -12,10 +12,12 @@ import {
   AlertCircle,
   Edit2
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { call, money, getStoredMenuItems, saveStoredMenuItems } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { ButtonLoader } from "./common/Skeleton"
 import { VoiceInputButton } from "./common/VoiceInputButton"
+import { useDbTranslation } from "../lib/translator"
 
 // Default sample master products with real food photography fallback
 const FALLBACK_CATALOG = [
@@ -130,6 +132,8 @@ function isVegItem(item) {
 }
 
 export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
+  const { t } = useTranslation()
+  const { tDb, formatNum } = useDbTranslation()
   const [catalog, setCatalog] = useState(() => FALLBACK_CATALOG)
   const [loadingCatalog, setLoadingCatalog] = useState(false)
   const [search, setSearch] = useState("")
@@ -461,7 +465,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                     onClick={() => setSelectedCategory(chip.id)}
                   >
                     {chip.icon && <span className="cat-chip-icon">{chip.icon}</span>}
-                    <span>{chip.label}</span>
+                    <span>{chip.id === "all" ? t("menu.allItems", "All Items") : tDb(chip.label)}</span>
                   </button>
                 )
               })}
@@ -469,18 +473,18 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
 
             {/* Section Heading */}
             <div className="add-menu-section-head">
-              <h4>Most Relevant Products ({filteredProducts.length})</h4>
+              <h4>{t("menu.availableItems", "Available Items")} ({formatNum(filteredProducts.length)})</h4>
             </div>
 
             {/* Available Products List */}
             <div className="add-menu-products-list">
               {loadingCatalog ? (
                 <div className="add-menu-catalog-loader">
-                  <ButtonLoader text="Loading available items..." />
+                  <ButtonLoader text={t("menu.loadingItems", "Loading available items...")} />
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="add-menu-empty-catalog">
-                  <p>No products found matching "{search}"</p>
+                  <p>{t("menu.noMatchingItems", "No products found matching")} "{search}"</p>
                 </div>
               ) : (
                 filteredProducts.map((product) => {
@@ -507,22 +511,22 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                               {isVeg ? <span className="fssai-dot" /> : <span className="fssai-triangle" />}
                             </span>
                             <span className="product-name" title={product.name}>
-                              {product.name}
+                              {tDb(product.name)}
                             </span>
                           </div>
-                          <span className="product-category-text">{product.category || "General"}</span>
+                          <span className="product-category-text">{tDb(product.category || "General")}</span>
                         </div>
                       </div>
 
                       <div className="product-row-right">
-                        <span className="product-price-tag">₹{Number(product.price).toFixed(2)}</span>
+                        <span className="product-price-tag">₹{formatNum(Number(product.price).toFixed(2))}</span>
                         <button
                           type="button"
                           className={`product-add-btn ${isAdded ? "added" : ""}`}
                           onClick={() => !isAdded && handleOpenSetPrice(product)}
                           disabled={isAdded}
                         >
-                          {isAdded ? "Added" : "+ Add"}
+                          {isAdded ? t("menu.added", "Added") : `+ ${t("menu.add", "Add")}`}
                         </button>
                       </div>
                     </div>
@@ -581,9 +585,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                       />
                       <div className="selected-item-info">
                         <span className="selected-name" title={item.name}>
-                          {item.name}
+                          {tDb(item.name)}
                         </span>
-                        <span className="selected-cat">{item.category || "General"}</span>
+                        <span className="selected-cat">{tDb(item.category || "General")}</span>
 
                         {editingItemId === item.id ? (
                           <div className="selected-inline-edit-wrap">
@@ -668,7 +672,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
             onClick={handleSkip}
             disabled={saving}
           >
-            Skip for now
+            {t("common.skip", "Skip for now")}
           </button>
           <button
             type="button"
@@ -677,10 +681,10 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
             disabled={saving}
           >
             {saving ? (
-              <span>Saving Items...</span>
+              <span>{t("common.saving", "Saving Items...")}</span>
             ) : (
               <>
-                <span>Continue</span>
+                <span>{t("common.continue", "Continue")}</span>
                 <ArrowRight size={16} />
               </>
             )}
@@ -699,7 +703,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
             >
               {/* Header */}
               <div className="set-price-header">
-                <h3 className="set-price-title">Add to My Menu</h3>
+                <h3 className="set-price-title">{t("menu.addToMyMenu", "Add to My Menu")}</h3>
                 <button
                   type="button"
                   className="set-price-close-btn"
@@ -723,23 +727,23 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                     }}
                   />
                   <div className="set-price-details">
-                    <span className="set-price-name">{settingPriceProduct.name}</span>
-                    <span className="set-price-cat">{settingPriceProduct.category || "General"}</span>
+                    <span className="set-price-name">{tDb(settingPriceProduct.name)}</span>
+                    <span className="set-price-cat">{tDb(settingPriceProduct.category || "General")}</span>
                   </div>
                 </div>
 
                 {/* Master Catalog Price (Read-only) */}
                 <div className="set-price-master-box">
-                  <span className="set-price-label">Master Price</span>
+                  <span className="set-price-label">{t("menu.catalogBasePrice", "Master Price")}</span>
                   <span className="set-price-master-val">
-                    ₹{Number(settingPriceProduct.price || 0).toFixed(2)}
+                    ₹{formatNum(Number(settingPriceProduct.price || 0).toFixed(2))}
                   </span>
                 </div>
 
                 {/* User Personal Selling Price Input */}
                 <div className="set-price-field-wrap">
                   <label className="set-price-label" htmlFor="user-selling-price-input">
-                    Your Selling Price
+                    {t("menu.yourSellingPrice", "Your Selling Price")}
                   </label>
                   <div className={`set-price-input-container ${priceModalError ? "error" : ""}`}>
                     <span className="set-price-currency">₹</span>
@@ -754,7 +758,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                         setSellingPriceInput(e.target.value)
                         if (priceModalError) setPriceModalError("")
                       }}
-                      placeholder="Enter selling price"
+                      placeholder={t("menu.enterSellingPrice", "Enter selling price")}
                       className="set-price-input"
                     />
                   </div>
@@ -771,14 +775,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                   className="set-price-cancel-btn"
                   onClick={handleCloseSetPrice}
                 >
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="button"
                   className="set-price-confirm-btn"
                   onClick={handleConfirmAddPrice}
                 >
-                  Add to Menu
+                  {t("menu.addToMenu", "Add to Menu")}
                 </button>
               </div>
             </div>

@@ -279,7 +279,38 @@ const executeFetch = async (cleanPath, options = {}) => {
   }
 }
 
-export const money = (n) => `₹${Number(n || 0).toFixed(2)}`
+const DEVANAGARI_DIGITS = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९']
+
+export const toDevanagariNumerals = (val) => {
+  if (val === undefined || val === null) return ""
+  return String(val).replace(/[0-9]/g, (d) => DEVANAGARI_DIGITS[Number(d)])
+}
+
+export const getAppLanguage = () => {
+  if (typeof window === "undefined") return "en"
+  try {
+    return (localStorage.getItem("slipzo_language") || localStorage.getItem("i18nextLng") || "en").toLowerCase()
+  } catch (_) {
+    return "en"
+  }
+}
+
+export const formatNumberByLang = (val, customLang) => {
+  const lang = (customLang || getAppLanguage()).toLowerCase()
+  if (lang.startsWith("mr") || lang.startsWith("hi")) {
+    return toDevanagariNumerals(val)
+  }
+  return String(val ?? "")
+}
+
+export const money = (n, customLang) => {
+  const formatted = Number(n || 0).toFixed(2)
+  const lang = (customLang || getAppLanguage()).toLowerCase()
+  if (lang.startsWith("mr") || lang.startsWith("hi")) {
+    return `₹${toDevanagariNumerals(formatted)}`
+  }
+  return `₹${formatted}`
+}
 
 export const now = () => new Date().toISOString()
 

@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo } from "react"
-import { Plus, Receipt, Copy, Trash2, ArrowRight, Search, X, Edit, SlidersHorizontal, Check, Sparkles, Printer, Eye } from "lucide-react"
+import { Plus, Receipt, Copy, Trash2, ArrowRight, Search, X, Edit, SlidersHorizontal, Check, Sparkles, Printer, Eye, LayoutTemplate } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
 import { CardSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -223,6 +225,8 @@ export const BUILTIN_TEMPLATES = [
 ]
 
 export function Templates({ setView, user }) {
+  const { t } = useTranslation()
+  const { tDb, formatNum } = useDbTranslation()
   const [items, setItems] = useState(() => {
     const cached = getCachedData("/templates")
     return Array.isArray(cached) ? cached : []
@@ -499,14 +503,12 @@ export function Templates({ setView, user }) {
     <div className="page templates-page fade-in">
       <div className="page-intro">
         <div>
-          <div className="eyebrow-pill-wrap">
-            <span className="eyebrow-pill">REUSABLE RECEIPTS</span>
-          </div>
-          <h2 className="templates-mobile-title">
-            Templates that<br />save time
-          </h2>
-          <p className="subtle templates-subtitle">
-            Pick from our pre-designed receipt styles or create your own custom layout.
+          <span className="menu-eyebrow">
+            <LayoutTemplate size={13} /> {t("templates.eyebrow", "REUSABLE RECEIPTS")}
+          </span>
+          <h1 className="menu-main-title">{t("templates.title", "Templates that save time.")}</h1>
+          <p className="menu-sub-title">
+            {t("templates.subtitle", "Pick from our pre-designed receipt styles or create your own custom layout.")}
           </p>
         </div>
       </div>
@@ -516,7 +518,7 @@ export function Templates({ setView, user }) {
           <input
             data-testid="template-name-input"
             autoFocus
-            placeholder="Template name, e.g. Everyday receipt"
+            placeholder={t("templates.templateNamePlaceholder", "Template name, e.g. Everyday receipt")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
@@ -530,7 +532,7 @@ export function Templates({ setView, user }) {
             onClick={create}
             disabled={loading}
           >
-            {loading ? <ButtonLoader text="Saving..." /> : editMode ? "Update template" : "Save template"}
+            {loading ? <ButtonLoader text={t("common.saving", "Saving...")} /> : editMode ? t("templates.updateTemplate", "Update template") : t("templates.saveTemplate", "Save template")}
           </button>
           <button
             data-testid="cancel-template-button"
@@ -538,7 +540,7 @@ export function Templates({ setView, user }) {
             onClick={cancelEdit}
             disabled={loading}
           >
-            Cancel
+            {t("common.cancel", "Cancel")}
           </button>
         </div>
       )}
@@ -550,7 +552,7 @@ export function Templates({ setView, user }) {
           <input
             data-testid="template-search-input"
             type="text"
-            placeholder="Search templates by name, width, category..."
+            placeholder={t("templates.searchPlaceholder", "Search templates by name, width, category, footer...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
@@ -577,25 +579,25 @@ export function Templates({ setView, user }) {
             className={`filter-chip ${activeFilter === "all" ? "active" : ""}`}
             onClick={() => setActiveFilter("all")}
           >
-            All ({allItems.length})
+            {t("templates.filterAll", "All")} ({formatNum(allItems.length)})
           </button>
           <button
             className={`filter-chip ${activeFilter === "58mm" ? "active" : ""}`}
             onClick={() => setActiveFilter("58mm")}
           >
-            58mm Thermal
+            {formatNum("58")}mm Thermal
           </button>
           <button
             className={`filter-chip ${activeFilter === "80mm" ? "active" : ""}`}
             onClick={() => setActiveFilter("80mm")}
           >
-            80mm Standard
+            {formatNum("80")}mm Standard
           </button>
           <button
             className={`filter-chip ${activeFilter === "default" ? "active" : ""}`}
             onClick={() => setActiveFilter("default")}
           >
-            Default
+            {t("templates.filterDefault", "Default")}
           </button>
         </div>
       </div>
@@ -627,12 +629,12 @@ export function Templates({ setView, user }) {
 
                 <div className="template-card-top">
                   <div className="template-badge-row">
-                    <div className="template-badge-left">
-                      <span className="template-badge">
-                        {template.badge || (template.is_default ? "Standard" : "Custom")}
-                      </span>
-                      {(template.is_default || template.id === "classic" || template.id === "minimal") && (
-                        <span className="default-pill-indicator">DEFAULT</span>
+                    <span className="template-badge" style={{ background: cardGradient, color: "#ffffff" }}>
+                      {tDb(template.badge || (template.is_default ? "Default" : "Custom"))}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                      {template.is_default && (
+                        <span className="default-pill-indicator">{t("templates.defaultBadge", "DEFAULT")}</span>
                       )}
                     </div>
                     <span className="template-paper-tag">
@@ -640,8 +642,8 @@ export function Templates({ setView, user }) {
                     </span>
                   </div>
 
-                  <h3>{template.name}</h3>
-                  <p className="template-desc">{template.description || `Custom ${template.width || "58mm"} thermal receipt template.`}</p>
+                  <h3>{tDb(template.name)}</h3>
+                  <p className="template-desc">{tDb(template.description || `Custom ${template.width || "58mm"} thermal receipt template.`)}</p>
                 </div>
 
                 {/* Live Mini Receipt Preview Box with decorative peach background */}
@@ -656,7 +658,7 @@ export function Templates({ setView, user }) {
                   <div className="preview-bubble bubble-4" />
                   <MiniReceiptPreview template={template} />
                   <div className="mock-receipt-view-overlay">
-                    <span><Eye size={15} /> Click to preview receipt</span>
+                    <span><Eye size={15} /> {t("templates.preview", "Click to preview receipt")}</span>
                   </div>
                 </div>
 
@@ -664,10 +666,8 @@ export function Templates({ setView, user }) {
                 <div className="template-features-list">
                   {(Array.isArray(features) ? features : []).map((feat, idx) => (
                     <div className="template-feat-item" key={idx}>
-                      <span className="feat-check-icon">
-                        <Check size={10} strokeWidth={3.5} />
-                      </span>
-                      <span>{feat}</span>
+                      <Check size={16} style={{ color: accentColor, flexShrink: 0 }} />
+                      <span>{tDb(feat)}</span>
                     </div>
                   ))}
                 </div>
@@ -683,12 +683,12 @@ export function Templates({ setView, user }) {
                         setView("bills")
                       }}
                     >
-                      <Check size={16} strokeWidth={3} /> Use template
+                      {t("templates.useTemplate", "Use template")} <ArrowRight size={15} />
                     </button>
                     <button
                       className="template-preview-btn-full"
                       onClick={() => setPreviewTemplate(template)}
-                      title="View Realistic Receipt"
+                      title={t("templates.preview", "View Realistic Receipt")}
                     >
                       <Eye size={16} /> Preview
                     </button>
@@ -701,8 +701,8 @@ export function Templates({ setView, user }) {
       ) : (
         <div className="empty fade-in">
           <Receipt size={32} />
-          <h3>No matching templates</h3>
-          <p>Try adjusting your search query or filter chip.</p>
+          <h3>{t("templates.noMatching", "No matching templates")}</h3>
+          <p>{t("templates.noMatchingDesc", "Try adjusting your search query or filter chip.")}</p>
           <button
             className="secondary-button"
             onClick={() => {
@@ -711,7 +711,7 @@ export function Templates({ setView, user }) {
             }}
             style={{ marginTop: "1rem" }}
           >
-            Clear filters
+            {t("templates.clearFilters", "Clear filters")}
           </button>
         </div>
       )}
@@ -731,7 +731,7 @@ export function Templates({ setView, user }) {
           <div className="template-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="template-modal-header">
               <div>
-                <h3>{previewTemplate.name}</h3>
+                <h3>{tDb(previewTemplate.name)}</h3>
                 <span className="modal-paper-tag"><Printer size={12} /> {previewTemplate.paperSize || previewTemplate.width}</span>
               </div>
               <button className="modal-close-btn" onClick={() => setPreviewTemplate(null)}>✕</button>
@@ -751,7 +751,7 @@ export function Templates({ setView, user }) {
                   setView("bills")
                 }}
               >
-                Use this template in billing <ArrowRight size={16} />
+                {t("templates.useInBilling", "Use this template in billing")} <ArrowRight size={16} />
               </button>
             </div>
           </div>

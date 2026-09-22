@@ -29,6 +29,7 @@ import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, ge
 import { useToast } from "./common/Toast"
 import { Spinner } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useSpeechInput } from "../hooks/useSpeechInput"
 import "../styles/Menu.css"
@@ -113,6 +114,7 @@ function MenuImageThumbnail({ src, alt, className = "mob-item-thumb", wrapClassN
 
 export function Menu({ setView, requireAuth, user }) {
   const { t } = useTranslation()
+  const { tDb, formatNum } = useDbTranslation()
   const userKey = getCurrentUserKey(user)
   const { success: toastSuccess, error: toastError } = useToast()
 
@@ -594,16 +596,57 @@ export function Menu({ setView, requireAuth, user }) {
                 type="button"
                 className={`mob-search-mic-btn ${isListening ? "listening" : ""}`}
                 onClick={handleToggleVoiceSearch}
-                title="Voice Search"
+                title={isListening ? t("menu.clickToStop", "Click to stop listening") : t("menu.addByVoice", "Add item by speaking its name")}
+                style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
               >
-                <Mic size={16} />
+                {isListening ? (
+                  <>
+                    <span className="speech-pulse-dot" />
+                    <Volume2 size={16} className="speech-icon-anim" />
+                    <span>{t("menu.listening", "Listening...")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic size={17} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
+                  </>
+                )}
               </button>
             </div>
 
-            {/* Category Chips Scroll Row */}
-            <div className="mob-menu-categories-scroll">
-              {myMenuCategories.map((cat) => {
-                const isActive = selectedCategory.toLowerCase() === cat.id.toLowerCase()
+          {/* Search Bar + Voice Input */}
+          <div className="menu-search-wrapper">
+            <Search size={18} className="menu-search-icon" />
+            <input
+              type="text"
+              className="menu-search-input"
+              placeholder={isListening ? t("menu.listeningSpeak", "Listening... Speak the item name") : t("menu.searchUserMenu", "Search or speak to find in My Menu...")}
+              value={isListening && transcript ? transcript : search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && !isListening && (
+              <button className="menu-search-clear-btn" onClick={() => setSearch("")} title={t("bills.clearSearch", "Clear search")}>
+                <X size={15} />
+              </button>
+            )}
+            <button
+              type="button"
+              className={`menu-search-mic-btn ${isListening ? "listening" : ""}`}
+              onClick={handleToggleVoiceSearch}
+              title={isListening ? t("menu.clickToStop", "Listening... Click to stop") : t("menu.speakItemName", "Speak item name")}
+            >
+              {isListening ? (
+                <Volume2 size={16} className="speech-icon-anim" />
+              ) : (
+                <Mic size={16} />
+              )}
+            </button>
+          </div>
+
+          {/* Category Filter Pills */}
+          {activeCategories.length > 2 && (
+            <div className="menu-category-pills-row">
+              {activeCategories.map((cat) => {
+                const isActive = selectedCategory.toLowerCase() === cat.toLowerCase()
                 return (
                   <button
                     key={cat.id}
@@ -611,12 +654,7 @@ export function Menu({ setView, requireAuth, user }) {
                     className={`mob-category-chip ${isActive ? "active" : ""}`}
                     onClick={() => setSelectedCategory(cat.id)}
                   >
-                    {typeof cat.icon === "string" ? (
-                      <span className="mob-cat-icon">{cat.icon}</span>
-                    ) : (
-                      cat.icon
-                    )}
-                    <span>{cat.label}</span>
+                    {cat === "all" ? (search.trim() ? t("menu.allCategories", "All Categories") : t("menu.allItems", "All Items")) : tDb(cat)}
                   </button>
                 )
               })}
@@ -973,52 +1011,60 @@ export function Menu({ setView, requireAuth, user }) {
                   type="button"
                   className={`menu-secondary-btn ${isListening ? "listening" : ""}`}
                   onClick={handleToggleVoiceSearch}
-                  title={isListening ? "Click to stop listening" : "Add item by speaking its name"}
-                  style={isListening ? { borderColor: "#ef4444", background: "#FFE1E5", color: "#dc2626" } : {}}
+                  title={isListening ? t("menu.clickToStop", "Click to stop listening") : t("menu.addByVoice", "Add item by speaking its name")}
+                  style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
                 >
                   {isListening ? (
                     <>
                       <span className="speech-pulse-dot" />
                       <Volume2 size={16} className="speech-icon-anim" />
-                      <span>Listening...</span>
+                      <span>{t("menu.listening", "Listening...")}</span>
                     </>
                   ) : (
                     <>
-                      <Mic size={17} /> <span>Add by Voice</span>
+                      <Mic size={17} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
                     </>
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Search Bar + Voice Input */}
-            <div className="menu-search-wrapper">
-              <Search size={18} className="menu-search-icon" />
-              <input
-                type="text"
-                className="menu-search-input"
-                placeholder={isListening ? "Listening... Speak the item name" : t("menu.searchUserMenu", "Search or speak to find in My Menu...")}
-                value={isListening && transcript ? transcript : search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search && !isListening && (
-                <button className="menu-search-clear-btn" onClick={() => setSearch("")}>
-                  <X size={15} />
-                </button>
-              )}
-              <button
-                type="button"
-                className={`menu-search-mic-btn ${isListening ? "listening" : ""}`}
-                onClick={handleToggleVoiceSearch}
-                title={isListening ? "Listening... Click to stop" : "Speak item name"}
-              >
-                {isListening ? (
-                  <Volume2 size={16} className="speech-icon-anim" />
-                ) : (
-                  <Mic size={16} />
-                )}
-              </button>
+              {/* Step-by-step instruction guide */}
+              <div className="menu-empty-guide-box">
+                <div className="menu-empty-guide-header">{t("menu.quickGuide", "Quick 4-Step Guide")}</div>
+                <ul className="menu-empty-guide-steps">
+                  <li>
+                    <span className="menu-empty-step-num">{formatNum(1)}</span>
+                    <span>{t("menu.guideStep1", "Search or speak an item name")}</span>
+                  </li>
+                  <li>
+                    <span className="menu-empty-step-num">{formatNum(2)}</span>
+                    <span>{t("menu.guideStep2", "Select an item from the master catalog")}</span>
+                  </li>
+                  <li>
+                    <span className="menu-empty-step-num">{formatNum(3)}</span>
+                    <span>{t("menu.guideStep3", "Set your personal selling price")}</span>
+                  </li>
+                  <li>
+                    <span className="menu-empty-step-num">{formatNum(4)}</span>
+                    <span>{t("menu.guideStep4", "Add it to your menu for 1-click billing")}</span>
+                  </li>
+                </ul>
+              </div>
             </div>
+          ) : (
+            /* ================================================================
+               PHASE 12: USER MENU CARDS (My Menu List)
+               ================================================================ */
+            <>
+              <div className="menu-section-subheader">
+                <h3 className="menu-section-title">
+                  {t("menu.myMenu", "My Menu")}
+                  <span className="menu-items-count-badge">
+                    {formatNum(filteredUserItems.length)} {filteredUserItems.length === 1 ? t("history.item", "item") : t("history.items", "items")}
+                  </span>
+                </h3>
+              </div>
 
             {/* Menu Cards Grid */}
             <div className="menu-section-subheader">
@@ -1030,103 +1076,129 @@ export function Menu({ setView, requireAuth, user }) {
               </h3>
             </div>
 
-            <div className="menu-cards-grid">
-              {filteredUserItems.map((item) => {
-                const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
-                return (
-                  <div key={item.id} className="user-menu-card">
-                    <div className="user-menu-card-left">
-                      <MenuImageThumbnail
-                        src={item.image_url}
-                        alt={item.name}
-                        className="menu-card-image"
-                        wrapClassName="menu-card-image-wrap"
-                        iconSize={24}
-                      />
-
-                      <div className="menu-card-details">
-                        <h4 className="menu-card-item-name" title={item.name}>
-                          {item.name}
-                        </h4>
-                        <span className={`mob-item-cat-badge ${getCategoryBadgeClass(item.category)}`}>
-                          {item.category || "General"}
-                        </span>
-                        <div className="menu-card-price-row">
-                          <span className="mob-item-price">{money(item.price)}</span>
-                          {isItemActive && (
-                            <span className="mob-item-active-status">
-                              <span className="mob-status-dot" /> Active
-                            </span>
-                          )}
+                        <div className="menu-card-details">
+                          <h4 className="menu-card-item-name" title={item.name}>
+                            {tDb(item.name)}
+                          </h4>
+                          <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
+                          <div className="menu-card-price-row">
+                            <span className="menu-card-selling-price">{money(item.price)}</span>
+                            {isItemActive && (
+                              <span className="menu-card-status-pill">
+                                <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
+                              </span>
+                            )}
+                          </div>
                         </div>
+                      </div>
+
+                      <div className="user-menu-card-actions">
+                        <button
+                          className="menu-action-icon-btn"
+                          onClick={() => handleOpenEditModal(item)}
+                          title={t("menu.editPrice", "Edit selling price")}
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          className="menu-action-icon-btn delete-btn"
+                          onClick={() => handleRemoveFromUserMenu(item)}
+                          disabled={deletingId === item.id}
+                          title={t("menu.removeMenu", "Remove from My Menu")}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="user-menu-card-actions">
-                      <button
-                        className="menu-action-icon-btn"
-                        onClick={() => handleOpenEditModal(item)}
-                        title="Edit selling price"
-                      >
-                        <Edit2 size={15} />
-                      </button>
-                      <button
-                        className="menu-action-icon-btn delete-btn"
-                        onClick={() => handleRemoveFromUserMenu(item)}
-                        disabled={deletingId === item.id}
-                        title="Remove from My Menu"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+      {/* ====================================================================
+          STATE B: ADD ITEMS FLOW (Catalog Search & Selection)
+          ==================================================================== */}
+      {currentView === "add_items" && (
+        <>
+          {/* Back Bar */}
+          <div className="add-items-back-bar">
+            <button
+              className="add-items-back-btn"
+              onClick={() => setCurrentView("my_menu")}
+              title={t("menu.returnToMenu", "Return to My Menu")}
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h2 className="add-items-header-title">{t("menu.addItems", "Add Items")}</h2>
+              <p className="menu-sub-title">{t("menu.catalogSubtitle", "Search or speak to find items from the master catalog")}</p>
             </div>
           </>
         )}
 
-        {currentView === "add_items" && (
-          <>
-            {/* Back Bar */}
-            <div className="add-items-back-bar">
-              <button
-                className="add-items-back-btn"
-                onClick={() => setCurrentView("my_menu")}
-                title="Return to My Menu"
-              >
-                <ArrowLeft size={18} />
+          {/* Search bar with voice input button */}
+          <div className="menu-search-wrapper">
+            <Search size={18} className="menu-search-icon" />
+            <input
+              type="text"
+              className="menu-search-input"
+              placeholder={t("menu.searchCatalogPlaceholder", "Search or speak to add items (e.g. Cold Coffee, Croissant)...")}
+              value={catalogSearch}
+              onChange={(e) => setCatalogSearch(e.target.value)}
+              autoFocus
+            />
+            {catalogSearch && (
+              <button className="menu-search-clear-btn" onClick={() => setCatalogSearch("")} title={t("bills.clearSearch", "Clear search")}>
+                <X size={15} />
               </button>
-              <div style={{ flex: 1 }}>
-                <h2 className="add-items-header-title">Add Items</h2>
-                <p className="menu-sub-title">Search or speak to find items from the master catalog</p>
-              </div>
-              <button
-                type="button"
-                className="menu-primary-btn"
-                onClick={() => setCurrentView("my_menu")}
-                style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", padding: "0.55rem 1.15rem", fontSize: "0.88rem" }}
-              >
-                <Check size={16} /> View My Menu ({items.length})
-              </button>
-            </div>
+            )}
+            <VoiceInputButton
+              onSpeechResult={handleVoiceSearchResult}
+              variant="icon-only"
+              placeholder={t("menu.speakItemName", "Speak item name")}
+            />
+          </div>
 
-            {/* Search bar */}
-            <div className="menu-search-wrapper">
-              <Search size={18} className="menu-search-icon" />
-              <input
-                type="text"
-                className="menu-search-input"
-                placeholder="Search or speak to add items..."
-                value={catalogSearch}
-                onChange={(e) => setCatalogSearch(e.target.value)}
-                autoFocus
-              />
-              {catalogSearch && (
-                <button className="menu-search-clear-btn" onClick={() => setCatalogSearch("")}>
-                  <X size={15} />
+          {/* Category Filter Pills (Master Catalog) */}
+          <div className="menu-category-pills-row">
+            {catalogCategories.map((cat) => {
+              const isActive = catalogCategory.toLowerCase() === cat.toLowerCase()
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`menu-category-pill ${isActive ? "active" : ""}`}
+                  onClick={() => setCatalogCategory(cat)}
+                >
+                  {cat === "all" ? t("menu.allCategories", "All Categories") : tDb(cat)}
                 </button>
-              )}
+              )
+            })}
+          </div>
+
+          {/* Available Catalog Items */}
+          <div className="menu-section-subheader">
+            <h3 className="menu-section-title">
+              {t("menu.availableItems", "Available Items")}
+              <span className="menu-items-count-badge">
+                {formatNum(filteredCatalogItems.length)} {t("menu.found", "found")}
+              </span>
+            </h3>
+          </div>
+
+          {catalogLoading ? (
+            <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+              <Spinner />
+              <p style={{ color: "#64748b", marginTop: "1rem" }}>{t("menu.searchingCatalog", "Searching catalog...")}</p>
+            </div>
+          ) : filteredCatalogItems.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "3rem 1rem", background: "#ffffff", borderRadius: "14px", border: "1px dashed #cbd5e1" }}>
+              <AlertCircle size={32} style={{ color: "#94a3b8", margin: "0 auto 0.75rem" }} />
+              <h3 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#0f172a", marginBottom: "0.25rem" }}>
+                {t("menu.noMatchingItems", "No matching items found")}
+              </h3>
+              <p style={{ color: "#64748b", fontSize: "0.88rem", marginBottom: "1rem" }}>
+                {t("menu.noMatchingItemsDesc", "Try another search term, speak an item name, or pick a different category.")}
+              </p>
+              <button className="menu-secondary-btn" onClick={() => { setCatalogSearch(""); setCatalogCategory("all"); }}>
+                {t("menu.resetFilters", "Reset Filters")}
+              </button>
             </div>
 
             {/* Available Catalog Items */}
@@ -1149,11 +1221,9 @@ export function Menu({ setView, requireAuth, user }) {
 
                       <div className="menu-card-details">
                         <h4 className="menu-card-item-name" title={catItem.name}>
-                          {catItem.name}
+                          {tDb(catItem.name)}
                         </h4>
-                        <span className={`mob-item-cat-badge ${getCategoryBadgeClass(catItem.category)}`}>
-                          {catItem.category || "General"}
-                        </span>
+                        <span className="menu-card-cat-badge">{tDb(catItem.category || "General")}</span>
                         <div className="menu-card-price-row">
                           <span className="catalog-card-base-price">{money(catItem.price)}</span>
                         </div>
@@ -1163,14 +1233,14 @@ export function Menu({ setView, requireAuth, user }) {
                     <div className="user-menu-card-actions">
                       {isAlreadyAdded ? (
                         <span className="catalog-card-added-badge">
-                          <Check size={14} /> Added
+                          <Check size={14} /> {t("menu.added", "Added")}
                         </span>
                       ) : (
                         <button
                           className="catalog-card-add-btn"
                           onClick={() => handleOpenAddModal(catItem)}
                         >
-                          <Plus size={15} /> Add
+                          <Plus size={15} /> {t("menu.add", "Add")}
                         </button>
                       )}
                     </div>
@@ -1189,7 +1259,7 @@ export function Menu({ setView, requireAuth, user }) {
         <div className="menu-modal-backdrop" onClick={handleCloseAddModal}>
           <div className="menu-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="menu-modal-header">
-              <h3 className="menu-modal-title">Add to My Menu</h3>
+              <h3 className="menu-modal-title">{t("menu.addToMyMenu", "Add to My Menu")}</h3>
               <button className="menu-modal-close-btn" onClick={handleCloseAddModal}>
                 <X size={18} />
               </button>
@@ -1206,16 +1276,16 @@ export function Menu({ setView, requireAuth, user }) {
                     iconSize={28}
                   />
                   <div className="menu-modal-preview-details">
-                    <h4 className="menu-modal-preview-name">{selectedCatalogItem.name}</h4>
-                    <span className="menu-card-cat-badge">{selectedCatalogItem.category}</span>
-                    <div style={{ fontSize: "0.82rem", color: "#74788A", marginTop: "0.2rem" }}>
-                      Base price: <strong>{money(selectedCatalogItem.price)}</strong>
+                    <h4 className="menu-modal-preview-name">{tDb(selectedCatalogItem.name)}</h4>
+                    <span className="menu-card-cat-badge">{tDb(selectedCatalogItem.category)}</span>
+                    <div style={{ fontSize: "0.82rem", color: "#64748b", marginTop: "0.2rem" }}>
+                      {t("menu.catalogBasePrice", "Catalog base price:")} <strong>{money(selectedCatalogItem.price)}</strong>
                     </div>
                   </div>
                 </div>
 
                 <div className="menu-modal-field">
-                  <label className="menu-modal-label">Your Selling Price (₹) *</label>
+                  <label className="menu-modal-label">{t("menu.yourSellingPrice", "Your Selling Price (₹) *")}</label>
                   <div className="menu-modal-price-input-box">
                     <span className="menu-modal-currency-symbol">₹</span>
                     <input
@@ -1223,13 +1293,16 @@ export function Menu({ setView, requireAuth, user }) {
                       step="0.01"
                       min="0"
                       className="menu-modal-input"
-                      placeholder="Enter selling price"
+                      placeholder={t("menu.enterSellingPrice", "Enter selling price")}
                       value={customPrice}
                       onChange={(e) => setCustomPrice(e.target.value)}
                       autoFocus
                       required
                     />
                   </div>
+                  <span style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "0.3rem", display: "block" }}>
+                    {t("menu.pricePersonalNote", "This price is personal to your shop and will appear on your customer receipts.")}
+                  </span>
                 </div>
 
                 {addFormError && (
@@ -1246,14 +1319,14 @@ export function Menu({ setView, requireAuth, user }) {
                   onClick={handleCloseAddModal}
                   disabled={isSubmittingAdd}
                 >
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   className="menu-primary-btn"
                   disabled={isSubmittingAdd}
                 >
-                  {isSubmittingAdd ? "Adding..." : "Add to Menu"}
+                  {isSubmittingAdd ? t("menu.adding", "Adding...") : t("menu.addToMenu", "Add to Menu")}
                 </button>
               </div>
             </form>
@@ -1268,7 +1341,7 @@ export function Menu({ setView, requireAuth, user }) {
         <div className="menu-modal-backdrop" onClick={handleCloseEditModal}>
           <div className="menu-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="menu-modal-header">
-              <h3 className="menu-modal-title">Edit Selling Price</h3>
+              <h3 className="menu-modal-title">{t("menu.editSellingPrice", "Edit Selling Price")}</h3>
               <button className="menu-modal-close-btn" onClick={handleCloseEditModal}>
                 <X size={18} />
               </button>
@@ -1285,13 +1358,13 @@ export function Menu({ setView, requireAuth, user }) {
                     iconSize={28}
                   />
                   <div className="menu-modal-preview-details">
-                    <h4 className="menu-modal-preview-name">{editingItem.name}</h4>
-                    <span className="menu-card-cat-badge">{editingItem.category}</span>
+                    <h4 className="menu-modal-preview-name">{tDb(editingItem.name)}</h4>
+                    <span className="menu-card-cat-badge">{tDb(editingItem.category)}</span>
                   </div>
                 </div>
 
                 <div className="menu-modal-field">
-                  <label className="menu-modal-label">Your Selling Price (₹) *</label>
+                  <label className="menu-modal-label">{t("menu.yourSellingPrice", "Your Selling Price (₹) *")}</label>
                   <div className="menu-modal-price-input-box">
                     <span className="menu-modal-currency-symbol">₹</span>
                     <input
@@ -1315,8 +1388,8 @@ export function Menu({ setView, requireAuth, user }) {
                     onChange={(e) => setEditActive(e.target.checked)}
                     style={{ width: "16px", height: "16px", accentColor: "#F66016" }}
                   />
-                  <label htmlFor="item-active-check" style={{ fontSize: "0.85rem", color: "#0C1F41", fontWeight: "600", cursor: "pointer" }}>
-                    Active (Available for quick billing)
+                  <label htmlFor="item-active-check" style={{ fontSize: "0.85rem", color: "#334155", fontWeight: "600", cursor: "pointer" }}>
+                    {t("menu.activeAvailable", "Active (Available for quick billing)")}
                   </label>
                 </div>
               </div>
@@ -1328,14 +1401,14 @@ export function Menu({ setView, requireAuth, user }) {
                   onClick={handleCloseEditModal}
                   disabled={isUpdatingPrice}
                 >
-                  Cancel
+                  {t("common.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
                   className="menu-primary-btn"
                   disabled={isUpdatingPrice}
                 >
-                  {isUpdatingPrice ? "Saving..." : "Save Changes"}
+                  {isUpdatingPrice ? t("common.saving", "Saving...") : t("common.saveChanges", "Save Changes")}
                 </button>
               </div>
             </form>
