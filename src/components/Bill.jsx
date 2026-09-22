@@ -483,7 +483,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
           text: "You have used all available prints in your plan. Please view pricing plans to add print credits.",
           icon: "warning",
           confirmButtonText: "View Pricing Plans",
-          confirmButtonColor: "#0284c7"
+          confirmButtonColor: "#F66016"
         }).then(() => {
           setView("pricing")
         })
@@ -510,7 +510,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
             text: errMsg,
             icon: "warning",
             confirmButtonText: "View Plans",
-            confirmButtonColor: "#0284c7"
+            confirmButtonColor: "#F66016"
           })
           isPrintingRef.current = false
           return
@@ -659,18 +659,18 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
 
           {/* Optional Bill Details Drawer */}
           {showPreviewDrawer && (
-            <div style={{ marginTop: "1.5rem", textAlign: "left", background: "#f8fafc", padding: "1rem", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            <div style={{ marginTop: "1.5rem", textAlign: "left", background: "#FFF2DE", padding: "1rem", borderRadius: "12px", border: "1px solid #F7CDAB" }}>
               <div style={{ fontWeight: "700", fontSize: "0.88rem", marginBottom: "0.5rem" }}>
                 Bill Summary
               </div>
-              <div style={{ fontSize: "0.82rem", color: "#475569", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+              <div style={{ fontSize: "0.82rem", color: "#575B6B", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                 {items.map((it, idx) => (
                   <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
                     <span>{it.name} (×{it.quantity})</span>
                     <span>{money(it.quantity * it.rate)}</span>
                   </div>
                 ))}
-                <div style={{ borderTop: "1px solid #cbd5e1", marginTop: "0.4rem", paddingTop: "0.4rem", fontWeight: "800", color: "#0f172a", display: "flex", justifyContent: "space-between" }}>
+                <div style={{ borderTop: "1px solid #D9DDE4", marginTop: "0.4rem", paddingTop: "0.4rem", fontWeight: "800", color: "#0C1F41", display: "flex", justifyContent: "space-between" }}>
                   <span>Total Amount Paid ({payment})</span>
                   <span>{money(total)}</span>
                 </div>
@@ -742,7 +742,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                 {loadingMenu ? (
                   <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
                     <Spinner />
-                    <p style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.75rem" }}>
+                    <p style={{ fontSize: "0.85rem", color: "#74788A", marginTop: "0.75rem" }}>
                       Loading your menu items...
                     </p>
                   </div>
@@ -767,10 +767,10 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                   </div>
                 ) : filteredMenuItems.length === 0 ? (
                   /* No Search Results */
-                  <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #cbd5e1", marginBottom: "1rem" }}>
-                    <AlertCircle size={28} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
-                    <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "0.95rem" }}>No items found</div>
-                    <p style={{ color: "#64748b", fontSize: "0.82rem", margin: "0.2rem 0 0.85rem" }}>
+                  <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #D9DDE4", marginBottom: "1rem" }}>
+                    <AlertCircle size={28} style={{ color: "#8F93A5", margin: "0 auto 0.5rem" }} />
+                    <div style={{ fontWeight: "700", color: "#0C1F41", fontSize: "0.95rem" }}>No items found</div>
+                    <p style={{ color: "#74788A", fontSize: "0.82rem", margin: "0.2rem 0 0.85rem" }}>
                       Try another item name or category.
                     </p>
                     <button
@@ -915,7 +915,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                 {/* Payment Mode */}
                 <div className="nb-payment-section">
                   <label className="nb-payment-label">
-                    <CreditCard size={15} style={{ color: "#0f172a" }} />
+                    <CreditCard size={15} style={{ color: "#0C1F41" }} />
                     <span>Payment Mode</span>
                   </label>
                   <select
@@ -931,7 +931,7 @@ export function Bill({ user, requireAuth, setView, shop: initialShop, setShop: p
                 </div>
 
                 {saveError && (
-                  <div style={{ color: "#ef4444", fontSize: "0.82rem", background: "#fef2f2", padding: "0.5rem 0.75rem", borderRadius: "6px", marginTop: "0.75rem" }}>
+                  <div style={{ color: "#ef4444", fontSize: "0.82rem", background: "#FFE1E5", padding: "0.5rem 0.75rem", borderRadius: "6px", marginTop: "0.75rem" }}>
                     {saveError}
                   </div>
                 )}

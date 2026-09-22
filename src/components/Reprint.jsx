@@ -86,7 +86,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           text: "You have used all available prints in your plan. Please select a plan to add print credits and continue.",
           icon: "warning",
           confirmButtonText: "View Pricing Plans",
-          confirmButtonColor: "#0ea5e9"
+          confirmButtonColor: "#FB821B"
         }).then(() => {
           setView?.("pricing")
         })

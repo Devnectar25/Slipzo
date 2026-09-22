@@ -27,13 +27,13 @@ export function Product({ setView, setShowAuth }) {
   const coreFeatures = [
     {
       icon: <Zap size={24} />,
-      color: "#0ea5e9",
+      color: "#FB821B",
       title: "Sub-10s Rapid Billing",
       description: "Designed specifically for peak rush hours. Add items, apply discounts, select payment mode, and generate receipts with zero lag."
     },
     {
       icon: <Printer size={24} />,
-      color: "#0ea5e9",
+      color: "#FB821B",
       title: "Universal Thermal Printer Support",
       description: "Plug-and-play compatibility with 58mm thermal rolls, 80mm POS receipt printers, Bluetooth handheld devices, and standard A4 laser printers."
     },

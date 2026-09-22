@@ -868,7 +868,7 @@ export function Shop({ user, setView } = {}) {
           max-width: 1280px;
           margin: 0 auto;
           padding: 1.25rem 1.5rem 2rem;
-          color: #0f172a;
+          color: #0C1F41;
           box-sizing: border-box;
         }
 
@@ -897,24 +897,24 @@ export function Shop({ user, setView } = {}) {
         .sp-title {
           font-size: 1.55rem;
           font-weight: 800;
-          color: #0f172a;
+          color: #0C1F41;
           margin: 0 0 0.2rem 0;
           line-height: 1.2;
         }
 
         .sp-subtitle {
           font-size: 0.85rem;
-          color: #64748b;
+          color: #74788A;
           margin: 0;
         }
 
         /* Store Details Top Card */
         .sp-store-details-card {
           background: #ffffff;
-          border: 1.5px solid #e2e8f0;
+          border: 1.5px solid #F7CDAB;
           border-radius: 16px;
           padding: 1.15rem 1.5rem;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04);
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -935,7 +935,7 @@ export function Shop({ user, setView } = {}) {
           width: 66px;
           height: 66px;
           border-radius: 18px;
-          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+          background: linear-gradient(135deg, #FB821B 0%, #F66016 100%);
           color: #ffffff;
           display: flex;
           align-items: center;
@@ -943,7 +943,7 @@ export function Shop({ user, setView } = {}) {
           position: relative;
           flex-shrink: 0;
           cursor: pointer;
-          box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+          box-shadow: 0 2px 8px rgba(246, 96, 22, 0.28);
         }
 
         .sp-avatar-letter {
@@ -966,7 +966,7 @@ export function Shop({ user, setView } = {}) {
           width: 24px;
           height: 24px;
           border-radius: 50%;
-          background: #0284c7;
+          background: #F66016;
           border: 2px solid #ffffff;
           display: flex;
           align-items: center;
@@ -974,6 +974,12 @@ export function Shop({ user, setView } = {}) {
           color: #ffffff;
           cursor: pointer;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+          transition: background-color 0.15s ease, transform 0.15s ease;
+        }
+
+        .sp-camera-btn:hover {
+          background: #FA4406;
+          transform: scale(1.05);
         }
 
         .sp-store-info {
@@ -987,7 +993,7 @@ export function Shop({ user, setView } = {}) {
           font-size: 0.72rem;
           font-weight: 700;
           letter-spacing: 0.05em;
-          color: #64748b;
+          color: #74788A;
           text-transform: uppercase;
           margin-bottom: 0.2rem;
         }
@@ -1003,7 +1009,7 @@ export function Shop({ user, setView } = {}) {
         .sp-store-name {
           font-size: 1.25rem;
           font-weight: 800;
-          color: #0f172a;
+          color: #0C1F41;
           margin: 0;
           line-height: 1.2;
         }
@@ -1011,7 +1017,7 @@ export function Shop({ user, setView } = {}) {
         .sp-edit-icon-btn {
           background: none;
           border: none;
-          color: #0284c7;
+          color: #F66016;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
@@ -1021,7 +1027,8 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-edit-icon-btn:hover {
-          background: #f0f9ff;
+          background: #FFF0E5;
+          color: #FA4406;
         }
 
         .sp-verified-badge {
@@ -1039,7 +1046,7 @@ export function Shop({ user, setView } = {}) {
 
         .sp-store-subtext {
           font-size: 0.82rem;
-          color: #64748b;
+          color: #74788A;
           margin: 0 0 0.5rem 0;
         }
 
@@ -1054,13 +1061,13 @@ export function Shop({ user, setView } = {}) {
           display: inline-flex;
           align-items: center;
           gap: 0.4rem;
-          background: #f0f9ff;
-          border: 1px solid #bae6fd;
+          background: #FFF0E5;
+          border: 1px solid #FADCC3;
           border-radius: 8px;
           padding: 0.28rem 0.7rem;
           font-size: 0.8rem;
           font-weight: 600;
-          color: #0284c7;
+          color: #F66016;
           max-width: 420px;
           white-space: nowrap;
           overflow: hidden;
@@ -1079,8 +1086,8 @@ export function Shop({ user, setView } = {}) {
           align-items: center;
           gap: 0.45rem;
           background: #ffffff;
-          color: #0284c7;
-          border: 1.5px solid #bae6fd;
+          color: #F66016;
+          border: 1.5px solid #F7CDAB;
           border-radius: 10px;
           padding: 0.55rem 1.15rem;
           font-size: 0.85rem;
@@ -1090,13 +1097,14 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-change-logo-btn:hover {
-          background: #f0f9ff;
-          border-color: #7dd3fc;
+          background: #FFF0E5;
+          border-color: #F66016;
+          color: #FA4406;
         }
 
         .sp-logo-hint {
           font-size: 0.72rem;
-          color: #94a3b8;
+          color: #8F93A5;
           margin-top: 0.35rem;
         }
 
@@ -1125,10 +1133,10 @@ export function Shop({ user, setView } = {}) {
         /* Reusable Card Style */
         .sp-card {
           background: #ffffff;
-          border: 1.5px solid #e2e8f0;
+          border: 1.5px solid #F7CDAB;
           border-radius: 16px;
           padding: 1.25rem 1.35rem;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04);
         }
 
         .sp-card-header {
@@ -1149,9 +1157,9 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-icon-box.blue {
-          background: #f0f9ff;
-          border: 1.5px solid #bae6fd;
-          color: #0284c7;
+          background: #FFF0E5;
+          border: 1.5px solid #FADCC3;
+          color: #F66016;
         }
 
         .sp-icon-box.green {
@@ -1161,9 +1169,9 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-icon-box.purple {
-          background: #f5f3ff;
-          border: 1.5px solid #ddd6fe;
-          color: #7c3aed;
+          background: #FFF2DE;
+          border: 1.5px solid #FADCC3;
+          color: #FB821B;
         }
 
         .sp-card-titles {
@@ -1174,14 +1182,14 @@ export function Shop({ user, setView } = {}) {
         .sp-card-title {
           font-size: 1.05rem;
           font-weight: 800;
-          color: #0f172a;
+          color: #0C1F41;
           margin: 0;
           line-height: 1.25;
         }
 
         .sp-card-subtitle {
           font-size: 0.8rem;
-          color: #64748b;
+          color: #74788A;
           margin: 0.15rem 0 0 0;
         }
 
@@ -1212,7 +1220,7 @@ export function Shop({ user, setView } = {}) {
         .sp-label {
           font-size: 0.82rem;
           font-weight: 700;
-          color: #334155;
+          color: #575B6B;
           margin: 0;
         }
 
@@ -1229,7 +1237,7 @@ export function Shop({ user, setView } = {}) {
 
         .sp-char-count {
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: #8F93A5;
           font-weight: 600;
         }
 
@@ -1245,7 +1253,7 @@ export function Shop({ user, setView } = {}) {
           display: flex;
           align-items: center;
           background: #ffffff;
-          border: 1.5px solid #e2e8f0;
+          border: 1.5px solid #D9DDE4;
           border-radius: 10px;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
@@ -1253,8 +1261,8 @@ export function Shop({ user, setView } = {}) {
         .sp-input-wrap:focus-within,
         .sp-select-wrap:focus-within,
         .sp-textarea-wrap:focus-within {
-          border-color: #0284c7;
-          box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+          border-color: #F66016;
+          box-shadow: 0 0 0 3px rgba(246, 96, 22, 0.12);
         }
 
         .sp-input-wrap.error,
@@ -1265,7 +1273,7 @@ export function Shop({ user, setView } = {}) {
         .sp-input-icon {
           position: absolute;
           left: 0.85rem;
-          color: #94a3b8;
+          color: #8F93A5;
           pointer-events: none;
           flex-shrink: 0;
         }
@@ -1273,7 +1281,7 @@ export function Shop({ user, setView } = {}) {
         .sp-hash-adornment {
           position: absolute;
           left: 0.85rem;
-          color: #94a3b8;
+          color: #8F93A5;
           font-weight: 700;
           font-size: 0.95rem;
           pointer-events: none;
@@ -1286,7 +1294,7 @@ export function Shop({ user, setView } = {}) {
           background: transparent;
           padding: 0.55rem 2.5rem 0.55rem 2.4rem;
           font-size: 0.9rem;
-          color: #0f172a;
+          color: #0C1F41;
           box-sizing: border-box;
         }
 
@@ -1297,7 +1305,7 @@ export function Shop({ user, setView } = {}) {
           background: transparent;
           padding: 0.55rem 2.2rem 0.55rem 2.4rem;
           font-size: 0.88rem;
-          color: #0f172a;
+          color: #0C1F41;
           cursor: pointer;
           appearance: none;
           box-sizing: border-box;
@@ -1306,7 +1314,7 @@ export function Shop({ user, setView } = {}) {
         .sp-select-arrow {
           position: absolute;
           right: 0.85rem;
-          color: #94a3b8;
+          color: #8F93A5;
           pointer-events: none;
         }
 
@@ -1319,7 +1327,7 @@ export function Shop({ user, setView } = {}) {
           position: absolute;
           left: 0.85rem;
           top: 0.75rem;
-          color: #94a3b8;
+          color: #8F93A5;
           pointer-events: none;
         }
 
@@ -1330,7 +1338,7 @@ export function Shop({ user, setView } = {}) {
           background: transparent;
           padding: 0.35rem 2.5rem 0.55rem 2.4rem;
           font-size: 0.88rem;
-          color: #0f172a;
+          color: #0C1F41;
           resize: vertical;
           min-height: 56px;
           font-family: inherit;
@@ -1351,7 +1359,7 @@ export function Shop({ user, setView } = {}) {
 
         .sp-helper-text {
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: #8F93A5;
           margin-top: 0.15rem;
         }
 
@@ -1376,7 +1384,7 @@ export function Shop({ user, setView } = {}) {
         .sp-presets-label {
           font-size: 0.75rem;
           font-weight: 600;
-          color: #64748b;
+          color: #74788A;
           margin-right: 0.15rem;
         }
 
@@ -1385,32 +1393,32 @@ export function Shop({ user, setView } = {}) {
           border-radius: 6px;
           font-size: 0.75rem;
           font-weight: 600;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #D9DDE4;
           background: #ffffff;
-          color: #475569;
+          color: #575B6B;
           cursor: pointer;
           transition: all 0.15s ease;
         }
 
         .sp-preset-btn:hover {
-          background: #f8fafc;
-          border-color: #cbd5e1;
-          color: #0f172a;
+          background: #FFF0E5;
+          border-color: #F7CDAB;
+          color: #F66016;
         }
 
         .sp-preset-btn.active {
-          background: #0284c7;
-          border-color: #0284c7;
+          background: #F66016;
+          border-color: #F66016;
           color: #ffffff;
         }
 
         /* Live Receipt Preview Card */
         .sp-preview-card {
           background: #ffffff;
-          border: 1.5px solid #e2e8f0;
+          border: 1.5px solid #F7CDAB;
           border-radius: 16px;
           padding: 1.15rem 1.25rem;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04);
         }
 
         .sp-preview-header {
@@ -1438,20 +1446,25 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-paper-dropdown {
-          border: 1px solid #e2e8f0;
+          border: 1px solid #D9DDE4;
           border-radius: 8px;
           padding: 0.28rem 0.65rem;
           font-size: 0.78rem;
           font-weight: 600;
-          color: #334155;
+          color: #0C1F41;
           background: #ffffff;
           outline: none;
           cursor: pointer;
+          transition: border-color 0.15s ease;
+        }
+
+        .sp-paper-dropdown:focus {
+          border-color: #F66016;
         }
 
         .sp-receipt-wrapper {
-          background: #f8fafc;
-          border: 1px solid #f1f5f9;
+          background: #FDF4EB;
+          border: 1px solid #FADCC3;
           border-radius: 12px;
           padding: 0.5rem;
           display: flex;
@@ -1473,7 +1486,7 @@ export function Shop({ user, setView } = {}) {
           display: inline-flex;
           align-items: center;
           gap: 0.45rem;
-          background: #0284c7;
+          background: #F66016;
           color: #ffffff;
           border: none;
           border-radius: 9px;
@@ -1481,14 +1494,14 @@ export function Shop({ user, setView } = {}) {
           font-size: 0.88rem;
           font-weight: 700;
           cursor: pointer;
-          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+          box-shadow: 0 2px 6px rgba(246, 96, 22, 0.28);
           transition: all 0.15s ease;
           white-space: nowrap;
         }
 
         .sp-top-save-btn:hover:not(:disabled) {
-          background: #0369a1;
-          box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+          background: #FA4406;
+          box-shadow: 0 4px 10px rgba(246, 96, 22, 0.38);
           transform: translateY(-1px);
         }
 
@@ -1577,14 +1590,14 @@ export function Shop({ user, setView } = {}) {
           .sp-title {
             font-size: 1.45rem !important;
             font-weight: 800 !important;
-            color: #0f172a !important;
+            color: #0C1F41 !important;
             margin: 0 0 0.25rem 0 !important;
             line-height: 1.2 !important;
           }
 
           .sp-subtitle {
             font-size: 0.82rem !important;
-            color: #64748b !important;
+            color: #74788A !important;
             margin: 0 !important;
             line-height: 1.35 !important;
           }
@@ -1594,10 +1607,10 @@ export function Shop({ user, setView } = {}) {
           .sp-store-details-card,
           .sp-preview-card {
             background: #ffffff !important;
-            border: 1.5px solid #e2e8f0 !important;
+            border: 1.5px solid #F7CDAB !important;
             border-radius: 14px !important;
             padding: 1rem 0.95rem !important;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+            box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04) !important;
             width: 100% !important;
             box-sizing: border-box !important;
             margin-bottom: 0.85rem !important;
@@ -1637,7 +1650,7 @@ export function Shop({ user, setView } = {}) {
             font-size: 0.7rem !important;
             font-weight: 700 !important;
             letter-spacing: 0.05em !important;
-            color: #64748b !important;
+            color: #74788A !important;
             text-transform: uppercase !important;
             margin-bottom: 0.15rem !important;
           }
@@ -1645,7 +1658,7 @@ export function Shop({ user, setView } = {}) {
           .sp-store-name {
             font-size: 1.15rem !important;
             font-weight: 800 !important;
-            color: #0f172a !important;
+            color: #0C1F41 !important;
             margin: 0 0 0.35rem 0 !important;
             line-height: 1.25 !important;
             word-break: break-word !important;
@@ -1666,7 +1679,7 @@ export function Shop({ user, setView } = {}) {
           }
 
           .sp-edit-icon-btn {
-            color: #0284c7 !important;
+            color: #F66016 !important;
             padding: 4px !important;
             background: transparent !important;
             border: none !important;
@@ -1713,7 +1726,7 @@ export function Shop({ user, setView } = {}) {
 
           .sp-store-subtext {
             font-size: 0.78rem !important;
-            color: #64748b !important;
+            color: #74788A !important;
             margin: 0 0 0.5rem 0 !important;
             line-height: 1.35 !important;
           }
@@ -1729,13 +1742,13 @@ export function Shop({ user, setView } = {}) {
             display: flex !important;
             align-items: center !important;
             gap: 0.45rem !important;
-            background: #f0f9ff !important;
-            border: 1px solid #bae6fd !important;
+            background: #FFF0E5 !important;
+            border: 1px solid #FADCC3 !important;
             border-radius: 8px !important;
             padding: 0.35rem 0.65rem !important;
             font-size: 0.78rem !important;
             font-weight: 600 !important;
-            color: #0284c7 !important;
+            color: #F66016 !important;
             width: 100% !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
@@ -1762,8 +1775,8 @@ export function Shop({ user, setView } = {}) {
             justify-content: center !important;
             gap: 0.45rem !important;
             background: #ffffff !important;
-            color: #0284c7 !important;
-            border: 1.5px solid #bae6fd !important;
+            color: #F66016 !important;
+            border: 1.5px solid #F7CDAB !important;
             border-radius: 10px !important;
             font-size: 0.84rem !important;
             font-weight: 700 !important;
@@ -1771,7 +1784,7 @@ export function Shop({ user, setView } = {}) {
 
           .sp-logo-hint {
             font-size: 0.7rem !important;
-            color: #94a3b8 !important;
+            color: #8F93A5 !important;
             text-align: center !important;
             margin-top: 0.35rem !important;
           }
@@ -1853,8 +1866,8 @@ export function Shop({ user, setView } = {}) {
           }
 
           .sp-receipt-wrapper {
-            background: #f8fafc !important;
-            border: 1px solid #f1f5f9 !important;
+            background: #FDF4EB !important;
+            border: 1px solid #FADCC3 !important;
             border-radius: 12px !important;
             padding: 0.5rem 0.25rem !important;
             display: flex !important;
@@ -1889,20 +1902,20 @@ export function Shop({ user, setView } = {}) {
             align-items: center !important;
             justify-content: center !important;
             gap: 0.5rem !important;
-            background: #0284c7 !important;
+            background: #F66016 !important;
             color: #ffffff !important;
             border: none !important;
             border-radius: 10px !important;
             font-size: 0.92rem !important;
             font-weight: 700 !important;
             cursor: pointer !important;
-            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25) !important;
+            box-shadow: 0 2px 6px rgba(246, 96, 22, 0.28) !important;
             transition: background-color 0.15s ease, transform 0.1s ease !important;
           }
 
           .sp-mobile-save-btn:active {
             transform: scale(0.99) !important;
-            background: #0369a1 !important;
+            background: #FA4406 !important;
           }
 
           .sp-mobile-save-btn:disabled {
