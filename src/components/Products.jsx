@@ -5,10 +5,14 @@ import {
   RefreshCw, Layers, Printer, Zap, Store, ChevronRight, X,
   Truck, CreditCard, Check
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
 export function Products({ setView, requireAuth, user }) {
+  const { t } = useTranslation()
+  const { tDb, formatNum } = useDbTranslation()
   const [products, setProducts] = useState(() => {
     const cached = getCachedData("/products")
     return Array.isArray(cached) ? cached : []
@@ -375,11 +379,11 @@ export function Products({ setView, requireAuth, user }) {
               <Package size={22} />
             </div>
             <h1 className="products-title">
-              Hardware & Products Store
+              {t("products.storeTitle", "Hardware & Products Store")}
             </h1>
           </div>
           <p className="products-description">
-            Buy thermal receipt printers, paper rolls & accessories, or add custom products for billing.
+            {t("products.storeSubtitle", "Buy thermal receipt printers, paper rolls & accessories, or add custom products for billing.")}
           </p>
         </div>
       </div>
@@ -390,13 +394,13 @@ export function Products({ setView, requireAuth, user }) {
           onClick={() => setActiveTab("catalog")}
           className={`products-tab-btn ${activeTab === "catalog" ? 'active' : ''}`}
         >
-          <Layers size={16} /> Products Catalog ({products.length})
+          <Layers size={16} /> {t("products.catalogTab", "Products Catalog")} ({products.length})
         </button>
         <button
           onClick={() => setActiveTab("features")}
           className={`products-tab-btn ${activeTab === "features" ? 'active' : ''}`}
         >
-          <Sparkles size={16} /> Printer Compatibility & Specs
+          <Sparkles size={16} /> {t("products.specsTab", "Printer Compatibility & Specs")}
         </button>
       </div>
 
@@ -408,7 +412,7 @@ export function Products({ setView, requireAuth, user }) {
               <Search size={16} className="products-search-icon" />
               <input
                 type="text"
-                placeholder="Search products by name, SKU, or category..."
+                placeholder={t("products.searchPlaceholder", "Search products by name, SKU, or category...")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="products-search-input"
@@ -425,7 +429,7 @@ export function Products({ setView, requireAuth, user }) {
                 onClick={() => setSelectedCategory("all")}
                 className={`products-cat-btn ${selectedCategory === "all" ? 'active' : ''}`}
               >
-                All
+                {t("products.all", "All")}
               </button>
               {categories.map(cat => (
                 <button
@@ -433,7 +437,7 @@ export function Products({ setView, requireAuth, user }) {
                   onClick={() => setSelectedCategory(cat)}
                   className={`products-cat-btn ${selectedCategory === cat ? 'active' : ''}`}
                 >
-                  {cat}
+                  {cat === "Hardware" ? t("products.hardware", "Hardware") : cat === "Stationery" ? t("products.stationery", "Stationery") : cat === "Electronics" ? t("products.electronics", "Electronics") : cat}
                 </button>
               ))}
             </div>
@@ -443,7 +447,7 @@ export function Products({ setView, requireAuth, user }) {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
               <RefreshCw size={24} className="spin" style={{ margin: '0 auto 0.5rem' }} />
-              <p>Loading products catalog...</p>
+              <p>{t("products.loading", "Loading products catalog...")}</p>
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="products-cards-grid">
@@ -469,23 +473,23 @@ export function Products({ setView, requireAuth, user }) {
 
                     <div className="product-card-meta">
                       <span className="product-category-tag">
-                        {product.category || "Hardware"}
+                        {tDb(product.category || "Hardware")}
                       </span>
                     </div>
 
                     <h3 className="product-card-title">
-                      {product.name}
+                      {tDb(product.name)}
                     </h3>
 
                     {product.description && (
                       <p className="product-card-desc">
-                        {product.description}
+                        {tDb(product.description)}
                       </p>
                     )}
 
                     <div className="product-card-price-row">
                       <span className="product-price-val">
-                        ₹{product.price}
+                        ₹{formatNum(product.price)}
                       </span>
                     </div>
                   </div>
@@ -496,7 +500,7 @@ export function Products({ setView, requireAuth, user }) {
                       onClick={() => handleBuyNow(product)}
                       className="product-buy-now-btn"
                     >
-                      <ShoppingBag size={14} /> Buy Now
+                      <ShoppingBag size={14} /> {t("products.buyNow", "Buy Now")}
                     </button>
                   </div>
                 </div>
@@ -505,7 +509,7 @@ export function Products({ setView, requireAuth, user }) {
           ) : (
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '3rem 1.5rem', textAlign: 'center' }}>
               <Package size={40} style={{ color: '#cbd5e1', margin: '0 auto 0.75rem' }} />
-              <h3 style={{ fontSize: '1.1rem', color: '#0f172a', margin: '0 0 0.25rem 0' }}>No products found</h3>
+              <h3 style={{ fontSize: '1.1rem', color: '#0f172a', margin: '0 0 0.25rem 0' }}>{t("products.noProducts", "No products found")}</h3>
               <p style={{ color: '#64748b', fontSize: '0.88rem', margin: 0 }}>
                 {search || selectedCategory !== "all" ? "Try adjusting your search or category filter" : "No products available in the catalog"}
               </p>

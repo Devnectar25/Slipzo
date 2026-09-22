@@ -19,9 +19,11 @@ import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 
 export function History({ setView, setSelectedBillId, user }) {
   const { t } = useTranslation()
+  const { tDb, formatNum, lang } = useDbTranslation()
   const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10")
   const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
 
@@ -94,8 +96,9 @@ export function History({ setView, setSelectedBillId, user }) {
   }, [search])
 
   const handleReprint = (billId) => {
-    setSelectedBillId(billId)
+    setSelectedBillId?.(billId)
     sessionStorage.setItem("slipzo-reprint-id", billId)
+    sessionStorage.setItem("slipzo-print-origin", "history")
     setView("reprint")
   }
 
@@ -146,9 +149,11 @@ export function History({ setView, setSelectedBillId, user }) {
     <div className="page history-page fade-in">
       <div className="page-intro">
         <div>
-          <p className="eyebrow accent">{t("history.eyebrow", "YOUR RECEIPTS")}</p>
-          <h2>{t("history.title", "Bill history.")}</h2>
-          <p className="subtle">{t("history.subtitle", "Every saved receipt, ready to find and reprint again.")}</p>
+          <span className="menu-eyebrow">
+            <Receipt size={13} /> {t("history.eyebrow", "YOUR RECEIPTS")}
+          </span>
+          <h1 className="menu-main-title">{t("history.title", "Bill history.")}</h1>
+          <p className="menu-sub-title">{t("history.subtitle", "Every saved receipt, ready to find and reprint again.")}</p>
         </div>
       </div>
 
@@ -229,23 +234,23 @@ export function History({ setView, setSelectedBillId, user }) {
                 <div className="history-main-content">
                   <div className="history-date">
                     <b>
-                      {new Date(bill.created_at).toLocaleDateString("en-IN", {
+                      {formatNum(new Date(bill.created_at).toLocaleDateString(lang === "mr" ? "mr-IN" : lang === "hi" ? "hi-IN" : "en-IN", {
                         day: "2-digit",
                         month: "short",
                         year: "numeric"
-                      })}
+                      }))}
                     </b>
                     <small>
-                      {new Date(bill.created_at).toLocaleTimeString([], {
+                      {formatNum(new Date(bill.created_at).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit"
-                      })}
+                      }))}
                     </small>
                   </div>
 
                   <div className="history-details-col">
                     <div className="history-bill-number">
-                      <b>{bill.number}</b>
+                      <b>{formatNum(bill.number)}</b>
                     </div>
 
                     <div className="history-meta-badges-row">
@@ -254,11 +259,11 @@ export function History({ setView, setSelectedBillId, user }) {
                           <User size={11} /> {bill.customer_name}
                         </span>
                       )}
-                      <span className="payment-badge">{bill.payment_mode || "Cash"}</span>
+                      <span className="payment-badge">{tDb(bill.payment_mode || "Cash")}</span>
                     </div>
 
                     <div className="history-items-count text-muted">
-                      {itemsCount} {itemsCount === 1 ? t("history.item", "item") : t("history.items", "items")}
+                      {formatNum(itemsCount)} {itemsCount === 1 ? t("history.item", "item") : t("history.items", "items")}
                     </div>
                   </div>
 
@@ -294,7 +299,7 @@ export function History({ setView, setSelectedBillId, user }) {
           {/* Pagination Navigation Bar */}
           <div className="pagination-bar">
             <div className="pagination-info">
-              {t("history.showing", { start: totalRecords > 0 ? startRecord : 0, end: endRecord, total: totalRecords, defaultValue: `Showing ${totalRecords > 0 ? startRecord : 0} to ${endRecord} of ${totalRecords} receipts` })}
+              {t("history.showing", { start: totalRecords > 0 ? formatNum(startRecord) : formatNum(0), end: formatNum(endRecord), total: formatNum(totalRecords), defaultValue: `Showing ${totalRecords > 0 ? formatNum(startRecord) : formatNum(0)} to ${formatNum(endRecord)} of ${formatNum(totalRecords)} receipts` })}
             </div>
 
             <div className="pagination-controls">
@@ -329,7 +334,7 @@ export function History({ setView, setSelectedBillId, user }) {
                         className={`page-num-btn ${page === pageNum ? "active" : ""}`}
                         onClick={() => setPage(pageNum)}
                       >
-                        {pageNum}
+                        {formatNum(pageNum)}
                       </button>
                     )
                   }

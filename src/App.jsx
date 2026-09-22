@@ -25,6 +25,7 @@ import { ToastProvider, useToast } from "./components/common/Toast"
 import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp } from "./lib/utils"
 import { AdminLogin } from "./components/admin/AdminLogin"
 import { AdminDashboard } from "./components/admin/AdminDashboard"
+import { useTranslation } from "react-i18next"
 import "./styles/App.css"
 import "./styles/print.css"
 
@@ -539,9 +540,9 @@ function AppContent() {
       requireAuth={requireAuth}
     >
       <ErrorBoundary onGoHome={() => setView("dashboard")} onReset={() => setView("dashboard")}>
-        {view === "dashboard" && <Dashboard setView={setView} requireAuth={requireAuth} user={user} />}
+        {view === "dashboard" && <Dashboard setView={setView} setSelectedBillId={setSelectedBillId} requireAuth={requireAuth} user={user} />}
         {view === "templates" && <Templates setView={setView} requireAuth={requireAuth} user={user} />}
-        {view === "bills" && <Bill setView={setView} requireAuth={requireAuth} user={user} />}
+        {view === "bills" && <Bill setView={setView} setSelectedBillId={setSelectedBillId} requireAuth={requireAuth} user={user} />}
         {view === "menu" && <ShopMenu setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "products" && <Products setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "history" && (
@@ -605,6 +606,7 @@ function AppContent() {
 
 // Public Layout Component
 function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requireAuth }) {
+  const { t } = useTranslation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Prevent body scrolling when mobile menu is open
@@ -629,11 +631,11 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
   }, [mobileMenuOpen])
 
   const navItems = [
-    { id: "landing", label: "Home", icon: Home },
-    { id: "templates", label: "Templates", icon: LayoutTemplate },
-    { id: "product", label: "Product", icon: Sparkles },
-    { id: "pricing", label: "Pricing", icon: Tag },
-    { id: "contact", label: "Contact", icon: Mail }
+    { id: "landing", label: t("nav.home", "Home"), icon: Home },
+    { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
+    { id: "product", label: t("footer.product", "Product"), icon: Sparkles },
+    { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag },
+    { id: "contact", label: t("nav.contact", "Contact"), icon: Mail }
   ]
 
   const renderPage = () => {
@@ -687,7 +689,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
             onTouchMove={(e) => e.preventDefault()}
           >
             <div className="mobile-menu-header">
-              <span className="mobile-menu-title">Menu</span>
+              <span className="mobile-menu-title">{t("nav.menu", "Menu")}</span>
               <button 
                 className="mobile-menu-close" 
                 onClick={() => setMobileMenuOpen(false)}
@@ -727,7 +729,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                     setMobileMenuOpen(false)
                   }}
                 >
-                  <LogIn size={16} /> Log In
+                  <LogIn size={16} /> {t("common.logIn", "Log In")}
                 </button>
                 <button
                   className="mobile-get-started-btn"
@@ -740,7 +742,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                     setMobileMenuOpen(false)
                   }}
                 >
-                  <Zap size={16} /> Sign Up
+                  <Zap size={16} /> {t("common.signUp", "Sign Up")}
                 </button>
               </div>
             )}
@@ -752,7 +754,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                 className="nav-button primary"
                 onClick={() => setView("dashboard")}
               >
-                Dashboard <ArrowRight size={16} />
+                {t("nav.overview", "Dashboard")} <ArrowRight size={16} />
               </button>
             ) : (
               <>
@@ -760,13 +762,13 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                   className="nav-button secondary"
                   onClick={() => handleOpenAuth ? handleOpenAuth(false) : setShowAuth(true)}
                 >
-                  <LogIn size={16} /> Log in
+                  <LogIn size={16} /> {t("common.logIn", "Log in")}
                 </button>
                 <button
                   className="nav-button primary"
                   onClick={() => handleOpenAuth ? handleOpenAuth(true) : setShowAuth(true)}
                 >
-                  <Zap size={16} /> Get Started
+                  <Zap size={16} /> {t("common.getStarted", "Get Started")}
                 </button>
               </>
             )}
@@ -795,7 +797,7 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
                     className="footer-logo"
                   />
                 </div>
-                <p className="footer-tagline">Effortless digital billing & receipts for small businesses.</p>
+                <p className="footer-tagline">{t("footer.tagline", "Effortless digital billing & receipts for small businesses.")}</p>
                 
                 <div className="footer-social-icons">
                   <a href="https://devnectar.in" target="_blank" rel="noreferrer" title="Website"><Globe size={16} /></a>
@@ -807,43 +809,43 @@ function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requir
 
               <div className="footer-links-group">
                 <div className="footer-links">
-                  <h4>Product</h4>
+                  <h4>{t("footer.product", "Product")}</h4>
                   <button onClick={() => setView("product")}>
-                    <Sparkles size={13} /> Features
+                    <Sparkles size={13} /> {t("footer.features", "Features")}
                   </button>
                   <button onClick={() => setView("templates")}>
-                    <LayoutTemplate size={13} /> Templates
+                    <LayoutTemplate size={13} /> {t("footer.templates", "Templates")}
                   </button>
                   <button onClick={() => setView("pricing")}>
-                    <Tag size={13} /> Pricing
+                    <Tag size={13} /> {t("footer.pricing", "Pricing")}
                   </button>
                 </div>
                 <div className="footer-links">
-                  <h4>Company</h4>
+                  <h4>{t("footer.company", "Company")}</h4>
                   <button onClick={() => setView("contact")}>
-                    <Mail size={13} /> Contact Us
+                    <Mail size={13} /> {t("footer.contactUs", "Contact Us")}
                   </button>
                   <button onClick={() => setView("landing")}>
-                    <Home size={13} /> About
+                    <Home size={13} /> {t("footer.about", "About")}
                   </button>
                   <button onClick={() => { setView("admin_login"); window.history.pushState({}, "", "/admin/login"); }}>
-                    <ShieldCheck size={13} /> Admin Portal
+                    <ShieldCheck size={13} /> {t("footer.adminPortal", "Admin Portal")}
                   </button>
                 </div>
                 <div className="footer-links">
-                  <h4>Legal</h4>
+                  <h4>{t("footer.legal", "Legal")}</h4>
                   <button onClick={() => setView("contact")}>
-                    <ShieldCheck size={13} /> Privacy Policy
+                    <ShieldCheck size={13} /> {t("footer.privacyPolicy", "Privacy Policy")}
                   </button>
                   <button onClick={() => setView("contact")}>
-                    <FileText size={13} /> Terms of Service
+                    <FileText size={13} /> {t("footer.termsOfService", "Terms of Service")}
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="footer-bottom">
-              <p>© 2026 slipzo.com. All rights reserved.</p>
+              <p>{t("footer.rights", "© 2026 slipzo.com. All rights reserved.")}</p>
               <a
                 href="https://devnectar.in"
                 target="_blank"

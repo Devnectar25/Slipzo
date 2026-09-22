@@ -22,7 +22,7 @@ import {
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
-import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call } from "../lib/utils"
+import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang } from "../lib/utils"
 
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const { t, i18n } = useTranslation()
@@ -30,7 +30,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0]
 
   const navItems = [
-    { id: "dashboard", label: t("nav.overview", "Overview"), icon: LayoutDashboard, protected: false },
+    { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard, protected: false },
     { id: "bills", label: t("nav.newBill", "New bill"), icon: Receipt, protected: true },
     { id: "menu", label: t("nav.menu", "Menu"), icon: List, protected: true },
     { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
@@ -309,7 +309,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444' }} /> {activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}
               </span>
               <span style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444', fontWeight: 700 }}>
-                {(activePlan.printsRemaining || 0).toLocaleString()} / {(activePlan.totalPrints || 10).toLocaleString()} {t("sidebar.printsLeft", "left")}
+                {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 10).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
               </span>
             </div>
             <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -442,7 +442,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               }}
             >
               <Printer size={14} />
-              <span>{(activePlan.printsRemaining || 0).toLocaleString()} {activePlan.isFreeTier ? t("header.free", "free") + ' ' : ''}{(activePlan.printsRemaining || 0) === 1 ? t("header.print", "print") : t("header.printsLeft", "prints left")}</span>
+              <span>{formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} {activePlan.isFreeTier ? t("header.free", "free") + ' ' : ''}{(activePlan.printsRemaining || 0) === 1 ? t("header.print", "print") : t("header.printsLeft", "prints left")}</span>
             </div>
             <button
               data-testid="shell-menu-button"

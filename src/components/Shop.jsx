@@ -111,33 +111,33 @@ export function Shop({ user, setView } = {}) {
 
     if (key === "name") {
       if (!val) {
-        errorMsg = "Shop name is required."
+        errorMsg = t("validation.nameRequired", "Shop name is required.")
       } else if (val.length < 2) {
-        errorMsg = "Shop name must be at least 2 characters."
+        errorMsg = t("validation.nameMin", "Shop name must be at least 2 characters.")
       } else if (val.length > 100) {
-        errorMsg = "Shop name cannot exceed 100 characters."
+        errorMsg = t("validation.nameMax", "Shop name cannot exceed 100 characters.")
       }
     }
 
     if (key === "phone" && val) {
       const digitsOnly = val.replace(/[^0-9]/g, "")
       if (digitsOnly.length !== 10) {
-        errorMsg = "Please enter a valid 10-digit contact number."
+        errorMsg = t("validation.phoneInvalid", "Please enter a valid 10-digit contact number.")
       }
     }
 
     if (key === "address" && val) {
       if (val.length > 300) {
-        errorMsg = "Address cannot exceed 300 characters."
+        errorMsg = t("validation.addressMax", "Address cannot exceed 300 characters.")
       }
     }
 
     if (key === "invoice_prefix") {
       if (currentShop.invoice_format !== "SEQ") {
         if (!val) {
-          errorMsg = "Invoice prefix is required."
+          errorMsg = t("validation.prefixRequired", "Invoice prefix is required.")
         } else if (!/^[A-Za-z0-9]{1,8}$/.test(val)) {
-          errorMsg = "Prefix must be 1–8 letters or numbers (e.g. HB, SLP)."
+          errorMsg = t("validation.prefixInvalid", "Prefix must be 1–8 letters or numbers (e.g. HB, SLP).")
         }
       }
     }
@@ -145,11 +145,11 @@ export function Shop({ user, setView } = {}) {
     if (key === "invoice_sequence") {
       const num = Number(value)
       if (value === "" || isNaN(num)) {
-        errorMsg = "Sequence number is required."
+        errorMsg = t("validation.seqRequired", "Sequence number is required.")
       } else if (!Number.isInteger(num) || num < 1) {
-        errorMsg = "Sequence number must be at least 1."
+        errorMsg = t("validation.seqMin", "Sequence number must be at least 1.")
       } else if (num > 999999999) {
-        errorMsg = "Sequence number is too large."
+        errorMsg = t("validation.seqMax", "Sequence number is too large.")
       }
     }
 
@@ -235,11 +235,11 @@ export function Shop({ user, setView } = {}) {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith("image/")) {
-      toastError("Please select a valid image file.")
+      toastError(t("profile.selectValidImage", "Please select a valid image file."))
       return
     }
     if (file.size > 2 * 1024 * 1024) {
-      toastError("Logo image must be smaller than 2MB.")
+      toastError(t("profile.logoSizeLimit", "Logo image must be smaller than 2MB."))
       return
     }
     const reader = new FileReader()
@@ -265,20 +265,24 @@ export function Shop({ user, setView } = {}) {
 
     const validationErrors = validateAll(shop)
     if (Object.keys(validationErrors).length > 0) {
+      const errMsg = t("validation.fixErrors", "Please fix the validation errors before saving.")
       if (toastWarning) {
-        toastWarning("Please fix the validation errors before saving.")
+        toastWarning(errMsg)
       } else {
-        toastError("Please fix the validation errors before saving.")
+        toastError(errMsg)
       }
       return
     }
 
     setLoading(true)
     try {
-      await call("/shop", {
+      const updatedShop = await call("/shop", {
         method: "PUT",
         body: JSON.stringify(shop)
       })
+      if (updatedShop?.logo_url) {
+        setShop((prev) => ({ ...prev, logo_url: updatedShop.logo_url }))
+      }
       if (user?.id) {
         if (shop.name && shop.phone && shop.phone.trim() && shop.address && shop.address.trim()) {
           localStorage.setItem(`slipzo_shop_setup_${user.id}`, "true")
@@ -289,6 +293,7 @@ export function Shop({ user, setView } = {}) {
 
       setSaved(true)
       setHasUnsaved(false)
+      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: { ...shop, ...(updatedShop || {}) } }))
       success(t("profile.settingsSaved", "Shop profile and invoice settings saved!"))
       setTimeout(() => setSaved(false), 3500)
     } catch (err) {
@@ -377,8 +382,8 @@ export function Shop({ user, setView } = {}) {
       {/* Top Page Header with Top-Right Save Settings */}
       <div className="sp-header">
         <div className="sp-header-left">
-          <h1 className="sp-title">Shop Profile</h1>
-          <p className="sp-subtitle">Manage your shop details, receipt settings and preferences</p>
+          <h1 className="sp-title">{t("profile.heading", "Shop Profile")}</h1>
+          <p className="sp-subtitle">{t("profile.headingSub", "Manage your shop details, receipt settings and preferences")}</p>
         </div>
 
         <div className="sp-header-right">
@@ -388,27 +393,27 @@ export function Shop({ user, setView } = {}) {
             type="button"
             onClick={saveShop}
             disabled={loading}
-            title="Save all shop profile and receipt settings"
+            title={t("profile.saveSettings", "Save Settings")}
           >
             {loading ? (
-              <ButtonLoader text="Saving..." />
+              <ButtonLoader text={t("profile.savingSettings", "Saving...")} />
             ) : (
               <>
                 <Save size={15} />
-                <span>Save Settings</span>
+                <span>{t("profile.saveSettings", "Save Settings")}</span>
               </>
             )}
           </button>
 
           {hasUnsaved && !saved && (
             <span className="sp-unsaved-hint top">
-              <span className="sp-unsaved-dot" /> You have unsaved changes
+              <span className="sp-unsaved-dot" /> {t("profile.unsavedChanges", "You have unsaved changes")}
             </span>
           )}
 
           {saved && (
             <div data-testid="shop-saved-message" className="sp-saved-badge top">
-              <Check size={13} strokeWidth={3} /> Settings Saved!
+              <Check size={13} strokeWidth={3} /> {t("profile.settingsSaved", "Settings Saved!")}
             </div>
           )}
         </div>
@@ -422,53 +427,53 @@ export function Shop({ user, setView } = {}) {
             <Store size={18} />
           </div>
           <div className="sp-store-header-text">
-            <span className="sp-store-eyebrow">STORE DETAILS</span>
+            <span className="sp-store-eyebrow">{t("profile.storeIdentity", "STORE DETAILS")}</span>
             <h2 className="sp-store-name">{shop.name || "Hydrabadi Biryani , Chopda"}</h2>
             <span className="sp-verified-badge">
-              <Check size={12} strokeWidth={3} /> Verified Store
+              <Check size={12} strokeWidth={3} /> {t("profile.verifiedStore", "Verified Store")}
             </span>
           </div>
           <button
             type="button"
             className="sp-edit-icon-btn"
             onClick={() => shopNameInputRef.current?.focus()}
-            title="Edit Shop Name"
-            aria-label="Edit Shop Name"
+            title={t("profile.editShopName", "Edit Shop Name")}
+            aria-label={t("profile.editShopName", "Edit Shop Name")}
           >
             <Edit2 size={16} />
           </button>
         </div>
 
         <div className="sp-store-left">
-          <div className="sp-avatar-wrap" onClick={() => logoInputRef.current?.click()} title="Click to change logo">
+          <div className={`sp-avatar-wrap ${shop.logo_url ? "has-image" : ""}`} onClick={() => logoInputRef.current?.click()} title={t("profile.clickChangeLogo", "Click to change logo")}>
             {shop.logo_url ? (
               <img src={shop.logo_url} alt="Shop Logo" className="sp-avatar-img" />
             ) : (
               <span className="sp-avatar-letter">{shop.name ? shop.name.trim().charAt(0).toUpperCase() : "H"}</span>
             )}
-            <button type="button" className="sp-camera-btn" title="Change logo" aria-label="Change logo">
+            <button type="button" className="sp-camera-btn" title={t("profile.changeLogo", "Change logo")} aria-label={t("profile.changeLogo", "Change logo")}>
               <Camera size={13} />
             </button>
           </div>
 
           <div className="sp-store-info">
-            <span className="sp-store-eyebrow desktop-only">STORE DETAILS</span>
+            <span className="sp-store-eyebrow desktop-only">{t("profile.storeIdentity", "STORE DETAILS")}</span>
             <div className="sp-store-name-row desktop-only">
               <h2 className="sp-store-name">{shop.name || "Hydrabadi Biryani , Chopda"}</h2>
               <button
                 type="button"
                 className="sp-edit-icon-btn"
                 onClick={() => shopNameInputRef.current?.focus()}
-                title="Edit Shop Name"
-                aria-label="Edit Shop Name"
+                title={t("profile.editShopName", "Edit Shop Name")}
+                aria-label={t("profile.editShopName", "Edit Shop Name")}
               >
                 <Edit2 size={15} />
               </button>
               <span className="sp-verified-badge">
-                <Check size={12} strokeWidth={3} /> Verified Store
+                <Check size={12} strokeWidth={3} /> {t("profile.verifiedStore", "Verified Store")}
               </span>
             </div>
-            <p className="sp-store-subtext">These details will appear on your thermal receipt and invoice.</p>
+            <p className="sp-store-subtext">{t("profile.storeSubtext", "These details will appear on your thermal receipt and invoice.")}</p>
             <div className="sp-store-pills-row">
               {shop.phone && (
                 <span className="sp-info-pill">
@@ -497,9 +502,9 @@ export function Shop({ user, setView } = {}) {
             className="sp-change-logo-btn"
             onClick={() => logoInputRef.current?.click()}
           >
-            <Upload size={14} /> Change Logo
+            <Upload size={14} /> {t("profile.changeLogo", "Change Logo")}
           </button>
-          <span className="sp-logo-hint">Recommended size: 512 × 512</span>
+          <span className="sp-logo-hint">{t("profile.recommendedSize", "Recommended size: 512 × 512")}</span>
         </div>
       </div>
 
@@ -514,15 +519,15 @@ export function Shop({ user, setView } = {}) {
                 <Store size={18} />
               </div>
               <div className="sp-card-titles">
-                <h3 className="sp-card-title">Business Information</h3>
-                <p className="sp-card-subtitle">Basic information about your shop</p>
+                <h3 className="sp-card-title">{t("profile.businessDetails", "Business Information")}</h3>
+                <p className="sp-card-subtitle">{t("profile.businessDetailsSub", "Basic information about your shop")}</p>
               </div>
             </div>
 
             <div className="sp-form-row two-col">
               <div className="sp-field-group">
                 <label className="sp-label">
-                  Shop Name <span className="sp-req">*</span>
+                  {t("profile.shopName", "Shop Name")} <span className="sp-req">*</span>
                 </label>
                 <div className={`sp-input-wrap ${touched.name && errors.name ? "error" : ""}`}>
                   <Store size={16} className="sp-input-icon" />
@@ -531,7 +536,7 @@ export function Shop({ user, setView } = {}) {
                     data-testid="shop-name-input"
                     type="text"
                     required
-                    placeholder="Hydrabadi Biryani , Chopda"
+                    placeholder={t("profile.shopNamePlaceholder", "e.g. Mahajan General Store & Cafe")}
                     value={shop.name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     onBlur={() => handleBlur("name")}
@@ -540,7 +545,7 @@ export function Shop({ user, setView } = {}) {
                   <div className="sp-voice-wrap">
                     <VoiceInputButton
                       size="sm"
-                      placeholder="Speak shop name"
+                      placeholder={t("profile.speakShopName", "Speak shop name")}
                       onSpeechResult={(text) => handleChange("name", text)}
                     />
                   </div>
@@ -553,14 +558,14 @@ export function Shop({ user, setView } = {}) {
               </div>
 
               <div className="sp-field-group">
-                <label className="sp-label">Contact Phone Number</label>
+                <label className="sp-label">{t("profile.phone", "Contact Phone Number")}</label>
                 <div className={`sp-input-wrap ${touched.phone && errors.phone ? "error" : ""}`}>
                   <Phone size={16} className="sp-input-icon" />
                   <input
                     data-testid="shop-phone-input"
                     type="tel"
                     maxLength={10}
-                    placeholder="8329300932"
+                    placeholder={t("profile.phonePlaceholder", "e.g. 9876543210")}
                     value={shop.phone}
                     onChange={(e) => {
                       const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, 10)
@@ -572,7 +577,7 @@ export function Shop({ user, setView } = {}) {
                   <div className="sp-voice-wrap">
                     <VoiceInputButton
                       size="sm"
-                      placeholder="Speak contact number"
+                      placeholder={t("profile.speakContactNumber", "Speak contact number")}
                       onSpeechResult={(text) => {
                         const digits = text.replace(/[^0-9]/g, "").slice(0, 10)
                         handleChange("phone", digits)
@@ -585,14 +590,14 @@ export function Shop({ user, setView } = {}) {
                     <AlertCircle size={12} /> {errors.phone}
                   </span>
                 ) : (
-                  <span className="sp-helper-text">7-15 digits for contact header on receipt</span>
+                  <span className="sp-helper-text">{t("profile.phoneHelper", "7-15 digits for contact header on receipt")}</span>
                 )}
               </div>
             </div>
 
             <div className="sp-field-group full-width">
               <div className="sp-label-split">
-                <label className="sp-label">Store Address</label>
+                <label className="sp-label">{t("profile.address", "Store Address")}</label>
                 <span className={`sp-char-count ${shop.address?.length > 300 ? "exceeded" : ""}`}>
                   {shop.address?.length || 0} / 300
                 </span>
@@ -602,7 +607,7 @@ export function Shop({ user, setView } = {}) {
                 <textarea
                   data-testid="shop-address-input"
                   rows={3}
-                  placeholder="Shop no:12 , Hated Road Parisar , Lasur"
+                  placeholder={t("profile.addressPlaceholder", "Street, area, landmark, city, pincode")}
                   value={shop.address}
                   onChange={(e) => handleChange("address", e.target.value)}
                   onBlur={() => handleBlur("address")}
@@ -611,7 +616,7 @@ export function Shop({ user, setView } = {}) {
                 <div className="sp-voice-wrap textarea-voice">
                   <VoiceInputButton
                     size="sm"
-                    placeholder="Speak store address"
+                    placeholder={t("profile.speakStoreAddress", "Speak store address")}
                     onSpeechResult={(text) => handleChange("address", text)}
                   />
                 </div>
@@ -621,7 +626,7 @@ export function Shop({ user, setView } = {}) {
                   <AlertCircle size={12} /> {errors.address}
                 </span>
               ) : (
-                <span className="sp-helper-text">Keep address to 2 lines for better receipt layout.</span>
+                <span className="sp-helper-text">{t("profile.addressHelper", "Keep address to 2 lines for better receipt layout.")}</span>
               )}
             </div>
           </div>
@@ -633,13 +638,13 @@ export function Shop({ user, setView } = {}) {
                 <Receipt size={18} />
               </div>
               <div className="sp-card-titles">
-                <h3 className="sp-card-title">Receipt Settings</h3>
-                <p className="sp-card-subtitle">Customize how your bills look</p>
+                <h3 className="sp-card-title">{t("profile.receiptDefaults", "Receipt Settings")}</h3>
+                <p className="sp-card-subtitle">{t("profile.receiptDefaultsSub", "Customize how your bills look")}</p>
               </div>
             </div>
 
             <div className="sp-field-group full-width">
-              <label className="sp-label">Receipt Template</label>
+              <label className="sp-label">{t("profile.receiptTemplate", "Receipt Template")}</label>
               <div className="sp-select-wrap">
                 <Receipt size={16} className="sp-input-icon" />
                 <select
@@ -655,7 +660,7 @@ export function Shop({ user, setView } = {}) {
                 </select>
                 <ChevronDown size={15} className="sp-select-arrow" />
               </div>
-              <span className="sp-helper-text">Layout loaded by default when creating bills</span>
+              <span className="sp-helper-text">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</span>
             </div>
           </div>
 
@@ -666,20 +671,20 @@ export function Shop({ user, setView } = {}) {
                 <Hash size={18} />
               </div>
               <div className="sp-card-titles">
-                <h3 className="sp-card-title">Invoice Sequencing</h3>
-                <p className="sp-card-subtitle">Set your invoice numbering format</p>
+                <h3 className="sp-card-title">{t("profile.invoiceSequenceTitle", "Invoice Sequencing")}</h3>
+                <p className="sp-card-subtitle">{t("profile.invoiceSequenceSub", "Set your invoice numbering format")}</p>
               </div>
             </div>
 
             <div className="sp-form-row two-col">
               <div className="sp-field-group">
-                <label className="sp-label">Invoice Prefix</label>
+                <label className="sp-label">{t("profile.invoicePrefix", "Invoice Prefix")}</label>
                 <div className={`sp-input-wrap ${touched.invoice_prefix && errors.invoice_prefix ? "error" : ""}`}>
                   <Hash size={16} className="sp-input-icon" />
                   <input
                     type="text"
                     maxLength={8}
-                    placeholder="HB"
+                    placeholder={t("profile.invoicePrefixPlaceholder", "HB")}
                     value={shop.invoice_prefix}
                     onChange={(e) => handleChange("invoice_prefix", e.target.value.toUpperCase())}
                     onBlur={() => handleBlur("invoice_prefix")}
@@ -688,7 +693,7 @@ export function Shop({ user, setView } = {}) {
                   <div className="sp-voice-wrap">
                     <VoiceInputButton
                       size="sm"
-                      placeholder="Speak invoice prefix"
+                      placeholder={t("profile.speakInvoicePrefix", "Speak invoice prefix")}
                       onSpeechResult={(text) => {
                         const clean = text.replace(/[^a-zA-Z0-9_-]/g, "").toUpperCase()
                         if (clean) handleChange("invoice_prefix", clean.slice(0, 8))
@@ -701,13 +706,13 @@ export function Shop({ user, setView } = {}) {
                     <AlertCircle size={12} /> {errors.invoice_prefix}
                   </span>
                 ) : (
-                  <span className="sp-helper-text">Short letters identifying your store</span>
+                  <span className="sp-helper-text">{t("profile.invoicePrefixHelper", "Short letters identifying your store")}</span>
                 )}
               </div>
 
               <div className="sp-field-group">
                 <label className="sp-label">
-                  Next Invoice Number <span className="sp-req">*</span>
+                  {t("profile.startingSequence", "Next Invoice Number")} <span className="sp-req">*</span>
                 </label>
                 <div className={`sp-input-wrap ${touched.invoice_sequence && errors.invoice_sequence ? "error" : ""}`}>
                   <span className="sp-hash-adornment">#</span>
@@ -723,7 +728,7 @@ export function Shop({ user, setView } = {}) {
                   <div className="sp-voice-wrap">
                     <VoiceInputButton
                       size="sm"
-                      placeholder="Speak sequence number"
+                      placeholder={t("profile.speakSequenceNumber", "Speak sequence number")}
                       onSpeechResult={(text) => {
                         const digits = text.replace(/[^0-9]/g, "")
                         if (digits) handleChange("invoice_sequence", digits)
@@ -736,13 +741,13 @@ export function Shop({ user, setView } = {}) {
                     <AlertCircle size={12} /> {errors.invoice_sequence}
                   </span>
                 ) : (
-                  <span className="sp-helper-text">Auto-increments by 1 after each bill</span>
+                  <span className="sp-helper-text">{t("profile.startingSequenceHelper", "Auto-increments by 1 after each bill")}</span>
                 )}
               </div>
             </div>
 
             <div className="sp-field-group full-width" style={{ marginTop: "0.5rem" }}>
-              <label className="sp-label">Numbering Format Pattern</label>
+              <label className="sp-label">{t("profile.numberFormat", "Numbering Format Pattern")}</label>
               <div className="sp-select-wrap">
                 <SlidersHorizontal size={16} className="sp-input-icon" />
                 <select
@@ -751,16 +756,16 @@ export function Shop({ user, setView } = {}) {
                   className="sp-select"
                 >
                   <option value="PREFIX-DATE-SEQ">
-                    Prefix + Date + Number (e.g. {shop.invoice_prefix || "HB"}-{new Date().toISOString().slice(0, 10).replace(/-/g, "")}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
+                    {t("profile.formatPrefixDateSeq", "Prefix + Date + Number")} (e.g. {shop.invoice_prefix || "HB"}-{new Date().toISOString().slice(0, 10).replace(/-/g, "")}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
                   </option>
                   <option value="PREFIX-SHORTDATE-SEQ">
-                    Prefix + Short Date + Number (e.g. {shop.invoice_prefix || "HB"}-{new Date().toISOString().slice(2, 10).replace(/-/g, "")}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
+                    {t("profile.formatPrefixYearSeq", "Prefix + Short Date + Number")} (e.g. {shop.invoice_prefix || "HB"}-{new Date().toISOString().slice(2, 10).replace(/-/g, "")}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
                   </option>
                   <option value="PREFIX-SEQ">
-                    Prefix + Number (e.g. {shop.invoice_prefix || "HB"}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
+                    {t("profile.formatPrefixSeq", "Prefix + Number")} (e.g. {shop.invoice_prefix || "HB"}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
                   </option>
                   <option value="SEQ">
-                    Number Only (e.g. {String(shop.invoice_sequence || 1).padStart(4, "0")})
+                    {t("profile.formatSeqOnly", "Number Only")} (e.g. {String(shop.invoice_sequence || 1).padStart(4, "0")})
                   </option>
                 </select>
                 <ChevronDown size={15} className="sp-select-arrow" />
@@ -775,15 +780,15 @@ export function Shop({ user, setView } = {}) {
           <div className="sp-preview-card">
             <div className="sp-preview-header">
               <div className="sp-live-badge">
-                <span className="sp-pulse-dot" /> Live Preview
+                <span className="sp-pulse-dot" /> {t("profile.livePreview", "Live Preview")}
               </div>
               <select
                 value={previewPaperWidth}
                 onChange={(e) => setPreviewPaperWidth(e.target.value)}
                 className="sp-paper-dropdown"
               >
-                <option value="58mm">58mm Thermal</option>
-                <option value="80mm">80mm Thermal</option>
+                <option value="58mm">{t("profile.thermal58", "58mm Thermal")}</option>
+                <option value="80mm">{t("profile.thermal80", "80mm Thermal")}</option>
               </select>
             </div>
 
@@ -799,13 +804,13 @@ export function Shop({ user, setView } = {}) {
                 <Settings size={18} />
               </div>
               <div className="sp-card-titles">
-                <h3 className="sp-card-title">App Settings</h3>
-                <p className="sp-card-subtitle">Language & App Preferences</p>
+                <h3 className="sp-card-title">{t("profile.appSettings", "App Settings")}</h3>
+                <p className="sp-card-subtitle">{t("profile.appPreferences", "Language & App Preferences")}</p>
               </div>
             </div>
 
             <div className="sp-field-group">
-              <label className="sp-label">App Language</label>
+              <label className="sp-label">{t("profile.languageTitle", "App Language")}</label>
               <div className="sp-select-wrap">
                 <Globe size={16} className="sp-input-icon" />
                 <select
@@ -821,7 +826,7 @@ export function Shop({ user, setView } = {}) {
                 </select>
                 <ChevronDown size={15} className="sp-select-arrow" />
               </div>
-              <span className="sp-helper-text">Choose your preferred application language</span>
+              <span className="sp-helper-text">{t("profile.chooseLang", "Choose your preferred application language")}</span>
             </div>
           </div>
 
@@ -833,27 +838,27 @@ export function Shop({ user, setView } = {}) {
               type="button"
               onClick={saveShop}
               disabled={loading}
-              title="Save all shop profile and receipt settings"
+              title={t("profile.saveSettings", "Save Settings")}
             >
               {loading ? (
-                <ButtonLoader text="Saving..." />
+                <ButtonLoader text={t("profile.savingSettings", "Saving...")} />
               ) : (
                 <>
                   <Save size={16} />
-                  <span>Save Settings</span>
+                  <span>{t("profile.saveSettings", "Save Settings")}</span>
                 </>
               )}
             </button>
 
             {hasUnsaved && !saved && (
               <span className="sp-unsaved-hint bottom">
-                <span className="sp-unsaved-dot" /> You have unsaved changes
+                <span className="sp-unsaved-dot" /> {t("profile.unsavedChanges", "You have unsaved changes")}
               </span>
             )}
 
             {saved && (
               <div data-testid="shop-saved-message-mobile" className="sp-saved-badge bottom">
-                <Check size={13} strokeWidth={3} /> Settings Saved!
+                <Check size={13} strokeWidth={3} /> {t("profile.settingsSaved", "Settings Saved!")}
               </div>
             )}
           </div>
@@ -946,6 +951,12 @@ export function Shop({ user, setView } = {}) {
           box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
         }
 
+        .sp-avatar-wrap.has-image {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+
         .sp-avatar-letter {
           font-size: 1.75rem;
           font-weight: 800;
@@ -957,6 +968,8 @@ export function Shop({ user, setView } = {}) {
           height: 100%;
           object-fit: cover;
           border-radius: 18px;
+          background: transparent !important;
+          display: block;
         }
 
         .sp-camera-btn {
@@ -1686,6 +1699,16 @@ export function Shop({ user, setView } = {}) {
             height: 54px !important;
             border-radius: 14px !important;
             flex-shrink: 0 !important;
+          }
+
+          .sp-avatar-wrap.has-image {
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+
+          .sp-avatar-wrap.has-image .sp-avatar-img {
+            border-radius: 14px !important;
           }
 
           .sp-avatar-letter {

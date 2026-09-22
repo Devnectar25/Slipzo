@@ -2,10 +2,12 @@ import { useState, useEffect } from "react"
 import { ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, ShieldCheck, HelpCircle, Printer, RefreshCw } from "lucide-react"
 import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
-import { getActivePlanDetails, activatePlan, syncUserQuota, call, getCurrentUserKey } from "../lib/utils"
+import { getActivePlanDetails, activatePlan, syncUserQuota, call, getCurrentUserKey, formatNumberByLang } from "../lib/utils"
 
 export function Pricing({ setView, setShowAuth, user }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const lang = i18n.language || "en"
+  const formatNum = (v) => formatNumberByLang(v, lang)
   const [customPrints, setCustomPrints] = useState(2500)
   const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
@@ -319,7 +321,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               </div>
               <h2 className="active-quota-heading" style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Printer size={22} style={{ color: '#0ea5e9' }} />
-                {activePlan.printsRemaining?.toLocaleString()} {t("pricing.printsRemaining", "prints remaining")}
+                {formatNum((activePlan.printsRemaining || 0).toLocaleString())} {t("pricing.printsRemaining", "prints remaining")}
               </h2>
             </div>
 
@@ -327,13 +329,13 @@ export function Pricing({ setView, setShowAuth, user }) {
               <div>
                 <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{t("pricing.totalQuota", "TOTAL QUOTA")}</span>
                 <strong style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
-                  {(activePlan.totalPrints || 10).toLocaleString()} {t("pricing.prints", "prints")}
+                  {formatNum((activePlan.totalPrints || 10).toLocaleString())} {t("pricing.prints", "prints")}
                 </strong>
               </div>
               <div>
                 <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{t("pricing.printsUsed", "PRINTS USED")}</span>
                 <strong style={{ fontSize: '1.15rem', color: '#0ea5e9', fontWeight: 800 }}>
-                  {(activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString()} {t("pricing.prints", "prints")}
+                  {formatNum((activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString())} {t("pricing.prints", "prints")}
                 </strong>
               </div>
             </div>
@@ -344,7 +346,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginBottom: '0.4rem' }}>
               <span>{t("pricing.quotaConsumption", "Print Quota Consumption")}</span>
               <span>
-                {Math.round(((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100)}% {t("pricing.used", "Used")}
+                {formatNum(Math.round(((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}% {t("pricing.used", "Used")}
               </span>
             </div>
             <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
@@ -378,7 +380,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               <div className="plan-header">
                 <h3>{plan.name}</h3>
                 <div className="plan-price">
-                  <span className="price-amount">{plan.price}</span>
+                  <span className="price-amount">{formatNum(plan.price)}</span>
                   {plan.originalPrice && (
                     <span style={{
                       textDecoration: 'line-through',
@@ -387,7 +389,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                       fontWeight: 500,
                       marginLeft: '0.4rem'
                     }}>
-                      {plan.originalPrice}
+                      {formatNum(plan.originalPrice)}
                     </span>
                   )}
                 </div>
@@ -398,7 +400,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   marginBottom: '0.35rem',
                   fontWeight: 600
                 }}>
-                  {plan.perPrintCost}
+                  {formatNum(plan.perPrintCost)}
                 </div>
                 {plan.savings && (
                   <div className="plan-savings" style={{ 
@@ -407,7 +409,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                     fontWeight: 700,
                     marginBottom: '0.5rem'
                   }}>
-                    🎉 {plan.savings}
+                    🎉 {formatNum(plan.savings)}
                   </div>
                 )}
                 <p className="plan-description">{plan.description}</p>
@@ -416,7 +418,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 {plan.features.map((feature, idx) => (
                   <div className="plan-feature" key={idx}>
                     <Check size={16} />
-                    <span>{feature}</span>
+                    <span>{formatNum(feature)}</span>
                   </div>
                 ))}
               </div>
@@ -424,7 +426,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 className={`plan-cta ${plan.popular ? 'primary' : 'secondary'}`}
                 onClick={() => handleBuyPlan(plan.rawName || plan.name, plan.numericPrice, plan.numericPrints)}
               >
-                {plan.cta}
+                {formatNum(plan.cta)}
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -490,7 +492,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                       onClick={() => setCustomPrints(preset)}
                       className={`preset-card-btn ${customPrints === preset ? 'active' : ''}`}
                     >
-                      <span className="preset-count-text">{preset.toLocaleString()} {t("pricing.prints", "prints")}</span>
+                      <span className="preset-count-text">{formatNum(preset.toLocaleString())} {t("pricing.prints", "prints")}</span>
                     </button>
                   ))}
                 </div>
@@ -543,10 +545,10 @@ export function Pricing({ setView, setShowAuth, user }) {
                 />
                 
                 <div className="slider-marks" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem', gap: '0.25rem', flexWrap: 'wrap' }}>
-                  <span>100 {t("pricing.prints", "prints")}</span>
-                  <span>5,000 {t("pricing.prints", "prints")}</span>
-                  <span>10,000 {t("pricing.prints", "prints")}</span>
-                  <span>20,000 {t("pricing.prints", "prints")}</span>
+                  <span>{formatNum("100")} {t("pricing.prints", "prints")}</span>
+                  <span>{formatNum("5,000")} {t("pricing.prints", "prints")}</span>
+                  <span>{formatNum("10,000")} {t("pricing.prints", "prints")}</span>
+                  <span>{formatNum("20,000")} {t("pricing.prints", "prints")}</span>
                 </div>
               </div>
             </div>
@@ -565,16 +567,16 @@ export function Pricing({ setView, setShowAuth, user }) {
               </p>
               
               <div className="self-price-amount" style={{ fontSize: '3rem', fontWeight: 800, color: 'white', lineHeight: 1, margin: '0.25rem 0' }}>
-                ₹{calc.finalPrice.toLocaleString()}
+                ₹{formatNum(calc.finalPrice.toLocaleString())}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0 1rem' }}>
                 <span style={{ fontSize: '0.88rem', color: '#cbd5e1' }}>
-                  {t("pricing.rate", "Rate:")} <strong>₹{calc.rate} {t("pricing.perPrint", "/ print")}</strong>
+                  {t("pricing.rate", "Rate:")} <strong>₹{formatNum(calc.rate)} {t("pricing.perPrint", "/ print")}</strong>
                 </span>
                 {calc.baseCost > calc.finalPrice && (
                   <span style={{ textDecoration: 'line-through', fontSize: '0.82rem', color: '#64748b' }}>
-                    ₹{calc.baseCost.toLocaleString()}
+                    ₹{formatNum(calc.baseCost.toLocaleString())}
                   </span>
                 )}
               </div>
@@ -593,7 +595,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   alignItems: 'center',
                   gap: '0.4rem'
                 }}>
-                  <Sparkles size={16} /> {t("pricing.youSave", { amount: calc.savings.toLocaleString(), percent: calc.savingsPercent, defaultValue: `🎉 You Save ₹${calc.savings.toLocaleString()} (${calc.savingsPercent}% OFF)` })}
+                  <Sparkles size={16} /> {t("pricing.youSave", { amount: formatNum(calc.savings.toLocaleString()), percent: formatNum(calc.savingsPercent), defaultValue: `🎉 You Save ₹${formatNum(calc.savings.toLocaleString())} (${formatNum(calc.savingsPercent)}% OFF)` })}
                 </div>
               ) : (
                 <div style={{
@@ -604,7 +606,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   fontSize: '0.8rem',
                   marginBottom: '1.25rem'
                 }}>
-                  {t("pricing.bulkDiscountHint", "Add 1,500+ prints to unlock bulk discounts!")}
+                  {formatNum(t("pricing.bulkDiscountHint", "Add 1,500+ prints to unlock bulk discounts!"))}
                 </div>
               )}
 
@@ -629,7 +631,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   boxShadow: '0 6px 20px rgba(14, 165, 233, 0.4)'
                 }}
               >
-                {t("pricing.buyCustomBtn", { count: calc.count.toLocaleString(), price: calc.finalPrice.toLocaleString(), defaultValue: `Buy ${calc.count.toLocaleString()} Prints for ₹${calc.finalPrice.toLocaleString()}` })}
+                {t("pricing.buyCustomBtn", { count: formatNum(calc.count.toLocaleString()), price: formatNum(calc.finalPrice.toLocaleString()), defaultValue: `Buy ${formatNum(calc.count.toLocaleString())} Prints for ₹${formatNum(calc.finalPrice.toLocaleString())}` })}
                 <ArrowRight size={15} />
               </button>
 

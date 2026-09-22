@@ -190,6 +190,18 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         localStorage.setItem(`slipzo_shop_setup_${user.id}`, "true")
       }
 
+      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", {
+        detail: {
+          name: name.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+          invoice_prefix: prefix.trim().toUpperCase(),
+          invoice_sequence: Number(sequence),
+          invoice_format: format,
+          default_template_id: defaultTemplateId
+        }
+      }))
+
       success("🎉 Shop profile saved! Welcome to Slipzo.")
       if (onComplete) {
         onComplete()

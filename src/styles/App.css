@@ -1372,6 +1372,61 @@ body.is-native-app .public-footer,
   margin: 0;
 }
 
+/* Page Header & Eyebrows (Shared with Menu header style) */
+.menu-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  margin-bottom: 0.45rem;
+}
+
+.menu-main-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.menu-sub-title {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.templates-page .page-intro,
+.history-page .page-intro {
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .menu-eyebrow {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .menu-main-title {
+    font-size: 1.3rem !important;
+    margin-bottom: 0.15rem;
+  }
+
+  .menu-sub-title {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+}
+
 .page-intro button.primary {
   background: #0f172a;
   color: white;
