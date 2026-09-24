@@ -31,7 +31,26 @@ export function Menu({ setView, requireAuth, user }) {
   const { success: toastSuccess, error: toastError } = useToast()
 
   // View state: 'my_menu' (State A) | 'add_items' (State B)
-  const [currentView, setCurrentView] = useState("my_menu")
+  const [currentView, setCurrentView] = useState(() => {
+    try {
+      const requested = sessionStorage.getItem("slipzo_menu_initial_tab")
+      if (requested) {
+        sessionStorage.removeItem("slipzo_menu_initial_tab")
+        return requested
+      }
+    } catch (_) {}
+    return "my_menu"
+  })
+
+  useEffect(() => {
+    try {
+      const requested = sessionStorage.getItem("slipzo_menu_initial_tab")
+      if (requested) {
+        sessionStorage.removeItem("slipzo_menu_initial_tab")
+        setCurrentView(requested)
+      }
+    } catch (_) {}
+  }, [])
 
   // ==========================================
   // STATE A: "MY MENU" (Personal Menu)

@@ -17,50 +17,16 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   const config = typeof options === "string" ? { pageWidth: options } : (options || {})
   const rawWidth = (config.pageWidth || "80mm").trim().toLowerCase()
   const isA4 = rawWidth === "a4" || rawWidth === "full"
-  const is55 = rawWidth === "55mm" || rawWidth === "55"
+  const is55 = rawWidth === "55mm" || rawWidth === "55" || rawWidth === "58mm" || rawWidth === "58"
   const is80 = rawWidth === "80mm" || rawWidth === "80"
 
-  let pageWidth = "80mm"
-  if (isA4) {
-    pageWidth = "210mm"
-  } else if (is80) {
-    pageWidth = "80mm"
-  } else if (is55) {
-    pageWidth = "55mm"
-  } else if (rawWidth === "58mm" || rawWidth === "58") {
-    pageWidth = "58mm"
-  } else if (rawWidth.endsWith("mm")) {
-    pageWidth = rawWidth
-  }
+  const rollMm = isA4 ? 210 : (is55 ? 58 : 80)
+  const rollWidth = isA4 ? "210mm" : `${rollMm}mm`
 
-  const scale = Number(config.scale) || 1
-  const fontSize = Number(config.fontSize) || (pageWidth === "80mm" ? 15.5 : (isA4 ? 16.5 : (pageWidth === "55mm" ? 14 : 14.5)))
-  const density = config.density || "normal" // "tight" | "normal" | "relaxed"
-  const highContrast = config.highContrast !== false
   const showShopDetails = config.showShopDetails !== false
   const showCustomer = config.showCustomer !== false
   const showTax = config.showTax !== false
   const showFooter = config.showFooter !== false
-
-  // Balanced, highly legible, crisp bold font sizes for thermal printing (80mm & 55mm/58mm)
-  const shopTitleSize = isA4 ? "24px" : (pageWidth === "80mm" ? "23px" : (pageWidth === "55mm" ? "19.5px" : "20px"))
-  const shopSubSize = isA4 ? "15.5px" : (pageWidth === "80mm" ? "14.5px" : (pageWidth === "55mm" ? "13.5px" : "14px"))
-  const metaSize = isA4 ? "15.5px" : (pageWidth === "80mm" ? "14.5px" : (pageWidth === "55mm" ? "13.5px" : "14px"))
-  const itemHeaderSize = isA4 ? "15.5px" : (pageWidth === "80mm" ? "14.5px" : (pageWidth === "55mm" ? "13.5px" : "14px"))
-  const itemRowSize = isA4 ? "15.5px" : (pageWidth === "80mm" ? "14.5px" : (pageWidth === "55mm" ? "13.5px" : "14px"))
-  const totalRowSize = isA4 ? "15.5px" : (pageWidth === "80mm" ? "14.5px" : (pageWidth === "55mm" ? "13.5px" : "14px"))
-  const grandTotalSize = isA4 ? "22px" : (pageWidth === "80mm" ? "21px" : (pageWidth === "55mm" ? "18px" : "19px"))
-  const footerSize = isA4 ? "14px" : (pageWidth === "80mm" ? "13.5px" : (pageWidth === "55mm" ? "12.5px" : "13px"))
-  const gridColumns = isA4
-    ? "2.5fr 0.6fr 1fr 1fr"
-    : (pageWidth === "80mm"
-      ? "2.2fr 0.5fr 1fr 1fr"
-      : (pageWidth === "55mm"
-        ? "1.15fr 0.35fr 1.05fr 1.15fr"
-        : "1.3fr 0.4fr 1.05fr 1.1fr"))
-
-  const lineHeight = density === "tight" ? 1.4 : (density === "relaxed" ? 1.75 : 1.55)
-  const itemPadding = density === "tight" ? "3px 0" : (density === "relaxed" ? "6px 0" : "4.5px 0")
 
   // Clone element to manipulate without affecting original
   const clone = el.cloneNode(true)
@@ -91,427 +57,31 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     if (footer) footer.remove()
   }
 
+  // Clean wrapper styles on clone
+  clone.removeAttribute("style")
+  clone.removeAttribute("id")
   clone.style.display = "block"
-  clone.style.margin = "0"
-  clone.style.width = "100%"
-  clone.style.maxWidth = isA4 ? "180mm" : pageWidth
-  clone.style.height = "auto"
-  clone.style.boxSizing = "border-box"
+  clone.style.margin = "0 auto"
+  clone.style.width = isA4 ? "100%" : `${rollMm}mm`
+  clone.style.maxWidth = isA4 ? "100%" : `${rollMm}mm`
+  clone.style.boxShadow = "none"
+  clone.style.border = "none"
+  clone.style.borderRadius = "0"
+  clone.style.background = "#ffffff"
 
-  // Base CSS for thermal receipt (used both for off-screen measurement and in print window)
-  const receiptCSS = `
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
+  const realisticEl = clone.querySelector(".realistic-thermal-receipt") || (clone.classList.contains("realistic-thermal-receipt") ? clone : null)
+  if (realisticEl) {
+    realisticEl.style.margin = "0 auto"
+    realisticEl.style.width = isA4 ? "100%" : `${rollMm}mm`
+    realisticEl.style.maxWidth = isA4 ? "100%" : `${rollMm}mm`
+    realisticEl.style.boxShadow = "none"
+    realisticEl.style.border = "none"
+    realisticEl.style.borderRadius = "0"
+    realisticEl.style.background = "#ffffff"
+  }
 
-    .receipt-preview-content,
-    #receipt-to-print {
-      display: block !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      border: none !important;
-      box-shadow: none !important;
-      border-radius: 0 !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      background: #ffffff !important;
-      color: #000000 !important;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, monospace;
-      font-size: ${fontSize}px;
-      line-height: ${lineHeight};
-      letter-spacing: normal;
-    }
-
-    .receipt-paper-top,
-    .receipt-paper-bottom {
-      display: none !important;
-    }
-
-    .realistic-thermal-receipt {
-      display: block !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      box-shadow: none !important;
-      border: none !important;
-      border-radius: 0 !important;
-      background: #ffffff !important;
-      color: #000000 !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-
-    .realistic-thermal-receipt .receipt-content {
-      padding: ${isA4 ? "10mm 12mm" : (pageWidth === "55mm" ? "2.5mm 1.5mm" : "3.5mm 2.5mm")} !important;
-      margin: 0 !important;
-    }
-
-    .receipt-shop {
-      text-align: center;
-      padding-bottom: 8px;
-      border-bottom: 1.5px dashed #000000;
-      margin-bottom: 8px;
-    }
-
-    .receipt-logo {
-      display: none !important;
-    }
-
-    .receipt-shop-name {
-      font-size: ${shopTitleSize};
-      font-weight: 900;
-      letter-spacing: 0.3px;
-      color: #000000;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-      line-height: 1.25;
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
-
-    .receipt-shop p,
-    .receipt-shop-address,
-    .receipt-shop-phone {
-      font-size: ${shopSubSize};
-      color: #000000;
-      display: block;
-      text-align: center;
-      margin: 2px 0;
-      font-weight: 700;
-      line-height: 1.3;
-      word-break: break-word;
-      overflow-wrap: break-word;
-    }
-
-    svg { display: none !important; }
-
-    .receipt-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 4px;
-      font-size: ${metaSize};
-      font-weight: 700;
-      color: #000000;
-      padding: 5px 0;
-      border-bottom: 1.5px dashed #000000;
-      margin-bottom: 6px;
-      word-break: break-word;
-    }
-
-    .receipt-meta .receipt-number,
-    .receipt-meta .receipt-date,
-    .receipt-number,
-    .receipt-date {
-      white-space: nowrap !important;
-    }
-
-    .receipt-customer-line {
-      display: flex;
-      justify-content: space-between;
-      font-size: ${metaSize};
-      font-weight: 700;
-      color: #000000;
-      padding: 4px 0;
-      margin-bottom: 4px;
-      word-break: break-word;
-    }
-
-    .receipt-divider {
-      border: none;
-      border-top: 1.5px dashed #000000;
-      margin: 6px 0;
-    }
-
-    .receipt-items {
-      margin-bottom: 6px;
-      width: 100%;
-    }
-
-    .receipt-items-header {
-      display: grid !important;
-      grid-template-columns: ${gridColumns};
-      gap: 3px;
-      font-size: ${itemHeaderSize};
-      font-weight: 900;
-      padding: 4px 0;
-      border-bottom: 1.5px solid #000000;
-      margin-bottom: 4px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .receipt-item-row {
-      display: grid !important;
-      grid-template-columns: ${gridColumns};
-      gap: 3px;
-      font-size: ${itemRowSize};
-      padding: ${itemPadding};
-      font-weight: ${highContrast ? "800" : "700"};
-      color: #000000;
-      width: 100%;
-      box-sizing: border-box;
-      align-items: start;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-
-    .receipt-item-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: normal;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      color: #000000;
-    }
-
-    .receipt-item-qty {
-      text-align: center;
-      white-space: nowrap !important;
-      color: #000000;
-    }
-
-    .receipt-item-rate,
-    .receipt-item-amount {
-      text-align: right;
-      white-space: nowrap !important;
-      color: #000000;
-    }
-
-    .receipt-empty-items {
-      text-align: center;
-      padding: 12px 0;
-      color: #000000;
-      font-size: ${itemRowSize};
-    }
-
-    .receipt-totals {
-      padding-top: 6px;
-      width: 100%;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-
-    .receipt-total-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: ${totalRowSize};
-      padding: 3px 0;
-      font-weight: 700;
-      color: #000000;
-      word-break: break-word;
-    }
-
-    .receipt-total-row span:last-child {
-      white-space: nowrap !important;
-    }
-
-    .receipt-grand-total {
-      display: flex;
-      justify-content: space-between;
-      font-size: ${grandTotalSize};
-      font-weight: 900;
-      padding: 4px 0;
-      margin-top: 4px;
-      border-top: 2.5px solid #000000;
-      color: #000000;
-      word-break: break-word;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-
-    .receipt-grand-total span:last-child {
-      white-space: nowrap !important;
-    }
-
-    .receipt-footer {
-      text-align: center;
-      padding-top: 4px;
-      padding-bottom: 0;
-      border-top: 1.5px dashed #000000;
-      margin-top: 4px;
-      margin-bottom: 0;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-
-    .receipt-payment {
-      display: flex;
-      justify-content: space-between;
-      font-size: ${footerSize};
-      font-weight: 800;
-      color: #000000;
-      margin-bottom: 2px;
-    }
-
-    .receipt-thanks {
-      font-size: ${footerSize};
-      font-weight: 700;
-      color: #000000;
-      margin-top: 2px;
-      margin-bottom: 0;
-      word-break: break-word;
-    }
-
-    .receipt-tax-badge,
-    .receipt-boutique-badge {
-      text-align: center;
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 1px;
-      padding: 3px 6px;
-      border: 1.5px solid #000000;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-    }
-
-    .receipt-pro-extras {
-      margin: 6px 0;
-      text-align: center;
-    }
-
-    .receipt-qr-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      margin-bottom: 4px;
-    }
-
-    .receipt-qr-box {
-      border: 1.5px solid #000000;
-      padding: 6px 12px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-    }
-
-    .receipt-qr-wrapper span {
-      font-size: 10px;
-      font-weight: 600;
-    }
-
-    .receipt-loyalty-tag {
-      font-size: 11px;
-      font-weight: 800;
-      padding: 2px 0;
-    }
-
-    .receipt-signatory-wrapper {
-      margin-top: 16px;
-      margin-bottom: 8px;
-      text-align: right;
-    }
-
-    .signatory-line {
-      width: 120px;
-      margin-left: auto;
-      border-top: 1px solid #000000;
-      margin-bottom: 4px;
-    }
-
-    .receipt-signatory-wrapper span {
-      font-size: 10px;
-      font-weight: 700;
-    }
-
-    /* Structural Template Print Styles */
-    .classic-crest {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      border: 1.5px solid #000000;
-      margin: 0 auto 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-size: 14px;
-    }
-    .classic-meta-grid {
-      display: grid !important;
-      grid-template-columns: 1fr 1fr;
-      gap: 3px;
-      border: 1px solid #000000;
-      padding: 4px;
-      margin: 4px 0;
-      font-size: ${metaSize};
-    }
-    .classic-meta-grid div { display: flex; justify-content: space-between; }
-    .classic-divider-double { border-top: 2.5px double #000000; margin: 4px 0; }
-    .classic-items-table { border: 1px solid #000000; margin: 4px 0; }
-    .classic-gst-box { border: 1px dashed #000000; padding: 4px; margin: 4px 0; }
-    .classic-gst-box .gst-line { display: flex; justify-content: space-between; }
-    .classic-grand-banner {
-      border: 2px solid #000000;
-      display: flex;
-      justify-content: space-between;
-      padding: 4px 6px;
-      font-weight: 900;
-      margin: 4px 0;
-    }
-    .receipt-barcode-wrap { text-align: center; margin: 6px 0 2px; }
-    .receipt-barcode-bars { font-size: 16px; letter-spacing: 2px; font-weight: 900; }
-    .receipt-barcode-num { font-size: 12px; font-weight: 700; }
-    .classic-policy-footer { font-size: 12.5px; font-weight: 600; text-align: center; border-top: 1px solid #000000; padding-top: 4px; margin-top: 4px; }
-
-    /* Minimal */
-    .minimal-dot-logo { display: none !important; }
-    .minimal-meta-clean { display: flex; justify-content: space-between; font-size: ${metaSize}; font-weight: 700; margin: 4px 0; border-bottom: 1px solid #000000; }
-    .minimal-item-entry { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 0.5px solid #ccc; }
-    .minimal-total-hero { display: flex; justify-content: space-between; border-top: 2px solid #000000; padding-top: 4px; margin-top: 4px; font-weight: 900; font-size: ${grandTotalSize}; }
-    .minimal-paid-stamp { border: 1px solid #000000; padding: 3px 8px; font-weight: 800; font-size: 12.5px; display: inline-block; margin: 4px auto; }
-
-    /* Pro */
-    .pro-store-ribbon { border: 1.5px solid #000000; padding: 5px; text-align: center; margin-bottom: 4px; }
-    .pro-meta-bar { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #000000; padding: 4px; font-size: ${metaSize}; font-weight: 700; margin-bottom: 4px; }
-    .pro-meta-bar div { display: flex; justify-content: space-between; }
-    .pro-savings-banner { border: 1.5px dashed #000000; padding: 4px; text-align: center; font-weight: 800; margin: 4px 0; }
-    .pro-loyalty-widget { border: 1px solid #000000; padding: 4px; margin: 4px 0; }
-    .pro-loyalty-header { display: flex; justify-content: space-between; font-weight: 800; }
-    .pro-upi-card { border: 1px solid #000000; padding: 4px; text-align: center; margin: 4px 0; }
-    .pro-upi-badge { border: 1px solid #000000; display: inline-block; padding: 2px 6px; font-weight: 800; font-size: 12px; margin-bottom: 2px; }
-
-    /* Eco */
-    .eco-sawtooth-top, .eco-sawtooth-bottom { border-top: 1px dashed #000000; margin: 3px 0; }
-    .eco-header-box { border: 1px dashed #000000; text-align: center; padding: 4px 0; margin-bottom: 4px; }
-    .eco-token-line { display: flex; justify-content: space-between; border-bottom: 1px dotted #000000; padding: 3px 0; font-weight: 800; font-size: ${metaSize}; }
-    .eco-item-row-mono { display: flex; justify-content: space-between; padding: 2px 0; font-size: ${itemRowSize}; font-weight: 700; }
-    .eco-total-box { border: 2px solid #000000; display: flex; justify-content: space-between; padding: 5px; font-weight: 900; font-size: ${grandTotalSize}; margin: 4px 0; }
-    .eco-paper-saver-badge { font-weight: 800; font-size: 12px; text-align: center; margin-top: 4px; }
-
-    /* Modern */
-    .modern-boutique-pill { border: 1px solid #000000; padding: 2px 8px; font-weight: 800; font-size: 12.5px; display: inline-block; margin-bottom: 4px; }
-    .modern-client-card { border: 1px solid #000000; padding: 4px; display: flex; justify-content: space-between; margin: 4px 0; font-size: ${metaSize}; }
-    .modern-item-card { border-bottom: 1px solid #000000; padding: 4px 0; display: flex; justify-content: space-between; font-size: ${itemRowSize}; }
-    .modern-social-card { border-top: 1px solid #000000; padding-top: 4px; margin-top: 4px; text-align: center; }
-
-    /* Elite */
-    .elite-tax-banner { border: 1.5px solid #000000; padding: 4px 8px; font-weight: 900; display: flex; justify-content: space-between; margin-bottom: 4px; }
-    .elite-parties-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 4px; }
-    .elite-party-card { border: 1px solid #000000; padding: 5px; font-size: 13px; font-weight: 600; }
-    .elite-party-card .party-role { font-weight: 900; text-transform: uppercase; font-size: 12px; margin-bottom: 2px; }
-    .elite-tax-analysis-table { width: 100%; border-collapse: collapse; margin: 4px 0; border: 1px solid #000000; font-size: 13px; }
-    .elite-tax-analysis-table th, .elite-tax-analysis-table td { border: 1px solid #000000; padding: 3px 5px; text-align: right; }
-    .elite-tax-analysis-table th:first-child, .elite-tax-analysis-table td:first-child { text-align: left; }
-    .elite-amount-words { border-left: 2px solid #000000; padding-left: 4px; margin: 4px 0; font-size: 12.5px; }
-    .elite-bank-block { border: 1px dashed #000000; padding: 4px; margin: 4px 0; font-size: 12.5px; }
-    .elite-signatory-stamp { text-align: right; margin-top: 8px; }
-    .elite-sign-rule { width: 100px; margin-left: auto; border-top: 1px solid #000000; margin-bottom: 2px; }
-
-    /* Ensure all receipt elements render in solid pitch-black for crisp thermal printing */
-    .realistic-thermal-receipt * {
-      color: #000000 !important;
-    }
-  `
-
-  // Accurately measure the receipt height before opening print window
+  // Measure rendered bounding height in CSS pixels for @page sizing
   let targetHeightMm = isA4 ? 297 : 120
-
   if (!isA4) {
     try {
       const measureDiv = document.createElement("div")
@@ -519,9 +89,8 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       measureDiv.style.position = "fixed"
       measureDiv.style.left = "-9999px"
       measureDiv.style.top = "0"
-      measureDiv.style.width = pageWidth
-      measureDiv.style.maxWidth = pageWidth
-      measureDiv.style.minWidth = pageWidth
+      measureDiv.style.width = `${rollMm}mm`
+      measureDiv.style.maxWidth = `${rollMm}mm`
       measureDiv.style.visibility = "hidden"
       measureDiv.style.pointerEvents = "none"
       measureDiv.style.zIndex = "-9999"
@@ -530,31 +99,16 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       measureDiv.style.boxSizing = "border-box"
       measureDiv.style.background = "#ffffff"
 
-      const measureStyle = document.createElement("style")
-      measureStyle.textContent = receiptCSS
-      measureDiv.appendChild(measureStyle)
-
       const cloneForMeasure = clone.cloneNode(true)
-      cloneForMeasure.style.display = "block"
-      cloneForMeasure.style.width = "100%"
-      cloneForMeasure.style.maxWidth = "100%"
-      cloneForMeasure.style.margin = "0"
-      cloneForMeasure.style.padding = "0"
-      cloneForMeasure.style.border = "none"
-      cloneForMeasure.style.boxShadow = "none"
-      cloneForMeasure.style.background = "#ffffff"
       measureDiv.appendChild(cloneForMeasure)
-
       document.body.appendChild(measureDiv)
 
-      // Measure rendered bounding height in CSS pixels
       const measuredPx = Math.ceil(measureDiv.getBoundingClientRect().height || measureDiv.offsetHeight)
       document.body.removeChild(measureDiv)
 
       if (measuredPx > 40) {
-        // Standard CSS unit: 1 inch = 96 CSS pixels = 25.4mm
-        // Add 5mm safe buffer so thermal cutter cuts cleanly after thank you message
-        targetHeightMm = Math.ceil(measuredPx * (25.4 / 96)) + 5
+        // Standard CSS unit: 1 inch = 96 CSS pixels = 25.4mm + 8mm safe buffer
+        targetHeightMm = Math.max(70, Math.ceil(measuredPx * (25.4 / 96)) + 8)
       }
     } catch (err) {
       console.warn("[printReceipt] Height measurement fallback:", err)
@@ -562,100 +116,174 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     }
   }
 
-  const paperLabel = isA4 ? "A4 Standard" : `${pageWidth} Thermal Roll`
   const receiptHTML = clone.outerHTML
 
-  // CRITICAL: Do NOT put '!important' inside @page rules.
-  // In W3C CSS Paged Media Module, '!important' inside @page is invalid and causes browsers
-  // (Chrome/Edge) to reject the 'size' declaration completely, falling back to A4 default!
-  const pageCssRule = isA4
-    ? "size: A4 portrait; margin: 8mm;"
-    : `size: ${pageWidth} ${targetHeightMm}mm; margin: 0;`
-
-  // Clean up any existing print iframe from prior prints
-  const existingFrame = document.getElementById("slipzo-silent-print-frame")
-  if (existingFrame && existingFrame.parentNode) {
-    existingFrame.parentNode.removeChild(existingFrame)
-  }
-
-  // Create an invisible offscreen iframe for direct printing without window popups or about:blank flashes
-  const iframe = document.createElement("iframe")
-  iframe.id = "slipzo-silent-print-frame"
-  iframe.setAttribute("aria-hidden", "true")
-  iframe.setAttribute("tabindex", "-1")
-  iframe.style.position = "fixed"
-  iframe.style.right = "0"
-  iframe.style.bottom = "0"
-  iframe.style.width = "0"
-  iframe.style.height = "0"
-  iframe.style.border = "none"
-  iframe.style.visibility = "hidden"
-  iframe.style.zIndex = "-9999"
-
-  document.body.appendChild(iframe)
+  // Extract application stylesheets so print output perfectly mirrors on-screen & PDF rendering
+  const pageStyles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
+    .map((node) => node.outerHTML)
+    .join("\n")
 
   const printHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=${isA4 ? "210mm" : pageWidth}, initial-scale=1.0" />
-  <title>Receipt (${paperLabel}) – Slipzo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title> </title>
+  ${pageStyles}
   <style>
-    ${receiptCSS}
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
 
-    /* Page size matching measured content height exactly — ends after thank you message */
     @page {
-      ${pageCssRule}
+      ${isA4 ? "size: A4 portrait; margin: 8mm;" : `margin: 0; size: ${rollMm}mm ${targetHeightMm}mm;`}
     }
 
     html, body {
       background: #ffffff !important;
-      color: #000000 !important;
       margin: 0 !important;
       padding: 0 !important;
-      width: ${isA4 ? "210mm" : pageWidth} !important;
-      max-width: ${isA4 ? "210mm" : pageWidth} !important;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, monospace;
-      font-size: ${fontSize}px;
-      line-height: ${lineHeight};
+      width: 100% !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      display: flex;
+      justify-content: center;
+    }
+
+    .print-outer-container {
+      width: ${isA4 ? "100%" : `${rollMm}mm`} !important;
+      max-width: ${isA4 ? "700px" : `${rollMm}mm`} !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+      background: #ffffff !important;
+    }
+
+    .receipt-preview-content,
+    #receipt-to-print,
+    .realistic-thermal-receipt {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      background: #ffffff !important;
+      overflow: visible !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .receipt-paper-top,
+    .receipt-paper-bottom {
+      display: none !important;
+    }
+
+    .realistic-thermal-receipt .receipt-content {
+      padding-bottom: 8mm !important;
+      box-sizing: border-box !important;
     }
 
     @media print {
       @page {
-        ${pageCssRule}
+        ${isA4 ? "size: A4 portrait; margin: 8mm;" : `margin: 0; size: ${rollMm}mm ${targetHeightMm}mm;`}
       }
       html, body {
-        width: ${isA4 ? "210mm" : pageWidth} !important;
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
       }
-      #receipt-to-print,
-      .receipt-preview-content {
-        display: block !important;
-        background: #ffffff !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
-        min-height: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-        border-radius: 0 !important;
-        margin: 0 !important;
+      .print-outer-container {
+        width: ${isA4 ? "100%" : `${rollMm}mm`} !important;
+        max-width: ${isA4 ? "700px" : `${rollMm}mm`} !important;
+        margin: 0 auto !important;
         padding: 0 !important;
-        overflow: visible !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
       }
     }
   </style>
 </head>
 <body>
-  ${receiptHTML}
+  <div class="print-outer-container">
+    ${receiptHTML}
+  </div>
 </body>
 </html>`
+
+  // Strategy 1: Try dedicated popup window (enables true @page sizing in modern Chromium)
+  let printWin = null
+  try {
+    const winWidth = isA4 ? 700 : (is55 ? 380 : 440)
+    printWin = window.open(
+      "",
+      "_blank",
+      `width=${winWidth},height=650,left=150,top=100,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
+    )
+  } catch (err) {
+    console.warn("[printReceipt] Popup window open blocked:", err)
+    printWin = null
+  }
+
+  if (printWin && printWin.document) {
+    try {
+      printWin.document.open()
+      printWin.document.write(printHtml)
+      printWin.document.close()
+
+      const triggerPopupPrint = () => {
+        try {
+          printWin.focus()
+          printWin.onafterprint = () => {
+            setTimeout(() => {
+              try {
+                if (!printWin.closed) printWin.close()
+              } catch (_) {}
+            }, 400)
+          }
+          printWin.print()
+        } catch (e) {
+          console.warn("[printReceipt] Popup print invocation error:", e)
+        }
+      }
+
+      if (printWin.document.readyState === "complete") {
+        setTimeout(triggerPopupPrint, 180)
+      } else {
+        printWin.onload = () => setTimeout(triggerPopupPrint, 180)
+        setTimeout(triggerPopupPrint, 350)
+      }
+      return
+    } catch (popupErr) {
+      console.warn("[printReceipt] Popup write failed, falling back to iframe:", popupErr)
+    }
+  }
+
+  // Strategy 2: Clean iframe fallback if popup blocker is active
+  const existingFrame = document.getElementById("slipzo-silent-print-frame")
+  if (existingFrame && existingFrame.parentNode) {
+    existingFrame.parentNode.removeChild(existingFrame)
+  }
+
+  const iframe = document.createElement("iframe")
+  iframe.id = "slipzo-silent-print-frame"
+  iframe.setAttribute("aria-hidden", "true")
+  iframe.setAttribute("tabindex", "-1")
+  iframe.style.position = "fixed"
+  iframe.style.left = "-9999px"
+  iframe.style.top = "0"
+  iframe.style.width = isA4 ? "210mm" : rollWidth
+  iframe.style.height = "100vh"
+  iframe.style.border = "none"
+  iframe.style.opacity = "0"
+  iframe.style.pointerEvents = "none"
+  iframe.style.zIndex = "-9999"
+
+  document.body.appendChild(iframe)
 
   const doc = iframe.contentDocument || iframe.contentWindow?.document
   if (!doc) {
@@ -667,7 +295,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
   doc.write(printHtml)
   doc.close()
 
-  const triggerPrint = () => {
+  const triggerIframePrint = () => {
     try {
       const cw = iframe.contentWindow
       if (cw) {
@@ -691,12 +319,11 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
     }
   }
 
-  // Ensure DOM and CSS inside iframe are fully parsed before opening print dialog
   if (doc.readyState === "complete") {
-    setTimeout(triggerPrint, 150)
+    setTimeout(triggerIframePrint, 150)
   } else {
-    iframe.onload = () => setTimeout(triggerPrint, 150)
-    setTimeout(triggerPrint, 250)
+    iframe.onload = () => setTimeout(triggerIframePrint, 150)
+    setTimeout(triggerIframePrint, 250)
   }
 }
 
@@ -735,35 +362,60 @@ export async function saveReceiptAsPdf(elementId = "receipt-to-print", options =
 
   try {
     const html2pdf = await loadHtml2Pdf()
-    const clone = el.cloneNode(true)
-    
-    clone.style.margin = "0 auto"
-    clone.style.background = "#ffffff"
-    clone.style.color = "#000000"
-    clone.style.boxShadow = "none"
-
-    const wrapper = document.createElement("div")
-    wrapper.style.padding = "15px"
-    wrapper.style.background = "#ffffff"
-    wrapper.appendChild(clone)
-
     const config = typeof options === "string" ? { pageWidth: options } : (options || {})
     const rawWidth = (config.pageWidth || "80mm").trim().toLowerCase()
     const isA4 = rawWidth === "a4" || rawWidth === "full"
+    const is55 = rawWidth === "55mm" || rawWidth === "55" || rawWidth === "58mm" || rawWidth === "58"
+    const rollMm = is55 ? 58 : 80
     const filename = `Slipzo_Receipt_${Date.now()}.pdf`
+
+    const clone = el.cloneNode(true)
+    clone.style.margin = "0 auto"
+    clone.style.width = isA4 ? "100%" : `${rollMm}mm`
+    clone.style.maxWidth = isA4 ? "100%" : `${rollMm}mm`
+    clone.style.background = "#ffffff"
+    clone.style.color = "#000000"
+    clone.style.boxShadow = "none"
+    clone.style.border = "none"
+    clone.style.borderRadius = "0"
+
+    const wrapper = document.createElement("div")
+    wrapper.style.padding = isA4 ? "10mm" : "3mm 2mm"
+    wrapper.style.background = "#ffffff"
+    wrapper.style.boxSizing = "border-box"
+    wrapper.style.width = isA4 ? "210mm" : `${rollMm}mm`
+    wrapper.appendChild(clone)
+
+    // Temporary measure container
+    const measureWrap = document.createElement("div")
+    measureWrap.style.position = "fixed"
+    measureWrap.style.left = "-9999px"
+    measureWrap.style.top = "0"
+    measureWrap.style.visibility = "hidden"
+    measureWrap.style.zIndex = "-9999"
+    measureWrap.appendChild(wrapper)
+    document.body.appendChild(measureWrap)
+
+    const measuredPx = wrapper.getBoundingClientRect().height || wrapper.offsetHeight
+    const calculatedHeightMm = isA4 ? 297 : Math.max(75, Math.ceil(measuredPx * (25.4 / 96)) + 8)
+    document.body.removeChild(measureWrap)
 
     if (html2pdf) {
       const pdfOpt = {
-        margin: [5, 5, 5, 5],
+        margin: isA4 ? [8, 8, 8, 8] : [2, 1, 2, 1],
         filename: filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: isA4 ? 'a4' : (rawWidth === '55mm' || rawWidth === '55' ? [55, 180] : [80, 200]), orientation: 'portrait' }
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2.5, useCORS: true, logging: false, scrollY: 0 },
+        jsPDF: {
+          unit: "mm",
+          format: isA4 ? "a4" : [rollMm, calculatedHeightMm],
+          orientation: "portrait"
+        }
       }
       await html2pdf().set(pdfOpt).from(wrapper).save()
       Swal.fire({
         title: "PDF Saved! 📄",
-        text: "Receipt PDF has been saved successfully.",
+        text: `Receipt (${isA4 ? "A4" : rollMm + "mm"}) has been downloaded successfully.`,
         icon: "success",
         timer: 2000,
         showConfirmButton: false
@@ -795,10 +447,10 @@ export function promptPrintOrPdfChoice(elementId = "receipt-to-print", options =
   }).then((result) => {
     if (result.isConfirmed) {
       printReceiptElement(elementId, options)
-      if (onChoiceDone) onChoiceDone('print')
+      if (onChoiceDone) onChoiceDone("print")
     } else if (result.isDenied) {
       saveReceiptAsPdf(elementId, options)
-      if (onChoiceDone) onChoiceDone('pdf')
+      if (onChoiceDone) onChoiceDone("pdf")
     }
   })
 }
