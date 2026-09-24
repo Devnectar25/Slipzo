@@ -139,6 +139,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedItems, setSelectedItems] = useState([])
+  const [mobileTab, setMobileTab] = useState("catalog") // "catalog" | "selected"
   const [saving, setSaving] = useState(false)
 
   const { success: toastSuccess, error: toastError } = useToast()
@@ -427,10 +428,33 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
           </button>
         </div>
 
-        {/* Modal Main Content (2 Columns on Desktop) */}
+        {/* Mobile Tab Switcher */}
+        <div className="add-menu-mobile-tabs" role="tablist" aria-label="Menu Items Navigation">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileTab === "catalog"}
+            className={`mobile-tab-btn ${mobileTab === "catalog" ? "active" : ""}`}
+            onClick={() => setMobileTab("catalog")}
+          >
+            <Utensils size={14} />
+            <span>{t("menu.availableItems", "Available Items")} ({formatNum(filteredProducts.length)})</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobileTab === "selected"}
+            className={`mobile-tab-btn ${mobileTab === "selected" ? "active" : ""}`}
+            onClick={() => setMobileTab("selected")}
+          >
+            <span>⭐ {t("menu.selectedItems", "Selected")} ({formatNum(selectedItems.length)})</span>
+          </button>
+        </div>
+
+        {/* Modal Main Content (2 Columns on Desktop, Tabbed on Mobile) */}
         <div className="add-menu-body">
           {/* Left Column: Search, Category Filters, Available Products */}
-          <div className="add-menu-catalog-col">
+          <div className={`add-menu-catalog-col ${mobileTab === "selected" ? "mobile-hidden" : ""}`}>
             {/* Search Bar */}
             <div className="add-menu-search-bar">
               <Search size={18} color="#F66016" className="search-lead-icon" />
@@ -534,10 +558,18 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                 })
               )}
             </div>
+
+            {/* Mobile quick jump to selected banner if items selected */}
+            {selectedItems.length > 0 && (
+              <div className="mobile-view-selected-banner" onClick={() => setMobileTab("selected")}>
+                <span>🛒 <b>{selectedItems.length} item{selectedItems.length > 1 ? "s" : ""}</b> selected</span>
+                <span className="banner-action">View Selected →</span>
+              </div>
+            )}
           </div>
 
           {/* Right Column: Tip Card, Selected Items List */}
-          <div className="add-menu-selected-col">
+          <div className={`add-menu-selected-col ${mobileTab === "catalog" ? "mobile-hidden" : ""}`}>
             {/* Tip Card */}
             <div className="add-menu-tip-card">
               <div className="tip-header">
@@ -570,6 +602,13 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                   <Utensils size={28} color="#D9DDE4" />
                   <p>No items selected yet.</p>
                   <small>Click "+ Add" on any product to customize price and add to your menu.</small>
+                  <button
+                    type="button"
+                    className="mobile-browse-more-btn"
+                    onClick={() => setMobileTab("catalog")}
+                  >
+                    + Browse Available Items
+                  </button>
                 </div>
               ) : (
                 selectedItems.map((item) => (
@@ -1704,56 +1743,196 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
             cursor: not-allowed;
           }
 
+          /* Desktop defaults for mobile-only elements */
+          .add-menu-mobile-tabs {
+            display: none;
+          }
+
+          .mobile-view-selected-banner {
+            display: none;
+          }
+
+          .mobile-browse-more-btn {
+            display: none;
+          }
+
           /* Mobile & Tablet Responsive Styles */
           @media (max-width: 860px) {
             .add-menu-modal-backdrop {
-              padding: 0.75rem;
+              padding: 0.5rem !important;
             }
 
             .add-menu-modal-card {
-              max-height: 94vh;
-              border-radius: 16px;
-              width: 100%;
+              width: 100% !important;
+              max-width: 100% !important;
+              height: calc(100vh - 1rem) !important;
+              height: calc(100dvh - 1rem) !important;
+              max-height: 94vh !important;
+              max-height: 94dvh !important;
+              border-radius: 16px !important;
+              display: flex !important;
+              flex-direction: column !important;
+              overflow: hidden !important;
             }
 
             .add-menu-header {
-              padding: 1.25rem 1rem 0.75rem;
+              padding: 1rem 1rem 0.5rem !important;
+              flex-shrink: 0 !important;
+            }
+
+            .add-menu-header-left {
+              gap: 0.75rem !important;
+            }
+
+            .add-menu-icon-circle {
+              width: 36px !important;
+              height: 36px !important;
             }
 
             .add-menu-title {
-              font-size: 1.15rem;
+              font-size: 1.15rem !important;
             }
 
             .add-menu-subtitle {
-              font-size: 0.78rem;
+              font-size: 0.76rem !important;
+            }
+
+            .add-menu-mobile-tabs {
+              display: flex !important;
+              gap: 8px !important;
+              padding: 0.4rem 1rem 0.6rem !important;
+              background: #ffffff !important;
+              border-bottom: 1px solid #f1f5f9 !important;
+              flex-shrink: 0 !important;
+            }
+
+            .mobile-tab-btn {
+              flex: 1 !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              gap: 6px !important;
+              padding: 8px 10px !important;
+              border-radius: 10px !important;
+              border: 1.5px solid #e2e8f0 !important;
+              background: #f8fafc !important;
+              color: #475569 !important;
+              font-size: 0.8rem !important;
+              font-weight: 700 !important;
+              cursor: pointer !important;
+              transition: all 0.2s ease !important;
+            }
+
+            .mobile-tab-btn.active {
+              background: #0284c7 !important;
+              border-color: #0284c7 !important;
+              color: #ffffff !important;
+              box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
             }
 
             .add-menu-body {
-              grid-template-columns: 1fr;
-              padding: 0 1rem 0.75rem;
-              gap: 1.25rem;
+              display: flex !important;
+              flex-direction: column !important;
+              flex: 1 1 auto !important;
+              min-height: 0 !important;
+              overflow-y: auto !important;
+              -webkit-overflow-scrolling: touch !important;
+              padding: 0.75rem 1rem !important;
+              gap: 0 !important;
             }
 
-            .selected-name {
-              max-width: 200px;
+            .add-menu-catalog-col.mobile-hidden,
+            .add-menu-selected-col.mobile-hidden {
+              display: none !important;
+            }
+
+            .add-menu-catalog-col {
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 0.65rem !important;
+              flex: 1 1 auto !important;
+            }
+
+            .add-menu-selected-col {
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 0.65rem !important;
+              flex: 1 1 auto !important;
             }
 
             .add-menu-products-list {
-              max-height: 240px;
+              max-height: none !important;
+              overflow-y: visible !important;
+              padding-right: 0 !important;
+              gap: 6px !important;
             }
 
             .selected-items-scroll {
-              max-height: 200px;
+              max-height: none !important;
+              overflow-y: visible !important;
+              padding-right: 0 !important;
+              gap: 8px !important;
+            }
+
+            .mobile-view-selected-banner {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: space-between !important;
+              padding: 10px 14px !important;
+              background: #f0fdf4 !important;
+              border: 1.5px solid #86efac !important;
+              border-radius: 12px !important;
+              color: #166534 !important;
+              font-size: 0.82rem !important;
+              margin-top: 0.75rem !important;
+              cursor: pointer !important;
+              font-weight: 600 !important;
+            }
+
+            .mobile-view-selected-banner .banner-action {
+              font-weight: 700 !important;
+              color: #15803d !important;
+            }
+
+            .mobile-browse-more-btn {
+              display: inline-flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              padding: 8px 16px !important;
+              border-radius: 10px !important;
+              border: 1.5px dashed #0284c7 !important;
+              background: #f0f9ff !important;
+              color: #0284c7 !important;
+              font-size: 0.82rem !important;
+              font-weight: 700 !important;
+              cursor: pointer !important;
+              margin-top: 0.75rem !important;
+            }
+
+            .selected-name {
+              max-width: 180px !important;
             }
 
             .add-menu-footer {
-              padding: 0.75rem 1rem;
+              flex-shrink: 0 !important;
+              position: sticky !important;
+              bottom: 0 !important;
+              z-index: 20 !important;
+              background: #ffffff !important;
+              border-top: 1px solid #e2e8f0 !important;
+              padding: 0.75rem 1rem !important;
+              display: flex !important;
+              gap: 8px !important;
+              box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
             }
 
             .add-menu-skip-btn,
             .add-menu-continue-btn {
-              font-size: 0.82rem;
-              padding: 8px 16px;
+              flex: 1 !important;
+              justify-content: center !important;
+              min-height: 44px !important;
+              font-size: 0.84rem !important;
+              padding: 8px 14px !important;
             }
           }
         `}</style>

@@ -109,10 +109,23 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
     if (key === "phone") {
       if (!val) return "Phone number is required for your shop profile."
-      const phoneRegex = /^(\+91[\s-]?)?[0-9]{10}$/
-      const digitsOnly = val.replace(/[^0-9]/g, "")
-      if (!phoneRegex.test(val) || (digitsOnly.length !== 10 && !(digitsOnly.length === 12 && digitsOnly.startsWith("91")))) {
-        return "Please enter a valid 10-digit mobile number."
+      const cleanDigits = val.replace(/[^0-9]/g, "")
+      const mobileDigits = (cleanDigits.length === 12 && cleanDigits.startsWith("91")) ? cleanDigits.slice(2) : cleanDigits
+
+      if (mobileDigits.length === 0) {
+        return "Phone number is required for your shop profile."
+      }
+      if (mobileDigits.length < 10) {
+        return `Mobile number must be 10 digits (currently ${mobileDigits.length}/10).`
+      }
+      if (mobileDigits.length > 10) {
+        return "Mobile number cannot exceed 10 digits."
+      }
+      if (!/^[6-9]\d{9}$/.test(mobileDigits)) {
+        return "Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9."
+      }
+      if (/^(\d)\1{9}$/.test(mobileDigits)) {
+        return "Please enter a valid active mobile number."
       }
     }
 
@@ -315,8 +328,14 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                     setErrors((prev) => ({ ...prev, name: validateField("name", parsed.name) }))
                   }
                   if (parsed.phone) {
-                    setPhone(parsed.phone)
-                    setErrors((prev) => ({ ...prev, phone: validateField("phone", parsed.phone) }))
+                    let digits = String(parsed.phone).replace(/[^0-9]/g, "")
+                    if (digits.length === 12 && digits.startsWith("91")) {
+                      digits = digits.slice(2)
+                    }
+                    const val = digits.slice(0, 10)
+                    setPhone(val)
+                    setTouched((prev) => ({ ...prev, phone: true }))
+                    setErrors((prev) => ({ ...prev, phone: validateField("phone", val) }))
                   }
                   if (parsed.address) {
                     setAddress(parsed.address)
@@ -366,20 +385,33 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
             {/* Phone Number */}
             <div className="onboarding-field">
-              <label className="onboarding-label" style={{ marginBottom: "0.25rem" }}>
-                <Phone size={14} className="field-icon" />
-                <span>Phone / WhatsApp Number <b className="req-star">*</b></span>
-              </label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                <label className="onboarding-label" style={{ margin: 0 }}>
+                  <Phone size={14} className="field-icon" />
+                  <span>Phone / WhatsApp Number <b className="req-star">*</b></span>
+                </label>
+                {phone && (
+                  <span style={{ fontSize: "0.75rem", fontWeight: 600, color: phone.length === 10 && /^[6-9]\d{9}$/.test(phone) && !/^(\d)\1{9}$/.test(phone) ? "#10b981" : "#64748b" }}>
+                    {phone.length}/10 digits
+                  </span>
+                )}
+              </div>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <input
-                  type="text"
-                  placeholder="e.g. +91 98765 43210"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="e.g. 9876543210"
                   value={phone}
                   onChange={(e) => {
-                    setPhone(e.target.value)
-                    if (touched.phone) {
-                      setErrors((prev) => ({ ...prev, phone: validateField("phone", e.target.value) }))
+                    let raw = e.target.value.replace(/[^0-9]/g, "")
+                    if (raw.length === 12 && raw.startsWith("91")) {
+                      raw = raw.slice(2)
                     }
+                    const clean = raw.slice(0, 10)
+                    setPhone(clean)
+                    setTouched((prev) => ({ ...prev, phone: true }))
+                    setErrors((prev) => ({ ...prev, phone: validateField("phone", clean) }))
                   }}
                   onBlur={() => handleBlur("phone")}
                   className={`onboarding-input ${touched.phone && errors.phone ? "input-error" : ""}`}
@@ -390,9 +422,13 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                     size="sm"
                     placeholder="Speak phone number"
                     onSpeechResult={(text) => {
-                      const digits = text.replace(/[^0-9+]/g, "")
-                      const val = digits || text
+                      let digits = text.replace(/[^0-9]/g, "")
+                      if (digits.length === 12 && digits.startsWith("91")) {
+                        digits = digits.slice(2)
+                      }
+                      const val = digits.slice(0, 10)
                       setPhone(val)
+                      setTouched((prev) => ({ ...prev, phone: true }))
                       setErrors((prev) => ({ ...prev, phone: validateField("phone", val) }))
                     }}
                   />

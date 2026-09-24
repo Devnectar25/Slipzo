@@ -430,16 +430,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   }
 
   const handleAddMoreItemsClick = () => {
-    if (flowStep === "success") {
-      setFlowStep("bill")
-    }
-    setTimeout(() => {
-      const searchEl = document.querySelector(".nb-search-input")
-      if (searchEl) {
-        searchEl.scrollIntoView({ behavior: "smooth", block: "center" })
-        searchEl.focus()
-      }
-    }, 50)
+    sessionStorage.setItem("slipzo_menu_initial_tab", "add_items")
+    setView?.("menu")
   }
 
   // ==========================================

@@ -120,9 +120,14 @@ export function Shop({ user, setView } = {}) {
     }
 
     if (key === "phone" && val) {
-      const digitsOnly = val.replace(/[^0-9]/g, "")
-      if (digitsOnly.length !== 10) {
-        errorMsg = t("validation.phoneInvalid", "Please enter a valid 10-digit contact number.")
+      const cleanDigits = val.replace(/[^0-9]/g, "")
+      const mobileDigits = (cleanDigits.length === 12 && cleanDigits.startsWith("91")) ? cleanDigits.slice(2) : cleanDigits
+      if (mobileDigits.length !== 10) {
+        errorMsg = t("validation.phoneInvalid", `Please enter a valid 10-digit contact number (${mobileDigits.length}/10).`)
+      } else if (!/^[6-9]\d{9}$/.test(mobileDigits)) {
+        errorMsg = t("validation.phoneInvalidStart", "Mobile number should start with 6, 7, 8, or 9.")
+      } else if (/^(\d)\1{9}$/.test(mobileDigits)) {
+        errorMsg = t("validation.phoneInvalidGeneric", "Please enter a valid active mobile number.")
       }
     }
 
@@ -595,7 +600,7 @@ export function Shop({ user, setView } = {}) {
                     <AlertCircle size={12} /> {errors.phone}
                   </span>
                 ) : (
-                  <span className="sp-helper-text">{t("profile.phoneHelper", "7-15 digits for contact header on receipt")}</span>
+                  <span className="sp-helper-text">{shop.phone ? `${shop.phone.length}/10 digits` : t("profile.phoneHelper", "10-digit mobile number for receipt header")}</span>
                 )}
               </div>
             </div>

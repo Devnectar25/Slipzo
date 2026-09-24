@@ -1,9 +1,9 @@
 import { useEffect, useState, useMemo } from "react"
-import { ArrowLeft, Printer, User } from "lucide-react"
+import { ArrowLeft, Printer, Download, User } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { call, money, cleanTextLines, canPrintFree, getActivePlanDetails, syncUserQuota, incrementFreePrintCount, getCurrentUserKey, findTemplateMatch } from "../lib/utils"
-import { printReceiptElement } from "../lib/printReceipt"
+import { printReceiptElement, saveReceiptAsPdf } from "../lib/printReceipt"
 import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
@@ -230,6 +230,17 @@ export function Reprint({ billId, setView, requireAuth, user }) {
     }
   }
 
+  const handleDownloadPdf = async () => {
+    try {
+      await saveReceiptAsPdf("receipt-to-print", {
+        pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
+      })
+    } catch (err) {
+      console.error("PDF download failed:", err)
+      toastError?.("Failed to generate PDF")
+    }
+  }
+
   if (loading) {
     return (
       <div className="page reprint-page fade-in">
@@ -281,6 +292,9 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           <button className="secondary-button" onClick={handleBack}>
             <ArrowLeft size={16} /> {t("common.back", "Back")}
           </button>
+          <button className="secondary-button" onClick={handleDownloadPdf} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+            <Download size={16} /> PDF
+          </button>
           <button className="primary-button" onClick={printReceipt} disabled={isPrinting}>
             {isPrinting ? <ButtonLoader text={t("bills.printing", "Printing...")} /> : <><Printer size={16} /> {t("bills.print", "Print")}</>}
           </button>
@@ -322,6 +336,27 @@ export function Reprint({ billId, setView, requireAuth, user }) {
             </button>
           </div>
         </div>
+
+        {printFormat !== "a4" && (
+          <div style={{
+            fontSize: "0.78rem",
+            color: "#64748b",
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "8px",
+            padding: "0.4rem 0.65rem",
+            marginBottom: "0.75rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.4rem",
+            lineHeight: 1.35
+          }}>
+            <span>💡</span>
+            <span>
+              <strong>Tip:</strong> In Chrome Print dialog, select your POS thermal printer under <em>Destination</em>. Or click <strong>PDF</strong> above to save a zero-margin slip.
+            </span>
+          </div>
+        )}
         <div 
           id="receipt-to-print" 
           className={`receipt-preview-content format-${printFormat}`}
