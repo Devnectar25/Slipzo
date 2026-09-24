@@ -60,8 +60,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       badge: "Most Popular",
       paperSize: "58mm Thermal",
       description: "Streamlined layout engineered to reduce paper roll consumption while maintaining crystal clear readability.",
-      gradient: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-      accentColor: "#0ea5e9",
+      gradient: "linear-gradient(135deg, #FB821B 0%, #F66016 100%)",
+      accentColor: "#FB821B",
       features: ["Compact receipt layout", "Large legible totals", "Zero-waste spacing", "Thermal optimized"],
       previewData: {
         shopName: "MINIMAL CAFE & BAKERY",
@@ -90,8 +90,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       badge: "Standard",
       paperSize: "58mm Thermal",
       description: "Clean and professional receipt template with itemized table, GST breakdown, and clear totals.",
-      gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
-      accentColor: "#0284c7",
+      gradient: "linear-gradient(135deg, #FC9B3E 0%, #F66016 100%)",
+      accentColor: "#F66016",
       features: ["Shop header & GSTIN", "Itemized table (Qty, Rate, Total)", "Tax / GST calculation", "Payment mode & barcode"],
       previewData: {
         shopName: "CLASSIC MART & GROCERY",
@@ -180,8 +180,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       badge: "Trendy",
       paperSize: "58mm Thermal",
       description: "Contemporary aesthetic for boutiques, cafes, and modern shops with clean typography and spacing.",
-      gradient: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
-      accentColor: "#0ea5e9",
+      gradient: "linear-gradient(135deg, #FB821B 0%, #FA4406 100%)",
+      accentColor: "#FB821B",
       features: ["Modern typography", "Clean item list with rates", "Clear amount due card", "Custom footer note"],
       previewData: {
         shopName: "LUMINA BEAUTY & SPA",
@@ -210,8 +210,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       badge: "Premium",
       paperSize: "80mm Standard / A4",
       description: "Formal tax invoice template designed for businesses requiring full GST details, itemized totals, and formal terms.",
-      gradient: "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)",
-      accentColor: "#0284c7",
+      gradient: "linear-gradient(135deg, #FC9B3E 0%, #FA4406 100%)",
+      accentColor: "#F66016",
       features: ["Formal Tax Invoice header", "GSTIN & seller details", "Itemized table with rates", "Tax breakdown & totals"],
       previewData: {
         shopName: "TECHNO COMPUTERS & PERIPHERALS",
@@ -361,7 +361,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
 
           <div className="specs-grid">
             <div className="spec-card">
-              <div className="spec-icon" style={{ background: "#e0f2fe", color: "#0ea5e9" }}>
+              <div className="spec-icon" style={{ background: "#FFE6D2", color: "#FB821B" }}>
                 <Printer size={28} />
               </div>
               <h3>Universal Thermal Compatibility</h3>
@@ -377,7 +377,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
             </div>
 
             <div className="spec-card">
-              <div className="spec-icon" style={{ background: "#e0f2fe", color: "#0ea5e9" }}>
+              <div className="spec-icon" style={{ background: "#FFE6D2", color: "#FB821B" }}>
                 <Sparkles size={28} />
               </div>
               <h3>Instant Brand Customization</h3>
@@ -385,7 +385,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
             </div>
 
             <div className="spec-card">
-              <div className="spec-icon" style={{ background: "#fef3c7", color: "#f59e0b" }}>
+              <div className="spec-icon" style={{ background: "#FFF0C7", color: "#f59e0b" }}>
                 <Zap size={28} />
               </div>
               <h3>Sub-Second Printing</h3>

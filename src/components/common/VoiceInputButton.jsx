@@ -110,9 +110,9 @@ export function VoiceInputButton({
             fontSize: currentSize.fontSize,
             fontWeight: "600",
             borderRadius: variant === "pill" ? "50px" : "8px",
-            border: isListening ? "1px solid #ef4444" : "1px solid #cbd5e1",
-            background: isListening ? "#fef2f2" : "#ffffff",
-            color: isListening ? "#dc2626" : "#334155",
+            border: isListening ? "1px solid #ef4444" : "1px solid #D9DDE4",
+            background: isListening ? "#FFE1E5" : "#ffffff",
+            color: isListening ? "#dc2626" : "#0C1F41",
             cursor: "pointer",
             outline: "none",
             transition: "all 0.2s ease",
@@ -128,7 +128,7 @@ export function VoiceInputButton({
             </>
           ) : (
             <>
-              <Mic size={currentSize.iconSize} style={{ color: "#0284c7" }} />
+              <Mic size={currentSize.iconSize} style={{ color: "#F66016" }} />
               {label ? <span>{label}</span> : <span>Voice Input</span>}
             </>
           )}
@@ -137,7 +137,7 @@ export function VoiceInputButton({
         {/* Live speech transcript preview overlay */}
         {showTooltip && (transcript || isListening) && (
           <div className="speech-transcript-tooltip">
-            <Sparkles size={13} style={{ color: "#38bdf8", flexShrink: 0 }} />
+            <Sparkles size={13} style={{ color: "#FC9B3E", flexShrink: 0 }} />
             <span style={{ fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {transcript ? `"${transcript}"` : "Listening... speak now"}
             </span>
@@ -175,7 +175,7 @@ export function VoiceInputButton({
             bottom: calc(100% + 6px);
             left: 50%;
             transform: translateX(-50%);
-            background: #0f172a;
+            background: #0C1F41;
             color: #ffffff;
             font-size: 0.76rem;
             padding: 4px 10px;
@@ -194,7 +194,7 @@ export function VoiceInputButton({
             left: 50%;
             transform: translateX(-50%);
             background: #450a0a;
-            color: #fecaca;
+            color: #FFB8BD;
             border: 1px solid #f87171;
             font-size: 0.72rem;
             padding: 3px 8px;
@@ -227,8 +227,8 @@ export function VoiceInputButton({
           height: currentSize.height,
           borderRadius: "8px",
           border: isListening ? "1.5px solid #ef4444" : "1.5px solid transparent",
-          background: isListening ? "#fef2f2" : "transparent",
-          color: isListening ? "#dc2626" : "#0284c7",
+          background: isListening ? "#FFE1E5" : "transparent",
+          color: isListening ? "#dc2626" : "#F66016",
           cursor: "pointer",
           outline: "none",
           transition: "all 0.2s ease",
@@ -239,14 +239,14 @@ export function VoiceInputButton({
         {isListening ? (
           <Volume2 size={currentSize.iconSize} className="speech-icon-anim" style={{ color: "#ef4444" }} />
         ) : (
-          <Mic size={currentSize.iconSize} style={{ color: "#0284c7" }} />
+          <Mic size={currentSize.iconSize} style={{ color: "#F66016" }} />
         )}
       </button>
 
       {/* Floating transcript tooltip */}
       {showTooltip && (transcript || isListening) && (
         <div className="speech-transcript-tooltip">
-          <Sparkles size={12} style={{ color: "#38bdf8", flexShrink: 0 }} />
+          <Sparkles size={12} style={{ color: "#FC9B3E", flexShrink: 0 }} />
           <span style={{ fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {transcript ? `"${transcript}"` : "Listening..."}
           </span>
@@ -262,10 +262,10 @@ export function VoiceInputButton({
 
       <style>{`
         .voice-mic-icon-btn:hover {
-          background: rgba(2, 132, 199, 0.08) !important;
+          background: rgba(246, 96, 22, 0.08) !important;
         }
         .voice-mic-icon-btn:focus-visible {
-          outline: 2px solid #0284c7;
+          outline: 2px solid #F66016;
           outline-offset: 1px;
         }
         .speech-icon-anim {
@@ -279,7 +279,7 @@ export function VoiceInputButton({
           position: absolute;
           bottom: calc(100% + 6px);
           right: 0;
-          background: #0f172a;
+          background: #0C1F41;
           color: #ffffff;
           font-size: 0.75rem;
           padding: 4px 8px;
@@ -297,7 +297,7 @@ export function VoiceInputButton({
           top: calc(100% + 6px);
           right: 0;
           background: #450a0a;
-          color: #fecaca;
+          color: #FFB8BD;
           border: 1px solid #f87171;
           font-size: 0.72rem;
           padding: 3px 6px;

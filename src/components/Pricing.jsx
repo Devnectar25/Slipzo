@@ -63,7 +63,7 @@ export function Pricing({ setView, setShowAuth, user }) {
         title: "Connection Error",
         text: "Razorpay SDK failed to load. Please check your internet connection.",
         icon: "warning",
-        confirmButtonColor: "#0ea5e9"
+        confirmButtonColor: "#FB821B"
       })
       return
     }
@@ -85,7 +85,7 @@ export function Pricing({ setView, setShowAuth, user }) {
         prints: printCount
       },
       theme: {
-        color: "#0f172a"
+        color: "#0C1F41"
       },
       handler: async function (response) {
         console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
@@ -118,9 +118,9 @@ export function Pricing({ setView, setShowAuth, user }) {
         Swal.fire({
           title: "🎉 Payment Successful!",
           html: `
-            <div style="text-align: center; font-size: 0.95rem; line-height: 1.6; color: #334155; padding: 0.5rem 0;">
+            <div style="text-align: center; font-size: 0.95rem; line-height: 1.6; color: #0C1F41; padding: 0.5rem 0;">
               <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
-                <strong>Payment ID:</strong> <code style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${response.razorpay_payment_id}</code>
+                <strong>Payment ID:</strong> <code style="background: #FFE6D2; color: #FA4406; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${response.razorpay_payment_id}</code>
               </p>
               <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.85rem 1rem; border-radius: 12px; color: #166534; font-weight: 600;">
                 Your <strong>${printCount.toLocaleString()} print quota</strong> has been activated for <strong>${planName}</strong>!
@@ -129,7 +129,7 @@ export function Pricing({ setView, setShowAuth, user }) {
           `,
           icon: "success",
           confirmButtonText: "Great, Let's Print!",
-          confirmButtonColor: "#0ea5e9",
+          confirmButtonColor: "#FB821B",
           background: "#ffffff",
           borderRadius: "20px"
         })
@@ -289,10 +289,10 @@ export function Pricing({ setView, setShowAuth, user }) {
       {/* Active Subscription & Print Quota Manager Banner */}
       <section className="active-quota-section" style={{ maxWidth: '1200px', margin: '0 auto 2.5rem', padding: '0 1.5rem' }}>
         <div className="active-quota-card" style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #FFF2DE 100%)',
           borderRadius: '20px',
           padding: '1.75rem 2rem',
-          border: '1.5px solid #e2e8f0',
+          border: '1.5px solid #F7CDAB',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.04)',
           display: 'flex',
           flexDirection: 'column',
@@ -302,7 +302,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div className="active-quota-info">
               <div className="active-plan-tag-row" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                 <span className="active-plan-badge" style={{
-                  background: activePlan.isFreeTier ? '#fef3c7' : '#dcfce7',
+                  background: activePlan.isFreeTier ? '#FFF0C7' : '#dcfce7',
                   color: activePlan.isFreeTier ? '#d97706' : '#15803d',
                   fontSize: '0.75rem',
                   fontWeight: 700,
@@ -317,7 +317,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 }}>
                   <ShieldCheck size={14} /> {activePlan.name || t("pricing.freeStarterTier", "Free Starter Tier")}
                 </span>
-                <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>{t("pricing.activePlan", "Active Plan")}</span>
+                <span style={{ fontSize: '0.82rem', color: '#74788A', fontWeight: 600 }}>{t("pricing.activePlan", "Active Plan")}</span>
               </div>
               <h2 className="active-quota-heading" style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Printer size={22} style={{ color: '#0ea5e9' }} />
@@ -343,17 +343,17 @@ export function Pricing({ setView, setShowAuth, user }) {
 
           {/* Progress Bar */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginBottom: '0.4rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#74788A', fontWeight: 600, marginBottom: '0.4rem' }}>
               <span>{t("pricing.quotaConsumption", "Print Quota Consumption")}</span>
               <span>
                 {formatNum(Math.round(((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}% {t("pricing.used", "Used")}
               </span>
             </div>
-            <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '10px', background: '#F7CDAB', borderRadius: '9999px', overflow: 'hidden' }}>
               <div style={{
                 width: `${Math.min(100, Math.max(0, ((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}%`,
                 height: '100%',
-                background: 'linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%)',
+                background: 'linear-gradient(90deg, #FC9B3E 0%, #FB821B 100%)',
                 borderRadius: '9999px',
                 transition: 'width 0.4s ease'
               }} />
@@ -384,7 +384,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   {plan.originalPrice && (
                     <span style={{
                       textDecoration: 'line-through',
-                      color: '#94a3b8',
+                      color: '#8F93A5',
                       fontSize: '1.25rem',
                       fontWeight: 500,
                       marginLeft: '0.4rem'
@@ -395,7 +395,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 </div>
                 <div style={{
                   fontSize: '0.85rem',
-                  color: plan.savings ? '#0284c7' : '#64748b',
+                  color: plan.savings ? '#F66016' : '#74788A',
                   marginTop: '-0.2rem',
                   marginBottom: '0.35rem',
                   fontWeight: 600
@@ -443,7 +443,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             right: '-60px',
             width: '240px',
             height: '240px',
-            background: 'radial-gradient(circle, rgba(14, 165, 233, 0.25) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(246, 96, 22, 0.25) 0%, transparent 70%)',
             pointerEvents: 'none'
           }} />
 
@@ -454,7 +454,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             marginBottom: '0.5rem'
           }}>
             <span style={{
-              background: '#0ea5e9',
+              background: '#FB821B',
               color: 'white',
               fontSize: '0.75rem',
               fontWeight: 700,
@@ -473,7 +473,7 @@ export function Pricing({ setView, setShowAuth, user }) {
           <h2 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0.25rem 0 0.5rem' }}>
             {t("pricing.selfPriceTitle", "Enter your exact print requirement")}
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.95rem', maxWidth: '650px', marginBottom: '2rem' }}>
+          <p style={{ color: '#8F93A5', fontSize: '0.95rem', maxWidth: '650px', marginBottom: '2rem' }}>
             {t("pricing.selfPriceDesc", "Need 250, 1,500, or 10,000 prints? Drag the slider or type your custom count below to calculate your instant bulk discount.")}
           </p>
 
@@ -482,7 +482,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div>
               {/* Preset Buttons */}
               <div className="quick-presets-container" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem', fontWeight: 600 }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#8F93A5', marginBottom: '0.5rem', fontWeight: 600 }}>
                   {t("pricing.quickPresets", "QUICK PRESETS")}
                 </label>
                 <div className="quick-presets-grid">
@@ -501,7 +501,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               {/* Range Slider & Number Input */}
               <div className="adjust-prints-card" style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <div className="slider-header-controls">
-                  <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.85rem', color: '#D9DDE4', fontWeight: 600 }}>
                     <Sliders size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.4rem' }} />
                     {t("pricing.adjustPrints", "Adjust Prints:")}
                   </span>
@@ -515,7 +515,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                       onChange={(e) => setCustomPrints(Math.max(100, Math.min(50000, Number(e.target.value) || 100)))}
                       style={{
                         background: 'white',
-                        color: '#0f172a',
+                        color: '#0C1F41',
                         border: 'none',
                         padding: '0.4rem 0.5rem',
                         borderRadius: '8px',
@@ -525,7 +525,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                         textAlign: 'center'
                       }}
                     />
-                    <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>{t("pricing.prints", "prints")}</span>
+                    <span style={{ fontSize: '0.85rem', color: '#8F93A5', fontWeight: 600 }}>{t("pricing.prints", "prints")}</span>
                   </div>
                 </div>
 
@@ -539,7 +539,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   style={{
                     width: '100%',
                     height: '8px',
-                    accentColor: '#0ea5e9',
+                    accentColor: '#FB821B',
                     cursor: 'pointer'
                   }}
                 />
@@ -562,7 +562,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               textAlign: 'center',
               backdropFilter: 'blur(10px)'
             }}>
-              <p style={{ fontSize: '0.78rem', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#38bdf8', fontWeight: 700, margin: '0 0 0.35rem' }}>
+              <p style={{ fontSize: '0.78rem', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#FC9B3E', fontWeight: 700, margin: '0 0 0.35rem' }}>
                 {t("pricing.yourSelfPrice", "YOUR SELF PRICE")}
               </p>
               
@@ -600,7 +600,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               ) : (
                 <div style={{
                   background: 'rgba(255, 255, 255, 0.08)',
-                  color: '#cbd5e1',
+                  color: '#D9DDE4',
                   padding: '0.45rem 0.85rem',
                   borderRadius: '12px',
                   fontSize: '0.8rem',
@@ -615,7 +615,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 className="custom-price-buy-btn"
                 style={{
                   width: '100%',
-                  background: '#0ea5e9',
+                  background: '#FB821B',
                   color: 'white',
                   border: 'none',
                   padding: '0.85rem 1.25rem',
@@ -628,14 +628,14 @@ export function Pricing({ setView, setShowAuth, user }) {
                   justifyContent: 'center',
                   gap: '0.5rem',
                   transition: 'all 0.2s ease',
-                  boxShadow: '0 6px 20px rgba(14, 165, 233, 0.4)'
+                  boxShadow: '0 6px 20px rgba(246, 96, 22, 0.4)'
                 }}
               >
                 {t("pricing.buyCustomBtn", { count: formatNum(calc.count.toLocaleString()), price: formatNum(calc.finalPrice.toLocaleString()), defaultValue: `Buy ${formatNum(calc.count.toLocaleString())} Prints for ₹${formatNum(calc.finalPrice.toLocaleString())}` })}
                 <ArrowRight size={15} />
               </button>
 
-              <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
+              <p style={{ fontSize: '0.75rem', color: '#74788A', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
                 <ShieldCheck size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.2rem', color: '#10b981' }} />
                 {t("pricing.instantActivation", "Instant activation • Prints never expire")}
               </p>
@@ -652,7 +652,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             fontSize: '1.35rem', 
             fontWeight: 700,
             marginBottom: '1.5rem',
-            color: '#0f172a'
+            color: '#0C1F41'
           }}>
             {t("pricing.comparisonTitle", "Plan Comparison Summary")}
           </h3>
@@ -665,30 +665,30 @@ export function Pricing({ setView, setShowAuth, user }) {
               gap: '0.5rem',
               fontSize: '0.9rem'
             }}>
-              <div style={{ fontWeight: 700, color: '#64748b', padding: '0.65rem' }}>{t("pricing.colFeature", "Feature / Plan")}</div>
-              <div style={{ fontWeight: 700, color: '#0f172a', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colStarter", "Starter Pack")}</div>
-              <div style={{ fontWeight: 700, color: '#0ea5e9', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colPro", "Pro Growth (2K)")}</div>
+              <div style={{ fontWeight: 700, color: '#74788A', padding: '0.65rem' }}>{t("pricing.colFeature", "Feature / Plan")}</div>
+              <div style={{ fontWeight: 700, color: '#0C1F41', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colStarter", "Starter Pack")}</div>
+              <div style={{ fontWeight: 700, color: '#FB821B', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colPro", "Pro Growth (2K)")}</div>
               <div style={{ fontWeight: 700, color: '#10b981', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colBusiness", "Business (5K)")}</div>
               
-              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>{t("pricing.rowTotalPrints", "Total Prints")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', fontWeight: 600 }}>1,000</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', fontWeight: 600 }}>2,000</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', fontWeight: 600 }}>5,000</div>
+              <div style={{ color: '#74788A', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>{t("pricing.rowTotalPrints", "Total Prints")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', fontWeight: 600 }}>1,000</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', fontWeight: 600 }}>2,000</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', fontWeight: 600 }}>5,000</div>
               
-              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>{t("pricing.rowPlanPrice", "Plan Price")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>₹250</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#0ea5e9', fontWeight: 700 }}>₹450</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#10b981', fontWeight: 700 }}>₹1,000</div>
+              <div style={{ color: '#74788A', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>{t("pricing.rowPlanPrice", "Plan Price")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>₹250</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#FB821B', fontWeight: 700 }}>₹450</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#10b981', fontWeight: 700 }}>₹1,000</div>
               
-              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>{t("pricing.rowUnitRate", "Effective Unit Rate")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>₹0.25 {t("pricing.perPrint", "/ print")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#0ea5e9', fontWeight: 600 }}>₹0.225 {t("pricing.perPrint", "/ print")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#10b981', fontWeight: 700 }}>₹0.20 {t("pricing.perPrint", "/ print")}</div>
+              <div style={{ color: '#74788A', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>{t("pricing.rowUnitRate", "Effective Unit Rate")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>₹0.25 {t("pricing.perPrint", "/ print")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#FB821B', fontWeight: 600 }}>₹0.225 {t("pricing.perPrint", "/ print")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#10b981', fontWeight: 700 }}>₹0.20 {t("pricing.perPrint", "/ print")}</div>
               
-              <div style={{ color: '#64748b', padding: '0.65rem', borderTop: '1px solid #f1f5f9' }}>{t("pricing.rowSavings", "Discount & Savings")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#94a3b8' }}>{t("pricing.standardBase", "Standard Base")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#0ea5e9', fontWeight: 700 }}>{t("pricing.save50", "Save ₹50 (10% OFF)")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #f1f5f9', color: '#10b981', fontWeight: 700 }}>{t("pricing.save250", "Save ₹250 (20% OFF)")}</div>
+              <div style={{ color: '#74788A', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>{t("pricing.rowSavings", "Discount & Savings")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#8F93A5' }}>{t("pricing.standardBase", "Standard Base")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#FB821B', fontWeight: 700 }}>{t("pricing.save50", "Save ₹50 (10% OFF)")}</div>
+              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#10b981', fontWeight: 700 }}>{t("pricing.save250", "Save ₹250 (20% OFF)")}</div>
             </div>
           </div>
 
@@ -755,11 +755,11 @@ export function Pricing({ setView, setShowAuth, user }) {
           <div style={{ 
             marginTop: '1.25rem', 
             padding: '0.85rem 1.25rem', 
-            background: '#f0f9ff', 
-            border: '1px solid #bae6fd',
+            background: '#FFF0E5', 
+            border: '1px solid #FADCC3',
             borderRadius: '12px',
             fontSize: '0.85rem',
-            color: '#0369a1',
+            color: '#FA4406',
             textAlign: 'center'
           }}>
             {t("pricing.proTip", "💡 Pro Tip: Buy larger packs or use our Self-Price Calculator above for up to 28% volume discounts on high-volume print orders!")}
@@ -861,7 +861,7 @@ export function Pricing({ setView, setShowAuth, user }) {
           top: -14px;
           left: 50%;
           transform: translateX(-50%);
-          background: #0ea5e9;
+          background: #FB821B;
           color: white;
           padding: 0.35rem 1rem;
           border-radius: 20px;

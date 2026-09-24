@@ -1,0 +1,555 @@
+/* ==========================================================================
+   SLIPZO MASTER THEME SYSTEM
+   Complete 90-Color Specification Palette & Global Styling Engine
+   ========================================================================== */
+
+:root {
+  /* --------------------------------------------------------------------------
+     1-4. Brand Colors
+     -------------------------------------------------------------------------- */
+  --slipzo-primary: #F66016;              /* 1. Slipzo Orange - Primary brand, main CTA */
+  --slipzo-primary-hover: #FA4406;        /* 2. Deep Orange - Button hover */
+  --slipzo-secondary: #FB821B;            /* 3. Bright Orange - Secondary CTA, highlights */
+  --slipzo-brand-light: #FC9B3E;          /* 4. Light Orange - Small accents */
+
+  /* --------------------------------------------------------------------------
+     5-9. Backgrounds & Surfaces
+     -------------------------------------------------------------------------- */
+  --slipzo-bg-main: #FFF2DE;              /* 5. Warm Cream - Main page background */
+  --slipzo-bg-soft: #FDF4EB;              /* 6. Soft Cream - Sections, badges */
+  --slipzo-bg-header: #FDFAF6;            /* 7. Warm White - Header/navigation */
+  --slipzo-bg-card: #FFFFFF;              /* 8. White - Cards, panels */
+  --slipzo-bg-input: #F6F6F7;             /* 9. Soft Neutral - Inputs/search */
+
+  /* --------------------------------------------------------------------------
+     10-16. Typography
+     -------------------------------------------------------------------------- */
+  --slipzo-text-main: #0C1F41;            /* 10. Slipzo Navy - Headings/body primary */
+  --slipzo-text-dark: #111827;            /* 11. Deep Text - Strong text */
+  --slipzo-text-secondary: #0C1F41;       /* 12. Navy Secondary - Important text */
+  --slipzo-text-medium: #575B6B;          /* 13. Slate - Labels/secondary text */
+  --slipzo-text-muted: #74788A;           /* 14. Muted Slate - Descriptions/subtitles */
+  --slipzo-text-placeholder: #8F93A5;     /* 15. Soft Gray - Placeholder/icons */
+  --slipzo-text-disabled: #A6ABB7;        /* 16. Disabled Gray - Disabled controls */
+
+  /* --------------------------------------------------------------------------
+     17-21. Borders & Brand Tints
+     -------------------------------------------------------------------------- */
+  --slipzo-border-main: #F7CDAB;          /* 17. Peach Border - Cards/forms/dividers */
+  --slipzo-border-secondary: #D9DDE4;     /* 18. Neutral Border - Inputs/buttons */
+  --slipzo-border-light: #FADCC3;         /* 19. Soft Peach - Orange surfaces */
+  --slipzo-bg-brand-light: #FFF0E5;       /* 20. Orange Tint - Brand badges/cards */
+  --slipzo-bg-brand-pale: #FFE6D2;        /* 21. Orange Pale - Feature/status backgrounds */
+
+  /* --------------------------------------------------------------------------
+     22-29. Buttons & Interactive Controls
+     -------------------------------------------------------------------------- */
+  --slipzo-btn-primary: #F66016;          /* 22. Slipzo Orange - Save, Print, Add */
+  --slipzo-btn-primary-hover: #FA4406;    /* 23. Deep Orange - Hover */
+  --slipzo-btn-secondary-bg: #FFF0E5;     /* 24. Orange Tint - Secondary actions */
+  --slipzo-btn-secondary-text: #F66016;   /* 25. Brand Orange - Secondary actions text */
+  --slipzo-btn-outline: #F66016;          /* 26. Orange Border - Outline actions */
+  --slipzo-search-border: #F7CDAB;        /* 27. Peach Border - Search fields */
+  --slipzo-search-focus: #F66016;         /* 28. Orange - Focus state */
+  --slipzo-search-focus-ring: rgba(246, 96, 22, 0.12); /* 29. Orange RGBA - Focus glow */
+
+  /* --------------------------------------------------------------------------
+     30-36. Categories & Cards
+     -------------------------------------------------------------------------- */
+  --slipzo-cat-inactive: #FFFFFF;         /* 30. White - Category chips */
+  --slipzo-cat-border: #F7CDAB;           /* 31. Peach - Category chips */
+  --slipzo-cat-active: #F66016;           /* 32. Orange - Selected category */
+  --slipzo-cat-active-text: #FFFFFF;      /* 33. White - Selected category */
+  --slipzo-card-border: #F7CDAB;          /* 34. Peach - Product/menu cards */
+  --slipzo-card-hover-border: #D9DDE4;    /* 35. Warm Gray - Card hover */
+  --slipzo-card-hover-shadow: rgba(12, 31, 65, 0.08); /* 36. Navy Shadow - Card hover */
+
+  /* --------------------------------------------------------------------------
+     37-42. Actions & Commerce
+     -------------------------------------------------------------------------- */
+  --slipzo-price: #F66016;                /* 37. Orange - Product price */
+  --slipzo-total: #F66016;                /* 38. Orange - Bill total */
+  --slipzo-save-bill: #F66016;            /* 39. Orange - Save action */
+  --slipzo-print-btn: #F66016;            /* 40. Orange - Print action */
+  --slipzo-add-product: #F66016;          /* 41. Orange - Add action */
+  --slipzo-edit-action: #F66016;          /* 42. Orange/Navy - Edit */
+
+  /* --------------------------------------------------------------------------
+     43-48. Danger & Error States
+     -------------------------------------------------------------------------- */
+  --slipzo-delete-bg: #FFE1E5;            /* 43. Danger Tint - Delete button */
+  --slipzo-delete-border: #FFB8BD;        /* 44. Danger Border - Delete button */
+  --slipzo-delete-icon: #EF4444;          /* 45. Red - Delete/error */
+  --slipzo-error-text: #EF4444;           /* 46. Red - Validation */
+  --slipzo-error-bg: #FFE1E5;             /* 47. Red Tint - Error alert */
+  --slipzo-error-border: #FFB8BD;         /* 48. Red Border - Error alert */
+
+  /* --------------------------------------------------------------------------
+     49-54. Status Badges
+     -------------------------------------------------------------------------- */
+  --slipzo-success: #16A34A;              /* 49. Success Green */
+  --slipzo-success-bg: #DCFCE7;           /* 50. Success Tint - Success badges */
+  --slipzo-warning: #F59E0B;              /* 51. Warning Amber */
+  --slipzo-warning-bg: #FFF0C7;           /* 52. Warning Tint - Warning badge */
+  --slipzo-info: #3D94EF;                 /* 53. Info Blue - Informational state */
+  --slipzo-info-bg: #DDF1FF;              /* 54. Info Tint - Info badge */
+
+  /* --------------------------------------------------------------------------
+     55-60. Payment Types
+     -------------------------------------------------------------------------- */
+  --slipzo-cash: #168A35;                 /* 55. Cash Green - Cash */
+  --slipzo-cash-bg: #DDF8E7;              /* 56. Cash Tint - Cash badge */
+  --slipzo-upi: #3D94EF;                  /* 57. UPI Blue - UPI */
+  --slipzo-upi-bg: #DDF1FF;               /* 58. UPI Tint - UPI badge */
+  --slipzo-card: #4F35E8;                 /* 59. Card Purple - Card */
+  --slipzo-card-bg: #E8E4FF;              /* 60. Card Tint - Card badge */
+
+  /* --------------------------------------------------------------------------
+     61-68. Admin Section
+     -------------------------------------------------------------------------- */
+  --slipzo-admin-bg: #FFF2DE;             /* 61. Warm Cream - Admin login */
+  --slipzo-admin-glow: rgba(246, 96, 22, 0.10); /* 62. Orange Glow - Admin background */
+  --slipzo-admin-badge: #F66016;          /* 63. Orange - Admin badge */
+  --slipzo-admin-badge-bg: #FFF0E5;       /* 64. Orange Tint - Admin badge */
+  --slipzo-admin-input-focus: #F66016;    /* 65. Orange - Admin forms */
+  --slipzo-admin-th-bg: #FDF4EB;          /* 66. Warm Cream - Table header */
+  --slipzo-admin-th-border: #F7CDAB;      /* 67. Peach - Table */
+  --slipzo-admin-th-text: #0C1F41;        /* 68. Navy - Table text */
+
+  /* --------------------------------------------------------------------------
+     69-73. Tips & Selection
+     -------------------------------------------------------------------------- */
+  --slipzo-tip-bg: #FFF0E5;               /* 69. Orange Tint - Tips/info */
+  --slipzo-tip-border: #F7CDAB;           /* 70. Peach - Tip card */
+  --slipzo-tip-icon: #F66016;             /* 71. Orange - Tip icon */
+  --slipzo-selection-bg: #FADCC3;         /* 72. Soft Peach - Text selection */
+  --slipzo-selection-text: #0C1F41;       /* 73. Navy - Text selection */
+
+  /* --------------------------------------------------------------------------
+     74-77. Shadows
+     -------------------------------------------------------------------------- */
+  --slipzo-shadow-main: rgba(12, 31, 65, 0.06);     /* 74. Navy Shadow - Cards */
+  --slipzo-shadow-soft: rgba(12, 31, 65, 0.035);    /* 75. Soft Navy Shadow - Inputs/cards */
+  --slipzo-shadow-brand: rgba(246, 96, 22, 0.22);   /* 76. Orange Shadow - Orange buttons */
+  --slipzo-shadow-brand-hover: rgba(246, 96, 22, 0.30); /* 77. Orange Shadow - Button hover */
+
+  /* --------------------------------------------------------------------------
+     78-81. Thermal Receipt (Strictly Unchanged)
+     -------------------------------------------------------------------------- */
+  --slipzo-receipt-bg: #FFFFFF;           /* 78. White - Thermal Receipt BG */
+  --slipzo-receipt-text: #000000;         /* 79. Black - Thermal Receipt Text */
+  --slipzo-receipt-divider: #000000;      /* 80. Black - Thermal Receipt Divider */
+  --slipzo-receipt-border: #000000;       /* 81. Black - Thermal Receipt Border */
+
+  /* --------------------------------------------------------------------------
+     82-90. Application UI & Navigation
+     -------------------------------------------------------------------------- */
+  --slipzo-h1: #0C1F41;                   /* 82. Navy - All page headings */
+  --slipzo-subtitle: #74788A;             /* 83. Muted Slate - Page descriptions */
+  --slipzo-accent-icon: #F66016;          /* 84. Orange - General icons */
+  --slipzo-nav-active: #F66016;           /* 85. Orange - Active nav */
+  --slipzo-nav-hover-bg: #FFF0E5;         /* 86. Orange Tint - Nav hover */
+  --slipzo-badge-active: #F66016;         /* 87. Orange - Active badges */
+  --slipzo-badge-inactive-bg: #FDF4EB;    /* 88. Soft Cream - Inactive badges */
+  --slipzo-divider: #F7CDAB;              /* 89. Peach - Sections */
+  --slipzo-app-root: #FFF2DE;             /* 90. Warm Cream - Entire application */
+}
+
+/* ==========================================================================
+   GLOBAL THEME APPLICATION
+   ========================================================================== */
+
+/* 90. Main App Root & Selection */
+html,
+body,
+#root,
+.app-shell,
+.app-shell .main {
+  background-color: var(--slipzo-bg-main) !important;
+  color: var(--slipzo-text-main) !important;
+}
+
+::selection {
+  background: var(--slipzo-selection-bg) !important;
+  color: var(--slipzo-selection-text) !important;
+}
+
+/* 7. Header & Top Navigation */
+.shell-static-header,
+header.app-header,
+.app-shell header,
+.top-header {
+  background: var(--slipzo-bg-header) !important;
+  border-bottom: 1px solid var(--slipzo-border-main) !important;
+}
+
+/* 10, 82. Headings */
+h1,
+.h1-title,
+.nb-page-title,
+.menu-main-title,
+.section-title,
+.shell-header-name {
+  color: var(--slipzo-h1) !important;
+}
+
+/* 82-b. Dark Sections & Hero with Background Images - High Contrast Protection */
+.templates-header h1,
+.product-hero h1,
+.features-header h1,
+.integrations-header h1,
+.resources-header h1,
+.support-header h1,
+.contact-bottom-cta h1,
+.contact-bottom-cta h2 {
+  color: #FFFFFF !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 14, 83. Subtitles & Descriptions */
+.subtitle,
+.sub-title,
+.menu-sub-title,
+.nb-page-subtitle,
+.page-description,
+.text-muted {
+  color: var(--slipzo-subtitle) !important;
+}
+
+.templates-header .header-description,
+.product-hero .header-description,
+.features-header .header-description,
+.integrations-header .header-description,
+.resources-header .header-description,
+.support-header .header-description,
+.contact-bottom-cta p {
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* 8, 34, 35, 74. Cards & Containers */
+.card,
+.product-card,
+.menu-card,
+.menu-item-row,
+.panel-card,
+.auth-card,
+.billing-card,
+.nb-card {
+  background-color: var(--slipzo-bg-card) !important;
+  border: 1px solid var(--slipzo-card-border) !important;
+  box-shadow: 0 4px 16px var(--slipzo-shadow-main) !important;
+}
+
+.card:hover,
+.product-card:hover,
+.menu-card:hover {
+  border-color: var(--slipzo-card-hover-border) !important;
+  box-shadow: 0 6px 20px var(--slipzo-card-hover-shadow) !important;
+}
+
+/* 9, 27, 28, 29. Inputs & Search Fields */
+input[type="text"],
+input[type="search"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+select,
+textarea,
+.search-input,
+.nb-search-box input {
+  background-color: var(--slipzo-bg-input) !important;
+  border: 1px solid var(--slipzo-search-border) !important;
+  color: var(--slipzo-text-main) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.search-input:focus,
+.nb-search-box input:focus {
+  border-color: var(--slipzo-search-focus) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--slipzo-search-focus-ring) !important;
+}
+
+input::placeholder,
+textarea::placeholder,
+.search-input::placeholder {
+  color: var(--slipzo-text-placeholder) !important;
+}
+
+/* 22, 23, 76, 77. Primary Action Buttons */
+.btn-primary,
+.primary-btn,
+button.primary,
+.save-bill-btn,
+.nb-save-btn,
+.nb-pay-btn,
+.btn-save,
+.add-product-btn,
+.hero-cta-btn {
+  background-color: var(--slipzo-btn-primary) !important;
+  border-color: var(--slipzo-btn-primary) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 14px var(--slipzo-shadow-brand) !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-primary:hover,
+.primary-btn:hover,
+button.primary:hover,
+.save-bill-btn:hover,
+.nb-save-btn:hover,
+.nb-pay-btn:hover,
+.btn-save:hover,
+.add-product-btn:hover,
+.hero-cta-btn:hover {
+  background-color: var(--slipzo-btn-primary-hover) !important;
+  border-color: var(--slipzo-btn-primary-hover) !important;
+  box-shadow: 0 6px 18px var(--slipzo-shadow-brand-hover) !important;
+}
+
+/* 40. Print Button */
+.print-btn,
+.nb-print-btn,
+button.print-action {
+  background-color: var(--slipzo-print-btn) !important;
+  border-color: var(--slipzo-print-btn) !important;
+  color: #FFFFFF !important;
+}
+
+.print-btn:hover,
+.nb-print-btn:hover {
+  background-color: var(--slipzo-primary-hover) !important;
+}
+
+/* 24, 25. Secondary Buttons */
+.btn-secondary,
+.secondary-btn,
+button.secondary {
+  background-color: var(--slipzo-btn-secondary-bg) !important;
+  color: var(--slipzo-btn-secondary-text) !important;
+  border: 1px solid var(--slipzo-border-light) !important;
+}
+
+.btn-secondary:hover,
+.secondary-btn:hover {
+  background-color: var(--slipzo-bg-brand-pale) !important;
+  color: var(--slipzo-primary-hover) !important;
+}
+
+/* 26. Outline Buttons */
+.btn-outline,
+.outline-btn {
+  background-color: transparent !important;
+  border: 1.5px solid var(--slipzo-btn-outline) !important;
+  color: var(--slipzo-btn-outline) !important;
+}
+
+.btn-outline:hover,
+.outline-btn:hover {
+  background-color: var(--slipzo-bg-brand-light) !important;
+}
+
+/* 30, 31, 32, 33. Category Chips */
+.cat-chip,
+.category-pill,
+.category-btn,
+.nb-category-tab {
+  background-color: var(--slipzo-cat-inactive) !important;
+  border: 1px solid var(--slipzo-cat-border) !important;
+  color: var(--slipzo-text-main) !important;
+}
+
+.cat-chip.active,
+.category-pill.active,
+.category-btn.active,
+.nb-category-tab.active {
+  background-color: var(--slipzo-cat-active) !important;
+  border-color: var(--slipzo-cat-active) !important;
+  color: var(--slipzo-cat-active-text) !important;
+}
+
+/* 37, 38. Price & Total Amount */
+.item-price,
+.product-price,
+.menu-price,
+.price-tag,
+.price-value {
+  color: var(--slipzo-price) !important;
+  font-weight: 700;
+}
+
+.total-amount,
+.bill-grand-total,
+.nb-grand-total-amount,
+.cart-total-value {
+  color: var(--slipzo-total) !important;
+}
+
+/* 43, 44, 45, 46, 47, 48. Delete & Error States */
+.delete-btn,
+.btn-delete,
+.item-delete-btn {
+  background-color: var(--slipzo-delete-bg) !important;
+  border: 1px solid var(--slipzo-delete-border) !important;
+  color: var(--slipzo-delete-icon) !important;
+}
+
+.delete-btn:hover,
+.btn-delete:hover {
+  background-color: #FFD2D8 !important;
+}
+
+.error-banner,
+.error-alert,
+.form-error-msg {
+  background-color: var(--slipzo-error-bg) !important;
+  border: 1px solid var(--slipzo-error-border) !important;
+  color: var(--slipzo-error-text) !important;
+}
+
+/* 49, 50. Success States */
+.badge-success,
+.status-success {
+  background-color: var(--slipzo-success-bg) !important;
+  color: var(--slipzo-success) !important;
+}
+
+/* 51, 52. Warning States */
+.badge-warning,
+.status-warning {
+  background-color: var(--slipzo-warning-bg) !important;
+  color: var(--slipzo-warning) !important;
+}
+
+/* 53, 54. Info States */
+.badge-info,
+.status-info {
+  background-color: var(--slipzo-info-bg) !important;
+  color: var(--slipzo-info) !important;
+}
+
+/* 55-60. Payment Method Badges */
+.badge-cash,
+.payment-chip-cash.active {
+  background-color: var(--slipzo-cash-bg) !important;
+  color: var(--slipzo-cash) !important;
+  border-color: var(--slipzo-cash) !important;
+}
+
+.badge-upi,
+.payment-chip-upi.active {
+  background-color: var(--slipzo-upi-bg) !important;
+  color: var(--slipzo-upi) !important;
+  border-color: var(--slipzo-upi) !important;
+}
+
+.badge-card,
+.payment-chip-card.active {
+  background-color: var(--slipzo-card-bg) !important;
+  color: var(--slipzo-card) !important;
+  border-color: var(--slipzo-card) !important;
+}
+
+/* 69, 70, 71. Tip Card & Brand Tints */
+.tip-card,
+.info-tip-box {
+  background-color: var(--slipzo-tip-bg) !important;
+  border: 1px solid var(--slipzo-tip-border) !important;
+}
+
+.tip-card svg,
+.tip-icon {
+  color: var(--slipzo-tip-icon) !important;
+}
+
+/* 84. General Accent Icons */
+.accent-icon,
+.brand-icon {
+  color: var(--slipzo-accent-icon) !important;
+}
+
+/* 85, 86. Navigation Item States */
+.app-shell aside nav button:hover,
+.nav-item:hover {
+  background-color: var(--slipzo-nav-hover-bg) !important;
+  color: var(--slipzo-primary) !important;
+}
+
+.app-shell aside nav button.active,
+.nav-item.active {
+  background-color: var(--slipzo-nav-hover-bg) !important;
+  color: var(--slipzo-nav-active) !important;
+  font-weight: 700 !important;
+}
+
+.mobile-nav-btn.active {
+  color: var(--slipzo-nav-active) !important;
+}
+
+.mobile-nav-btn.active svg {
+  color: var(--slipzo-nav-active) !important;
+}
+
+.mobile-nav-btn.active::after {
+  background: var(--slipzo-nav-active) !important;
+}
+
+/* 87, 88. Badges */
+.badge-active {
+  background-color: var(--slipzo-badge-active) !important;
+  color: #FFFFFF !important;
+}
+
+.badge-inactive {
+  background-color: var(--slipzo-badge-inactive-bg) !important;
+  color: var(--slipzo-text-medium) !important;
+}
+
+/* 89. Dividers */
+hr,
+.divider,
+.section-divider {
+  border-color: var(--slipzo-divider) !important;
+}
+
+/* 61-68. Admin Theme */
+.admin-login-wrapper {
+  background: var(--slipzo-admin-bg) !important;
+}
+
+.admin-badge {
+  background-color: var(--slipzo-admin-badge-bg) !important;
+  color: var(--slipzo-admin-badge) !important;
+}
+
+.admin-table th,
+.admin-th {
+  background-color: var(--slipzo-admin-th-bg) !important;
+  color: var(--slipzo-admin-th-text) !important;
+  border-bottom: 1px solid var(--slipzo-admin-th-border) !important;
+}
+
+.admin-table td {
+  border-bottom: 1px solid var(--slipzo-border-main) !important;
+}
+
+/* --------------------------------------------------------------------------
+   78-81. THERMAL RECEIPT SAFEGUARDS (Strictly Unchanged)
+   Preserve crisp monochrome thermal printing fidelity
+   -------------------------------------------------------------------------- */
+.thermal-receipt,
+.thermal-receipt *,
+.realistic-thermal-receipt,
+.realistic-thermal-receipt *,
+.receipt-paper,
+.receipt-paper *,
+.print-area,
+.print-area *,
+#printReceiptContainer,
+#printReceiptContainer * {
+  /* Retain thermal receipt defaults: white canvas, crisp black ink */
+}

@@ -192,7 +192,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           title: "Updated!",
           text: `Master item "${cleanName}" updated successfully.`,
           icon: "success",
-          confirmButtonColor: "#0284c7"
+          confirmButtonColor: "#F66016"
         })
       } else {
         // Create
@@ -208,7 +208,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           title: "Created!",
           text: `Master item "${cleanName}" added to catalog.`,
           icon: "success",
-          confirmButtonColor: "#0284c7"
+          confirmButtonColor: "#F66016"
         })
       }
 
@@ -275,7 +275,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           title: "Deactivated",
           text: res.detail || "Item was deactivated to protect existing user menu assignments.",
           icon: "info",
-          confirmButtonColor: "#0284c7"
+          confirmButtonColor: "#F66016"
         })
       } else {
         setMenuItems((prev) => prev.filter((it) => it.id !== item.id))
@@ -283,7 +283,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           title: "Deleted!",
           text: `"${item.name}" has been removed from the master catalog.`,
           icon: "success",
-          confirmButtonColor: "#0284c7"
+          confirmButtonColor: "#F66016"
         })
       }
     } catch (err) {
@@ -306,10 +306,10 @@ export function AdminMenuManagement({ getAdminHeaders }) {
         }}
       >
         <div>
-          <h3 style={{ fontSize: "1.25rem", fontWeight: "800", color: "#0f172a", margin: 0 }}>
+          <h3 style={{ fontSize: "1.25rem", fontWeight: "800", color: "#0C1F41", margin: 0 }}>
             Master Menu Catalog
           </h3>
-          <p style={{ fontSize: "0.85rem", color: "#64748b", margin: "0.2rem 0 0 0" }}>
+          <p style={{ fontSize: "0.85rem", color: "#74788A", margin: "0.2rem 0 0 0" }}>
             Total {menuItems.length} master items available for shop users to add to their personal menus.
           </p>
         </div>
@@ -330,7 +330,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
               display: "inline-flex",
               alignItems: "center",
               gap: "0.45rem",
-              background: "#0284c7",
+              background: "#F66016",
               color: "#ffffff",
               padding: "0.55rem 1rem",
               borderRadius: "8px",
@@ -348,7 +348,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
       {/* Filter / Search Bar */}
       <div className="admin-filter-bar" style={{ marginBottom: "1rem", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: "1", minWidth: "220px" }}>
-          <Search size={16} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+          <Search size={16} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#8F93A5" }} />
           <input
             type="text"
             className="admin-search-input"
@@ -385,24 +385,24 @@ export function AdminMenuManagement({ getAdminHeaders }) {
       </div>
 
       {/* Table Data */}
-      <div className="admin-table-wrapper" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
+      <div className="admin-table-wrapper" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #F7CDAB", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
             <thead>
-              <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#475569" }}>
+              <tr style={{ background: "#FFF2DE", borderBottom: "1px solid #F7CDAB" }}>
+                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#575B6B" }}>
                   Item
                 </th>
-                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#475569" }}>
+                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#575B6B" }}>
                   Category
                 </th>
-                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#475569" }}>
+                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#575B6B" }}>
                   Base Catalog Price
                 </th>
-                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#475569", textAlign: "center" }}>
+                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#575B6B", textAlign: "center" }}>
                   Status
                 </th>
-                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#475569", textAlign: "center", width: "120px" }}>
+                <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#575B6B", textAlign: "center", width: "120px" }}>
                   Actions
                 </th>
               </tr>
@@ -410,13 +410,13 @@ export function AdminMenuManagement({ getAdminHeaders }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "3rem 1rem", color: "#64748b" }}>
+                  <td colSpan={5} style={{ textAlign: "center", padding: "3rem 1rem", color: "#74788A" }}>
                     Loading master menu items...
                   </td>
                 </tr>
               ) : paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center", padding: "3rem 1rem", color: "#64748b" }}>
+                  <td colSpan={5} style={{ textAlign: "center", padding: "3rem 1rem", color: "#74788A" }}>
                     No menu items found matching filters.
                   </td>
                 </tr>
@@ -424,7 +424,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                 paginatedItems.map((item) => {
                   const isActive = item.is_available !== undefined ? Boolean(item.is_available) : true
                   return (
-                    <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <tr key={item.id} style={{ borderBottom: "1px solid #FDF4EB" }}>
                       {/* Image & Name */}
                       <td style={{ padding: "0.75rem 1rem" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -437,7 +437,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                                 height: "42px",
                                 borderRadius: "8px",
                                 objectFit: "cover",
-                                border: "1px solid #e2e8f0",
+                                border: "1px solid #F7CDAB",
                                 flexShrink: 0
                               }}
                               onError={(e) => {
@@ -450,8 +450,8 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                                 width: "42px",
                                 height: "42px",
                                 borderRadius: "8px",
-                                background: "#f0f9ff",
-                                color: "#0284c7",
+                                background: "#FFF0E5",
+                                color: "#F66016",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -462,11 +462,11 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                             </div>
                           )}
                           <div>
-                            <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "0.9rem" }}>
+                            <div style={{ fontWeight: "700", color: "#0C1F41", fontSize: "0.9rem" }}>
                               {item.name}
                             </div>
                             {item.description && (
-                              <div style={{ fontSize: "0.75rem", color: "#64748b", maxWidth: "260px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              <div style={{ fontSize: "0.75rem", color: "#74788A", maxWidth: "260px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {item.description}
                               </div>
                             )}
@@ -478,8 +478,8 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                       <td style={{ padding: "0.75rem 1rem" }}>
                         <span
                           style={{
-                            background: "#f1f5f9",
-                            color: "#475569",
+                            background: "#FDF4EB",
+                            color: "#575B6B",
                             padding: "0.2rem 0.6rem",
                             borderRadius: "4px",
                             fontSize: "0.75rem",
@@ -491,7 +491,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                       </td>
 
                       {/* Base Price */}
-                      <td style={{ padding: "0.75rem 1rem", fontWeight: "700", color: "#0f172a" }}>
+                      <td style={{ padding: "0.75rem 1rem", fontWeight: "700", color: "#0C1F41" }}>
                         {money(item.price)}
                       </td>
 
@@ -510,8 +510,8 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                             fontWeight: "700",
                             border: "none",
                             cursor: "pointer",
-                            background: isActive ? "#dcfce7" : "#f1f5f9",
-                            color: isActive ? "#15803d" : "#64748b",
+                            background: isActive ? "#dcfce7" : "#FDF4EB",
+                            color: isActive ? "#15803d" : "#74788A",
                             transition: "all 0.15s ease"
                           }}
                           title="Click to toggle status"
@@ -536,9 +536,9 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                               alignItems: "center",
                               justifyContent: "center",
                               borderRadius: "6px",
-                              border: "1px solid #e2e8f0",
+                              border: "1px solid #F7CDAB",
                               background: "#ffffff",
-                              color: "#0284c7",
+                              color: "#F66016",
                               cursor: "pointer"
                             }}
                           >
@@ -581,13 +581,13 @@ export function AdminMenuManagement({ getAdminHeaders }) {
             justifyContent: "space-between",
             alignItems: "center",
             padding: "0.75rem 1rem",
-            background: "#f8fafc",
-            borderTop: "1px solid #e2e8f0",
+            background: "#FFF2DE",
+            borderTop: "1px solid #F7CDAB",
             flexWrap: "wrap",
             gap: "0.75rem"
           }}
         >
-          <div style={{ fontSize: "0.82rem", color: "#64748b" }}>
+          <div style={{ fontSize: "0.82rem", color: "#74788A" }}>
             Showing <strong>{filteredItems.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong> - <strong>{Math.min(currentPage * pageSize, filteredItems.length)}</strong> of <strong>{filteredItems.length}</strong> master items
           </div>
 
@@ -601,7 +601,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                 alignItems: "center",
                 gap: "0.25rem",
                 padding: "0.35rem 0.65rem",
-                border: "1px solid #cbd5e1",
+                border: "1px solid #D9DDE4",
                 borderRadius: "6px",
                 background: "#ffffff",
                 cursor: currentPage <= 1 ? "not-allowed" : "pointer",
@@ -610,7 +610,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
             >
               <ChevronLeft size={14} /> Prev
             </button>
-            <span style={{ fontSize: "0.82rem", color: "#334155" }}>
+            <span style={{ fontSize: "0.82rem", color: "#0C1F41" }}>
               Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
             </span>
             <button
@@ -622,7 +622,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                 alignItems: "center",
                 gap: "0.25rem",
                 padding: "0.35rem 0.65rem",
-                border: "1px solid #cbd5e1",
+                border: "1px solid #D9DDE4",
                 borderRadius: "6px",
                 background: "#ffffff",
                 cursor: currentPage >= totalPages ? "not-allowed" : "pointer",
@@ -663,7 +663,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
               width: "100%",
               maxWidth: "480px",
               boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
-              border: "1px solid #e2e8f0",
+              border: "1px solid #F7CDAB",
               overflow: "hidden"
             }}
             onClick={(e) => e.stopPropagation()}
@@ -674,15 +674,15 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "1rem 1.25rem",
-                borderBottom: "1px solid #f1f5f9"
+                borderBottom: "1px solid #FDF4EB"
               }}
             >
-              <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "800", color: "#0f172a" }}>
+              <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "800", color: "#0C1F41" }}>
                 {editingItem ? "Edit Master Menu Item" : "Add Master Menu Item"}
               </h4>
               <button
                 onClick={handleCloseModal}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#74788A" }}
               >
                 <X size={18} />
               </button>
@@ -692,7 +692,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
               <div style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
                 {/* Item Name */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.35rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#0C1F41", marginBottom: "0.35rem" }}>
                     Item Name *
                   </label>
                   <input
@@ -705,7 +705,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                       width: "100%",
                       padding: "0.6rem 0.75rem",
                       borderRadius: "8px",
-                      border: "1.5px solid #cbd5e1",
+                      border: "1.5px solid #D9DDE4",
                       fontSize: "0.9rem",
                       boxSizing: "border-box"
                     }}
@@ -715,7 +715,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                 {/* Category & Price Row */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.35rem" }}>
+                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#0C1F41", marginBottom: "0.35rem" }}>
                       Category *
                     </label>
                     <select
@@ -725,7 +725,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                         width: "100%",
                         padding: "0.6rem 0.75rem",
                         borderRadius: "8px",
-                        border: "1.5px solid #cbd5e1",
+                        border: "1.5px solid #D9DDE4",
                         fontSize: "0.9rem",
                         boxSizing: "border-box"
                       }}
@@ -739,7 +739,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                   </div>
 
                   <div>
-                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.35rem" }}>
+                    <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#0C1F41", marginBottom: "0.35rem" }}>
                       Base Price (₹) *
                     </label>
                     <input
@@ -754,7 +754,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                         width: "100%",
                         padding: "0.6rem 0.75rem",
                         borderRadius: "8px",
-                        border: "1.5px solid #cbd5e1",
+                        border: "1.5px solid #D9DDE4",
                         fontSize: "0.9rem",
                         boxSizing: "border-box"
                       }}
@@ -764,7 +764,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
 
                 {/* Image URL with preview */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.35rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#0C1F41", marginBottom: "0.35rem" }}>
                     Image URL (Supabase Storage / Public Link)
                   </label>
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -777,7 +777,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                         flex: 1,
                         padding: "0.6rem 0.75rem",
                         borderRadius: "8px",
-                        border: "1.5px solid #cbd5e1",
+                        border: "1.5px solid #D9DDE4",
                         fontSize: "0.85rem",
                         boxSizing: "border-box"
                       }}
@@ -786,7 +786,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                       <img
                         src={formImageUrl}
                         alt="Preview"
-                        style={{ width: "36px", height: "36px", borderRadius: "6px", objectFit: "cover", border: "1px solid #e2e8f0" }}
+                        style={{ width: "36px", height: "36px", borderRadius: "6px", objectFit: "cover", border: "1px solid #F7CDAB" }}
                         onError={(e) => { e.target.style.display = "none"; }}
                       />
                     )}
@@ -795,7 +795,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
 
                 {/* Description */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#334155", marginBottom: "0.35rem" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#0C1F41", marginBottom: "0.35rem" }}>
                     Description (Optional)
                   </label>
                   <textarea
@@ -807,7 +807,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                       width: "100%",
                       padding: "0.6rem 0.75rem",
                       borderRadius: "8px",
-                      border: "1.5px solid #cbd5e1",
+                      border: "1.5px solid #D9DDE4",
                       fontSize: "0.85rem",
                       boxSizing: "border-box",
                       fontFamily: "inherit"
@@ -822,15 +822,15 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                     id="admin-item-active"
                     checked={formIsAvailable}
                     onChange={(e) => setFormIsAvailable(e.target.checked)}
-                    style={{ width: "16px", height: "16px", accentColor: "#0284c7" }}
+                    style={{ width: "16px", height: "16px", accentColor: "#F66016" }}
                   />
-                  <label htmlFor="admin-item-active" style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155", cursor: "pointer" }}>
+                  <label htmlFor="admin-item-active" style={{ fontSize: "0.85rem", fontWeight: "600", color: "#0C1F41", cursor: "pointer" }}>
                     Available in User Catalog (Active)
                   </label>
                 </div>
 
                 {formError && (
-                  <div style={{ color: "#ef4444", fontSize: "0.82rem", background: "#fef2f2", padding: "0.5rem 0.75rem", borderRadius: "6px" }}>
+                  <div style={{ color: "#ef4444", fontSize: "0.82rem", background: "#FFE1E5", padding: "0.5rem 0.75rem", borderRadius: "6px" }}>
                     {formError}
                   </div>
                 )}
@@ -842,8 +842,8 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                   justifyContent: "flex-end",
                   gap: "0.65rem",
                   padding: "0.85rem 1.25rem",
-                  borderTop: "1px solid #f1f5f9",
-                  background: "#f8fafc"
+                  borderTop: "1px solid #FDF4EB",
+                  background: "#FFF2DE"
                 }}
               >
                 <button
@@ -851,7 +851,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                   className="admin-btn"
                   onClick={handleCloseModal}
                   disabled={submitting}
-                  style={{ padding: "0.5rem 1rem", borderRadius: "8px", border: "1px solid #cbd5e1", background: "#ffffff", cursor: "pointer" }}
+                  style={{ padding: "0.5rem 1rem", borderRadius: "8px", border: "1px solid #D9DDE4", background: "#ffffff", cursor: "pointer" }}
                 >
                   Cancel
                 </button>
@@ -862,7 +862,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                     padding: "0.5rem 1.15rem",
                     borderRadius: "8px",
                     border: "none",
-                    background: "#0284c7",
+                    background: "#F66016",
                     color: "#ffffff",
                     fontWeight: "600",
                     cursor: "pointer"
