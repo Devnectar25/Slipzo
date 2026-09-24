@@ -145,15 +145,17 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   }
 
   const filteredBills = useMemo(() => {
-    if (!search.trim()) return bills
+    if (!search.trim()) return bills.slice(0, 5)
     const q = search.trim().toLowerCase()
-    return bills.filter((b) => {
-      const num = String(b.number || "").toLowerCase()
-      const cust = String(b.customer_name || "").toLowerCase()
-      const tot = String(b.total || "").toLowerCase()
-      const mode = String(b.payment_mode || "").toLowerCase()
-      return num.includes(q) || cust.includes(q) || tot.includes(q) || mode.includes(q)
-    })
+    return bills
+      .filter((b) => {
+        const num = String(b.number || "").toLowerCase()
+        const cust = String(b.customer_name || "").toLowerCase()
+        const tot = String(b.total || "").toLowerCase()
+        const mode = String(b.payment_mode || "").toLowerCase()
+        return num.includes(q) || cust.includes(q) || tot.includes(q) || mode.includes(q)
+      })
+      .slice(0, 5)
   }, [bills, search])
 
   const quickActionCards = [
