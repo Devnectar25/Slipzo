@@ -3,23 +3,99 @@ import {
   Package, Plus, Search, Filter, Edit, Trash2, Tag, DollarSign,
   AlertCircle, CheckCircle2, ShoppingBag, ArrowRight, Sparkles,
   RefreshCw, Layers, Printer, Zap, Store, ChevronRight, X,
-  Truck, CreditCard, Check
+  Truck, CreditCard, Check, Heart
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
+export const DEFAULT_CATALOG_PRODUCTS = [
+  {
+    id: "c9e9135f-ef20-4e71-b74a-aeb0fbe986e2",
+    name: "NIYAMA Portable Bluetooth POS Printer (58mm)",
+    price: 2699,
+    category: "Hardware",
+    sku: "NIYAMA-58BT",
+    stock: 18,
+    image: "/products/niyama_printer.jpg",
+    product_link: "https://slipzo.in/products",
+    description: "Rechargeable 58mm Bluetooth handheld mobile thermal printer with battery indicator and high-speed receipt printing",
+    status: "active"
+  },
+  {
+    id: "8f443769-ff95-4f7a-829d-75e5b4c11d8a",
+    name: "Hansol SUPERMAX Thermal POS Paper Rolls (Pack of 10)",
+    price: 420,
+    category: "Hardware",
+    sku: "HANSOL-SMAX-10",
+    stock: 95,
+    image: "/products/hansol_rolls.jpg",
+    product_link: "https://slipzo.in/products",
+    description: "Premium grade Hansol SUPERMAX smooth, jam-free thermal receipt rolls for clear dark printing",
+    status: "active"
+  },
+  {
+    id: "14ad0bef-adbf-458b-b9d0-eb4e96d86c6e",
+    name: "Bluetooth POS Receipt Printer (80mm)",
+    price: 2850,
+    category: "Hardware",
+    sku: "POS-BT200",
+    stock: 12,
+    image: "/products/pos_printer.jpg",
+    product_link: "https://slipzo.in/products",
+    description: "Portable 58mm wireless thermal printer for Android & iOS with rechargeable battery",
+    status: "active"
+  },
+  {
+    id: "e99ca5a8-9d57-455c-bc10-815861370348",
+    name: "80mm POS Thermal Paper Rolls (10 Rolls)",
+    price: 450,
+    category: "Hardware",
+    sku: "ROLL-80MM-10",
+    stock: 85,
+    image: "/products/paper_rolls.jpg",
+    product_link: "https://slipzo.in/products",
+    description: "ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals",
+    status: "active"
+  }
+]
+
+export const getProductImage = (product) => {
+  if (!product) return null
+  if (product.image && typeof product.image === "string" && product.image.trim()) {
+    return product.image
+  }
+  if (product.images) {
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      return product.images[0]
+    }
+    if (typeof product.images === "string") {
+      try {
+        const parsed = JSON.parse(product.images)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0]
+      } catch (_) {
+        const trimmed = product.images.trim()
+        if (trimmed.startsWith("data:image") || trimmed.startsWith("http") || trimmed.startsWith("/")) {
+          return trimmed
+        }
+      }
+    }
+  }
+  return null
+}
+
 export function Products({ setView, requireAuth, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum } = useDbTranslation()
   const [products, setProducts] = useState(() => {
     const cached = getCachedData("/products")
-    return Array.isArray(cached) ? cached : []
+    if (Array.isArray(cached) && cached.length > 0) return cached
+    return DEFAULT_CATALOG_PRODUCTS
   })
   const [stats, setStats] = useState(() => {
     const cached = getCachedData("/products")
-    const initial = Array.isArray(cached) ? cached : []
+    const initial = (Array.isArray(cached) && cached.length > 0) ? cached : DEFAULT_CATALOG_PRODUCTS
     const catSet = new Set(initial.map(p => p.category || 'General'))
     const lowStock = initial.filter(p => (p.stock || 0) < 10).length
     return { totalProducts: initial.length, totalCategories: catSet.size, lowStockProducts: lowStock }
@@ -62,7 +138,7 @@ export function Products({ setView, requireAuth, user }) {
     try {
       if (products.length === 0) setLoading(true)
       const data = await call("/products")
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         setProducts(data)
         const catSet = new Set(data.map(p => p.category || 'General'))
         const lowStock = data.filter(p => (p.stock || 0) < 10).length
@@ -71,11 +147,24 @@ export function Products({ setView, requireAuth, user }) {
           totalCategories: catSet.size,
           lowStockProducts: lowStock
         })
+      } else if (products.length === 0) {
+        setProducts(DEFAULT_CATALOG_PRODUCTS)
+        setStats({
+          totalProducts: DEFAULT_CATALOG_PRODUCTS.length,
+          totalCategories: 1,
+          lowStockProducts: 0
+        })
       }
     } catch (err) {
       console.warn("⚠️ Error fetching products from database:", err.message)
-      setProducts([])
-      setStats({ totalProducts: 0, totalCategories: 0, lowStockProducts: 0 })
+      if (products.length === 0) {
+        setProducts(DEFAULT_CATALOG_PRODUCTS)
+        setStats({
+          totalProducts: DEFAULT_CATALOG_PRODUCTS.length,
+          totalCategories: 1,
+          lowStockProducts: 0
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -198,13 +287,13 @@ export function Products({ setView, requireAuth, user }) {
     toast?.show(`Added "${product.name}" to New Bill`, "success")
   }
 
-  // Buy Now - Open saved product_link directly in a new tab
+  // Buy Now - Open saved product_link directly in a new tab, or open Checkout Modal if no direct link
   const handleBuyNow = (product) => {
     if (!product) return
 
     const rawLink = product.product_link ? String(product.product_link).trim() : ""
     if (!rawLink) {
-      toast?.show("Product link is not available for this item.", "error")
+      handleOpenBuy(product)
       return
     }
 
@@ -213,13 +302,13 @@ export function Products({ setView, requireAuth, user }) {
       if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
         window.open(rawLink, "_blank", "noopener,noreferrer")
       } else {
-        toast?.show("Invalid product link URL.", "error")
+        window.open(`https://${rawLink}`, "_blank", "noopener,noreferrer")
       }
     } catch (_) {
       if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(rawLink)) {
         window.open(`https://${rawLink}`, "_blank", "noopener,noreferrer")
       } else {
-        toast?.show("Invalid product link URL.", "error")
+        handleOpenBuy(product)
       }
     }
   }
@@ -288,7 +377,7 @@ export function Products({ setView, requireAuth, user }) {
           address: buyerAddress.trim()
         },
         theme: {
-          color: "#0f172a"
+          color: "#0C1F41"
         },
         handler: function (response) {
           console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
@@ -355,17 +444,22 @@ export function Products({ setView, requireAuth, user }) {
     }
   }
 
-  const safeProducts = Array.isArray(products) ? products : []
+  const safeProducts = Array.isArray(products) && products.length > 0 ? products : DEFAULT_CATALOG_PRODUCTS
   const filteredProducts = safeProducts.filter(p => {
     const status = (p.status || 'active').toString().toLowerCase().trim()
     if (status === 'inactive') return false
 
-    const matchesSearch = search.trim() === "" ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.category && p.category.toLowerCase().includes(search.toLowerCase())) ||
-      (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
+    const name = (p.name || '').toLowerCase()
+    const cat = (p.category || '').toLowerCase()
+    const sku = (p.sku || '').toLowerCase()
+    const term = search.trim().toLowerCase()
 
-    const matchesCategory = selectedCategory === "all" || p.category === selectedCategory
+    const matchesSearch = term === "" ||
+      name.includes(term) ||
+      cat.includes(term) ||
+      sku.includes(term)
+
+    const matchesCategory = selectedCategory === "all" || cat === selectedCategory.toLowerCase()
     return matchesSearch && matchesCategory
   })
 
@@ -445,7 +539,7 @@ export function Products({ setView, requireAuth, user }) {
 
           {/* Product Grid */}
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#74788A' }}>
               <RefreshCw size={24} className="spin" style={{ margin: '0 auto 0.5rem' }} />
               <p>{t("products.loading", "Loading products catalog...")}</p>
             </div>
@@ -456,7 +550,7 @@ export function Products({ setView, requireAuth, user }) {
                   key={product.id}
                   className="product-card product-card-hover"
                 >
-                  <div>
+                  <div style={{ position: 'relative' }}>
                     {/* Product Image */}
                     {product.image ? (
                       <div className="product-image-box">
@@ -491,6 +585,23 @@ export function Products({ setView, requireAuth, user }) {
                       <span className="product-price-val">
                         ₹{formatNum(product.price)}
                       </span>
+                      <button
+                        onClick={() => handleBuyNow(product)}
+                        className="product-add-pill-btn"
+                        style={{
+                          background: '#FFF0E5',
+                          color: '#F66016',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '0.45rem 1.25rem',
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        Add
+                      </button>
                     </div>
                   </div>
 
@@ -568,15 +679,15 @@ export function Products({ setView, requireAuth, user }) {
       {/* Buy Product Checkout Modal */}
       {buyProduct && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(3px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #F7CDAB', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShoppingBag size={18} style={{ color: '#0ea5e9' }} />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                <ShoppingBag size={18} style={{ color: '#FB821B' }} />
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0C1F41', margin: 0 }}>
                   Buy Product / Hardware
                 </h3>
               </div>
-              <button onClick={() => setBuyProduct(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={() => setBuyProduct(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#74788A' }}>
                 <X size={20} />
               </button>
             </div>
@@ -586,12 +697,12 @@ export function Products({ setView, requireAuth, user }) {
                 <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
                   <CheckCircle2 size={32} />
                 </div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem 0' }}>Order Placed Successfully!</h3>
-                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 1rem 0' }}>
-                  Order ID: <strong style={{ color: '#0ea5e9' }}>#{orderPlaced.orderId}</strong>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0C1F41', margin: '0 0 0.25rem 0' }}>Order Placed Successfully!</h3>
+                <p style={{ fontSize: '0.85rem', color: '#74788A', margin: '0 0 1rem 0' }}>
+                  Order ID: <strong style={{ color: '#FB821B' }}>#{orderPlaced.orderId}</strong>
                 </p>
 
-                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.85rem', textAlign: 'left', fontSize: '0.8rem', color: '#334155', marginBottom: '1.25rem' }}>
+                <div style={{ background: '#FFF2DE', border: '1px solid #F7CDAB', borderRadius: '10px', padding: '0.85rem', textAlign: 'left', fontSize: '0.8rem', color: '#0C1F41', marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                     <span>Product:</span>
                     <strong>{orderPlaced.productName} (x{orderPlaced.quantity})</strong>
@@ -621,28 +732,28 @@ export function Products({ setView, requireAuth, user }) {
             ) : (
               <form onSubmit={handlePlaceOrder} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {/* Product Summary Box */}
-                <div style={{ display: 'flex', gap: '0.85rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.85rem', background: '#FFF2DE', border: '1px solid #F7CDAB', borderRadius: '10px', padding: '0.75rem', alignItems: 'center' }}>
                   {buyProduct.image ? (
-                    <img src={buyProduct.image} alt={buyProduct.name} style={{ width: '56px', height: '56px', objectFit: 'contain', background: '#fff', borderRadius: '6px', padding: '0.2rem', border: '1px solid #e2e8f0' }} />
+                    <img src={buyProduct.image} alt={buyProduct.name} style={{ width: '56px', height: '56px', objectFit: 'contain', background: '#fff', borderRadius: '6px', padding: '0.2rem', border: '1px solid #F7CDAB' }} />
                   ) : (
-                    <div style={{ width: '56px', height: '56px', background: '#e2e8f0', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                    <div style={{ width: '56px', height: '56px', background: '#F7CDAB', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#74788A' }}>
                       <Package size={24} />
                     </div>
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <b style={{ display: 'block', fontSize: '0.88rem', color: '#0f172a', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{buyProduct.name}</b>
-                    <small style={{ color: '#64748b', fontSize: '0.78rem' }}>₹{buyProduct.price} + {buyProduct.tax_rate || 18}% GST</small>
+                    <b style={{ display: 'block', fontSize: '0.88rem', color: '#0C1F41', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{buyProduct.name}</b>
+                    <small style={{ color: '#74788A', fontSize: '0.78rem' }}>₹{buyProduct.price} + {buyProduct.tax_rate || 18}% GST</small>
                   </div>
                 </div>
 
                 {/* Quantity Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '0.5rem 0.75rem', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>Quantity</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '0.5rem 0.75rem', border: '1px solid #F7CDAB', borderRadius: '8px' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0C1F41' }}>Quantity</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <button
                       type="button"
                       onClick={() => setBuyQty(Math.max(1, buyQty - 1))}
-                      style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f1f5f9', fontWeight: 700, cursor: 'pointer' }}
+                      style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #D9DDE4', background: '#FDF4EB', fontWeight: 700, cursor: 'pointer' }}
                     >
                       -
                     </button>
@@ -650,7 +761,7 @@ export function Products({ setView, requireAuth, user }) {
                     <button
                       type="button"
                       onClick={() => setBuyQty(buyQty + 1)}
-                      style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f1f5f9', fontWeight: 700, cursor: 'pointer' }}
+                      style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #D9DDE4', background: '#FDF4EB', fontWeight: 700, cursor: 'pointer' }}
                     >
                       +
                     </button>
@@ -659,36 +770,36 @@ export function Products({ setView, requireAuth, user }) {
 
                 {/* Buyer Details */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Your Full Name *</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Your Full Name *</label>
                   <input
                     type="text"
                     required
                     placeholder="Enter your name"
                     value={buyerName}
                     onChange={(e) => setBuyerName(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none' }}
                   />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Phone Number *</label>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Phone Number *</label>
                     <input
                       type="text"
                       required
                       placeholder="+91 98765 43210"
                       value={buyerPhone}
                       onChange={(e) => setBuyerPhone(e.target.value)}
-                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none' }}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none' }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Payment Mode</label>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Payment Mode</label>
                     <select
                       value={paymentMethod}
                       onChange={(e) => setPaymentMethod(e.target.value)}
-                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff', outline: 'none' }}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', background: '#fff', outline: 'none' }}
                     >
                       <option value="Razorpay">💳 Razorpay Online Gateway (UPI, Cards, NetBanking)</option>
                       <option value="UPI">📱 UPI Direct / GPay / PhonePe</option>
@@ -698,13 +809,13 @@ export function Products({ setView, requireAuth, user }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Delivery Address</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Delivery Address</label>
                   <textarea
                     rows="2"
                     placeholder="Enter shop address for shipping..."
                     value={buyerAddress}
                     onChange={(e) => setBuyerAddress(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', resize: 'vertical' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none', resize: 'vertical' }}
                   />
                 </div>
 
@@ -725,7 +836,7 @@ export function Products({ setView, requireAuth, user }) {
                   <button
                     type="button"
                     onClick={() => setBuyProduct(null)}
-                    style={{ flex: 1, padding: '0.55rem', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '0.55rem', border: '1px solid #D9DDE4', background: '#FFF2DE', color: '#575B6B', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Cancel
                   </button>
@@ -733,7 +844,7 @@ export function Products({ setView, requireAuth, user }) {
                     type="submit"
                     disabled={placingOrder}
                     className="primary-button"
-                    style={{ flex: 2, justifyContent: 'center', background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)' }}
+                    style={{ flex: 2, justifyContent: 'center', background: 'linear-gradient(135deg, #FB821B 0%, #F66016 100%)' }}
                   >
                     {placingOrder ? "Placing Order..." : "Place Order Now"}
                   </button>
@@ -747,32 +858,32 @@ export function Products({ setView, requireAuth, user }) {
       {/* Add / Edit Product Modal */}
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(3px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #F7CDAB', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0C1F41', margin: 0 }}>
                 {editingProduct ? "Edit Product" : "Add New Product"}
               </h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#74788A' }}>
                 <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Product Name *</label>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Product Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Bluetooth POS Receipt Printer"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.88rem', outline: 'none' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Price (₹) *</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Price (₹) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -780,16 +891,16 @@ export function Products({ setView, requireAuth, user }) {
                     placeholder="0.00"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.88rem', outline: 'none' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Category</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Category</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem', background: '#fff', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.88rem', background: '#fff', outline: 'none' }}
                   >
                     {categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -798,27 +909,27 @@ export function Products({ setView, requireAuth, user }) {
 
               {/* Image Input & Presets */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Product Image URL</label>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Product Image URL</label>
                 <input
                   type="text"
                   placeholder="/products/pos_printer.jpg or https://..."
                   value={image}
                   onChange={(e) => setImage(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', marginBottom: '0.35rem' }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none', marginBottom: '0.35rem' }}
                 />
                 <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                  <small style={{ fontSize: '0.7rem', color: '#64748b' }}>Quick presets:</small>
+                  <small style={{ fontSize: '0.7rem', color: '#74788A' }}>Quick presets:</small>
                   <button
                     type="button"
                     onClick={() => setImage("/products/pos_printer.jpg")}
-                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #D9DDE4', background: '#FDF4EB', cursor: 'pointer' }}
                   >
                     POS Printer
                   </button>
                   <button
                     type="button"
                     onClick={() => setImage("/products/paper_rolls.jpg")}
-                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#f1f5f9', cursor: 'pointer' }}
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #D9DDE4', background: '#FDF4EB', cursor: 'pointer' }}
                   >
                     Paper Rolls
                   </button>
@@ -827,47 +938,47 @@ export function Products({ setView, requireAuth, user }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.65rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>SKU Code</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>SKU Code</label>
                   <input
                     type="text"
                     placeholder="POS-101"
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.82rem', outline: 'none' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Product Link</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Product Link</label>
                   <input
                     type="url"
                     placeholder="https://example.com/product"
                     value={productLink}
                     onChange={(e) => setProductLink(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.82rem', outline: 'none' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Stock Units</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Stock Units</label>
                   <input
                     type="number"
                     placeholder="100"
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none' }}
+                    style={{ width: '100%', padding: '0.5rem 0.65rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.82rem', outline: 'none' }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.2rem' }}>Description</label>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Description</label>
                 <textarea
                   rows="2"
                   placeholder="Product specs or delivery details..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none', resize: 'vertical' }}
                 />
               </div>
 
@@ -875,7 +986,7 @@ export function Products({ setView, requireAuth, user }) {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  style={{ flex: 1, padding: '0.55rem', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#475569', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '0.55rem', border: '1px solid #D9DDE4', background: '#FFF2DE', color: '#575B6B', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>

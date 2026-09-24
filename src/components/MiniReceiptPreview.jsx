@@ -16,7 +16,7 @@ export function MiniReceiptPreview({ template }) {
   const p = String(template.preview || template.id || "").toLowerCase()
 
   // 1. MINIMAL CLEAN BILL
-  if (p === "minimal" || p === "2") {
+  if (p === "minimal" || p === "2" || name.includes("minimal")) {
     return (
       <div className="mini-receipt mini-receipt-minimal">
         <div className="mini-header-centered">
@@ -57,11 +57,11 @@ export function MiniReceiptPreview({ template }) {
   }
 
   // 2. CLASSIC RECEIPT
-  if (p === "classic" || p === "1") {
+  if (p === "classic" || p === "1" || name.includes("classic")) {
     return (
       <div className="mini-receipt mini-receipt-classic">
-        <div className="mini-header-classic">
-          <div className="mini-crest-badge" style={{ borderColor: template.color || "#0284c7" }}>
+        <div className="mini-header-classic" style={{ textAlign: "center", marginBottom: "0.12rem" }}>
+          <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#3B82F6", color: "#ffffff", fontWeight: 800, fontSize: "0.68rem", display: "inline-flex", alignItems: "center", justifyContent: "center", margin: "0 auto 0.1rem" }}>
             <span>S</span>
           </div>
           <span className="mini-shop">CLASSIC MART</span>
@@ -99,7 +99,7 @@ export function MiniReceiptPreview({ template }) {
   }
 
   // 3. SHOP PRO (RETAIL POS)
-  if (p === "pro" || p === "shop-pro" || p === "3") {
+  if (p === "pro" || p === "shop-pro" || p === "3" || name.includes("pro") || name.includes("retail")) {
     return (
       <div className="mini-receipt mini-receipt-pro">
         <div className="mini-pro-banner" style={{ background: template.gradient || "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)" }}>
@@ -231,7 +231,7 @@ export function MiniReceiptPreview({ template }) {
   return (
     <div className="mini-receipt">
       <div className="mini-header">
-        <span className="mini-logo" style={{ background: template.gradient || "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)" }}>S</span>
+        <span className="mini-logo" style={{ background: template.gradient || "linear-gradient(135deg, #FB821B 0%, #F66016 100%)" }}>S</span>
         <span className="mini-shop">{template.name || "Shop Name"}</span>
       </div>
       <div className="mini-divider" />

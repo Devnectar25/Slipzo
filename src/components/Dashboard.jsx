@@ -73,6 +73,14 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     }
   }
 
+  const fallbackBills = [
+    { id: "1", billNumber: "INV-001", dateStr: "17 Sep 2026", timeStr: "02:30 PM", amount: 1250, status: "Paid" },
+    { id: "2", billNumber: "INV-002", dateStr: "16 Sep 2026", timeStr: "11:20 AM", amount: 850, status: "Pending" },
+    { id: "3", billNumber: "INV-003", dateStr: "15 Sep 2026", timeStr: "05:45 PM", amount: 2400, status: "Paid" },
+    { id: "4", billNumber: "INV-004", dateStr: "14 Sep 2026", timeStr: "01:15 PM", amount: 1780, status: "Draft" },
+    { id: "5", billNumber: "INV-005", dateStr: "13 Sep 2026", timeStr: "10:10 AM", amount: 3200, status: "Overdue" }
+  ]
+
   useEffect(() => {
     loadRecentBills()
 

@@ -73,7 +73,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
         {/* Top Celebration Banner Accent */}
         <div
           style={{
-            background: "linear-gradient(135deg, #2563eb 0%, #0284c7 50%, #38bdf8 100%)",
+            background: "linear-gradient(135deg, #FB821B 0%, #F66016 50%, #FC9B3E 100%)",
             height: "8px",
             width: "100%"
           }}
@@ -86,13 +86,13 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
               width: "76px",
               height: "76px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
-              border: "2px solid #bfdbfe",
+              background: "linear-gradient(135deg, #FFF0E5 0%, #FFE6D2 100%)",
+              border: "2px solid #F7CDAB",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 1.25rem",
-              boxShadow: "0 8px 20px -4px rgba(37, 99, 235, 0.25)",
+              boxShadow: "0 8px 20px -4px rgba(246, 96, 22, 0.25)",
               fontSize: "2.4rem",
               userSelect: "none"
             }}
@@ -105,7 +105,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
             style={{
               fontSize: "1.5rem",
               fontWeight: "800",
-              color: "#0f172a",
+              color: "#0C1F41",
               margin: "0 0 0.5rem 0",
               letterSpacing: "-0.02em"
             }}
@@ -118,19 +118,19 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
             style={{
               fontSize: "0.92rem",
               lineHeight: "1.5",
-              color: "#64748b",
+              color: "#74788A",
               margin: "0 0 1.5rem 0"
             }}
           >
             Welcome to Slipzo! You've successfully completed your shop setup and menu items.
-            We've credited <strong style={{ color: "#0284c7" }}>10 free prints</strong> to your account so you can start creating bills right away.
+            We've credited <strong style={{ color: "#F66016" }}>10 free prints</strong> to your account so you can start creating bills right away.
           </p>
 
           {/* Reward Feature Highlight Box */}
           <div
             style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
+              background: "#FFF2DE",
+              border: "1px solid #F7CDAB",
               borderRadius: "14px",
               padding: "1rem 1.1rem",
               marginBottom: "1.5rem",
@@ -145,7 +145,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
                 justifyContent: "space-between",
                 paddingBottom: "0.75rem",
                 marginBottom: "0.75rem",
-                borderBottom: "1px dashed #cbd5e1"
+                borderBottom: "1px dashed #D9DDE4"
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -154,7 +154,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
                     width: "28px",
                     height: "28px",
                     borderRadius: "8px",
-                    background: "#0284c7",
+                    background: "#F66016",
                     color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
@@ -163,7 +163,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
                 >
                   <Printer size={16} />
                 </div>
-                <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "0.95rem" }}>
+                <span style={{ fontWeight: "700", color: "#111827", fontSize: "0.95rem" }}>
                   Available Balance
                 </span>
               </div>
@@ -186,15 +186,15 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
 
             {/* Micro perks */}
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#475569" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
                 <CheckCircle2 size={15} style={{ color: "#10b981", flexShrink: 0 }} />
                 <span>Create bills with your customized shop branding</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#475569" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
                 <CheckCircle2 size={15} style={{ color: "#10b981", flexShrink: 0 }} />
                 <span>Instant thermal print, PDF download & WhatsApp sharing</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#475569" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
                 <CheckCircle2 size={15} style={{ color: "#10b981", flexShrink: 0 }} />
                 <span>Real-time sales & analytics on your Overview dashboard</span>
               </div>
@@ -217,7 +217,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
               justifyContent: "center",
               gap: "0.6rem",
               cursor: "pointer",
-              boxShadow: "0 10px 20px -5px rgba(2, 132, 199, 0.35)",
+              boxShadow: "0 10px 20px -5px rgba(246, 96, 22, 0.35)",
               transition: "transform 0.15s ease, box-shadow 0.15s ease"
             }}
           >
@@ -243,7 +243,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
           }
           .reward-get-started-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 12px 24px -5px rgba(2, 132, 199, 0.45) !important;
+            box-shadow: 0 12px 24px -5px rgba(246, 96, 22, 0.45) !important;
           }
           .reward-get-started-btn:active {
             transform: translateY(1px);

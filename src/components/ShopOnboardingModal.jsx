@@ -535,8 +535,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
         {/* Modal Footer */}
         <div className="onboarding-footer">
-          <div className="required-info-badge" style={{ fontSize: "0.8rem", color: "#64748b", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <AlertCircle size={14} style={{ color: "#38bdf8" }} />
+          <div className="required-info-badge" style={{ fontSize: "0.8rem", color: "#74788A", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <AlertCircle size={14} style={{ color: "#FC9B3E" }} />
             <span>Complete shop profile is required to print receipts</span>
           </div>
           <button
@@ -624,7 +624,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           bottom: 0 !important;
           z-index: 30 !important;
           background: #ffffff !important;
-          border-top: 1px solid #e2e8f0 !important;
+          border-top: 1px solid #F7CDAB !important;
           box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05) !important;
         }
 
@@ -632,10 +632,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 0.35rem;
-          background: #f1f5f9;
+          background: #FDF4EB;
           padding: 0.3rem;
           border-radius: 10px;
-          border: 1px solid #cbd5e1;
+          border: 1px solid #D9DDE4;
         }
 
         .tax-btn {
@@ -644,7 +644,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           padding: 0.45rem 0.3rem;
           font-size: 0.78rem;
           font-weight: 600;
-          color: #475569;
+          color: #575B6B;
           border-radius: 7px;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -652,13 +652,13 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         }
 
         .tax-btn:hover {
-          color: #0f172a;
+          color: #0C1F41;
           background: rgba(255, 255, 255, 0.5);
         }
 
         .tax-btn.active {
           background: #ffffff;
-          color: #0284c7;
+          color: #F66016;
           box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.1);
           font-weight: 700;
         }

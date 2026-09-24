@@ -7,6 +7,7 @@ import { CardSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
 import { RealisticReceiptView } from "./RealisticReceiptView"
+import { VoiceInputButton } from "./common/VoiceInputButton"
 
 export const BUILTIN_TEMPLATES = [
   {
@@ -20,10 +21,10 @@ export const BUILTIN_TEMPLATES = [
     show_tax: true,
     tax_rate: 18,
     footer: "Thank you for shopping with us! Please come again.",
-    description: "Clean and professional receipt template with itemized table, GST breakdown, and clear totals.",
-    gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
-    accentColor: "#0284c7",
-    features: ["Shop header & GSTIN", "Itemized table (Qty, Rate, Total)", "Tax / GST calculation", "Payment mode & barcode"],
+    description: "Clean and professional receipt template with itemized table and clear totals.",
+    gradient: "linear-gradient(135deg, #FC9B3E 0%, #F66016 100%)",
+    accentColor: "#F66016",
+    features: ["Shop header & info", "Subtotal & grand totals", "Itemized table (Qty, Rate, Total)", "Payment mode & barcode"],
     previewData: {
       shopName: "CLASSIC MART & GROCERY",
       address: "Shop 14, Main Market, Connaught Place, New Delhi",
@@ -57,9 +58,10 @@ export const BUILTIN_TEMPLATES = [
     tax_rate: 0,
     footer: "Thank you for visiting! Please come again.",
     description: "Streamlined layout engineered to reduce paper roll consumption while maintaining crystal clear readability.",
-    gradient: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-    accentColor: "#0ea5e9",
-    features: ["Compact receipt layout", "Large legible totals", "Zero-waste spacing", "Thermal optimized"],
+    gradient: "linear-gradient(135deg, #FB821B 0%, #F66016 100%)",
+    accentColor: "#FB821B",
+    features: ["Compact receipt layout", "Zero-waste spacing", "Large legible totals", "Thermal optimized"],
+    is_default: true,
     previewData: {
       shopName: "MINIMAL CAFE & BAKERY",
       address: "MG Road, Indiranagar, Bengaluru",
@@ -162,8 +164,8 @@ export const BUILTIN_TEMPLATES = [
     tax_rate: 0,
     footer: "Thank you for your visit! Please come again.",
     description: "Contemporary aesthetic for boutiques, cafes, and modern shops with clean typography and spacing.",
-    gradient: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
-    accentColor: "#0ea5e9",
+    gradient: "linear-gradient(135deg, #FB821B 0%, #FA4406 100%)",
+    accentColor: "#FB821B",
     features: ["Modern typography", "Clean item list with rates", "Clear amount due card", "Custom footer note"],
     previewData: {
       shopName: "LUMINA BEAUTY & SPA",
@@ -197,8 +199,8 @@ export const BUILTIN_TEMPLATES = [
     tax_rate: 18,
     footer: "Thank you for your business. Terms & conditions apply.",
     description: "Formal tax invoice template designed for businesses requiring full GST details, itemized totals, and formal terms.",
-    gradient: "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)",
-    accentColor: "#0284c7",
+    gradient: "linear-gradient(135deg, #FC9B3E 0%, #FA4406 100%)",
+    accentColor: "#F66016",
     features: ["Formal Tax Invoice header", "GSTIN & seller details", "Itemized table with rates", "Tax breakdown & totals"],
     previewData: {
       shopName: "TECHNO COMPUTERS & PERIPHERALS",
@@ -326,12 +328,20 @@ export function Templates({ setView, user }) {
     const enrichedDbItems = dbItems.map(item => {
       const match = BUILTIN_TEMPLATES.find(b =>
         (b.name || "").toLowerCase() === (item.name || "").toLowerCase() ||
-        String(b.templateId) === String(item.id)
+        String(b.templateId) === String(item.id) ||
+        (item.name || "").toLowerCase().includes((b.name || "").toLowerCase()) ||
+        (b.name || "").toLowerCase().includes((item.name || "").toLowerCase())
       )
       if (match) {
         return {
           ...match,
           ...item,
+          preview: match.id,
+          badge: match.badge,
+          description: match.description,
+          features: match.features,
+          paperSize: match.paperSize,
+          previewData: match.previewData,
           is_builtin: false
         }
       }
@@ -340,8 +350,8 @@ export function Templates({ setView, user }) {
         badge: item.badge || "Custom",
         category: item.category || "Custom",
         paperSize: item.paperSize || `${item.width || "58mm"} Thermal`,
-        gradient: item.gradient || "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-        accentColor: item.accentColor || "#0ea5e9",
+        gradient: item.gradient || "linear-gradient(135deg, #FB821B 0%, #F66016 100%)",
+        accentColor: item.accentColor || "#FB821B",
         features: item.features || [
           `${item.width || "58mm"} thermal print layout`,
           item.show_tax ? `GST / Tax (${item.tax_rate || 18}%) calculation` : "Zero tax / simple billing",
@@ -538,7 +548,7 @@ export function Templates({ setView, user }) {
       {/* Search & Filter Controls */}
       <div className="templates-filter-bar">
         <div className="search-input-wrapper">
-          <Search size={16} className="search-icon" />
+          <Search size={18} className="search-icon" />
           <input
             data-testid="template-search-input"
             type="text"
@@ -547,10 +557,20 @@ export function Templates({ setView, user }) {
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
-          {search && (
+          {search ? (
             <button className="search-clear-btn" onClick={() => setSearch("")}>
               <X size={14} />
             </button>
+          ) : (
+            <div className="search-voice-wrap">
+              <VoiceInputButton
+                mode="raw"
+                variant="icon-only"
+                size="sm"
+                onSpeechResult={(text) => setSearch(text)}
+                className="search-voice-btn"
+              />
+            </div>
           )}
         </div>
 
@@ -588,8 +608,8 @@ export function Templates({ setView, user }) {
       ) : filteredTemplates.length > 0 ? (
         <div className="dashboard-templates-grid">
           {filteredTemplates.map((template) => {
-            const cardGradient = template.gradient || "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
-            const accentColor = template.accentColor || "#0ea5e9"
+            const cardGradient = template.gradient || "linear-gradient(135deg, #FB821B 0%, #F66016 100%)"
+            const accentColor = template.accentColor || "#FB821B"
             const features = Array.isArray(template.features) ? template.features : [
               `${template.width || "58mm"} thermal print layout`,
               template.show_tax ? `GST / Tax (${template.tax_rate || 18}%) calculation` : "Zero tax / simple layout",
@@ -616,29 +636,33 @@ export function Templates({ setView, user }) {
                       {template.is_default && (
                         <span className="default-pill-indicator">{t("templates.defaultBadge", "DEFAULT")}</span>
                       )}
-                      <span className="template-paper-tag">
-                        <Printer size={12} /> {template.paperSize || `${template.width || "58mm"} Thermal`}
-                      </span>
                     </div>
+                    <span className="template-paper-tag">
+                      <Printer size={13} /> {template.paperSize || `${template.width || "58mm"} Thermal`}
+                    </span>
                   </div>
 
                   <h3>{tDb(template.name)}</h3>
                   <p className="template-desc">{tDb(template.description || `Custom ${template.width || "58mm"} thermal receipt template.`)}</p>
                 </div>
 
-                {/* Live Mini Receipt Preview Box */}
+                {/* Live Mini Receipt Preview Box with decorative peach background */}
                 <div
                   className="template-receipt-preview"
                   onClick={() => setPreviewTemplate(template)}
                   title="Click to zoom realistic receipt"
                 >
+                  <div className="preview-bubble bubble-1" />
+                  <div className="preview-bubble bubble-2" />
+                  <div className="preview-bubble bubble-3" />
+                  <div className="preview-bubble bubble-4" />
                   <MiniReceiptPreview template={template} />
                   <div className="mock-receipt-view-overlay">
                     <span><Eye size={15} /> {t("templates.preview", "Click to preview receipt")}</span>
                   </div>
                 </div>
 
-                {/* Features list */}
+                {/* Features list (2x2 grid matching mobile design) */}
                 <div className="template-features-list">
                   {(Array.isArray(features) ? features : []).map((feat, idx) => (
                     <div className="template-feat-item" key={idx}>
@@ -648,13 +672,12 @@ export function Templates({ setView, user }) {
                   ))}
                 </div>
 
-                {/* Card Action Buttons */}
+                {/* Card Action Buttons - Matching Mobile Design */}
                 <div className="dashboard-template-actions">
                   <div className="actions-main-row">
                     <button
                       data-testid={`use-template-${template.id}-button`}
                       className="template-use-btn"
-                      style={{ background: cardGradient }}
                       onClick={() => {
                         sessionStorage.setItem("slipzo-template", template.templateId || template.id)
                         setView("bills")
@@ -663,11 +686,11 @@ export function Templates({ setView, user }) {
                       {t("templates.useTemplate", "Use template")} <ArrowRight size={15} />
                     </button>
                     <button
-                      className="template-preview-btn-icon"
+                      className="template-preview-btn-full"
                       onClick={() => setPreviewTemplate(template)}
                       title={t("templates.preview", "View Realistic Receipt")}
                     >
-                      <Eye size={16} />
+                      <Eye size={16} /> Preview
                     </button>
                   </div>
                 </div>
@@ -721,7 +744,7 @@ export function Templates({ setView, user }) {
             <div className="template-modal-footer">
               <button
                 className="modal-use-btn"
-                style={{ background: previewTemplate.gradient || "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)" }}
+                style={{ background: previewTemplate.gradient || "linear-gradient(135deg, #FB821B 0%, #F66016 100%)" }}
                 onClick={() => {
                   sessionStorage.setItem("slipzo-template", previewTemplate.templateId || previewTemplate.id)
                   setPreviewTemplate(null)
