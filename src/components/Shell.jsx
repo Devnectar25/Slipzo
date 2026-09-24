@@ -481,24 +481,23 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
            STATIC HEADER STYLES
            ============================================ */
         .shell-static-header {
-          position: sticky !important;
+          position: fixed !important;
           top: 0 !important;
-          left: 0 !important;
           right: 0 !important;
-          min-height: calc(56px + env(safe-area-inset-top, 0px)) !important;
-          height: auto !important;
+          height: calc(64px + env(safe-area-inset-top, 0px)) !important;
+          min-height: 64px !important;
           background: #ffffff !important;
           border-bottom: 1px solid #e2e8f0 !important;
           display: flex !important;
           align-items: center !important;
           justify-content: space-between !important;
-          padding-top: max(calc(env(safe-area-inset-top, 0px) + 6px), 12px) !important;
-          padding-bottom: 10px !important;
+          padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important;
+          padding-bottom: 6px !important;
           padding-left: 1.25rem !important;
           padding-right: 1.25rem !important;
-          z-index: 70 !important;
+          z-index: 850 !important;
           box-sizing: border-box !important;
-          width: 100% !important;
+          transition: left 0.3s ease, width 0.3s ease !important;
         }
 
         .shell-header-brand {
@@ -565,9 +564,20 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             display: flex !important;
           }
 
+          .app-shell:not(.desktop-collapsed) .shell-static-header {
+            left: 280px !important;
+            width: calc(100% - 280px) !important;
+          }
+
+          .app-shell.desktop-collapsed .shell-static-header {
+            left: 0 !important;
+            width: 100% !important;
+          }
+
           .app-shell .main {
             margin-left: 280px !important;
             padding: 0 !important;
+            padding-top: calc(64px + env(safe-area-inset-top, 0px)) !important;
             transition: margin-left 0.3s ease !important;
           }
 
@@ -601,7 +611,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           }
 
           .main-content-scroll {
-            padding: 1.25rem 2rem 2rem !important;
+            padding: 0.5rem 2rem 2rem !important;
           }
           
           .side-bottom {
@@ -616,19 +626,28 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           .app-shell .main {
             margin-left: 0 !important;
             padding: 0 !important;
+            padding-top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+            overflow-x: clip !important;
           }
 
           .shell-static-header {
-            padding-top: max(calc(env(safe-area-inset-top, 0px) + 28px), 32px) !important;
-            padding-bottom: 12px !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            height: calc(64px + env(safe-area-inset-top, 0px)) !important;
+            min-height: 64px !important;
+            padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important;
+            padding-bottom: 6px !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
-            min-height: calc(56px + max(env(safe-area-inset-top, 0px), 28px)) !important;
-            height: auto !important;
+            background: #ffffff !important;
+            z-index: 850 !important;
           }
 
           .main-content-scroll {
-            padding: 0.75rem 0.65rem calc(72px + env(safe-area-inset-bottom, 0px)) 0.65rem !important;
+            padding: 0.25rem 0.65rem calc(72px + env(safe-area-inset-bottom, 0px)) 0.65rem !important;
             margin-bottom: 0 !important;
           }
           

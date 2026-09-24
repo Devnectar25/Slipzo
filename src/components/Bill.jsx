@@ -674,27 +674,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           </div>
         </div>
 
-        <div className="nb-header-right">
-          <button
-            type="button"
-            className="nb-top-add-more-btn"
-            onClick={handleAddMoreItemsClick}
-            title={t("bills.addMoreItems", "Add More Items")}
-          >
-            <Plus size={15} />
-            <span>{t("bills.addMoreItems", "Add More Items")}</span>
-          </button>
-
-          <button
-            className="nb-top-print-btn"
-            onClick={handlePrintBill}
-            disabled={isSaving || items.length === 0}
-            title={t("bills.print", "Print")}
-          >
-            <Printer size={15} />
-            <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.print", "Print")}</span>
-          </button>
-        </div>
       </header>
 
       {/* ====================================================================
@@ -953,6 +932,16 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
             {/* RIGHT COLUMN: Bill Summary & Tip Card */}
             <div className="nb-right-col">
+              <button
+                type="button"
+                className="nb-add-more-items-summary-btn"
+                onClick={handleAddMoreItemsClick}
+                title={t("bills.addMoreItems", "Add More Items")}
+              >
+                <Plus size={16} />
+                <span>{t("bills.addMoreItems", "Add More Items")}</span>
+              </button>
+
               <div className="nb-summary-card">
                 <div className="nb-summary-header-row">
                   <div className="nb-summary-icon-box">
