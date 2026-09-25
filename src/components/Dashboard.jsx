@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from "react"
 import {
   Search,
-  SlidersHorizontal,
   FileText,
   Package,
   ShoppingCart,
@@ -269,26 +268,6 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
 
         .home-search-clear:hover {
           color: #0f172a;
-        }
-
-        .home-search-filter-badge {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 32px;
-          height: 32px;
-          border-radius: 9px;
-          background: #f0f9ff;
-          color: #0284c7;
-          border: 1px solid #bae6fd;
-          flex-shrink: 0;
-          cursor: pointer;
-          transition: background 0.15s, border-color 0.15s;
-        }
-
-        .home-search-filter-badge:hover {
-          background: #e0f2fe;
-          border-color: #7dd3fc;
         }
 
         /* Quick Action Cards Grid */
@@ -805,13 +784,6 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
             <X size={14} />
           </button>
         )}
-        <div
-          className="home-search-filter-badge"
-          title="Filter"
-          onClick={() => setView("history")}
-        >
-          <SlidersHorizontal size={14} />
-        </div>
       </div>
 
       {/* 2. SIX QUICK-ACTION CARDS */}

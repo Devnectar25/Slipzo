@@ -50,7 +50,6 @@ export function Shop({ user, setView } = {}) {
   const userKey = user?.email || user?.id
   const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
   const [hasUnsaved, setHasUnsaved] = useState(false)
-  const [previewPaperWidth, setPreviewPaperWidth] = useState("58mm")
 
   const logoInputRef = useRef(null)
   const shopNameInputRef = useRef(null)
@@ -218,6 +217,30 @@ export function Shop({ user, setView } = {}) {
     loadShop()
   }, [])
 
+  // Auto-scroll to App Settings section if redirected from language setting option
+  useEffect(() => {
+    const scrollToAppSettings = () => {
+      const el = document.getElementById("app-settings-section")
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        const selectEl = el.querySelector("select")
+        if (selectEl) {
+          selectEl.focus()
+        }
+      }
+    }
+
+    if (sessionStorage.getItem("slipzo_scroll_to") === "app-settings-section") {
+      sessionStorage.removeItem("slipzo_scroll_to")
+      setTimeout(scrollToAppSettings, 150)
+    }
+
+    window.addEventListener("slipzo-scroll-to-app-settings", scrollToAppSettings)
+    return () => {
+      window.removeEventListener("slipzo-scroll-to-app-settings", scrollToAppSettings)
+    }
+  }, [])
+
   const handleChange = (key, value) => {
     edited.current = true
     setHasUnsaved(true)
@@ -349,7 +372,7 @@ export function Shop({ user, setView } = {}) {
 
     return {
       ...matched,
-      width: previewPaperWidth || matched.width || "58mm",
+      width: matched.width || "58mm",
       previewData: {
         shopName: (shop.name || "HYDRABADI BIRYANI , CHOPDA").trim(),
         address: (shop.address || "Shop no:12 , Hated Road Parisar , Lasur").trim(),
@@ -370,7 +393,7 @@ export function Shop({ user, setView } = {}) {
         footer: matched.footer || "Thank you for shopping with us!"
       }
     }
-  }, [templates, shop.default_template_id, shop.name, shop.address, shop.phone, shop.gstin, liveInvoicePreview, receiptMath, previewPaperWidth])
+  }, [templates, shop.default_template_id, shop.name, shop.address, shop.phone, shop.gstin, liveInvoicePreview, receiptMath])
 
   if (!ready) {
     return (
@@ -792,14 +815,6 @@ export function Shop({ user, setView } = {}) {
               <div className="sp-live-badge">
                 <span className="sp-pulse-dot" /> {t("profile.livePreview", "Live Preview")}
               </div>
-              <select
-                value={previewPaperWidth}
-                onChange={(e) => setPreviewPaperWidth(e.target.value)}
-                className="sp-paper-dropdown"
-              >
-                <option value="58mm">{t("profile.thermal58", "58mm Thermal")}</option>
-                <option value="80mm">{t("profile.thermal80", "80mm Thermal")}</option>
-              </select>
             </div>
 
             <div className="sp-receipt-wrapper">
@@ -808,7 +823,7 @@ export function Shop({ user, setView } = {}) {
           </div>
 
           {/* Card 2: App Settings */}
-          <div className="sp-card">
+          <div className="sp-card" id="app-settings-section">
             <div className="sp-card-header">
               <div className="sp-icon-box blue">
                 <Settings size={18} />

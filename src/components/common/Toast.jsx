@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback } from "react"
-import { CheckCircle2, AlertCircle, Info, X } from "lucide-react"
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react"
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react"
 
 const ToastContext = createContext(null)
 
@@ -29,10 +29,22 @@ export function ToastProvider({ children }) {
 
   const success = useCallback((msg, duration) => showToast(msg, "success", duration), [showToast])
   const error = useCallback((msg, duration) => showToast(msg, "error", duration), [showToast])
+  const warning = useCallback((msg, duration) => showToast(msg, "warning", duration), [showToast])
   const info = useCallback((msg, duration) => showToast(msg, "info", duration), [showToast])
+  const show = useCallback((msg, type = "info", duration = 4000) => showToast(msg, type, duration), [showToast])
+
+  const contextValue = useMemo(() => ({
+    showToast,
+    show,
+    success,
+    error,
+    warning,
+    info,
+    removeToast
+  }), [showToast, show, success, error, warning, info, removeToast])
 
   return (
-    <ToastContext.Provider value={{ showToast, success, error, info, removeToast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <div className="toast-container" aria-live="polite">
         {toasts.map((toast) => (
@@ -43,6 +55,7 @@ export function ToastProvider({ children }) {
             <div className="toast-icon">
               {toast.type === "success" && <CheckCircle2 size={18} />}
               {toast.type === "error" && <AlertCircle size={18} />}
+              {toast.type === "warning" && <AlertTriangle size={18} />}
               {toast.type === "info" && <Info size={18} />}
             </div>
             <div className="toast-message">{toast.message}</div>
@@ -66,11 +79,14 @@ export function useToast() {
     // Fallback if rendered outside provider
     return {
       showToast: () => {},
+      show: () => {},
       success: (msg) => console.log("Success:", msg),
       error: (msg) => console.error("Error:", msg),
+      warning: (msg) => console.warn("Warning:", msg),
       info: (msg) => console.log("Info:", msg),
       removeToast: () => {}
     }
   }
   return context
 }
+

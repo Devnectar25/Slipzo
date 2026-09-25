@@ -18,7 +18,9 @@ import {
   Printer,
   Utensils,
   List,
-  Globe
+  Globe,
+  ShoppingCart,
+  Home
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
@@ -43,8 +45,9 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
 
   // Mobile bottom navigation items
   const mobileNavItems = [
-    { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard },
+    { id: "dashboard", label: t("nav.home", "Home"), icon: Home },
     { id: "bills", label: t("nav.newBill", "New Bill"), icon: PlusCircle },
+    { id: "menu", label: t("nav.menu", "Menu"), icon: List },
     { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
     { id: "history", label: t("nav.history", "History"), icon: History }
   ]
@@ -350,10 +353,14 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             </span>
           </div>
 
-          {/* User Language Status Pill - links to Shop Profile */}
+          {/* User Language Status Pill - links to Shop Profile App Settings */}
           <div
             data-testid="sidebar-language-status"
-            onClick={() => handleNavClick("shop")}
+            onClick={() => {
+              sessionStorage.setItem("slipzo_scroll_to", "app-settings-section")
+              handleNavClick("shop")
+              window.dispatchEvent(new CustomEvent("slipzo-scroll-to-app-settings"))
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -374,7 +381,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               <span>{currentLangObj.flag} {currentLangObj.nativeName}</span>
             </span>
             <span style={{ fontSize: '0.66rem', color: '#0284c7', fontWeight: 700 }}>
-              {t("common.edit", "Change")}
+              {t("common.edit", "Edit")}
             </span>
           </div>
 
@@ -757,13 +764,14 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             gap: 2px;
             background: transparent;
             border: none;
-            padding: 0.25rem 0.75rem;
+            padding: 0.25rem 0.35rem;
             color: #94a3b8;
             font-size: 0.6rem;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
-            min-width: 60px;
+            min-width: 0;
+            flex: 1;
             border-radius: 8px;
             position: relative;
             text-decoration: none;

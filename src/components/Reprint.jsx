@@ -133,7 +133,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
       id: matched.id,
       templateId: matched.templateId,
       name: bill.template_name || matched.name,
-      width: printFormat === "a4" ? "80mm" : (printFormat === "55mm" ? "58mm" : (printFormat || matched.width || "58mm")),
+      width: printFormat === "a4" ? "80mm" : (printFormat === "55mm" ? "55mm" : "80mm"),
       footer: bill.footer || matched.footer || "Thank you for shopping with us! Please come again.",
       previewData: {
         shopName: bill.shop_name || "Slipzo Mart",
@@ -147,9 +147,9 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         items: itemsList,
         subtotal: Number(bill.subtotal || 0),
         discount: Number(bill.discount || 0),
-        taxRate: Number(bill.tax_rate || 0),
-        tax: Number(bill.tax_amount || 0),
-        total: Number(bill.total || 0),
+        taxRate: 0,
+        tax: 0,
+        total: Number(bill.total || (Number(bill.subtotal || 0) - Number(bill.discount || 0))),
         payment: bill.payment_mode || "Cash",
         footer: bill.footer || matched.footer || "Thank you for shopping with us! Please come again."
       }
@@ -301,10 +301,20 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         </div>
       </div>
 
-      <div className="receipt-preview-panel" style={{ maxWidth: printFormat === "a4" ? "600px" : (printFormat === "80mm" ? "400px" : "320px"), margin: "0 auto", transition: "max-width 0.2s ease" }}>
-        <div className="preview-header" style={{ marginBottom: "0.75rem" }}>
+      <div className="reprint-preview-container" style={{ width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div className="preview-header" style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "8px",
+          width: printFormat === "a4" ? "600px" : (printFormat === "80mm" ? "80mm" : "55mm"),
+          maxWidth: "100%",
+          marginBottom: "0.75rem",
+          transition: "width 0.2s ease"
+        }}>
           <div className="preview-title-wrap">
-            <span className="preview-badge">
+            <span className="preview-badge" style={{ fontSize: "0.75rem", fontWeight: 700 }}>
               {templateForView?.name ? `${templateForView.name} • ` : ""}
               {printFormat === "a4" ? "A4 Sheet" : `${printFormat} Thermal`}
             </span>
@@ -338,7 +348,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         </div>
 
         {printFormat !== "a4" && (
-          <div style={{
+          <div className="preview-tip-box reprint-tip-box" style={{
             fontSize: "0.78rem",
             color: "#64748b",
             background: "#f8fafc",
@@ -349,25 +359,35 @@ export function Reprint({ billId, setView, requireAuth, user }) {
             display: "flex",
             alignItems: "center",
             gap: "0.4rem",
-            lineHeight: 1.35
+            lineHeight: 1.35,
+            width: printFormat === "80mm" ? "80mm" : "55mm",
+            maxWidth: "100%",
+            boxSizing: "border-box"
           }}>
             <span>💡</span>
             <span>
-              <strong>Tip:</strong> In Chrome Print dialog, select your POS thermal printer under <em>Destination</em>. Or click <strong>PDF</strong> above to save a zero-margin slip.
+              <strong>Tip:</strong> Select POS thermal printer or click <strong>PDF</strong> for exact-fit slip.
             </span>
           </div>
         )}
+
         <div 
           id="receipt-to-print" 
           className={`receipt-preview-content format-${printFormat}`}
           style={{
-            background: "transparent",
-            border: "none",
+            background: "#ffffff",
+            border: "1px solid #cbd5e1",
+            borderRadius: "4px",
+            boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04)",
             padding: 0,
-            boxShadow: "none",
-            width: "100%",
-            display: "flex",
-            justifyContent: "center"
+            width: printFormat === "a4" ? "100%" : (printFormat === "55mm" ? "55mm" : "80mm"),
+            maxWidth: printFormat === "a4" ? "600px" : (printFormat === "55mm" ? "55mm" : "80mm"),
+            minWidth: 0,
+            margin: "0 auto",
+            display: "block",
+            boxSizing: "border-box",
+            height: "auto",
+            overflow: "visible"
           }}
         >
           <RealisticReceiptView template={templateForView} />
@@ -420,15 +440,6 @@ export function Reprint({ billId, setView, requireAuth, user }) {
             white-space: nowrap !important;
           }
 
-          .reprint-page .receipt-preview-panel {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            padding: 1rem 0.75rem !important;
-            margin: 0 auto !important;
-            overflow: hidden !important;
-          }
-
           .reprint-page .preview-header {
             display: flex !important;
             flex-direction: row !important;
@@ -448,16 +459,27 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           }
 
           .reprint-page .receipt-preview-content {
-            max-width: 100% !important;
             box-sizing: border-box !important;
             word-break: break-word !important;
             overflow-wrap: break-word !important;
           }
 
-          .reprint-page .receipt-preview-content.format-80mm,
-          .reprint-page .receipt-preview-content.format-a4 {
+          .reprint-page .receipt-preview-content.format-55mm {
+            width: 55mm !important;
             max-width: 100% !important;
-            padding: 1rem 0.65rem !important;
+            padding: 0 !important;
+          }
+
+          .reprint-page .receipt-preview-content.format-80mm {
+            width: 80mm !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+          }
+
+          .reprint-page .receipt-preview-content.format-a4 {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
           }
         }
       `}</style>

@@ -15,6 +15,11 @@ export const isNativeApp = typeof window !== 'undefined' && (
   (window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port)
 )
 
+const isLocalhost = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+)
+
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (isNativeApp) {
     document.body?.classList?.add('is-native-app')
@@ -30,6 +35,16 @@ if (isNativeApp) {
   } else {
     // Default to the live Vercel production backend API connected to Supabase PostgreSQL database
     rawApi = 'https://slipzo-api.vercel.app/api'
+  }
+} else if (isLocalhost) {
+  // Running in local browser (localhost:3000) - use Vite proxy /api to communicate with backend on port 8000
+  if (!customApi || customApi.includes('vercel.app')) {
+    rawApi = '/api'
+    try {
+      if (customApi?.includes('vercel.app')) {
+        localStorage.removeItem('slipzo_custom_api_url')
+      }
+    } catch (e) {}
   }
 } else {
   // Running in web browser

@@ -47,8 +47,8 @@ export function RealisticReceiptView({ template }) {
     ],
     subtotal: 435,
     discount: 0,
-    tax: 78.3,
-    total: 513.3,
+    tax: 0,
+    total: 435,
     payment: "Cash",
     footer: template.footer || "Thank you for shopping with us! Please come again."
   }
@@ -117,12 +117,6 @@ export function RealisticReceiptView({ template }) {
               <div className="receipt-total-row discount" style={{ display: "flex", justifyContent: "space-between", padding: "0.12rem 0", color: "#dc2626", fontSize: "0.82rem", fontWeight: 700 }}>
                 <span>{lbl("Discount", "सवलत", "छूट")}</span>
                 <span>-{money(data.discount)}</span>
-              </div>
-            )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 600, padding: "0.12rem 0", color: "#0f172a" }}>
-                <span>{lbl("Tax / GST", "कर / जीएसटी", "टैक्स / जीएसटी")}</span>
-                <span>{money(data.tax)}</span>
               </div>
             )}
             <div className="minimal-total-hero" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px solid #0f172a", marginTop: "0.35rem", paddingTop: "0.35rem", fontWeight: 900, fontSize: "1.08rem", color: "#0f172a" }}>
@@ -223,22 +217,6 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
-            {data.tax > 0 && (
-              <div className="classic-gst-box" style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", padding: "0.3rem 0.45rem", margin: "0.25rem 0" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.08rem 0", fontWeight: 700 }}>
-                  <span>{lbl("Taxable Subtotal", "करपात्र उप-एकूण", "कर योग्य उप-योग")}</span>
-                  <span>{money(data.subtotal)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.08rem 0", color: "#334155" }}>
-                  <span>{lbl("CGST (9%)", `सीजीएसटी (${formatNum(9)}%)`, `सीजीएसटी (${formatNum(9)}%)`)}</span>
-                  <span>{money(data.tax / 2)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0.08rem 0", color: "#334155" }}>
-                  <span>{lbl("SGST (9%)", `एसजीएसटी (${formatNum(9)}%)`, `एसजीएसटी (${formatNum(9)}%)`)}</span>
-                  <span>{money(data.tax / 2)}</span>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Grand Total Banner */}
@@ -329,12 +307,6 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.12rem 0", color: "#0f172a" }}>
-                <span>{lbl("GST", "जीएसटी", "जीएसटी")} ({formatNum(template.tax_rate || 18)}%)</span>
-                <span>{money(data.tax)}</span>
-              </div>
-            )}
             <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "2.5px solid #2563eb", color: "#1d4ed8", padding: "0.4rem 0", fontWeight: 900, fontSize: "1.08rem", marginTop: "0.25rem" }}>
               <span>{lbl("NET PAYABLE", "निव्वळ देय", "शुद्ध देय राशि")}</span>
               <span>{money(data.total)}</span>
@@ -416,12 +388,6 @@ export function RealisticReceiptView({ template }) {
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0.08rem 0", color: "#dc2626", fontWeight: 800 }}>
                 <span>{lbl("DISCOUNT:", "सवलत:", "छूट:")}</span>
                 <span>-{money(data.discount)}</span>
-              </div>
-            )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.08rem 0" }}>
-                <span>{lbl("TAX:", "कर:", "टैक्स:")}</span>
-                <span>{money(data.tax)}</span>
               </div>
             )}
           </div>
@@ -517,12 +483,6 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.1rem 0", color: "#0f172a" }}>
-                <span>{lbl("GST", "जीएसटी", "जीएसटी")} ({formatNum(template.tax_rate || 18)}%)</span>
-                <span>{money(data.tax)}</span>
-              </div>
-            )}
             <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #0f172a", marginTop: "0.35rem", paddingTop: "0.35rem", fontWeight: 900, fontSize: "1.08rem", color: "#0f172a" }}>
               <span>{lbl("TOTAL AMOUNT", "एकूण रक्कम", "कुल राशि")}</span>
               <span>{money(data.total)}</span>
@@ -608,28 +568,6 @@ export function RealisticReceiptView({ template }) {
             ))}
           </div>
 
-          {/* Tax Analysis Table (Only if tax > 0) */}
-          {data.tax > 0 && (
-            <table className="elite-tax-analysis-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem", margin: "0.4rem 0", border: "1px solid #cbd5e1" }}>
-              <thead>
-                <tr style={{ background: "#f1f5f9" }}>
-                  <th style={{ padding: "0.25rem", border: "1px solid #cbd5e1", textAlign: "left", fontWeight: 800, color: "#0f172a" }}>{lbl("Taxable Amt", "करपात्र रक्कम", "कर योग्य राशि")}</th>
-                  <th style={{ padding: "0.25rem", border: "1px solid #cbd5e1", textAlign: "right", fontWeight: 800, color: "#0f172a" }}>{lbl("CGST (9%)", `सीजीएसटी (${formatNum(9)}%)`, `सीजीएसटी (${formatNum(9)}%)`)}</th>
-                  <th style={{ padding: "0.25rem", border: "1px solid #cbd5e1", textAlign: "right", fontWeight: 800, color: "#0f172a" }}>{lbl("SGST (9%)", `एसजीएसटी (${formatNum(9)}%)`, `एसजीएसटी (${formatNum(9)}%)`)}</th>
-                  <th style={{ padding: "0.25rem", border: "1px solid #cbd5e1", textAlign: "right", fontWeight: 800, color: "#0f172a" }}>{lbl("Total Tax", "एकूण कर", "कुल टैक्स")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr style={{ fontWeight: 600, color: "#0f172a" }}>
-                  <td style={{ padding: "0.25rem", border: "1px solid #e2e8f0" }}>{money(data.subtotal)}</td>
-                  <td style={{ padding: "0.25rem", border: "1px solid #e2e8f0", textAlign: "right" }}>{money(data.tax / 2)}</td>
-                  <td style={{ padding: "0.25rem", border: "1px solid #e2e8f0", textAlign: "right" }}>{money(data.tax / 2)}</td>
-                  <td style={{ padding: "0.25rem", border: "1px solid #e2e8f0", textAlign: "right", fontWeight: 800 }}>{money(data.tax)}</td>
-                </tr>
-              </tbody>
-            </table>
-          )}
-
           {/* Totals */}
           <div className="receipt-totals" style={{ fontSize: "0.82rem", fontWeight: 600, margin: "0.4rem 0", color: "#0f172a" }}>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "0.12rem 0" }}>
@@ -640,12 +578,6 @@ export function RealisticReceiptView({ template }) {
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0.12rem 0", color: "#dc2626", fontWeight: 800 }}>
                 <span>{lbl("Discount", "सवलत", "छूट")}</span>
                 <span>-{money(data.discount)}</span>
-              </div>
-            )}
-            {data.tax > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "0.12rem 0", color: "#0f172a" }}>
-                <span>{lbl("GST Output", "जीएसटी आउटपुट", "जीएसटी आउटपुट")}</span>
-                <span>{money(data.tax)}</span>
               </div>
             )}
             <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "2.5px solid #0284c7", color: "#0284c7", padding: "0.4rem 0", fontWeight: 900, fontSize: "1.08rem", marginTop: "0.25rem" }}>

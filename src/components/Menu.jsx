@@ -591,7 +591,7 @@ export function Menu({ setView, requireAuth, user }) {
                         key={catItem.id}
                         className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
                       >
-                        <div className="user-menu-card-left">
+                        <div className="menu-card-image-box">
                           {catItem.image_url ? (
                             <img
                               src={catItem.image_url}
@@ -603,18 +603,18 @@ export function Menu({ setView, requireAuth, user }) {
                             />
                           ) : (
                             <div className="menu-card-image-placeholder">
-                              <Utensils size={20} />
+                              <Utensils size={22} />
                             </div>
                           )}
+                          <span className="menu-card-cat-badge">{catItem.category || "General"}</span>
+                        </div>
 
-                          <div className="menu-card-details">
-                            <h4 className="menu-card-item-name" title={catItem.name}>
-                              {catItem.name}
-                            </h4>
-                            <span className="menu-card-cat-badge">{catItem.category || "General"}</span>
-                            <div className="menu-card-price-row">
-                              <span className="catalog-card-base-price">{money(catItem.price)}</span>
-                            </div>
+                        <div className="menu-card-details">
+                          <h4 className="menu-card-item-name" title={catItem.name}>
+                            {catItem.name}
+                          </h4>
+                          <div className="menu-card-price-row">
+                            <span className="catalog-card-base-price">{money(catItem.price)}</span>
                           </div>
                         </div>
 
@@ -725,7 +725,7 @@ export function Menu({ setView, requireAuth, user }) {
                   const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
                   return (
                     <div key={item.id} className="user-menu-card">
-                      <div className="user-menu-card-left">
+                      <div className="menu-card-image-box">
                         {item.image_url ? (
                           <img
                             src={item.image_url}
@@ -737,33 +737,34 @@ export function Menu({ setView, requireAuth, user }) {
                           />
                         ) : (
                           <div className="menu-card-image-placeholder">
-                            <Utensils size={20} />
+                            <Utensils size={22} />
                           </div>
                         )}
+                        <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
+                        {isItemActive && (
+                          <span className="menu-card-status-pill">
+                            <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
+                          </span>
+                        )}
+                      </div>
 
-                        <div className="menu-card-details">
-                          <h4 className="menu-card-item-name" title={item.name}>
-                            {tDb(item.name)}
-                          </h4>
-                          <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
-                          <div className="menu-card-price-row">
-                            <span className="menu-card-selling-price">{money(item.price)}</span>
-                            {isItemActive && (
-                              <span className="menu-card-status-pill">
-                                <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
-                              </span>
-                            )}
-                          </div>
+                      <div className="menu-card-details">
+                        <h4 className="menu-card-item-name" title={item.name}>
+                          {tDb(item.name)}
+                        </h4>
+                        <div className="menu-card-price-row">
+                          <span className="menu-card-selling-price">{money(item.price)}</span>
                         </div>
                       </div>
 
-                      <div className="user-menu-card-actions">
+                      <div className="user-menu-card-actions user-card-bottom-actions">
                         <button
-                          className="menu-action-icon-btn"
+                          className="menu-action-icon-btn edit-btn"
                           onClick={() => handleOpenEditModal(item)}
                           title={t("menu.editPrice", "Edit selling price")}
                         >
-                          <Edit2 size={15} />
+                          <Edit2 size={14} />
+                          <span className="btn-label">{t("common.edit", "Edit")}</span>
                         </button>
                         <button
                           className="menu-action-icon-btn delete-btn"
@@ -771,7 +772,7 @@ export function Menu({ setView, requireAuth, user }) {
                           disabled={deletingId === item.id}
                           title={t("menu.removeMenu", "Remove from My Menu")}
                         >
-                          <Trash2 size={15} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </div>
@@ -880,7 +881,7 @@ export function Menu({ setView, requireAuth, user }) {
                     key={catItem.id}
                     className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
                   >
-                    <div className="user-menu-card-left">
+                    <div className="menu-card-image-box">
                       {catItem.image_url ? (
                         <img
                           src={catItem.image_url}
@@ -892,18 +893,18 @@ export function Menu({ setView, requireAuth, user }) {
                         />
                       ) : (
                         <div className="menu-card-image-placeholder">
-                          <Utensils size={20} />
+                          <Utensils size={22} />
                         </div>
                       )}
+                      <span className="menu-card-cat-badge">{tDb(catItem.category || "General")}</span>
+                    </div>
 
-                      <div className="menu-card-details">
-                        <h4 className="menu-card-item-name" title={catItem.name}>
-                          {tDb(catItem.name)}
-                        </h4>
-                        <span className="menu-card-cat-badge">{tDb(catItem.category || "General")}</span>
-                        <div className="menu-card-price-row">
-                          <span className="catalog-card-base-price">{money(catItem.price)}</span>
-                        </div>
+                    <div className="menu-card-details">
+                      <h4 className="menu-card-item-name" title={catItem.name}>
+                        {tDb(catItem.name)}
+                      </h4>
+                      <div className="menu-card-price-row">
+                        <span className="catalog-card-base-price">{money(catItem.price)}</span>
                       </div>
                     </div>
 

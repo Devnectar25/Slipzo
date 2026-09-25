@@ -45,6 +45,7 @@
   header,
   nav,
   footer,
+  .mobile-bottom-nav,
   .public-nav,
   .public-footer,
   .side-brand,
@@ -53,6 +54,9 @@
   .bill-editor-panel,
   .preview-header,
   .preview-actions,
+  .preview-tip-box,
+  .reprint-tip-box,
+  .print-format-toggle-group,
   .mobile-view-tabs,
   .mobile-sticky-action-bar,
   .sidebar-backdrop,
@@ -80,7 +84,7 @@
     overflow: hidden !important;
   }
 
-  /* Receipt container to print: 100% edge to edge of the selected paper roll */
+  /* Receipt container to print: Respects selected paper roll format */
   #receipt-to-print,
   .receipt-preview-content,
   .realistic-thermal-receipt {
@@ -95,8 +99,6 @@
     border-radius: 0 !important;
     font-size: 13px !important;
     line-height: 1.4 !important;
-    width: 100% !important;
-    max-width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
     box-sizing: border-box !important;
@@ -105,8 +107,29 @@
     print-color-adjust: exact !important;
   }
 
+  #receipt-to-print.format-55mm,
+  .receipt-preview-content.format-55mm,
+  .format-55mm #receipt-to-print {
+    width: 55mm !important;
+    max-width: 55mm !important;
+  }
+
+  #receipt-to-print.format-80mm,
+  .receipt-preview-content.format-80mm,
+  .format-80mm #receipt-to-print {
+    width: 80mm !important;
+    max-width: 80mm !important;
+  }
+
+  #receipt-to-print.format-a4,
+  .receipt-preview-content.format-a4,
+  .format-a4 #receipt-to-print {
+    width: 100% !important;
+    max-width: 210mm !important;
+  }
+
   .realistic-thermal-receipt .receipt-content {
-    padding: 2.5mm 2mm 8mm 2mm !important;
+    padding: 2.5mm 2mm 6mm 2mm !important;
     margin: 0 !important;
     width: 100% !important;
     box-sizing: border-box !important;

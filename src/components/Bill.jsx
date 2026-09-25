@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
 import { BUILTIN_TEMPLATES } from "./Templates"
+import { RealisticReceiptView } from "./RealisticReceiptView"
 import Swal from "sweetalert2"
 import {
   Plus,
@@ -268,16 +269,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     return "classic"
   }, [activeTemplate])
 
-  // Tax and totals calculation
-  const shopTaxMode = useMemo(() => {
-    if (!shop || shop.show_tax === undefined || shop.show_tax === null) return 2
-    if (shop.show_tax === false || shop.show_tax === 0 || shop.show_tax === "0") return 0
-    if (shop.show_tax === true) return 2
-    return Number(shop.show_tax)
-  }, [shop])
-
-  const isTaxEnabled = shopTaxMode !== 0
-  const taxRate = Number(tax) || 0
+  // Totals calculation
 
   const subtotal = useMemo(() => {
     return items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0)
@@ -289,16 +281,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     return Math.min(val, subtotal)
   }, [discount, subtotal])
 
-  const taxableAmount = Math.max(0, subtotal - discountAmount)
-
-  const taxAmount = useMemo(() => {
-    if (!isTaxEnabled || taxRate <= 0) return 0
-    return (taxableAmount * taxRate) / 100
-  }, [taxableAmount, isTaxEnabled, taxRate])
-
   const total = useMemo(() => {
-    return Math.max(0, taxableAmount + taxAmount)
-  }, [taxableAmount, taxAmount])
+    return Math.max(0, subtotal - discountAmount)
+  }, [subtotal, discountAmount])
 
   // Total quantity of items in current bill
   const totalItemsInBill = useMemo(() => {
@@ -464,9 +449,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         })),
         subtotal: subtotal,
         discount: discountAmount,
-        tax_rate: taxRate,
-        tax_mode: shopTaxMode,
-        tax_amount: taxAmount,
+        tax_rate: 0,
+        tax_mode: 0,
+        tax_amount: 0,
         total: total,
         payment_mode: payment,
         number: customBillNumber || ""
@@ -537,9 +522,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         })),
         subtotal: subtotal,
         discount: discountAmount,
-        tax_rate: taxRate,
-        tax_mode: shopTaxMode,
-        tax_amount: taxAmount,
+        tax_rate: 0,
+        tax_mode: 0,
+        tax_amount: 0,
         total: total,
         payment_mode: payment,
         number: customBillNumber || ""
@@ -649,6 +634,60 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     hour: "2-digit",
     minute: "2-digit"
   })
+
+  // Dynamically resolve receipt data for RealisticReceiptView
+  const templateForPrint = useMemo(() => {
+    const list = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
+    const matched = findTemplateMatch(list, selectedId) || list.find(t => t.is_default) || list[0] || BUILTIN_TEMPLATES[0]
+
+    const itemsList = items.map((it) => {
+      const qty = Number(it.quantity !== undefined ? it.quantity : (it.qty !== undefined ? it.qty : 1))
+      const rate = Number(it.rate !== undefined ? it.rate : (it.price !== undefined ? it.price : 0))
+      return {
+        name: it.name || "Item",
+        qty,
+        rate,
+        total: Number(it.total !== undefined ? it.total : (qty * rate))
+      }
+    })
+
+    const formattedDate = new Date().toLocaleDateString(lang === "mr" ? "mr-IN" : lang === "hi" ? "hi-IN" : "en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    })
+
+    const templateWidth = activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.printer_width === "58mm" || shop?.printer_width === "55mm" ? "55mm" : "80mm"))
+
+    return {
+      ...matched,
+      id: matched.id,
+      templateId: matched.templateId,
+      name: matched.name,
+      width: templateWidth === "55mm" || templateWidth === "58mm" ? "55mm" : (templateWidth === "A4" ? "A4" : "80mm"),
+      footer: activeTemplate?.footer || shop?.receipt_footer || "Thank you for shopping with us! Please come again.",
+      previewData: {
+        shopName: shop?.name || "Shop Receipt",
+        address: shop?.address || "",
+        phone: shop?.phone || "",
+        gst: shop?.gstin || shop?.gst || "",
+        customerName: "",
+        customerPhone: "",
+        invoiceNo: customBillNumber,
+        date: formattedDate,
+        items: itemsList,
+        subtotal: Number(subtotal || 0),
+        discount: Number(discountAmount || 0),
+        taxRate: 0,
+        tax: 0,
+        total: Number(total || 0),
+        payment: payment || "Cash",
+        footer: activeTemplate?.footer || shop?.receipt_footer || "Thank you for shopping with us! Please come again."
+      }
+    }
+  }, [templates, selectedId, activeTemplate, items, shop, customBillNumber, subtotal, discountAmount, total, payment, lang])
 
   return (
     <div className="new-bill-flow-container fade-in">
@@ -959,13 +998,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       <span className="nb-summary-val">-{money(discountAmount)}</span>
                     </div>
                   )}
-
-                  {isTaxEnabled && taxRate > 0 && (
-                    <div className="nb-summary-row">
-                      <span className="nb-summary-label">{t("common.tax", "GST")} ({formatNum(taxRate)}%)</span>
-                      <span className="nb-summary-val">{money(taxAmount)}</span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="nb-summary-divider" />
@@ -1127,100 +1159,21 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
       {/* ====================================================================
           RECEIPT PRINT DOM CONTAINER (#receipt-to-print)
-          Always rendered clean with the user's selected Shop Profile template
-          so printReceiptElement can print the full receipt without popups!
+          Uses the single source of truth: RealisticReceiptView!
           ==================================================================== */}
       <div style={{ position: "absolute", left: "-9999px", top: "-9999px", opacity: 0, pointerEvents: "none" }}>
-        {(() => {
-          const isNarrow = activeTemplate?.width === "58mm" || activeTemplate?.width === "55mm" || shop?.printer_width === "58mm" || shop?.printer_width === "55mm"
-          const baseSize = isNarrow ? "13.5px" : "15px"
-          const shopNameSize = isNarrow ? "20px" : "23px"
-          const totalSize = isNarrow ? "18px" : "21px"
-          const footerSize = isNarrow ? "12.5px" : "13.5px"
-          return (
-            <div
-              id="receipt-to-print"
-              className={`receipt-preview-inner ${isNarrow ? "width-58mm format-58mm" : "width-80mm format-80mm"}`}
-              style={{
-                width: isNarrow ? "58mm" : "80mm",
-                background: "#ffffff",
-                padding: isNarrow ? "6px" : "10px",
-                fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, monospace",
-                color: "#000000",
-                fontSize: baseSize,
-                lineHeight: 1.45
-              }}
-            >
-              <div style={{ textAlign: "center", marginBottom: "8px" }}>
-                <h2 style={{ fontSize: shopNameSize, fontWeight: "900", margin: "0 0 2px", color: "#000000" }}>
-                  {shop?.name || "Shop Receipt"}
-                </h2>
-                {shop?.address && <div style={{ fontSize: baseSize, fontWeight: "600", color: "#000000" }}>{shop.address}</div>}
-                {shop?.phone && <div style={{ fontSize: baseSize, fontWeight: "600", color: "#000000" }}>Tel: {shop.phone}</div>}
-                {shop?.gstin && <div style={{ fontSize: baseSize, fontWeight: "600", color: "#000000" }}>GSTIN: {shop.gstin}</div>}
-              </div>
-
-              <div style={{ borderTop: "1.5px dashed #000", borderBottom: "1.5px dashed #000", padding: "5px 0", fontSize: baseSize, fontWeight: "700", margin: "5px 0", display: "flex", justifyContent: "space-between" }}>
-                <span>{tDb("Invoice")}: #{formatNum(customBillNumber)}</span>
-                <span>{formatNum(formattedDate)} {formatNum(formattedTime)}</span>
-              </div>
-
-              <div style={{ margin: "6px 0" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: baseSize }}>
-                  <thead>
-                    <tr style={{ borderBottom: "1.5px solid #000" }}>
-                      <th style={{ textAlign: "left", paddingBottom: "4px", fontWeight: "900" }}>{t("bills.colItemName", "Item")}</th>
-                      <th style={{ textAlign: "center", paddingBottom: "4px", fontWeight: "900" }}>{t("bills.qty", "Qty")}</th>
-                      <th style={{ textAlign: "right", paddingBottom: "4px", fontWeight: "900" }}>{t("bills.rate", "Rate")}</th>
-                      <th style={{ textAlign: "right", paddingBottom: "4px", fontWeight: "900" }}>{t("bills.amt", "Amt")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, idx) => (
-                      <tr key={idx} style={{ fontWeight: "700" }}>
-                        <td style={{ padding: "3px 0", wordBreak: "break-word" }}>{tDb(item.name)}</td>
-                        <td style={{ textAlign: "center", padding: "3px 0" }}>{formatNum(item.quantity)}</td>
-                        <td style={{ textAlign: "right", padding: "3px 0" }}>{money(item.rate)}</td>
-                        <td style={{ textAlign: "right", padding: "3px 0" }}>{money(item.quantity * item.rate)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ borderTop: "1.5px dashed #000", paddingTop: "5px", fontSize: baseSize }}>
-                <div style={{ display: "flex", justifyContent: "space-between", margin: "3px 0", fontWeight: "600" }}>
-                  <span>{t("common.subtotal", "Subtotal")}:</span>
-                  <span>{money(subtotal)}</span>
-                </div>
-                {discountAmount > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", margin: "3px 0", fontWeight: "600" }}>
-                    <span>{t("common.discount", "Discount")}:</span>
-                    <span>-{money(discountAmount)}</span>
-                  </div>
-                )}
-                {isTaxEnabled && taxRate > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", margin: "3px 0", fontWeight: "600" }}>
-                    <span>{t("common.tax", "GST")} ({formatNum(taxRate)}%):</span>
-                    <span>{money(taxAmount)}</span>
-                  </div>
-                )}
-                <div style={{ display: "flex", justifyContent: "space-between", margin: "5px 0 3px", fontWeight: "900", fontSize: totalSize, borderTop: "2px solid #000", paddingTop: "5px" }}>
-                  <span>{t("bills.totalAmount", "Total")}:</span>
-                  <span>{money(total)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: baseSize, margin: "3px 0", fontWeight: "700" }}>
-                  <span>{t("bills.paymentMode", "Payment Mode")}:</span>
-                  <span>{tDb(payment)}</span>
-                </div>
-              </div>
-
-              <div style={{ textAlign: "center", fontSize: footerSize, fontWeight: "600", marginTop: "10px", borderTop: "1.5px dashed #000", paddingTop: "5px", lineHeight: 1.4 }}>
-                {activeTemplate?.footer || shop?.receipt_footer || "Thank you for shopping with us!"}
-              </div>
-            </div>
-          )
-        })()}
+        <div 
+          id="receipt-to-print" 
+          className={`receipt-preview-content format-${templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "a4" : "80mm")}`}
+          style={{
+            background: "#ffffff",
+            width: templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "100%" : "80mm"),
+            maxWidth: templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "600px" : "80mm"),
+            margin: "0 auto"
+          }}
+        >
+          <RealisticReceiptView template={templateForPrint} />
+        </div>
       </div>
     </div>
   )
