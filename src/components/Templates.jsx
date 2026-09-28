@@ -1,5 +1,9 @@
 import { useEffect, useState, useMemo } from "react"
-import { Plus, Receipt, Copy, Trash2, ArrowRight, Search, X, Edit, SlidersHorizontal, Check, Sparkles, Printer, Eye, LayoutTemplate } from "lucide-react"
+import { 
+  Plus, Receipt, Copy, Trash2, ArrowRight, Search, X, Edit, 
+  SlidersHorizontal, Check, Sparkles, Printer, Eye, LayoutTemplate,
+  Crown, Wand2, FileText, Layers, Tag
+} from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
@@ -14,34 +18,20 @@ export const BUILTIN_TEMPLATES = [
     templateId: "1",
     name: "Classic Receipt",
     category: "Standard",
-    badge: "Standard",
+    badge: "STANDARD",
+    badgeClass: "badge-standard-blue",
     width: "58mm",
     paperSize: "58mm Thermal",
-    show_tax: false,
-    tax_rate: 0,
-    footer: "Thank you for shopping with us! Please come again.",
-    description: "Clean and professional receipt template with itemized table, discounts, and clear totals.",
-    gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
+    topBarColor: "#0284c7",
     accentColor: "#0284c7",
-    features: ["Shop header & contact", "Itemized table (Qty, Rate, Total)", "Payment mode & barcode", "Custom footer note"],
-    previewData: {
-      shopName: "CLASSIC MART & GROCERY",
-      address: "Shop 14, Main Market, Connaught Place, New Delhi",
-      phone: "+91 11 2341 5678",
-      gst: "",
-      invoiceNo: "CM-2026-8821",
-      date: "09 Mar 2026, 01:15 PM",
-      items: [
-        { name: "Basmati Rice 1kg", qty: 2, rate: 120, total: 240 },
-        { name: "Refined Sunflower Oil 1L", qty: 1, rate: 195, total: 195 }
-      ],
-      subtotal: 435,
-      tax: 0,
-      discount: 0,
-      total: 435,
-      payment: "Cash",
-      footer: "Thank you for shopping with us! Please come again."
-    },
+    btnClass: "template-btn-blue",
+    description: "Clean and professional receipt template with itemized table, GST breakdown, and clear totals.",
+    features: [
+      "Shop logo header",
+      "Itemized list with quantity",
+      "Tax / GST calculation",
+      "Payment mode badge"
+    ],
     is_builtin: true,
     is_default: true
   },
@@ -50,34 +40,21 @@ export const BUILTIN_TEMPLATES = [
     templateId: "2",
     name: "Minimal Clean Bill",
     category: "Minimal",
-    badge: "Most Popular",
+    badge: "MOST POPULAR",
+    hasCrown: true,
+    badgeClass: "badge-popular-cyan",
     width: "58mm",
     paperSize: "58mm Thermal",
-    show_tax: false,
-    tax_rate: 0,
-    footer: "Thank you for visiting! Please come again.",
-    description: "Streamlined layout engineered to reduce paper roll consumption while maintaining crystal clear readability.",
-    gradient: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-    accentColor: "#0ea5e9",
-    features: ["Compact receipt layout", "Large legible totals", "Zero-waste spacing", "Thermal optimized"],
-    previewData: {
-      shopName: "MINIMAL CAFE & BAKERY",
-      address: "MG Road, Indiranagar, Bengaluru",
-      phone: "+91 98765 43210",
-      gst: "",
-      invoiceNo: "MC-INV-102",
-      date: "09 Mar 2026, 02:45 PM",
-      items: [
-        { name: "Espresso Single Shot", qty: 1, rate: 120, total: 120 },
-        { name: "Butter Croissant", qty: 1, rate: 100, total: 100 }
-      ],
-      subtotal: 220,
-      tax: 0,
-      discount: 0,
-      total: 220,
-      payment: "UPI / PhonePe",
-      footer: "Thank you for visiting! Please come again."
-    },
+    topBarColor: "#0ea5e9",
+    accentColor: "#0284c7",
+    btnClass: "template-btn-cyan",
+    description: "Streamlined layout engineered to reduce paper roll consumption while maintaining clarity.",
+    features: [
+      "Compact receipt layout",
+      "Large legible totals",
+      "Zero-waste spacing",
+      "Thermal optimized"
+    ],
     is_builtin: true
   },
   {
@@ -85,34 +62,20 @@ export const BUILTIN_TEMPLATES = [
     templateId: "3",
     name: "Shop Pro",
     category: "Business",
-    badge: "Retail Choice",
+    badge: "RETAIL CHOICE",
+    badgeClass: "badge-retail-purple",
     width: "80mm",
     paperSize: "80mm POS",
-    show_tax: false,
-    tax_rate: 0,
-    footer: "Thank you for shopping with us! Please come again.",
-    description: "Professional high-volume retail POS receipt with clean column headers, item discounts, and net totals.",
-    gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
-    accentColor: "#2563eb",
-    features: ["Retail store header", "Itemized table with quantity", "Net total calculation", "Editable footer note"],
-    previewData: {
-      shopName: "URBAN FASHION PRO",
-      address: "Level 2, Phoenix Marketcity, Mumbai",
-      phone: "+91 22 6789 0011",
-      gst: "27AAACU1234M1Z2",
-      invoiceNo: "UFP-INV-4401",
-      date: "09 Mar 2026, 04:30 PM",
-      items: [
-        { name: "Pure Linen Casual Shirt", qty: 1, rate: 1499, total: 1499 },
-        { name: "Slim Fit Chino Trousers", qty: 1, rate: 1899, total: 1899 }
-      ],
-      subtotal: 3398,
-      tax: 0,
-      discount: 300,
-      total: 3098,
-      payment: "Credit / Debit Card",
-      footer: "Thank you for shopping with us! Please come again."
-    },
+    topBarColor: "#4f46e5",
+    accentColor: "#4f46e5",
+    btnClass: "template-btn-purple",
+    description: "Professional high-volume retail template with loyalty points display, item discounts, and payment QR code.",
+    features: [
+      "Brand accent header",
+      "Discount highlight tags",
+      "Loyalty rewards counter",
+      "Dynamic UPI QR code"
+    ],
     is_builtin: true
   },
   {
@@ -120,34 +83,20 @@ export const BUILTIN_TEMPLATES = [
     templateId: "4",
     name: "Eco Print",
     category: "Thermal",
-    badge: "Paper Saver",
+    badge: "PAPER SAVER",
+    badgeClass: "badge-eco-green",
     width: "58mm",
     paperSize: "58mm Ultra Compact",
-    show_tax: false,
-    tax_rate: 0,
-    footer: "Save paper, save trees! Thank you.",
-    description: "Ultra-compact monospace thermal bill layout engineered specifically to maximize speed and minimize roll paper consumption.",
-    gradient: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)",
-    accentColor: "#0d9488",
-    features: ["58mm compact layout", "Monospace font alignment", "High-density item lines", "Paper saving spacing"],
-    previewData: {
-      shopName: "KRISHNA JUICE & SHAKES",
-      address: "Near Metro Station Gate 2, Hyderabad",
-      phone: "+91 40 5544 3322",
-      gst: "",
-      invoiceNo: "KJ-7734",
-      date: "09 Mar 2026, 11:30 AM",
-      items: [
-        { name: "Fresh Pomegranate Juice", qty: 2, rate: 80, total: 160 },
-        { name: "Special Fruit Salad Bowl", qty: 1, rate: 120, total: 120 }
-      ],
-      subtotal: 280,
-      tax: 0,
-      discount: 0,
-      total: 280,
-      payment: "UPI QR",
-      footer: "Save paper, save trees! Thank you."
-    },
+    topBarColor: "#059669",
+    accentColor: "#059669",
+    btnClass: "template-btn-green",
+    description: "Ultra-compact monospace thermal bill layout engineered specifically to maximize speed and save paper.",
+    features: [
+      "Fast thermal printing",
+      "Monospace font alignment",
+      "High-density item lines",
+      "Less paper usage"
+    ],
     is_builtin: true
   },
   {
@@ -155,34 +104,20 @@ export const BUILTIN_TEMPLATES = [
     templateId: "5",
     name: "Modern Shop",
     category: "Modern",
-    badge: "Trendy",
+    badge: "TRENDY",
+    badgeClass: "badge-trendy-orange",
     width: "58mm",
     paperSize: "58mm Thermal",
-    show_tax: false,
-    tax_rate: 0,
-    footer: "Thank you for your visit! Please come again.",
-    description: "Contemporary aesthetic for boutiques, cafes, and modern shops with clean typography and spacing.",
-    gradient: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
-    accentColor: "#0ea5e9",
-    features: ["Modern typography", "Clean item list with rates", "Clear amount due card", "Custom footer note"],
-    previewData: {
-      shopName: "LUMINA BEAUTY & SPA",
-      address: "3rd Block, Koramangala, Bengaluru",
-      phone: "+91 80 9988 7766",
-      gst: "29AABCL5544R1Z8",
-      invoiceNo: "LUM-2026-55",
-      date: "09 Mar 2026, 05:15 PM",
-      items: [
-        { name: "Organic Rose Water Toner 100ml", qty: 1, rate: 450, total: 450 },
-        { name: "Hydrating Facial Serum 50ml", qty: 1, rate: 890, total: 890 }
-      ],
-      subtotal: 1340,
-      tax: 0,
-      discount: 0,
-      total: 1340,
-      payment: "UPI / Card",
-      footer: "Thank you for your visit! Please come again."
-    },
+    topBarColor: "#ea580c",
+    accentColor: "#ea580c",
+    btnClass: "template-btn-orange",
+    description: "Contemporary aesthetic for boutiques, cafes, and salons with pill badges, stylish spacing, and Instagram-style layout.",
+    features: [
+      "Modern typography",
+      "Category pill badges",
+      "Social media footer",
+      "Clean spacing"
+    ],
     is_builtin: true
   },
   {
@@ -190,34 +125,20 @@ export const BUILTIN_TEMPLATES = [
     templateId: "6",
     name: "Business Elite",
     category: "Business",
-    badge: "Premium",
+    badge: "PREMIUM",
+    badgeClass: "badge-premium-indigo",
     width: "80mm",
     paperSize: "80mm Standard / A4",
-    show_tax: false,
-    tax_rate: 0,
-    footer: "Thank you for your business. Terms & conditions apply.",
-    description: "Formal retail invoice template designed for businesses requiring clean itemized totals and formal terms.",
-    gradient: "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)",
-    accentColor: "#0284c7",
-    features: ["Formal Invoice header", "Seller contact details", "Itemized table with rates", "Clear amount due & totals"],
-    previewData: {
-      shopName: "TECHNO COMPUTERS & PERIPHERALS",
-      address: "Plot 88, Electronic City Phase 1, Bengaluru",
-      phone: "+91 80 4123 9900",
-      gst: "",
-      invoiceNo: "TC-INV-2026-904",
-      date: "09 Mar 2026, 03:00 PM",
-      items: [
-        { name: "Wireless Ergonomic Mouse", qty: 1, rate: 850, total: 850 },
-        { name: "Mechanical RGB Keyboard", qty: 1, rate: 2400, total: 2400 }
-      ],
-      subtotal: 3250,
-      tax: 0,
-      discount: 0,
-      total: 3250,
-      payment: "Bank / Online",
-      footer: "Thank you for your business. Terms & conditions apply."
-    },
+    topBarColor: "#6366f1",
+    accentColor: "#4f46e5",
+    btnClass: "template-btn-indigo",
+    description: "Formal tax invoice template designed for electronics, hardware, and B2B services requiring HSN, CGST/SGST details and terms.",
+    features: [
+      "HSN / SAC Code column",
+      "Split CGST & SGST",
+      "Authorized signatory box",
+      "Terms & conditions"
+    ],
     is_builtin: true
   }
 ]
@@ -236,9 +157,6 @@ export function Templates({ setView, user }) {
     const cached = getCachedData("/templates")
     return !(Array.isArray(cached) && cached.length > 0)
   })
-  const [actionLoadingId, setActionLoadingId] = useState(null)
-  const [editMode, setEditMode] = useState(false)
-  const [editingTemplate, setEditingTemplate] = useState(null)
   const [search, setSearch] = useState("")
   const [activeFilter, setActiveFilter] = useState("all") // "all" | "58mm" | "80mm" | "default"
   const [previewTemplate, setPreviewTemplate] = useState(null)
@@ -290,18 +208,6 @@ export function Templates({ setView, user }) {
     try {
       const data = await call("/templates")
       setItems(Array.isArray(data) ? data : [])
-
-      const editTemplateId = sessionStorage.getItem("slipzo-edit-template")
-      if (editTemplateId) {
-        const template = Array.isArray(data) ? data.find(t => t.id === editTemplateId) : null
-        if (template) {
-          setEditingTemplate(template)
-          setName(template.name)
-          setShow(true)
-          setEditMode(true)
-          sessionStorage.removeItem("slipzo-edit-template")
-        }
-      }
     } catch (err) {
       console.error("Failed to load templates:", err)
       if (!getCachedData("/templates")) {
@@ -322,153 +228,50 @@ export function Templates({ setView, user }) {
     const dbItems = Array.isArray(items) ? items : []
     const dbNames = new Set(dbItems.map(i => (i.name || "").toLowerCase()))
 
-    // Enrich DB items with template presentation defaults
     const enrichedDbItems = dbItems.map(item => {
       const match = BUILTIN_TEMPLATES.find(b =>
         (b.name || "").toLowerCase() === (item.name || "").toLowerCase() ||
-        String(b.templateId) === String(item.id)
+        String(b.templateId) === String(item.id) ||
+        (b.id && item.preview && b.id === item.preview)
       )
       if (match) {
         return {
           ...match,
           ...item,
+          builtin_id: match.id,
+          preview: match.id,
+          features: match.features || item.features,
+          badge: match.badge || item.badge,
+          badgeClass: match.badgeClass || item.badgeClass,
+          topBarColor: match.topBarColor || item.accentColor,
+          btnClass: match.btnClass,
+          paperSize: match.paperSize || item.paperSize,
           is_builtin: false
         }
       }
       return {
         ...item,
-        badge: item.badge || "Custom",
+        badge: item.badge || "CUSTOM",
+        badgeClass: "badge-standard-blue",
+        topBarColor: item.accentColor || "#0284c7",
+        btnClass: "template-btn-blue",
         category: item.category || "Custom",
         paperSize: item.paperSize || `${item.width || "58mm"} Thermal`,
-        gradient: item.gradient || "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-        accentColor: item.accentColor || "#0ea5e9",
         features: item.features || [
           `${item.width || "58mm"} thermal print layout`,
           item.show_tax ? `GST / Tax (${item.tax_rate || 18}%) calculation` : "Zero tax / simple billing",
           item.footer || "Thank you for shopping with us!"
         ],
-        description: item.description || `Custom ${item.width || "58mm"} receipt template created by you.`,
-        previewData: {
-          shopName: user?.shop_name || "YOUR SHOP NAME",
-          address: user?.shop_address || "Main Market, Commercial Street",
-          phone: user?.shop_phone || "+91 98765 43210",
-          gst: user?.shop_gst || "",
-          invoiceNo: "INV-2026-001",
-          date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-          items: [
-            { name: "Sample Item 1", qty: 2, rate: 150, total: 300 },
-            { name: "Sample Item 2", qty: 1, rate: 250, total: 250 }
-          ],
-          subtotal: 550,
-          tax: item.show_tax ? (550 * (item.tax_rate || 18)) / 100 : 0,
-          discount: 0,
-          total: 550 + (item.show_tax ? (550 * (item.tax_rate || 18)) / 100 : 0),
-          payment: "Cash / UPI",
-          footer: item.footer || "Thank you for shopping with us!"
-        }
+        description: item.description || `Custom ${item.width || "58mm"} receipt template created by you.`
       }
     })
 
-    // Filter built-ins so we don't show duplicates if DB has same name
     const extraBuiltins = BUILTIN_TEMPLATES.filter(
       b => !dbNames.has((b.name || "").toLowerCase())
     )
 
     return [...enrichedDbItems, ...extraBuiltins]
-  }, [items, user])
-
-  const create = async () => {
-    if (!name.trim()) return
-    setLoading(true)
-    try {
-      if (editMode && editingTemplate) {
-        if (!editingTemplate.is_builtin) {
-          await call(`/templates/${editingTemplate.id}`, {
-            method: "PUT",
-            body: JSON.stringify({ name: name.trim() })
-          })
-          success("Template updated successfully")
-        } else {
-          await call("/templates", {
-            method: "POST",
-            body: JSON.stringify({
-              name: name.trim(),
-              width: editingTemplate.width || "58mm",
-              show_tax: editingTemplate.show_tax !== undefined ? editingTemplate.show_tax : true,
-              tax_rate: editingTemplate.tax_rate || 18,
-              footer: editingTemplate.footer || "Thank you for shopping!"
-            })
-          })
-          success("Template created from " + editingTemplate.name)
-        }
-      } else {
-        await call("/templates", {
-          method: "POST",
-          body: JSON.stringify({ name: name.trim() })
-        })
-        success("Template created successfully")
-      }
-      setName("")
-      setShow(false)
-      setEditMode(false)
-      setEditingTemplate(null)
-      await load()
-    } catch (err) {
-      console.error("Failed to save template:", err)
-      toastError(err.message || "Failed to save template")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const duplicate = async (template) => {
-    try {
-      setActionLoadingId(template.id)
-      if (template.is_builtin) {
-        await call("/templates", {
-          method: "POST",
-          body: JSON.stringify({
-            name: `${template.name} (Copy)`,
-            width: template.width || "58mm",
-            show_tax: template.show_tax !== undefined ? template.show_tax : true,
-            tax_rate: template.tax_rate || 18,
-            footer: template.footer || "Thank you for shopping!"
-          })
-        })
-      } else {
-        await call(`/templates/${template.id}/duplicate`, { method: "POST" })
-      }
-      success("Template duplicated")
-      await load()
-    } catch (err) {
-      console.error("Failed to duplicate template:", err)
-      toastError("Failed to duplicate template")
-    } finally {
-      setActionLoadingId(null)
-    }
-  }
-
-  const remove = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this template?")) return
-    try {
-      setActionLoadingId(id)
-      await call(`/templates/${id}`, { method: "DELETE" })
-      success("Template deleted")
-      await load()
-    } catch (err) {
-      console.error("Failed to delete template:", err)
-      toastError("Failed to delete template")
-    } finally {
-      setActionLoadingId(null)
-    }
-  }
-
-  const cancelEdit = () => {
-    setName("")
-    setShow(false)
-    setEditMode(false)
-    setEditingTemplate(null)
-  }
+  }, [items])
 
   // Filtered templates based on search & category chip
   const filteredTemplates = useMemo(() => {
@@ -490,196 +293,212 @@ export function Templates({ setView, user }) {
   }, [allItems, search, activeFilter])
 
   return (
-    <div className="page templates-page fade-in">
-      <div className="page-intro">
-        <div>
-          <span className="menu-eyebrow">
-            <LayoutTemplate size={13} /> {t("templates.eyebrow", "REUSABLE RECEIPTS")}
-          </span>
-          <h1 className="menu-main-title">{t("templates.title", "Templates that save time.")}</h1>
-          <p className="menu-sub-title">
-            {t("templates.subtitle", "Pick from our pre-designed receipt styles or create your own custom layout.")}
-          </p>
-        </div>
-      </div>
+    <div className="templates-page-root">
+      {/* 1. Hero Section Banner */}
+      <section className="templates-hero-banner">
+        <div className="templates-hero-grid">
+          <div className="templates-hero-left">
+            <span className="templates-eyebrow">{t("templates.eyebrow", "REUSABLE RECEIPTS")}</span>
+            <h1 className="templates-hero-heading">
+              Templates that <span className="templates-hero-accent">save time.</span>
+            </h1>
+            <p className="templates-hero-subtext">
+              {t("templates.subtitle", "Pick from our pre-designed receipt styles or create your own custom layout for your business.")}
+            </p>
+          </div>
 
-      {show && (
-        <div className="inline-form slide-up">
-          <input
-            data-testid="template-name-input"
-            autoFocus
-            placeholder={t("templates.templateNamePlaceholder", "Template name, e.g. Everyday receipt")}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") create()
-              if (e.key === "Escape") cancelEdit()
-            }}
-          />
-          <button
-            data-testid="save-template-button"
-            className="primary-button"
-            onClick={create}
-            disabled={loading}
-          >
-            {loading ? <ButtonLoader text={t("common.saving", "Saving...")} /> : editMode ? t("templates.updateTemplate", "Update template") : t("templates.saveTemplate", "Save template")}
-          </button>
-          <button
-            data-testid="cancel-template-button"
-            className="secondary-button"
-            onClick={cancelEdit}
-            disabled={loading}
-          >
-            {t("common.cancel", "Cancel")}
-          </button>
-        </div>
-      )}
+          <div className="templates-hero-center-art">
+            <img 
+              src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/templates_hero_illustration.jpg" 
+              alt="Receipt Templates Artwork" 
+              className="templates-hero-art-img" 
+            />
+          </div>
 
-      {/* Search & Filter Controls */}
-      <div className="templates-filter-bar">
-        <div className="search-input-wrapper">
-          <Search size={16} className="search-icon" />
+          <div className="templates-hero-badges-col">
+            <div className="hero-feature-badge-card">
+              <div className="feature-icon-circle feat-circle-green">
+                <Sparkles size={16} />
+              </div>
+              <span className="feature-badge-label">Professional</span>
+            </div>
+
+            <div className="hero-feature-badge-card">
+              <div className="feature-icon-circle feat-circle-purple">
+                <Wand2 size={16} />
+              </div>
+              <span className="feature-badge-label">Customizable</span>
+            </div>
+
+            <div className="hero-feature-badge-card">
+              <div className="feature-icon-circle feat-circle-blue">
+                <Printer size={16} />
+              </div>
+              <span className="feature-badge-label">Print Ready</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Search Field */}
+      <section className="templates-search-section">
+        <div className="templates-search-bar">
+          <Search size={18} className="templates-search-icon" />
           <input
             data-testid="template-search-input"
             type="text"
             placeholder={t("templates.searchPlaceholder", "Search templates by name, width, category, footer...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
+            className="templates-search-input-field"
           />
           {search && (
-            <button className="search-clear-btn" onClick={() => setSearch("")}>
-              <X size={14} />
+            <button className="templates-search-clear-btn" onClick={() => setSearch("")}>
+              <X size={15} />
             </button>
           )}
         </div>
+      </section>
 
-        <div className="filter-chips">
+      {/* 3. Filter Chips Bar */}
+      <section className="templates-filter-section-bar">
+        <div className="templates-chips-container">
           <button
-            className={`filter-chip ${activeFilter === "all" ? "active" : ""}`}
+            className={`templates-filter-pill ${activeFilter === "all" ? "pill-active" : ""}`}
             onClick={() => setActiveFilter("all")}
           >
-            {t("templates.filterAll", "All")} ({formatNum(allItems.length)})
+            <Layers size={14} />
+            <span>{t("templates.filterAll", "All")} ({formatNum(allItems.length)})</span>
           </button>
           <button
-            className={`filter-chip ${activeFilter === "58mm" ? "active" : ""}`}
+            className={`templates-filter-pill ${activeFilter === "58mm" ? "pill-active" : ""}`}
             onClick={() => setActiveFilter("58mm")}
           >
-            {formatNum("58")}mm Thermal
+            <Printer size={14} />
+            <span>58mm Thermal</span>
           </button>
           <button
-            className={`filter-chip ${activeFilter === "80mm" ? "active" : ""}`}
+            className={`templates-filter-pill ${activeFilter === "80mm" ? "pill-active" : ""}`}
             onClick={() => setActiveFilter("80mm")}
           >
-            {formatNum("80")}mm Standard
+            <FileText size={14} />
+            <span>80mm Standard</span>
           </button>
           <button
-            className={`filter-chip ${activeFilter === "default" ? "active" : ""}`}
+            className={`templates-filter-pill ${activeFilter === "default" ? "pill-active" : ""}`}
             onClick={() => setActiveFilter("default")}
           >
-            {t("templates.filterDefault", "Default")}
+            <Crown size={14} />
+            <span>{t("templates.filterDefault", "Default")}</span>
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* Templates Showcase Grid */}
+      {/* 4. Templates Showcase Grid */}
       {initialLoading && filteredTemplates.length === 0 ? (
-        <CardSkeleton count={4} />
+        <CardSkeleton count={6} />
       ) : filteredTemplates.length > 0 ? (
-        <div className="dashboard-templates-grid">
-          {filteredTemplates.map((template) => {
-            const cardGradient = template.gradient || "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
-            const accentColor = template.accentColor || "#0ea5e9"
-            const features = Array.isArray(template.features) ? template.features : [
-              `${template.width || "58mm"} thermal print layout`,
-              template.show_tax ? `GST / Tax (${template.tax_rate || 18}%) calculation` : "Zero tax / simple layout",
-              template.footer || "Thank you note included"
-            ]
+        <section className="templates-cards-grid-section">
+          <div className="templates-cards-grid">
+            {filteredTemplates.map((template) => {
+              const topBarColor = template.topBarColor || "#0284c7"
+              const accentColor = template.accentColor || "#0284c7"
+              const btnClass = template.btnClass || "template-btn-blue"
+              const badgeClass = template.badgeClass || "badge-standard-blue"
+              const features = Array.isArray(template.features) ? template.features : [
+                `${template.width || "58mm"} thermal print layout`,
+                "Tax / GST calculation",
+                "Payment mode badge",
+                template.footer || "Thank you note included"
+              ]
 
-            return (
-              <div
-                className={`template-showcase-card dashboard-card ${template.is_default ? "is-default-card" : ""}`}
-                key={template.id}
-                style={{
-                  "--card-gradient": cardGradient,
-                  "--accent-color": accentColor
-                }}
-              >
-                <div className="card-top-bar" style={{ background: cardGradient }} />
-
-                <div className="template-card-top">
-                  <div className="template-badge-row">
-                    <span className="template-badge" style={{ background: cardGradient, color: "#ffffff" }}>
-                      {tDb(template.badge || (template.is_default ? "Default" : "Custom"))}
-                    </span>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                      {template.is_default && (
-                        <span className="default-pill-indicator">{t("templates.defaultBadge", "DEFAULT")}</span>
-                      )}
-                      <span className="template-paper-tag">
-                        <Printer size={12} /> {template.paperSize || `${template.width || "58mm"} Thermal`}
-                      </span>
-                    </div>
-                  </div>
-
-                  <h3>{tDb(template.name)}</h3>
-                  <p className="template-desc">{tDb(template.description || `Custom ${template.width || "58mm"} thermal receipt template.`)}</p>
-                </div>
-
-                {/* Live Mini Receipt Preview Box */}
+              return (
                 <div
-                  className="template-receipt-preview"
-                  onClick={() => setPreviewTemplate(template)}
-                  title="Click to zoom realistic receipt"
+                  className="template-card-item"
+                  key={template.id}
+                  style={{ "--card-accent-color": topBarColor }}
                 >
-                  <MiniReceiptPreview template={template} />
-                  <div className="mock-receipt-view-overlay">
-                    <span><Eye size={15} /> {t("templates.preview", "Click to preview receipt")}</span>
-                  </div>
-                </div>
+                  <div className="template-card-top-accent-bar" style={{ backgroundColor: topBarColor }} />
 
-                {/* Features list */}
-                <div className="template-features-list">
-                  {(Array.isArray(features) ? features : []).map((feat, idx) => (
-                    <div className="template-feat-item" key={idx}>
-                      <Check size={16} style={{ color: accentColor, flexShrink: 0 }} />
-                      <span>{tDb(feat)}</span>
+                  {/* Top Badges Row */}
+                  <div className="template-card-badge-row">
+                    <div className="template-left-badges">
+                      <span className={`template-category-badge ${badgeClass}`}>
+                        {template.hasCrown && <Crown size={11} className="badge-crown-icon" />}
+                        {tDb(template.badge || "STANDARD")}
+                      </span>
+                      {template.is_default && (
+                        <span className="template-default-badge">
+                          Default
+                        </span>
+                      )}
                     </div>
-                  ))}
-                </div>
 
-                {/* Card Action Buttons */}
-                <div className="dashboard-template-actions">
-                  <div className="actions-main-row">
+                    <div className="template-right-paper-badge">
+                      <Printer size={12} />
+                      <span>{template.paperSize || `${template.width || "58mm"} Thermal`}</span>
+                    </div>
+                  </div>
+
+                  {/* Title & Description */}
+                  <h3 className="template-card-title">{tDb(template.name)}</h3>
+                  <p className="template-card-desc">
+                    {tDb(template.description || "Clean and professional receipt template.")}
+                  </p>
+
+                  {/* Inner Split: Features on Left, Miniature Receipt on Right */}
+                  <div className="template-card-inner-split">
+                    <div className="template-features-column">
+                      {features.slice(0, 4).map((feat, idx) => (
+                        <div className="template-feature-row" key={idx}>
+                          <Check size={14} style={{ color: topBarColor }} className="feat-check-icon" />
+                          <span>{tDb(feat)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div 
+                      className="template-mini-receipt-column"
+                      onClick={() => setPreviewTemplate(template)}
+                      title="Click to zoom realistic receipt"
+                    >
+                      <MiniReceiptPreview template={template} />
+                    </div>
+                  </div>
+
+                  {/* Card Action Buttons at Bottom */}
+                  <div className="template-card-actions-bottom">
                     <button
                       data-testid={`use-template-${template.id}-button`}
-                      className="template-use-btn"
-                      style={{ background: cardGradient }}
+                      className={`template-use-action-btn ${btnClass}`}
                       onClick={() => {
                         sessionStorage.setItem("slipzo-template", template.templateId || template.id)
                         setView("bills")
                       }}
                     >
-                      {t("templates.useTemplate", "Use template")} <ArrowRight size={15} />
+                      <span>{t("templates.useTemplate", "Use template")}</span>
+                      <ArrowRight size={14} />
                     </button>
+
                     <button
-                      className="template-preview-btn-icon"
+                      className="template-preview-action-btn"
                       onClick={() => setPreviewTemplate(template)}
-                      title={t("templates.preview", "View Realistic Receipt")}
+                      title={t("templates.preview", "Preview Receipt")}
                     >
-                      <Eye size={16} />
+                      <Eye size={15} />
+                      <span className="preview-btn-text">{t("templates.preview", "Preview")}</span>
                     </button>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        </section>
       ) : (
-        <div className="empty fade-in">
-          <Receipt size={32} />
-          <h3>{t("templates.noMatching", "No matching templates")}</h3>
-          <p>{t("templates.noMatchingDesc", "Try adjusting your search query or filter chip.")}</p>
+        <div className="empty fade-in" style={{ padding: "3rem 1rem", textAlign: "center" }}>
+          <Receipt size={36} color="#94a3b8" style={{ margin: "0 auto 1rem" }} />
+          <h3 style={{ color: "#0f172a", fontSize: "1.2rem", fontWeight: 700 }}>{t("templates.noMatching", "No matching templates")}</h3>
+          <p style={{ color: "#64748b", fontSize: "0.9rem" }}>{t("templates.noMatchingDesc", "Try adjusting your search query or filter chip.")}</p>
           <button
             className="secondary-button"
             onClick={() => {
@@ -721,7 +540,7 @@ export function Templates({ setView, user }) {
             <div className="template-modal-footer">
               <button
                 className="modal-use-btn"
-                style={{ background: previewTemplate.gradient || "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)" }}
+                style={{ background: previewTemplate.topBarColor || previewTemplate.accentColor || "#0284c7" }}
                 onClick={() => {
                   sessionStorage.setItem("slipzo-template", previewTemplate.templateId || previewTemplate.id)
                   setPreviewTemplate(null)
