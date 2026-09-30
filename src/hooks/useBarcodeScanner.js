@@ -21,7 +21,7 @@ import { useEffect, useRef } from "react";
 export function useBarcodeScanner(onScan, options = {}) {
   const {
     enabled = true,
-    maxIntervalMs = 95,
+    maxIntervalMs = 120,
     minBarcodeLength = 3
   } = options;
 
@@ -49,7 +49,8 @@ export function useBarcodeScanner(onScan, options = {}) {
       if (candidate.length < minBarcodeLength) return;
 
       const isPatternMatch = candidate.toUpperCase().startsWith("SLP-") || 
-                            (candidate.length >= 6 && /^[A-Za-z0-9_-]+$/.test(candidate));
+                            candidate.toUpperCase().startsWith("SLP") ||
+                            (candidate.length >= minBarcodeLength && /^[A-Za-z0-9_-]+$/.test(candidate));
 
       const isNormalInput = targetInput && (
         targetInput.tagName?.toLowerCase() === "input" || 
@@ -59,16 +60,15 @@ export function useBarcodeScanner(onScan, options = {}) {
 
       const isSearchInput = targetInput && (
         (targetInput.className && typeof targetInput.className === "string" && targetInput.className.includes("search")) ||
-        targetInput.getAttribute?.("type") === "search"
+        targetInput.getAttribute?.("type") === "search" ||
+        targetInput.getAttribute?.("placeholder")?.toLowerCase().includes("search")
       );
 
       // If scanner burst detected, OR pattern matches, OR dedicated input, OR not a normal text field, OR inside search bar
       if (wasBurst || isPatternMatch || isDedicated || !isNormalInput || isSearchInput) {
         if (targetInput && isNormalInput && !isDedicated) {
           if (typeof targetInput.value === "string") {
-            if (targetInput.value.endsWith(rawCandidate) || targetInput.value === rawCandidate || targetInput.value.endsWith(candidate)) {
-              targetInput.value = "";
-            }
+            targetInput.value = "";
           }
         }
 
