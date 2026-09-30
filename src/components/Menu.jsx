@@ -13,7 +13,8 @@ import {
   Check,
   AlertCircle,
   Mic,
-  Volume2
+  Volume2,
+  Barcode as BarcodeIcon
 } from "lucide-react"
 import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, getCurrentUserKey } from "../lib/utils"
 import { useToast } from "./common/Toast"
@@ -22,6 +23,7 @@ import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useSpeechInput } from "../hooks/useSpeechInput"
+import { BarcodeModal } from "./common/BarcodeModal"
 import "../styles/Menu.css"
 
 export function Menu({ setView, requireAuth, user }) {
@@ -87,6 +89,9 @@ export function Menu({ setView, requireAuth, user }) {
   const [customPrice, setCustomPrice] = useState("")
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false)
   const [addFormError, setAddFormError] = useState("")
+
+  // Barcode View & Print Modal
+  const [barcodeModalItem, setBarcodeModalItem] = useState(null)
 
   // ==========================================
   // SPEECH RECOGNITION (Reusing existing hook)
@@ -759,6 +764,16 @@ export function Menu({ setView, requireAuth, user }) {
 
                       <div className="user-menu-card-actions user-card-bottom-actions">
                         <button
+                          type="button"
+                          className="menu-action-icon-btn edit-btn"
+                          onClick={() => setBarcodeModalItem(item)}
+                          title="View & Print Barcode Label"
+                          style={{ color: "#0284c7", background: "#f0f9ff", borderColor: "#bae6fd" }}
+                        >
+                          <BarcodeIcon size={14} />
+                          <span className="btn-label">Barcode</span>
+                        </button>
+                        <button
                           className="menu-action-icon-btn edit-btn"
                           onClick={() => handleOpenEditModal(item)}
                           title={t("menu.editPrice", "Edit selling price")}
@@ -1106,6 +1121,13 @@ export function Menu({ setView, requireAuth, user }) {
           </div>
         </div>
       )}
+
+      {/* Barcode View & Print Modal */}
+      <BarcodeModal
+        item={barcodeModalItem}
+        isOpen={Boolean(barcodeModalItem)}
+        onClose={() => setBarcodeModalItem(null)}
+      />
     </div>
   )
 }
