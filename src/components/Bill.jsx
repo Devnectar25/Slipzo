@@ -314,10 +314,20 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     return ["all", ...Array.from(set)]
   }, [userMenuItems])
 
-  // Filter user menu items
+  // Map of added bill items by clean name (for card button and quantity controls)
+  const addedItemMap = useMemo(() => {
+    const map = new Map()
+    items.forEach((it) => {
+      map.set((it.name || "").trim().toLowerCase(), it)
+    })
+    return map
+  }, [items])
+
+  // Filter and sort user menu items:
+  // Items in bill appear on TOP, sorted by maximum quantity in descending order
   const filteredMenuItems = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return userMenuItems.filter((it) => {
+    const filtered = userMenuItems.filter((it) => {
       const matchesSearch = !q ||
         (it.name || "").toLowerCase().includes(q) ||
         (it.category || "").toLowerCase().includes(q)
@@ -325,7 +335,23 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
       return matchesSearch && matchesCat
     })
-  }, [userMenuItems, search, selectedCategory])
+
+    return [...filtered].sort((a, b) => {
+      const nameA = (a.name || "").trim().toLowerCase()
+      const nameB = (b.name || "").trim().toLowerCase()
+      const addedA = addedItemMap.get(nameA)
+      const addedB = addedItemMap.get(nameB)
+      const qtyA = addedA ? Number(addedA.quantity) || 0 : 0
+      const qtyB = addedB ? Number(addedB.quantity) || 0 : 0
+
+      // If quantities differ, higher quantity comes first on top
+      if (qtyB !== qtyA) {
+        return qtyB - qtyA
+      }
+
+      return 0
+    })
+  }, [userMenuItems, search, selectedCategory, addedItemMap])
 
   // Pagination for My Menu Items on New Bill page
   const [menuPage, setMenuPage] = useState(1)
@@ -350,15 +376,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       setMenuPage(Math.max(1, totalMenuPages))
     }
   }, [totalMenuPages, menuPage])
-
-  // Map of added bill items by clean name (for card button and quantity controls)
-  const addedItemMap = useMemo(() => {
-    const map = new Map()
-    items.forEach((it) => {
-      map.set((it.name || "").trim().toLowerCase(), it)
-    })
-    return map
-  }, [items])
 
   // ==========================================
   // HANDLERS: ADD / MANAGE ITEMS
@@ -460,11 +477,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
     if (!clean) return false
 
-    // Ignore false/partial scanner noise (e.g., "S887")
-    if (/^s/i.test(clean) && !/^SLP-\d+$/i.test(clean) && !/^SLP\d+$/i.test(clean)) {
-      return false
-    }
-
     // Normalize hardware scanner regional keyboard layout mappings & unpadded inputs
     if (/^-4-+\d+$/i.test(clean)) {
       const numPart = clean.replace(/^-4-+/, "")
@@ -489,6 +501,15 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       localMatch = userMenuItems.find(
         (it) => (it.barcode || "").trim().toLowerCase() === padded
       )
+    }
+
+    if (!localMatch) {
+      const strippedBarcode = barcode.replace(/^SLP-?/i, "").toLowerCase()
+      localMatch = userMenuItems.find((it) => {
+        const itemBarcode = (it.barcode || "").trim().toLowerCase()
+        const strippedItemBarcode = itemBarcode.replace(/^SLP-?/i, "")
+        return itemBarcode === barcode.toLowerCase() || (strippedBarcode && strippedItemBarcode === strippedBarcode)
+      })
     }
 
     if (localMatch) {
@@ -573,14 +594,12 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           confirmButtonColor: "#0284c7",
           cancelButtonColor: "#64748b",
           confirmButtonText: "Add Product",
-          cancelButtonText: "Scan Again"
+          cancelButtonText: "Cancel"
         })
 
         if (notFoundResult.isConfirmed) {
           sessionStorage.setItem("slipzo_menu_initial_tab", "add_items")
           setView?.("menu")
-        } else {
-          setIsCameraScannerOpen(true)
         }
         return false
       }
@@ -596,14 +615,12 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       confirmButtonColor: "#0284c7",
       cancelButtonColor: "#64748b",
       confirmButtonText: "Add Product",
-      cancelButtonText: "Scan Again"
+      cancelButtonText: "Cancel"
     })
 
     if (notFoundResult.isConfirmed) {
       sessionStorage.setItem("slipzo_menu_initial_tab", "add_items")
       setView?.("menu")
-    } else {
-      setIsCameraScannerOpen(true)
     }
     return false
   }
