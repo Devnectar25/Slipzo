@@ -25,6 +25,7 @@ import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import { VoiceInputButton } from "./common/VoiceInputButton"
+import { ChangeCategoryModal, BUSINESS_CATEGORIES } from "./common/ChangeCategoryModal"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -80,7 +81,8 @@ export function Shop({ user, setView } = {}) {
       default_discount: data?.default_discount !== undefined ? data.default_discount : 0,
       show_tax: data?.show_tax !== undefined ? data.show_tax : 0,
       tax_rate: data?.tax_rate !== undefined ? data.tax_rate : 0,
-      logo_url: data?.logo_url || ""
+      logo_url: data?.logo_url || "",
+      business_type: data?.business_type || "small_business"
     }
   })
 
@@ -89,7 +91,12 @@ export function Shop({ user, setView } = {}) {
   const [ready, setReady] = useState(() => Boolean(getCachedData("/shop")))
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [isChangeCategoryModalOpen, setIsChangeCategoryModalOpen] = useState(false)
   const edited = useRef(false)
+
+  const currentCategoryObj = useMemo(() => {
+    return BUSINESS_CATEGORIES.find(c => c.id === (shop.business_type || "small_business")) || BUSINESS_CATEGORIES[0]
+  }, [shop.business_type])
 
   const { success, error: toastError, warning: toastWarning } = useToast()
 
@@ -203,7 +210,8 @@ export function Shop({ user, setView } = {}) {
             default_discount: data.default_discount !== undefined ? data.default_discount : 0,
             show_tax: data.show_tax !== undefined ? data.show_tax : 0,
             tax_rate: data.tax_rate !== undefined ? data.tax_rate : 0,
-            logo_url: data.logo_url || ""
+            logo_url: data.logo_url || "",
+            business_type: data.business_type || "small_business"
           }
           setShop(loadedShop)
         }
@@ -553,8 +561,58 @@ export function Shop({ user, setView } = {}) {
               </div>
               <div className="sp-card-titles">
                 <h3 className="sp-card-title">{t("profile.businessDetails", "Business Information")}</h3>
-                <p className="sp-card-subtitle">{t("profile.businessDetailsSub", "Basic information about your shop")}</p>
+                <p className="sp-card-subtitle">{t("profile.businessDetailsSub", "Basic information & category of your shop")}</p>
               </div>
+            </div>
+
+            {/* Shop Category / Business Type Section */}
+            <div className="sp-field-group full-width" style={{ marginBottom: "1.25rem" }}>
+              <label className="sp-label" style={{ marginBottom: "0.5rem" }}>
+                {t("profile.shopCategory", "Shop Category / Business Type")} <span className="sp-req">*</span>
+              </label>
+
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0.95rem 1.15rem",
+                borderRadius: "12px",
+                border: "1.5px solid #bae6fd",
+                background: "linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)",
+                boxShadow: "0 2px 8px rgba(2, 132, 199, 0.08)",
+                flexWrap: "wrap",
+                gap: "0.75rem"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
+                  <span style={{ fontSize: "2rem", lineHeight: 1 }}>{currentCategoryObj.icon}</span>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{ fontSize: "1rem", fontWeight: "700", color: "#0369a1" }}>
+                        {currentCategoryObj.label}
+                      </span>
+                      <span style={{ fontSize: "0.7rem", background: "#0284c7", color: "#ffffff", padding: "2px 8px", borderRadius: "10px", fontWeight: "700" }}>
+                        Active Category
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: "#64748b", marginTop: "3px" }}>
+                      {currentCategoryObj.desc}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsChangeCategoryModalOpen(true)}
+                  className="sp-change-logo-btn"
+                  style={{ background: "#ffffff", color: "#0284c7", border: "1.5px solid #bae6fd", fontWeight: "700", fontSize: "0.84rem", padding: "0.5rem 0.95rem", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
+                >
+                  <SlidersHorizontal size={14} /> {t("profile.changeCategoryBtn", "Change Category")}
+                </button>
+              </div>
+
+              <span className="sp-helper-text" style={{ marginTop: "0.4rem" }}>
+                {t("profile.categoryHelper", "Slipzo automatically tailors your product catalog recommendations to your selected category.")}
+              </span>
             </div>
 
             <div className="sp-form-row two-col">
@@ -1983,6 +2041,17 @@ export function Shop({ user, setView } = {}) {
           }
         }
       `}</style>
+
+      {/* Change Shop Category Modal */}
+      <ChangeCategoryModal
+        isOpen={isChangeCategoryModalOpen}
+        onClose={() => setIsChangeCategoryModalOpen(false)}
+        currentCategory={shop.business_type || "small_business"}
+        user={user}
+        onCategoryChanged={(newCat, updatedShop) => {
+          setShop((prev) => ({ ...prev, business_type: newCat }))
+        }}
+      />
     </div>
   )
 }
