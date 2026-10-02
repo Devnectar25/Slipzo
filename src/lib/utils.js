@@ -376,7 +376,17 @@ export const saveStoredMenuItems = (items, user) => {
   try {
     localStorage.setItem(`slipzo_menu_items_${key}`, JSON.stringify(items || []))
     if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { userKey: key } }))
+      window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { userKey: key, items: items || [] } }))
+    }
+  } catch (e) {}
+}
+
+export const clearStoredMenuItems = (user) => {
+  const key = getCurrentUserKey(user)
+  try {
+    localStorage.removeItem(`slipzo_menu_items_${key}`)
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { userKey: key, items: [] } }))
     }
   } catch (e) {}
 }

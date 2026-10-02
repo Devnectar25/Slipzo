@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
 import { useToast } from "./common/Toast"
+import Swal from "sweetalert2"
 
 const DEFAULT_HARDWARE_PRODUCTS = [
   {
@@ -268,7 +269,19 @@ export function Products({ setView, requireAuth, user }) {
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return
+    const confirmResult = await Swal.fire({
+      title: "Delete Product?",
+      text: "Are you sure you want to delete this product?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Delete",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true
+    })
+    if (!confirmResult.isConfirmed) return
 
     try {
       await call(`/products/${id}`, { method: "DELETE" })

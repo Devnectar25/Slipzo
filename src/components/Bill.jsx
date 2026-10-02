@@ -253,7 +253,30 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
 
     loadData()
-    return () => { isMounted = false }
+
+    const handleShopUpdate = (e) => {
+      if (e?.detail) setShop(e.detail)
+      loadData()
+    }
+
+    const handleMenuUpdate = (e) => {
+      if (Array.isArray(e?.detail?.items)) {
+        setUserMenuItems(e.detail.items)
+      } else {
+        call("/menu").then(res => {
+          if (Array.isArray(res)) setUserMenuItems(res)
+        }).catch(() => {})
+      }
+    }
+
+    window.addEventListener("slipzo_shop_updated", handleShopUpdate)
+    window.addEventListener("slipzo-menu-update", handleMenuUpdate)
+
+    return () => { 
+      isMounted = false 
+      window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
+      window.removeEventListener("slipzo-menu-update", handleMenuUpdate)
+    }
   }, [user, userKey])
 
   // Resolve active template
@@ -450,9 +473,21 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     setItems((prev) => prev.filter((it) => it.id !== itemId))
   }
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (items.length === 0) return
-    if (window.confirm("Clear all items from this bill?")) {
+    const confirmResult = await Swal.fire({
+      title: "Clear All Items?",
+      text: "Are you sure you want to remove all items from this bill?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Clear All",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true
+    })
+    if (confirmResult.isConfirmed) {
       setItems([])
     }
   }
@@ -513,11 +548,13 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
 
     if (localMatch) {
-      if (localMatch.is_active === false || localMatch.is_available === false) {
+      if (localMatch.is_active === false || localMatch.is_available === false || localMatch.barcode_active === false) {
         playScanErrorBeep()
         await Swal.fire({
           title: "Item Not Available",
-          text: "This item is currently unavailable in your menu and cannot be added to the bill.",
+          text: localMatch.barcode_active === false
+            ? "Barcode scanning is deactivated for this item in your menu."
+            : "This item is currently unavailable in your menu and cannot be added to the bill.",
           icon: "warning",
           confirmButtonColor: "#0284c7",
           confirmButtonText: "OK"

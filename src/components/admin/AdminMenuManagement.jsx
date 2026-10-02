@@ -21,14 +21,25 @@ import { BarcodeModal } from "../common/BarcodeModal"
 import Swal from "sweetalert2"
 
 const DEFAULT_CATEGORIES = [
-  "Bakery",
-  "Beverages",
-  "Breakfast",
-  "Desserts",
-  "Fast Food",
-  "Main Course",
+  "Atta & Flour",
+  "Rice",
+  "Dal & Pulses",
+  "Oil & Ghee",
+  "Spices & Masala",
+  "Salt & Sugar",
+  "Biscuits & Cookies",
   "Snacks",
-  "South Indian",
+  "Tea & Coffee",
+  "Beverages",
+  "Dairy",
+  "Breakfast & Cereals",
+  "Instant Food",
+  "Noodles & Pasta",
+  "Sauces & Spreads",
+  "Dry Fruits & Nuts",
+  "Personal Care",
+  "Household Cleaning",
+  "Laundry",
   "General"
 ]
 

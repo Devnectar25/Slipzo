@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { X, Printer, Copy, Check, Barcode as BarcodeIcon, Tag } from "lucide-react"
 import { Code128Barcode } from "../../lib/code128"
 import { printBarcodeLabel, LABEL_FORMATS } from "../../lib/printBarcodeLabel"
@@ -9,6 +9,16 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
   const [copies, setCopies] = useState(1)
   const [copied, setCopied] = useState(false)
   const { success: toastSuccess } = useToast()
+
+  useEffect(() => {
+    if (isOpen && item) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = "hidden"
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
+    }
+  }, [isOpen, item])
 
   if (!isOpen || !item) return null
 

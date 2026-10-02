@@ -19,100 +19,114 @@ import { ButtonLoader } from "./common/Skeleton"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useDbTranslation } from "../lib/translator"
 
-// Default sample master products with real food photography fallback
+// Default sample master Kirana products
 const FALLBACK_CATALOG = [
   {
-    id: "catalog_masala_tea",
-    name: "Masala Tea",
-    category: "Beverages",
-    price: 15.00,
-    image_url: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_001_aashirvaad-superior-mp-atta-5kg",
+    name: "Aashirvaad Superior MP Atta (5kg)",
+    category: "Atta & Flour",
+    price: 245.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/aashirvaad-superior-mp-atta-5kg.jpg?v=kirana_1",
     is_veg: true
   },
   {
-    id: "catalog_cold_coffee",
-    name: "Cold Coffee",
-    category: "Beverages",
-    price: 60.00,
-    image_url: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_006_india-gate-basmati-rice-5kg",
+    name: "India Gate Basmati Rice Feast Rozzana (5kg)",
+    category: "Rice",
+    price: 420.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/india-gate-basmati-rice-5kg.jpg?v=kirana_6",
     is_veg: true
   },
   {
-    id: "catalog_margherita_pizza",
-    name: "Margherita Pizza",
-    category: "Snacks",
-    price: 120.00,
-    image_url: "https://images.unsplash.com/photo-1604382355076-af4b0eb60143?auto=format&fit=crop&w=160&q=80",
-    is_veg: false
-  },
-  {
-    id: "catalog_veg_burger",
-    name: "Veg Burger",
-    category: "Snacks",
-    price: 70.00,
-    image_url: "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_012_tata-sampann-toor-dal-1kg",
+    name: "Tata Sampann Unpolished Toor Dal (1kg)",
+    category: "Dal & Pulses",
+    price: 185.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/tata-sampann-toor-dal-1kg.jpg?v=kirana_12",
     is_veg: true
   },
   {
-    id: "catalog_chocolate_cake",
-    name: "Chocolate Cake",
-    category: "Bakery",
-    price: 50.00,
-    image_url: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_019_fortune-sunflower-oil-1l",
+    name: "Fortune Sunlite Refined Sunflower Oil (1L)",
+    category: "Oil & Ghee",
+    price: 145.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/fortune-sunflower-oil-1l.jpg?v=kirana_19",
     is_veg: true
   },
   {
-    id: "catalog_grilled_sandwich",
-    name: "Grilled Sandwich",
-    category: "Snacks",
-    price: 60.00,
-    image_url: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_025_mdh-deggi-mirch-100g",
+    name: "MDH Deggi Mirch Powder (100g)",
+    category: "Spices & Masala",
+    price: 82.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/mdh-deggi-mirch-100g.jpg?v=kirana_25",
     is_veg: true
   },
   {
-    id: "catalog_mineral_water",
-    name: "Mineral Water",
-    category: "Beverages",
-    price: 20.00,
-    image_url: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_033_tata-salt-iodized-1kg",
+    name: "Tata Salt Vacuum Evaporated Iodized Salt (1kg)",
+    category: "Salt & Sugar",
+    price: 28.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/tata-salt-iodized-1kg.jpg?v=kirana_33",
     is_veg: true
   },
   {
-    id: "catalog_filter_coffee",
-    name: "Filter Coffee",
-    category: "Beverages",
-    price: 30.00,
-    image_url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_037_parle-g-glucose-biscuits-250g",
+    name: "Parle-G Original Glucose Biscuits (250g)",
+    category: "Biscuits & Cookies",
+    price: 25.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/parle-g-glucose-biscuits-250g.jpg?v=kirana_37",
     is_veg: true
   },
   {
-    id: "catalog_french_fries",
-    name: "French Fries",
-    category: "Snacks",
-    price: 65.00,
-    image_url: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_052_tata-tea-premium-500g",
+    name: "Tata Tea Premium Leaf Tea (500g)",
+    category: "Tea & Coffee",
+    price: 240.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/tata-tea-premium-500g.jpg?v=kirana_52",
     is_veg: true
   },
   {
-    id: "catalog_samosa",
-    name: "Samosa (2 pcs)",
-    category: "Snacks",
-    price: 30.00,
-    image_url: "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=160&q=80",
+    id: "kirana_073_maggi-2-minute-masala-noodles-4pack",
+    name: "Maggi 2-Minute Masala Noodles (Pack of 4)",
+    category: "Instant Food",
+    price: 56.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/maggi-2-minute-masala-noodles-4pack.jpg?v=kirana_73",
+    is_veg: true
+  },
+  {
+    id: "kirana_095_vim-dishwash-bar-lemon-300g",
+    name: "Vim Dishwash Bar with Lemon (300g)",
+    category: "Household Cleaning",
+    price: 25.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/vim-dishwash-bar-lemon-300g.jpg?v=kirana_95",
     is_veg: true
   }
 ]
 
-// Predefined category filters matching reference image
-const CATEGORY_CHIPS = [
-  { id: "all", label: "All", icon: "" },
-  { id: "beverages", label: "Beverages", icon: "☕" },
-  { id: "snacks", label: "Snacks", icon: "🍴" },
-  { id: "bakery", label: "Bakery", icon: "🍰" },
-  { id: "dairy", label: "Dairy", icon: "🥛" },
-  { id: "grocery", label: "Grocery", icon: "🛒" },
-  { id: "bestsellers", label: "Bestsellers", icon: "⭐" }
-]
+// Predefined category filter icons map
+const CATEGORY_ICON_MAP = {
+  "tea & chai tapri": "☕",
+  "coffee & cafe drinks": "☕",
+  "south indian tiffin": "🫓",
+  "street food & chaat": "🍲",
+  "snacks & pakoras": "🧆",
+  "sandwiches & rolls": "🥪",
+  "juice corner": "🥤",
+  "lassi & coolers": "🥛",
+  "sweets & mithai": "🍬",
+  "quick meals & dhaba": "🍛",
+  "atta & flour": "🌾",
+  "rice": "🍚",
+  "dal & pulses": "🥣",
+  "oil & ghee": "🛢️",
+  "spices & masala": "🌶️",
+  "biscuits & cookies": "🍪",
+  "snacks": "🍿",
+  "tea & coffee": "☕",
+  "beverages": "🥤",
+  "dairy": "🥛",
+  "household cleaning": "🧼"
+}
 
 function isVegItem(item) {
   if (item.is_veg !== undefined) return Boolean(item.is_veg)
@@ -123,8 +137,7 @@ function isVegItem(item) {
     name.includes("meat") ||
     name.includes("fish") ||
     name.includes("mutton") ||
-    name.includes("non-veg") ||
-    name.includes("margherita") // Visual match with reference image
+    name.includes("non-veg")
   ) {
     return false
   }
@@ -143,6 +156,24 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
   const [saving, setSaving] = useState(false)
 
   const { success: toastSuccess, error: toastError } = useToast()
+
+  // Dynamically derive category chips from loaded catalog
+  const categoryChips = useMemo(() => {
+    const catSet = new Set()
+    catalog.forEach((it) => {
+      if (it.category) catSet.add(it.category)
+    })
+    const chips = [{ id: "all", label: "All", icon: "" }]
+    Array.from(catSet).forEach((cat) => {
+      const key = cat.toLowerCase()
+      chips.push({
+        id: key,
+        label: cat,
+        icon: CATEGORY_ICON_MAP[key] || "🍽️"
+      })
+    })
+    return chips
+  }, [catalog])
 
   // Lock background scrolling when modal is active
   useEffect(() => {
@@ -479,7 +510,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
 
             {/* Category Filter Chips */}
             <div className="add-menu-category-chips">
-              {CATEGORY_CHIPS.map((chip) => {
+              {categoryChips.map((chip) => {
                 const isActive = selectedCategory === chip.id
                 return (
                   <button

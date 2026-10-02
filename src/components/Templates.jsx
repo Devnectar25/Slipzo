@@ -7,6 +7,7 @@ import { CardSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
 import { RealisticReceiptView } from "./RealisticReceiptView"
+import Swal from "sweetalert2"
 
 export const BUILTIN_TEMPLATES = [
   {
@@ -449,7 +450,19 @@ export function Templates({ setView, user }) {
   }
 
   const remove = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this template?")) return
+    const confirmResult = await Swal.fire({
+      title: "Delete Template?",
+      text: "Are you sure you want to delete this template?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Delete",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true
+    })
+    if (!confirmResult.isConfirmed) return
     try {
       setActionLoadingId(id)
       await call(`/templates/${id}`, { method: "DELETE" })

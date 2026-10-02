@@ -726,6 +726,29 @@
    Modals: Add to Menu & Edit Price Confirmation
    ========================================================================== */
 
+/* Prevent background and container scrolling when any modal is present */
+body:has(.menu-modal-backdrop),
+html:has(.menu-modal-backdrop),
+body:has(.modal-backdrop),
+html:has(.modal-backdrop),
+body:has(.add-menu-modal-backdrop),
+html:has(.add-menu-modal-backdrop),
+body:has(.print-modal-backdrop),
+html:has(.print-modal-backdrop) {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+body:has(.menu-modal-backdrop) .shell-content,
+body:has(.menu-modal-backdrop) .shell-main,
+body:has(.menu-modal-backdrop) .menu-page-container,
+body:has(.modal-backdrop) .shell-content,
+body:has(.modal-backdrop) .shell-main,
+body:has(.add-menu-modal-backdrop) .shell-content,
+body:has(.add-menu-modal-backdrop) .shell-main {
+  overflow: hidden !important;
+}
+
 .menu-modal-backdrop {
   position: fixed;
   top: 0;
@@ -738,15 +761,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.75rem;
   animation: fadeIn 0.15s ease;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .menu-modal-card {
   background: #ffffff;
-  border-radius: 18px;
+  border-radius: 14px;
   width: 100%;
   max-width: 440px;
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
   overflow: hidden;
   border: 1px solid #e2e8f0;
@@ -757,12 +785,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.25rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
 }
 
 .menu-modal-title {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #0f172a;
   margin: 0;
@@ -773,11 +802,12 @@
   border: none;
   color: #64748b;
   cursor: pointer;
-  padding: 0.35rem;
+  padding: 0.25rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s ease;
 }
 
 .menu-modal-close-btn:hover {
@@ -786,24 +816,26 @@
 }
 
 .menu-modal-body {
-  padding: 1.25rem;
+  padding: 0.85rem 1rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .menu-modal-item-preview {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 0.85rem;
-  margin-bottom: 1.25rem;
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .menu-modal-preview-img {
-  width: 60px;
-  height: 60px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
   object-fit: cover;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -816,22 +848,22 @@
 }
 
 .menu-modal-preview-name {
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: #0f172a;
-  margin: 0 0 0.2rem 0;
+  margin: 0 0 0.15rem 0;
 }
 
 .menu-modal-field {
-  margin-bottom: 1.15rem;
+  margin-bottom: 0.65rem;
 }
 
 .menu-modal-label {
   display: block;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #334155;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.25rem;
 }
 
 .menu-modal-price-input-box {
@@ -842,23 +874,31 @@
 
 .menu-modal-currency-symbol {
   position: absolute;
-  left: 12px;
-  font-size: 1.05rem;
+  left: 9px;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #0284c7;
+  pointer-events: none;
 }
 
 .menu-modal-input {
   width: 100%;
-  padding: 0.65rem 0.85rem 0.65rem 2rem;
+  padding: 0.45rem 0.65rem;
   border: 1.5px solid #cbd5e1;
-  border-radius: 10px;
-  font-size: 1.05rem;
-  font-weight: 700;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
   color: #0f172a;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s ease;
+  height: 36px;
+}
+
+.menu-modal-price-input-box .menu-modal-input {
+  padding-left: 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .menu-modal-input:focus {
@@ -869,10 +909,11 @@
 .menu-modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
   border-top: 1px solid #f1f5f9;
   background: #f8fafc;
+  flex-shrink: 0;
 }
 
 /* Animations */
