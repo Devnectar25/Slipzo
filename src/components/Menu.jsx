@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   Utensils,
   Plus,
@@ -13,7 +13,12 @@ import {
   Check,
   AlertCircle,
   Mic,
-  Volume2
+  Volume2,
+  Barcode as BarcodeIcon,
+  SlidersHorizontal,
+  Image as ImageIcon,
+  Upload,
+  Link as LinkIcon
 } from "lucide-react"
 import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, getCurrentUserKey } from "../lib/utils"
 import { useToast } from "./common/Toast"
@@ -22,6 +27,8 @@ import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useSpeechInput } from "../hooks/useSpeechInput"
+import { BarcodeModal } from "./common/BarcodeModal"
+import Swal from "sweetalert2"
 import "../styles/Menu.css"
 
 export function Menu({ setView, requireAuth, user }) {
@@ -52,6 +59,38 @@ export function Menu({ setView, requireAuth, user }) {
     } catch (_) {}
   }, [])
 
+  // User shop business type context
+  const cachedShop = getCachedData("/shop")
+  const defaultBusinessType = cachedShop?.business_type || "small_business"
+  const [selectedBusinessType, setSelectedBusinessType] = useState(defaultBusinessType)
+
+  // Listen to shop updates to sync business type and clear personal menu
+  useEffect(() => {
+    const handleShopUpdate = (e) => {
+      const updatedShop = e?.detail || getCachedData("/shop")
+      if (updatedShop?.business_type) {
+        setSelectedBusinessType(updatedShop.business_type)
+        // Reset items to empty array & reload to ensure clean state
+        setItems([])
+        loadUserMenu(true)
+        loadMasterCatalog(updatedShop.business_type)
+      }
+    }
+    const handleMenuUpdate = (e) => {
+      if (Array.isArray(e?.detail?.items)) {
+        setItems(e.detail.items)
+      } else {
+        loadUserMenu(false)
+      }
+    }
+    window.addEventListener("slipzo_shop_updated", handleShopUpdate)
+    window.addEventListener("slipzo-menu-update", handleMenuUpdate)
+    return () => {
+      window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
+      window.removeEventListener("slipzo-menu-update", handleMenuUpdate)
+    }
+  }, [user, userKey])
+
   // ==========================================
   // STATE A: "MY MENU" (Personal Menu)
   // ==========================================
@@ -69,6 +108,7 @@ export function Menu({ setView, requireAuth, user }) {
   const [editingItem, setEditingItem] = useState(null)
   const [editPrice, setEditPrice] = useState("")
   const [editActive, setEditActive] = useState(true)
+  const [editBarcodeActive, setEditBarcodeActive] = useState(true)
   const [isUpdatingPrice, setIsUpdatingPrice] = useState(false)
 
   // Delete item state
@@ -81,12 +121,81 @@ export function Menu({ setView, requireAuth, user }) {
   const [catalogLoading, setCatalogLoading] = useState(false)
   const [catalogSearch, setCatalogSearch] = useState("")
   const [catalogCategory, setCatalogCategory] = useState("all")
+  const [catalogPage, setCatalogPage] = useState(1)
+  const [catalogPageSize, setCatalogPageSize] = useState(12)
+
+  // Pagination for My Menu
+  const [userMenuPage, setUserMenuPage] = useState(1)
+  const [userMenuPageSize, setUserMenuPageSize] = useState(12)
+
+  // Reset page numbers on filter changes
+  useEffect(() => {
+    setCatalogPage(1)
+  }, [catalogSearch, catalogCategory, selectedBusinessType])
+
+  useEffect(() => {
+    setUserMenuPage(1)
+  }, [search, selectedCategory])
 
   // Add confirmation modal
   const [selectedCatalogItem, setSelectedCatalogItem] = useState(null)
   const [customPrice, setCustomPrice] = useState("")
+  const [addBarcodeActive, setAddBarcodeActive] = useState(true)
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false)
   const [addFormError, setAddFormError] = useState("")
+
+  // Barcode View & Print Modal
+  const [barcodeModalItem, setBarcodeModalItem] = useState(null)
+
+  // Custom Item Creation Modal State
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
+  const [customName, setCustomName] = useState("")
+  const [customCat, setCustomCat] = useState("General")
+  const [customItemPrice, setCustomItemPrice] = useState("")
+  const [customBarcode, setCustomBarcode] = useState("")
+  const [customBarcodeActive, setCustomBarcodeActive] = useState(true)
+  const [customImageUrl, setCustomImageUrl] = useState("")
+  const [customImagePreview, setCustomImagePreview] = useState("")
+  const [customImageMode, setCustomImageMode] = useState("upload") // "upload" | "url"
+  const [isCreatingCustom, setIsCreatingCustom] = useState(false)
+  const [customFormError, setCustomFormError] = useState("")
+  const customFileInputRef = useRef(null)
+
+  // ==========================================
+  // BODY SCROLL LOCK WHEN MODAL IS OPEN
+  // ==========================================
+  const isAnyMenuModalOpen = Boolean(
+    selectedCatalogItem ||
+    editingItem ||
+    isCustomModalOpen ||
+    barcodeModalItem
+  )
+
+  useEffect(() => {
+    if (isAnyMenuModalOpen) {
+      const originalBodyOverflow = document.body.style.overflow
+      const originalDocOverflow = document.documentElement.style.overflow
+
+      document.body.style.overflow = "hidden"
+      document.documentElement.style.overflow = "hidden"
+
+      const elementsToLock = document.querySelectorAll(
+        ".shell-content, .shell-main, .app, .public-layout, .main-content, .menu-page-container"
+      )
+      elementsToLock.forEach(el => {
+        el.dataset.origOverflow = el.style.overflow
+        el.style.overflow = "hidden"
+      })
+
+      return () => {
+        document.body.style.overflow = originalBodyOverflow
+        document.documentElement.style.overflow = originalDocOverflow
+        elementsToLock.forEach(el => {
+          el.style.overflow = el.dataset.origOverflow || ""
+        })
+      }
+    }
+  }, [isAnyMenuModalOpen])
 
   // ==========================================
   // SPEECH RECOGNITION (Reusing existing hook)
@@ -141,11 +250,11 @@ export function Menu({ setView, requireAuth, user }) {
     }
   }
 
-  // Fetch master catalog for adding items
-  const loadMasterCatalog = async () => {
+  // Fetch master catalog for adding items based on business type
+  const loadMasterCatalog = async (bType = selectedBusinessType) => {
     try {
       setCatalogLoading(true)
-      const data = await call("/menu/catalog").catch(() => null)
+      const data = await call(`/menu/catalog?business_type=${bType}`).catch(() => null)
       if (Array.isArray(data)) {
         setCatalogItems(data)
       }
@@ -160,16 +269,16 @@ export function Menu({ setView, requireAuth, user }) {
   useEffect(() => {
     if (user) {
       loadUserMenu()
-      loadMasterCatalog()
+      loadMasterCatalog(selectedBusinessType)
     }
-  }, [user, userKey])
+  }, [user, userKey, selectedBusinessType])
 
   // When switching to Add Items view, fetch catalog if not loaded
   useEffect(() => {
     if (currentView === "add_items" && catalogItems.length === 0) {
-      loadMasterCatalog()
+      loadMasterCatalog(selectedBusinessType)
     }
-  }, [currentView, catalogItems.length])
+  }, [currentView, catalogItems.length, selectedBusinessType])
 
   // Derive categories from User's items
   const userCategories = useMemo(() => {
@@ -227,12 +336,27 @@ export function Menu({ setView, requireAuth, user }) {
     return catalogItems.filter((it) => {
       const matchesSearch = !q ||
         (it.name || "").toLowerCase().includes(q) ||
-        (it.category || "").toLowerCase().includes(q)
+        (it.category || "").toLowerCase().includes(q) ||
+        (it.barcode || "").toLowerCase().includes(q)
       const matchesCat = catalogCategory === "all" ||
         (it.category || "").toLowerCase() === catalogCategory.toLowerCase()
       return matchesSearch && matchesCat
     })
   }, [catalogItems, catalogSearch, catalogCategory])
+
+  // Pagination for Master Catalog
+  const totalCatalogPages = Math.max(1, Math.ceil(filteredCatalogItems.length / catalogPageSize))
+  const paginatedCatalogItems = useMemo(() => {
+    const start = (catalogPage - 1) * catalogPageSize
+    return filteredCatalogItems.slice(start, start + catalogPageSize)
+  }, [filteredCatalogItems, catalogPage, catalogPageSize])
+
+  // Pagination for User Menu Items
+  const totalUserPages = Math.max(1, Math.ceil(filteredUserItems.length / userMenuPageSize))
+  const paginatedUserItems = useMemo(() => {
+    const start = (userMenuPage - 1) * userMenuPageSize
+    return filteredUserItems.slice(start, start + userMenuPageSize)
+  }, [filteredUserItems, userMenuPage, userMenuPageSize])
 
   // ==========================================
   // HANDLERS: ADD TO MENU CONFIRMATION
@@ -241,12 +365,14 @@ export function Menu({ setView, requireAuth, user }) {
     setSelectedCatalogItem(catalogItem)
     // Default the selling price to the master catalog base price
     setCustomPrice(catalogItem.price !== undefined ? String(catalogItem.price) : "")
+    setAddBarcodeActive(catalogItem.barcode_active !== false)
     setAddFormError("")
   }
 
   const handleCloseAddModal = () => {
     setSelectedCatalogItem(null)
     setCustomPrice("")
+    setAddBarcodeActive(true)
     setAddFormError("")
   }
 
@@ -266,7 +392,8 @@ export function Menu({ setView, requireAuth, user }) {
     try {
       const payload = {
         menu_item_id: selectedCatalogItem.id,
-        custom_price: numPrice
+        custom_price: numPrice,
+        barcode_active: addBarcodeActive
       }
 
       const added = await call("/menu", {
@@ -285,7 +412,7 @@ export function Menu({ setView, requireAuth, user }) {
       setCatalogItems((prev) =>
         prev.map((it) =>
           it.id === selectedCatalogItem.id
-            ? { ...it, is_added: true, user_price: numPrice, user_menu_item_id: added.id }
+            ? { ...it, is_added: true, user_price: numPrice, user_menu_item_id: added.id, user_barcode_active: addBarcodeActive }
             : it
         )
       )
@@ -302,17 +429,19 @@ export function Menu({ setView, requireAuth, user }) {
   }
 
   // ==========================================
-  // HANDLERS: EDIT USER SELLING PRICE
+  // HANDLERS: EDIT USER SELLING PRICE & BARCODE
   // ==========================================
   const handleOpenEditModal = (userItem) => {
     setEditingItem(userItem)
     setEditPrice(userItem.price !== undefined ? String(userItem.price) : "")
     setEditActive(userItem.is_active !== undefined ? Boolean(userItem.is_active) : true)
+    setEditBarcodeActive(userItem.barcode_active !== false)
   }
 
   const handleCloseEditModal = () => {
     setEditingItem(null)
     setEditPrice("")
+    setEditBarcodeActive(true)
   }
 
   const handleSaveEditPrice = async (e) => {
@@ -331,17 +460,25 @@ export function Menu({ setView, requireAuth, user }) {
         method: "PUT",
         body: JSON.stringify({
           custom_price: numPrice,
-          is_active: editActive
+          is_active: editActive,
+          barcode_active: editBarcodeActive
         })
       })
 
       setItems((prev) => {
-        const next = prev.map((it) => (it.id === editingItem.id ? { ...it, ...updated, price: numPrice, custom_price: numPrice, is_active: editActive } : it))
+        const next = prev.map((it) => (it.id === editingItem.id ? { 
+          ...it, 
+          ...updated, 
+          price: numPrice, 
+          custom_price: numPrice, 
+          is_active: editActive, 
+          barcode_active: editBarcodeActive 
+        } : it))
         saveStoredMenuItems(next, user)
         return next
       })
 
-      toastSuccess(`Updated price for "${editingItem.name}" to ${money(numPrice)}`)
+      toastSuccess(`Updated settings for "${editingItem.name}"`)
       handleCloseEditModal()
     } catch (err) {
       console.error("Failed to update user price:", err)
@@ -356,7 +493,20 @@ export function Menu({ setView, requireAuth, user }) {
   // ==========================================
   const handleRemoveFromUserMenu = async (userItem) => {
     const itemName = userItem.name || "item"
-    if (!window.confirm(`Remove "${itemName}" from your personal menu?\n\n(It will still remain available in the master catalog to add anytime).`)) {
+    const confirmResult = await Swal.fire({
+      title: "Remove from My Menu?",
+      html: `Are you sure you want to remove <strong>"${itemName}"</strong> from your personal menu?<br/><span style="font-size: 0.84rem; color: #64748b; margin-top: 8px; display: inline-block;">(It will still remain available in the master catalog to add anytime).</span>`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Remove",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true
+    })
+
+    if (!confirmResult.isConfirmed) {
       return
     }
 
@@ -386,6 +536,106 @@ export function Menu({ setView, requireAuth, user }) {
       toastError("Unable to remove item from your menu.")
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  // ==========================================
+  // HANDLERS: CREATE CUSTOM ITEM
+  // ==========================================
+  const handleCustomImageFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith("image/")) {
+      setCustomFormError("Please select a valid image file (PNG, JPG, WebP)")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setCustomFormError("Image size must be less than 5MB")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (loadEvt) => {
+      const dataUrl = loadEvt.target.result
+      setCustomImagePreview(dataUrl)
+      setCustomImageUrl(dataUrl)
+      setCustomFormError("")
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveCustomImage = () => {
+    setCustomImagePreview("")
+    setCustomImageUrl("")
+    if (customFileInputRef.current) {
+      customFileInputRef.current.value = ""
+    }
+  }
+
+  const handleOpenCustomModal = () => {
+    setCustomName("")
+    setCustomCat("General")
+    setCustomItemPrice("")
+    setCustomBarcode("")
+    setCustomBarcodeActive(true)
+    setCustomImageUrl("")
+    setCustomImagePreview("")
+    setCustomImageMode("upload")
+    setCustomFormError("")
+    setIsCustomModalOpen(true)
+  }
+
+  const handleCloseCustomModal = () => {
+    setIsCustomModalOpen(false)
+    setCustomName("")
+    setCustomImageUrl("")
+    setCustomImagePreview("")
+    setCustomFormError("")
+  }
+
+  const handleSaveCustomItem = async (e) => {
+    e?.preventDefault()
+    if (!customName.trim()) {
+      setCustomFormError("Please enter product name.")
+      return
+    }
+    const numPrice = parseFloat(customItemPrice)
+    if (customItemPrice === "" || isNaN(numPrice) || numPrice < 0) {
+      setCustomFormError("Please enter a valid non-negative selling price.")
+      return
+    }
+
+    setIsCreatingCustom(true)
+    setCustomFormError("")
+
+    try {
+      const payload = {
+        name: customName.trim(),
+        category: customCat.trim() || "General",
+        price: numPrice,
+        image_url: customImageUrl.trim() || undefined,
+        barcode: customBarcode.trim() || undefined,
+        barcode_active: customBarcodeActive
+      }
+
+      const created = await call("/menu", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+
+      setItems((prev) => {
+        const next = [created, ...prev]
+        saveStoredMenuItems(next, user)
+        return next
+      })
+
+      toastSuccess(`Created "${customName}" at ${money(numPrice)}`)
+      handleCloseCustomModal()
+    } catch (err) {
+      console.error("Failed to create custom item:", err)
+      setCustomFormError(err.detail || err.message || "Failed to create custom item.")
+      toastError(err.detail || err.message || "Failed to create custom item.")
+    } finally {
+      setIsCreatingCustom(false)
     }
   }
 
@@ -449,6 +699,16 @@ export function Menu({ setView, requireAuth, user }) {
                 }}
               >
                 <Plus size={18} /> {t("menu.addItems", "Add Items")}
+              </button>
+
+              <button
+                type="button"
+                className="menu-secondary-btn"
+                onClick={handleOpenCustomModal}
+                title="Create a custom product"
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+              >
+                <Sparkles size={16} /> <span>{t("menu.customItem", "Custom Item")}</span>
               </button>
 
               <button
@@ -721,7 +981,7 @@ export function Menu({ setView, requireAuth, user }) {
               </div>
 
               <div className="menu-cards-grid">
-                {filteredUserItems.map((item) => {
+                {paginatedUserItems.map((item) => {
                   const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
                   return (
                     <div key={item.id} className="user-menu-card">
@@ -758,6 +1018,18 @@ export function Menu({ setView, requireAuth, user }) {
                       </div>
 
                       <div className="user-menu-card-actions user-card-bottom-actions">
+                        {item.barcode_active !== false && Boolean(item.barcode) && (
+                          <button
+                            type="button"
+                            className="menu-action-icon-btn edit-btn"
+                            onClick={() => setBarcodeModalItem(item)}
+                            title="View & Print Barcode Label"
+                            style={{ color: "#0284c7", background: "#f0f9ff", borderColor: "#bae6fd" }}
+                          >
+                            <BarcodeIcon size={14} />
+                            <span className="btn-label">Barcode</span>
+                          </button>
+                        )}
                         <button
                           className="menu-action-icon-btn edit-btn"
                           onClick={() => handleOpenEditModal(item)}
@@ -779,6 +1051,38 @@ export function Menu({ setView, requireAuth, user }) {
                   )
                 })}
               </div>
+
+              {/* User Menu Pagination */}
+              {filteredUserItems.length > userMenuPageSize && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginTop: "1.5rem", padding: "0.85rem 1.25rem", background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "0.88rem", color: "#64748b" }}>
+                    Showing <strong>{formatNum((userMenuPage - 1) * userMenuPageSize + 1)}</strong>–<strong>{formatNum(Math.min(userMenuPage * userMenuPageSize, filteredUserItems.length))}</strong> of <strong>{formatNum(filteredUserItems.length)}</strong> items
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <button
+                      type="button"
+                      disabled={userMenuPage <= 1}
+                      onClick={() => setUserMenuPage(p => Math.max(1, p - 1))}
+                      className="menu-secondary-btn"
+                      style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", opacity: userMenuPage <= 1 ? 0.5 : 1, cursor: userMenuPage <= 1 ? "not-allowed" : "pointer" }}
+                    >
+                      Previous
+                    </button>
+                    <span style={{ fontSize: "0.88rem", fontWeight: "600", color: "#0f172a", padding: "0 0.5rem" }}>
+                      Page {formatNum(userMenuPage)} of {formatNum(totalUserPages)}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={userMenuPage >= totalUserPages}
+                      onClick={() => setUserMenuPage(p => Math.min(totalUserPages, p + 1))}
+                      className="menu-secondary-btn"
+                      style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", opacity: userMenuPage >= totalUserPages ? 0.5 : 1, cursor: userMenuPage >= totalUserPages ? "not-allowed" : "pointer" }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </>
@@ -790,18 +1094,28 @@ export function Menu({ setView, requireAuth, user }) {
       {currentView === "add_items" && (
         <>
           {/* Back Bar */}
-          <div className="add-items-back-bar">
-            <button
-              className="add-items-back-btn"
-              onClick={() => setCurrentView("my_menu")}
-              title={t("menu.returnToMenu", "Return to My Menu")}
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div>
-              <h2 className="add-items-header-title">{t("menu.addItems", "Add Items")}</h2>
-              <p className="menu-sub-title">{t("menu.catalogSubtitle", "Search or speak to find items from the master catalog")}</p>
+          <div className="add-items-back-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <button
+                className="add-items-back-btn"
+                onClick={() => setCurrentView("my_menu")}
+                title={t("menu.returnToMenu", "Return to My Menu")}
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div>
+                <h2 className="add-items-header-title">{t("menu.addItems", "Add Items")}</h2>
+                <p className="menu-sub-title">{t("menu.catalogSubtitle", "Select your catalog and add products to your menu")}</p>
+              </div>
             </div>
+            <button
+              type="button"
+              className="menu-secondary-btn"
+              onClick={handleOpenCustomModal}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", fontSize: "0.85rem" }}
+            >
+              <Plus size={16} /> <span>{t("menu.createCustom", "+ Create Custom Item")}</span>
+            </button>
           </div>
 
           {/* Search bar with voice input button */}
@@ -873,59 +1187,150 @@ export function Menu({ setView, requireAuth, user }) {
               </button>
             </div>
           ) : (
-            <div className="menu-cards-grid">
-              {filteredCatalogItems.map((catItem) => {
-                const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
-                return (
-                  <div
-                    key={catItem.id}
-                    className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
-                  >
-                    <div className="menu-card-image-box">
-                      {catItem.image_url ? (
-                        <img
-                          src={catItem.image_url}
-                          alt={catItem.name}
-                          className="menu-card-image"
-                          onError={(e) => {
-                            e.target.style.display = "none"
-                          }}
-                        />
-                      ) : (
-                        <div className="menu-card-image-placeholder">
-                          <Utensils size={22} />
-                        </div>
-                      )}
-                      <span className="menu-card-cat-badge">{tDb(catItem.category || "General")}</span>
-                    </div>
+            <>
+              <div className="menu-cards-grid">
+                {paginatedCatalogItems.map((catItem) => {
+                  const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
+                  return (
+                    <div
+                      key={catItem.id}
+                      className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
+                    >
+                      <div className="menu-card-image-box">
+                        {catItem.image_url ? (
+                          <img
+                            src={catItem.image_url}
+                            alt={catItem.name}
+                            className="menu-card-image"
+                            onError={(e) => {
+                              e.target.style.display = "none"
+                            }}
+                          />
+                        ) : (
+                          <div className="menu-card-image-placeholder">
+                            <Utensils size={22} />
+                          </div>
+                        )}
+                        <span className="menu-card-cat-badge">{tDb(catItem.category || "General")}</span>
+                        {catItem.barcode && (
+                          <span style={{ position: "absolute", bottom: "6px", right: "6px", fontSize: "0.64rem", fontWeight: "700", background: "rgba(255,255,255,0.94)", color: "#334155", border: "1px solid #cbd5e1", padding: "1px 5px", borderRadius: "5px", display: "flex", alignItems: "center", gap: "3px", zIndex: 2, backdropFilter: "blur(4px)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                            <BarcodeIcon size={10} /> {catItem.barcode}
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="menu-card-details">
-                      <h4 className="menu-card-item-name" title={catItem.name}>
-                        {tDb(catItem.name)}
-                      </h4>
-                      <div className="menu-card-price-row">
-                        <span className="catalog-card-base-price">{money(catItem.price)}</span>
+                      <div className="menu-card-details">
+                        <h4 className="menu-card-item-name" title={catItem.name}>
+                          {tDb(catItem.name)}
+                        </h4>
+                        <div className="menu-card-price-row">
+                          <span className="catalog-card-base-price">{money(catItem.price)}</span>
+                        </div>
+                      </div>
+
+                      <div className="user-menu-card-actions">
+                        {isAlreadyAdded ? (
+                          <span className="catalog-card-added-badge">
+                            <Check size={14} /> {t("menu.added", "Added")}
+                          </span>
+                        ) : (
+                          <button
+                            className="catalog-card-add-btn"
+                            onClick={() => handleOpenAddModal(catItem)}
+                          >
+                            <Plus size={15} /> {t("menu.add", "Add")}
+                          </button>
+                        )}
                       </div>
                     </div>
+                  )
+                })}
+              </div>
 
-                    <div className="user-menu-card-actions">
-                      {isAlreadyAdded ? (
-                        <span className="catalog-card-added-badge">
-                          <Check size={14} /> {t("menu.added", "Added")}
-                        </span>
-                      ) : (
-                        <button
-                          className="catalog-card-add-btn"
-                          onClick={() => handleOpenAddModal(catItem)}
-                        >
-                          <Plus size={15} /> {t("menu.add", "Add")}
-                        </button>
-                      )}
-                    </div>
+              {/* Master Catalog Pagination Bar */}
+              {filteredCatalogItems.length > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginTop: "1.5rem", padding: "1rem 1.25rem", background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                  <div style={{ fontSize: "0.88rem", color: "#64748b" }}>
+                    Showing <strong>{formatNum((catalogPage - 1) * catalogPageSize + 1)}</strong>–<strong>{formatNum(Math.min(catalogPage * catalogPageSize, filteredCatalogItems.length))}</strong> of <strong>{formatNum(filteredCatalogItems.length)}</strong> products
                   </div>
-                )
-              })}
-            </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginRight: "0.5rem", fontSize: "0.85rem", color: "#64748b" }}>
+                      <span>Per page:</span>
+                      <select
+                        value={catalogPageSize}
+                        onChange={(e) => {
+                          setCatalogPageSize(Number(e.target.value))
+                          setCatalogPage(1)
+                        }}
+                        style={{ padding: "0.3rem 0.5rem", borderRadius: "6px", border: "1px solid #cbd5e1", background: "#f8fafc", fontSize: "0.85rem", fontWeight: "600", color: "#0f172a" }}
+                      >
+                        <option value={12}>12</option>
+                        <option value={24}>24</option>
+                        <option value={48}>48</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={catalogPage <= 1}
+                      onClick={() => setCatalogPage(p => Math.max(1, p - 1))}
+                      className="menu-secondary-btn"
+                      style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", opacity: catalogPage <= 1 ? 0.5 : 1, cursor: catalogPage <= 1 ? "not-allowed" : "pointer" }}
+                    >
+                      Previous
+                    </button>
+                    <div style={{ display: "flex", gap: "0.25rem" }}>
+                      {Array.from({ length: totalCatalogPages }).map((_, idx) => {
+                        const pageNum = idx + 1
+                        if (
+                          pageNum === 1 ||
+                          pageNum === totalCatalogPages ||
+                          (pageNum >= catalogPage - 1 && pageNum <= catalogPage + 1)
+                        ) {
+                          const isActive = pageNum === catalogPage
+                          return (
+                            <button
+                              key={pageNum}
+                              type="button"
+                              onClick={() => setCatalogPage(pageNum)}
+                              style={{
+                                width: "32px",
+                                height: "32px",
+                                borderRadius: "6px",
+                                border: isActive ? "1px solid #0284c7" : "1px solid #e2e8f0",
+                                background: isActive ? "#0284c7" : "#ffffff",
+                                color: isActive ? "#ffffff" : "#334155",
+                                fontWeight: "600",
+                                fontSize: "0.85rem",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease"
+                              }}
+                            >
+                              {formatNum(pageNum)}
+                            </button>
+                          )
+                        } else if (
+                          (pageNum === catalogPage - 2 && pageNum > 1) ||
+                          (pageNum === catalogPage + 2 && pageNum < totalCatalogPages)
+                        ) {
+                          return <span key={pageNum} style={{ padding: "0 0.25rem", color: "#94a3b8", alignSelf: "center" }}>...</span>
+                        }
+                        return null
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={catalogPage >= totalCatalogPages}
+                      onClick={() => setCatalogPage(p => Math.min(totalCatalogPages, p + 1))}
+                      className="menu-secondary-btn"
+                      style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", opacity: catalogPage >= totalCatalogPages ? 0.5 : 1, cursor: catalogPage >= totalCatalogPages ? "not-allowed" : "pointer" }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
@@ -990,6 +1395,61 @@ export function Menu({ setView, requireAuth, user }) {
                   <span style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "0.3rem", display: "block" }}>
                     {t("menu.pricePersonalNote", "This price is personal to your shop and will appear on your customer receipts.")}
                   </span>
+                </div>
+
+                {/* Barcode Active / Deactive toggle */}
+                <div className="menu-modal-field" style={{ marginTop: "1rem" }}>
+                  <label className="menu-modal-label">{t("menu.barcodeStatus", "Barcode Status")}</label>
+                  <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.4rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setAddBarcodeActive(true)}
+                      style={{
+                        flex: 1,
+                        padding: "0.55rem 0.75rem",
+                        borderRadius: "8px",
+                        border: addBarcodeActive ? "2px solid #16a34a" : "1px solid #cbd5e1",
+                        background: addBarcodeActive ? "#f0fdf4" : "#ffffff",
+                        color: addBarcodeActive ? "#15803d" : "#64748b",
+                        fontWeight: "600",
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.35rem"
+                      }}
+                    >
+                      <Check size={15} /> {t("menu.barcodeActive", "Active (Scan Ready)")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAddBarcodeActive(false)}
+                      style={{
+                        flex: 1,
+                        padding: "0.55rem 0.75rem",
+                        borderRadius: "8px",
+                        border: !addBarcodeActive ? "2px solid #dc2626" : "1px solid #cbd5e1",
+                        background: !addBarcodeActive ? "#fef2f2" : "#ffffff",
+                        color: !addBarcodeActive ? "#b91c1c" : "#64748b",
+                        fontWeight: "600",
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.35rem"
+                      }}
+                    >
+                      <X size={15} /> {t("menu.barcodeDeactive", "Deactive (Manual Only)")}
+                    </button>
+                  </div>
+                  {selectedCatalogItem.barcode && addBarcodeActive && (
+                    <div style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <BarcodeIcon size={13} />
+                      <span>Master Barcode: <code>{selectedCatalogItem.barcode}</code></span>
+                    </div>
+                  )}
                 </div>
 
                 {addFormError && (
@@ -1083,6 +1543,61 @@ export function Menu({ setView, requireAuth, user }) {
                     {t("menu.activeAvailable", "Active (Available for quick billing)")}
                   </label>
                 </div>
+
+                {/* Barcode Active / Deactive toggle */}
+                <div className="menu-modal-field" style={{ marginTop: "1rem" }}>
+                  <label className="menu-modal-label">{t("menu.barcodeStatus", "Barcode Status")}</label>
+                  <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.4rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setEditBarcodeActive(true)}
+                      style={{
+                        flex: 1,
+                        padding: "0.55rem 0.75rem",
+                        borderRadius: "8px",
+                        border: editBarcodeActive ? "2px solid #16a34a" : "1px solid #cbd5e1",
+                        background: editBarcodeActive ? "#f0fdf4" : "#ffffff",
+                        color: editBarcodeActive ? "#15803d" : "#64748b",
+                        fontWeight: "600",
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.35rem"
+                      }}
+                    >
+                      <Check size={15} /> {t("menu.barcodeActive", "Active (Scan Enabled)")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditBarcodeActive(false)}
+                      style={{
+                        flex: 1,
+                        padding: "0.55rem 0.75rem",
+                        borderRadius: "8px",
+                        border: !editBarcodeActive ? "2px solid #dc2626" : "1px solid #cbd5e1",
+                        background: !editBarcodeActive ? "#fef2f2" : "#ffffff",
+                        color: !editBarcodeActive ? "#b91c1c" : "#64748b",
+                        fontWeight: "600",
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.35rem"
+                      }}
+                    >
+                      <X size={15} /> {t("menu.barcodeDeactive", "Deactive (No Scan)")}
+                    </button>
+                  </div>
+                  {editingItem.barcode && editBarcodeActive && (
+                    <div style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <BarcodeIcon size={13} />
+                      <span>Item Barcode: <code>{editingItem.barcode}</code></span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="menu-modal-footer">
@@ -1106,6 +1621,356 @@ export function Menu({ setView, requireAuth, user }) {
           </div>
         </div>
       )}
+
+      {/* ====================================================================
+          CREATE CUSTOM ITEM MODAL
+          ==================================================================== */}
+      {/* ====================================================================
+          CREATE CUSTOM ITEM MODAL
+          ==================================================================== */}
+      {isCustomModalOpen && (
+        <div className="menu-modal-backdrop" onClick={handleCloseCustomModal}>
+          <div className="menu-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "440px" }}>
+            <div className="menu-modal-header">
+              <h3 className="menu-modal-title">{t("menu.createCustomTitle", "Create Custom Product")}</h3>
+              <button className="menu-modal-close-btn" onClick={handleCloseCustomModal}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomItem} style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div className="menu-modal-body" style={{ padding: "0.75rem 1rem", display: "flex", flexDirection: "column", gap: "0.45rem" }}>
+                {/* 1. Product Image Section */}
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
+                    <label className="menu-modal-label" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.76rem" }}>
+                      <ImageIcon size={13} style={{ color: "#0284c7" }} />
+                      <span>{t("menu.productImage", "Product Image (Optional)")}</span>
+                    </label>
+                    <div style={{ display: "flex", gap: "2px", background: "#f1f5f9", padding: "2px", borderRadius: "5px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setCustomImageMode("upload")}
+                        style={{
+                          border: "none",
+                          background: customImageMode === "upload" ? "#ffffff" : "transparent",
+                          color: customImageMode === "upload" ? "#0284c7" : "#64748b",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          padding: "2px 7px",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          boxShadow: customImageMode === "upload" ? "0 1px 2px rgba(0,0,0,0.08)" : "none"
+                        }}
+                      >
+                        Upload
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCustomImageMode("url")}
+                        style={{
+                          border: "none",
+                          background: customImageMode === "url" ? "#ffffff" : "transparent",
+                          color: customImageMode === "url" ? "#0284c7" : "#64748b",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          padding: "2px 7px",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          boxShadow: customImageMode === "url" ? "0 1px 2px rgba(0,0,0,0.08)" : "none"
+                        }}
+                      >
+                        Link
+                      </button>
+                    </div>
+                  </div>
+
+                  {customImageMode === "upload" ? (
+                    <div>
+                      <input
+                        type="file"
+                        ref={customFileInputRef}
+                        onChange={handleCustomImageFileChange}
+                        accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
+                        style={{ display: "none" }}
+                      />
+                      {customImagePreview ? (
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.6rem",
+                          padding: "0.3rem 0.55rem",
+                          background: "#f8fafc",
+                          border: "1.5px solid #cbd5e1",
+                          borderRadius: "8px",
+                          height: "40px",
+                          boxSizing: "border-box"
+                        }}>
+                          <div style={{
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "5px",
+                            overflow: "hidden",
+                            background: "#e2e8f0",
+                            flexShrink: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                          }}>
+                            <img
+                              src={customImagePreview}
+                              alt="Preview"
+                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: "0.74rem", fontWeight: "700", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {customName ? `${customName} Photo` : "Photo Ready"}
+                            </div>
+                            <div style={{ fontSize: "0.66rem", color: "#16a34a", fontWeight: "600" }}>
+                              ✓ Attached
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: "0.3rem" }}>
+                            <button
+                              type="button"
+                              onClick={() => customFileInputRef.current?.click()}
+                              className="menu-secondary-btn"
+                              style={{ padding: "0.15rem 0.45rem", fontSize: "0.68rem", height: "24px" }}
+                            >
+                              Change
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleRemoveCustomImage}
+                              className="menu-delete-btn"
+                              style={{ padding: "0.15rem 0.35rem", height: "24px" }}
+                              title="Remove image"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => customFileInputRef.current?.click()}
+                          style={{
+                            border: "1.5px dashed #cbd5e1",
+                            borderRadius: "8px",
+                            padding: "0.35rem 0.75rem",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.55rem",
+                            background: "#f8fafc",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            height: "40px",
+                            boxSizing: "border-box"
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#0284c7"; e.currentTarget.style.background = "#f0f9ff" }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#f8fafc" }}
+                        >
+                          <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <Upload size={12} />
+                          </div>
+                          <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem" }}>
+                            <span style={{ fontSize: "0.76rem", fontWeight: "700", color: "#0f172a" }}>
+                              Click to upload product image
+                            </span>
+                            <span style={{ fontSize: "0.65rem", color: "#64748b" }}>
+                              (PNG, JPG, WebP max 5MB)
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                        <LinkIcon size={13} style={{ position: "absolute", left: "9px", color: "#94a3b8" }} />
+                        <input
+                          type="url"
+                          className="menu-modal-input"
+                          placeholder="https://example.com/item.jpg"
+                          value={customImageUrl}
+                          onChange={(e) => {
+                            setCustomImageUrl(e.target.value)
+                            setCustomImagePreview(e.target.value)
+                          }}
+                          style={{ paddingLeft: "1.8rem", height: "35px", fontSize: "0.82rem" }}
+                        />
+                      </div>
+                      {customImageUrl && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.25rem", padding: "0.2rem 0.5rem", background: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                          <img
+                            src={customImageUrl}
+                            alt="URL preview"
+                            onError={(e) => { e.currentTarget.style.display = "none" }}
+                            style={{ width: "22px", height: "22px", borderRadius: "4px", objectFit: "cover" }}
+                          />
+                          <span style={{ fontSize: "0.7rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                            {customImageUrl}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleRemoveCustomImage}
+                            style={{ border: "none", background: "none", color: "#ef4444", cursor: "pointer", padding: "2px" }}
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Product Name */}
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  <label className="menu-modal-label">{t("menu.productName", "Product Name *")}</label>
+                  <input
+                    type="text"
+                    className="menu-modal-input"
+                    placeholder="e.g. Masala Dosa, Cotton Shirt, Special Chai"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    required
+                    autoFocus
+                    style={{ height: "35px", fontSize: "0.85rem" }}
+                  />
+                </div>
+
+                {/* 3. Category */}
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  <label className="menu-modal-label">{t("menu.category", "Category")}</label>
+                  <input
+                    type="text"
+                    className="menu-modal-input"
+                    placeholder="e.g. Snacks, Beverages, Garments, Grocery"
+                    value={customCat}
+                    onChange={(e) => setCustomCat(e.target.value)}
+                    style={{ height: "35px", fontSize: "0.85rem" }}
+                  />
+                </div>
+
+                {/* 4. Selling Price */}
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  <label className="menu-modal-label">{t("menu.sellingPrice", "Selling Price (₹) *")}</label>
+                  <div className="menu-modal-price-input-box">
+                    <span className="menu-modal-currency-symbol" style={{ left: "9px", fontSize: "0.9rem" }}>₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="menu-modal-input"
+                      placeholder="0.00"
+                      value={customItemPrice}
+                      onChange={(e) => setCustomItemPrice(e.target.value)}
+                      required
+                      style={{ height: "35px", fontSize: "0.88rem", paddingLeft: "1.5rem" }}
+                    />
+                  </div>
+                </div>
+
+                {/* 5. Barcode / SKU */}
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  <label className="menu-modal-label">{t("menu.customBarcode", "Barcode / SKU (Optional)")}</label>
+                  <input
+                    type="text"
+                    className="menu-modal-input"
+                    placeholder="Leave blank to auto-generate"
+                    value={customBarcode}
+                    onChange={(e) => setCustomBarcode(e.target.value)}
+                    style={{ height: "35px", fontSize: "0.85rem" }}
+                  />
+                </div>
+
+                {/* 6. Barcode Status */}
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  <label className="menu-modal-label">{t("menu.barcodeStatus", "Barcode Status")}</label>
+                  <div style={{ display: "flex", gap: "0.4rem", height: "34px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setCustomBarcodeActive(true)}
+                      style={{
+                        flex: 1,
+                        padding: "0 0.5rem",
+                        borderRadius: "7px",
+                        border: customBarcodeActive ? "1.5px solid #16a34a" : "1px solid #cbd5e1",
+                        background: customBarcodeActive ? "#f0fdf4" : "#ffffff",
+                        color: customBarcodeActive ? "#15803d" : "#64748b",
+                        fontWeight: "700",
+                        fontSize: "0.76rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.3rem"
+                      }}
+                    >
+                      <Check size={13} /> Active (Scan Ready)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomBarcodeActive(false)}
+                      style={{
+                        flex: 1,
+                        padding: "0 0.5rem",
+                        borderRadius: "7px",
+                        border: !customBarcodeActive ? "1.5px solid #dc2626" : "1px solid #cbd5e1",
+                        background: !customBarcodeActive ? "#fef2f2" : "#ffffff",
+                        color: !customBarcodeActive ? "#b91c1c" : "#64748b",
+                        fontWeight: "700",
+                        fontSize: "0.76rem",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "0.3rem"
+                      }}
+                    >
+                      <X size={13} /> Deactive (Manual Only)
+                    </button>
+                  </div>
+                </div>
+
+                {customFormError && (
+                  <div style={{ color: "#ef4444", fontSize: "0.76rem", marginTop: "0.15rem" }}>
+                    {customFormError}
+                  </div>
+                )}
+              </div>
+
+              <div className="menu-modal-footer">
+                <button
+                  type="button"
+                  className="menu-secondary-btn"
+                  onClick={handleCloseCustomModal}
+                  disabled={isCreatingCustom}
+                  style={{ height: "35px", padding: "0 0.9rem", fontSize: "0.82rem" }}
+                >
+                  {t("common.cancel", "Cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="menu-primary-btn"
+                  disabled={isCreatingCustom}
+                  style={{ height: "35px", padding: "0 1rem", fontSize: "0.82rem" }}
+                >
+                  {isCreatingCustom ? t("common.creating", "Creating...") : t("menu.createItem", "Create Product")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Barcode View & Print Modal */}
+      <BarcodeModal
+        item={barcodeModalItem}
+        isOpen={Boolean(barcodeModalItem)}
+        onClose={() => setBarcodeModalItem(null)}
+      />
     </div>
   )
 }

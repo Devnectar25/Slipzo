@@ -1,13 +1,12 @@
 import { useEffect, useState, useMemo } from "react"
 import { 
-  Plus, Receipt, Copy, Trash2, ArrowRight, Search, X, Edit, 
-  SlidersHorizontal, Check, Sparkles, Printer, Eye, LayoutTemplate,
-  Crown, Wand2, FileText, Layers, Tag
+  Receipt, ArrowRight, Search, X, Check, Sparkles, Printer, Eye,
+  Crown, Wand2, FileText, Layers
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
-import { CardSkeleton, ButtonLoader, Spinner } from "./common/Skeleton"
+import { CardSkeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
 import { RealisticReceiptView } from "./RealisticReceiptView"
@@ -150,9 +149,6 @@ export function Templates({ setView, user }) {
     const cached = getCachedData("/templates")
     return Array.isArray(cached) ? cached : []
   })
-  const [name, setName] = useState("")
-  const [show, setShow] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(() => {
     const cached = getCachedData("/templates")
     return !(Array.isArray(cached) && cached.length > 0)
