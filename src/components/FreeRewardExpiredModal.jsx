@@ -87,7 +87,7 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
               width: "72px",
               height: "72px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+              background: "linear-gradient(135deg, #fffbeb 0%, #FFF0C7 100%)",
               border: "2px solid #fde68a",
               display: "flex",
               alignItems: "center",
@@ -105,7 +105,7 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
             style={{
               fontSize: "1.45rem",
               fontWeight: "800",
-              color: "#0f172a",
+              color: "#0C1F41",
               margin: "0 0 0.5rem 0",
               letterSpacing: "-0.02em"
             }}
@@ -118,7 +118,7 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
             style={{
               fontSize: "0.92rem",
               lineHeight: "1.55",
-              color: "#64748b",
+              color: "#74788A",
               margin: "0 0 1.25rem 0"
             }}
           >
@@ -128,8 +128,8 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
           {/* Balance & Feature Highlight Box */}
           <div
             style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
+              background: "#FFF2DE",
+              border: "1px solid #F7CDAB",
               borderRadius: "14px",
               padding: "1rem 1.1rem",
               marginBottom: "1.5rem",
@@ -144,10 +144,10 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
                 justifyContent: "space-between",
                 paddingBottom: "0.75rem",
                 marginBottom: "0.75rem",
-                borderBottom: "1px dashed #cbd5e1"
+                borderBottom: "1px dashed #D9DDE4"
               }}
             >
-              <span style={{ fontWeight: "700", color: "#1e293b", fontSize: "0.9rem" }}>
+              <span style={{ fontWeight: "700", color: "#111827", fontSize: "0.9rem" }}>
                 Free Prints Balance
               </span>
               <span
@@ -166,16 +166,16 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
 
             {/* Perks list for paid plan */}
             <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#475569" }}>
-                <CheckCircle2 size={15} style={{ color: "#0284c7", flexShrink: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
+                <CheckCircle2 size={15} style={{ color: "#F66016", flexShrink: 0 }} />
                 <span>Unlimited invoices & instant thermal printing</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#475569" }}>
-                <CheckCircle2 size={15} style={{ color: "#0284c7", flexShrink: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
+                <CheckCircle2 size={15} style={{ color: "#F66016", flexShrink: 0 }} />
                 <span>GST compliance & custom template branding</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#475569" }}>
-                <CheckCircle2 size={15} style={{ color: "#0284c7", flexShrink: 0 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
+                <CheckCircle2 size={15} style={{ color: "#F66016", flexShrink: 0 }} />
                 <span>Low cost starting at just ₹99 with instant activation</span>
               </div>
             </div>
@@ -198,8 +198,8 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
                 justifyContent: "center",
                 gap: "0.5rem",
                 cursor: "pointer",
-                background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                boxShadow: "0 10px 20px -5px rgba(2, 132, 199, 0.4)",
+                background: "linear-gradient(135deg, #F66016 0%, #FA4406 100%)",
+                boxShadow: "0 10px 20px -5px rgba(246, 96, 22, 0.4)",
                 transition: "transform 0.15s ease, box-shadow 0.15s ease"
               }}
             >
@@ -219,9 +219,9 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
                 fontWeight: "600",
                 borderRadius: "12px",
                 cursor: "pointer",
-                border: "1px solid #e2e8f0",
-                background: "#f8fafc",
-                color: "#64748b",
+                border: "1px solid #F7CDAB",
+                background: "#FFF2DE",
+                color: "#74788A",
                 transition: "background 0.15s ease, color 0.15s ease"
               }}
             >
@@ -247,14 +247,14 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
           }
           .expiry-view-plans-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 12px 24px -5px rgba(2, 132, 199, 0.5) !important;
+            box-shadow: 0 12px 24px -5px rgba(246, 96, 22, 0.5) !important;
           }
           .expiry-view-plans-btn:active {
             transform: translateY(1px);
           }
           .expiry-later-btn:hover {
-            background: #f1f5f9 !important;
-            color: #334155 !important;
+            background: #FDF4EB !important;
+            color: #0C1F41 !important;
           }
           @media (max-width: 480px) {
             .expiry-modal-card {

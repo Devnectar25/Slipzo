@@ -690,4 +690,4 @@ export const saveStoredTables = (user, tables) => {
   try {
     localStorage.setItem(`slipzo_tables_${userKey}`, JSON.stringify(tables))
   } catch (e) {}
-}
+}
