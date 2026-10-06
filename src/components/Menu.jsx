@@ -773,10 +773,10 @@ export function Menu({ setView, requireAuth, user }) {
           </div>
 
           {/* Category Filter Pills */}
-          {activeCategories.length > 2 && (
+          {myMenuCategories.length > 2 && (
             <div className="menu-category-pills-row">
-              {activeCategories.map((cat) => {
-                const isActive = selectedCategory.toLowerCase() === cat.toLowerCase()
+              {myMenuCategories.map((cat) => {
+                const isActive = selectedCategory.toLowerCase() === cat.id.toLowerCase()
                 return (
                   <button
                     key={cat.id}
@@ -784,7 +784,7 @@ export function Menu({ setView, requireAuth, user }) {
                     className={`mob-category-chip ${isActive ? "active" : ""}`}
                     onClick={() => setSelectedCategory(cat.id)}
                   >
-                    {cat === "all" ? (search.trim() ? t("menu.allCategories", "All Categories") : t("menu.allItems", "All Items")) : tDb(cat)}
+                    {cat.id === "all" ? (search.trim() ? t("menu.allCategories", "All Categories") : t("menu.allItems", "All Items")) : tDb(cat.label)}
                   </button>
                 )
               })}
