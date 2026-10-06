@@ -356,6 +356,16 @@ export function Templates({ setView, user }) {
             <button className="templates-search-clear-btn" onClick={() => setSearch("")}>
               <X size={15} />
             </button>
+          ) : (
+            <div className="search-voice-wrap">
+              <VoiceInputButton
+                mode="raw"
+                variant="icon-only"
+                size="sm"
+                onSpeechResult={(text) => setSearch(text)}
+                className="search-voice-btn"
+              />
+            </div>
           )}
         </div>
       </section>

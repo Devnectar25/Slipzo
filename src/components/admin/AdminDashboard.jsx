@@ -193,7 +193,7 @@ export function AdminDashboard({ admin, onLogout }) {
       input: 'number',
       inputValue: 1000,
       showCancelButton: true,
-      confirmButtonColor: '#0ea5e9',
+      confirmButtonColor: '#FB821B',
       confirmButtonText: 'Grant Credits',
       inputValidator: (value) => {
         if (!value || parseInt(value) <= 0) {
@@ -213,7 +213,7 @@ export function AdminDashboard({ admin, onLogout }) {
           title: 'Success!',
           text: res?.detail || `Granted ${printCount} prints successfully!`,
           icon: 'success',
-          confirmButtonColor: '#0ea5e9'
+          confirmButtonColor: '#FB821B'
         })
         loadAdminData()
       } catch (err) {
@@ -227,10 +227,10 @@ export function AdminDashboard({ admin, onLogout }) {
       title: 'Add New Bill Template',
       html: `
         <div style="text-align: left; font-size: 0.9rem;">
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Template Name</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Template Name</label>
           <input id="swal-template-name" class="swal2-input" placeholder="e.g. Premium Thermal Invoice" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
           
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Category</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Category</label>
           <select id="swal-template-cat" class="swal2-input" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;">
             <option value="Business">Business</option>
             <option value="Thermal">Thermal</option>
@@ -240,7 +240,7 @@ export function AdminDashboard({ admin, onLogout }) {
             <option value="Standard">Standard</option>
           </select>
           
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Paper Width</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Paper Width</label>
           <select id="swal-template-width" class="swal2-input" style="width: 100%; margin: 0; box-sizing: border-box;">
             <option value="58mm">58mm (2-inch Thermal)</option>
             <option value="80mm">80mm (3-inch POS)</option>
@@ -251,7 +251,7 @@ export function AdminDashboard({ admin, onLogout }) {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Create Template',
-      confirmButtonColor: '#0ea5e9',
+      confirmButtonColor: '#FB821B',
       preConfirm: () => {
         const name = document.getElementById('swal-template-name').value;
         const category = document.getElementById('swal-template-cat').value;
@@ -271,7 +271,7 @@ export function AdminDashboard({ admin, onLogout }) {
           headers: getAdminHeaders(),
           body: JSON.stringify(formValues)
         });
-        Swal.fire({ title: 'Success!', text: 'New template created successfully', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        Swal.fire({ title: 'Success!', text: 'New template created successfully', icon: 'success', confirmButtonColor: '#FB821B' });
         loadAdminData();
       } catch (err) {
         Swal.fire('Error', err?.detail || err?.message || 'Failed to create template', 'error');
@@ -461,7 +461,7 @@ export function AdminDashboard({ admin, onLogout }) {
         title: 'Success!',
         text: res.detail || 'New product with photos added successfully!',
         icon: 'success',
-        confirmButtonColor: '#0ea5e9'
+        confirmButtonColor: '#FB821B'
       })
       await loadAdminData()
     } catch (err) {
@@ -477,10 +477,10 @@ export function AdminDashboard({ admin, onLogout }) {
       title: 'Edit Bill Template',
       html: `
         <div style="text-align: left; font-size: 0.9rem;">
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Template Name</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Template Name</label>
           <input id="swal-edit-template-name" class="swal2-input" value="${template.name || ''}" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
           
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Category</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Category</label>
           <select id="swal-edit-template-cat" class="swal2-input" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;">
             <option value="Business" ${template.category === 'Business' ? 'selected' : ''}>Business</option>
             <option value="Thermal" ${template.category === 'Thermal' ? 'selected' : ''}>Thermal</option>
@@ -490,7 +490,7 @@ export function AdminDashboard({ admin, onLogout }) {
             <option value="Standard" ${template.category === 'Standard' ? 'selected' : ''}>Standard</option>
           </select>
           
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Paper Width</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Paper Width</label>
           <select id="swal-edit-template-width" class="swal2-input" style="width: 100%; margin: 0; box-sizing: border-box;">
             <option value="58mm" ${template.width === '58mm' ? 'selected' : ''}>58mm (2-inch Thermal)</option>
             <option value="80mm" ${template.width === '80mm' ? 'selected' : ''}>80mm (3-inch POS)</option>
@@ -501,7 +501,7 @@ export function AdminDashboard({ admin, onLogout }) {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Update Template',
-      confirmButtonColor: '#0ea5e9',
+      confirmButtonColor: '#FB821B',
       preConfirm: () => {
         const name = document.getElementById('swal-edit-template-name').value;
         const category = document.getElementById('swal-edit-template-cat').value;
@@ -521,7 +521,7 @@ export function AdminDashboard({ admin, onLogout }) {
           headers: getAdminHeaders(),
           body: JSON.stringify(formValues)
         });
-        Swal.fire({ title: 'Updated!', text: 'Template updated successfully', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        Swal.fire({ title: 'Updated!', text: 'Template updated successfully', icon: 'success', confirmButtonColor: '#FB821B' });
         loadAdminData();
       } catch (err) {
         Swal.fire('Error', err?.detail || err?.message || 'Failed to update template', 'error');
@@ -545,7 +545,7 @@ export function AdminDashboard({ admin, onLogout }) {
           method: 'DELETE',
           headers: getAdminHeaders()
         });
-        Swal.fire({ title: 'Deleted!', text: 'Template has been deleted', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        Swal.fire({ title: 'Deleted!', text: 'Template has been deleted', icon: 'success', confirmButtonColor: '#FB821B' });
         invalidateApiCache('/admin/templates');
         invalidateApiCache('/templates');
         loadAdminData();
@@ -652,11 +652,11 @@ export function AdminDashboard({ admin, onLogout }) {
         }).catch(() => null);
 
         setProductsList((prev) => prev.filter((p) => p.id !== product.id));
-        Swal.fire({ title: 'Deleted!', text: 'Product removed successfully', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        Swal.fire({ title: 'Deleted!', text: 'Product removed successfully', icon: 'success', confirmButtonColor: '#FB821B' });
         loadAdminData();
       } catch (err) {
         setProductsList((prev) => prev.filter((p) => p.id !== product.id));
-        Swal.fire({ title: 'Deleted!', text: 'Product removed from catalog', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        Swal.fire({ title: 'Deleted!', text: 'Product removed from catalog', icon: 'success', confirmButtonColor: '#FB821B' });
       }
     }
   }
@@ -666,23 +666,23 @@ export function AdminDashboard({ admin, onLogout }) {
       title: 'Edit Product',
       html: `
         <div style="text-align: left; font-size: 0.875rem;">
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Product Name</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Product Name</label>
           <input id="swal-edit-prod-name" class="swal2-input" value="${(product.name || '').replace(/"/g, '&quot;')}" placeholder="Product Name" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
 
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Category</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Category</label>
           <input id="swal-edit-prod-cat" class="swal2-input" value="${(product.category || 'Hardware').replace(/"/g, '&quot;')}" placeholder="e.g. Hardware, POS Accessories" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
 
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Price (₹)</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Price (₹)</label>
           <input id="swal-edit-prod-price" type="number" step="any" min="0" class="swal2-input" value="${product.price || 0}" placeholder="Price" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
 
-          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #334155;">Product Link (Buy Now URL)</label>
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Product Link (Buy Now URL)</label>
           <input id="swal-edit-prod-link" type="url" class="swal2-input" value="${(product.product_link || '').replace(/"/g, '&quot;')}" placeholder="https://example.com/product" style="width: 100%; margin: 0; box-sizing: border-box;" />
         </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Save Changes',
-      confirmButtonColor: '#0ea5e9',
+      confirmButtonColor: '#FB821B',
       preConfirm: () => {
         const name = document.getElementById('swal-edit-prod-name')?.value;
         const category = document.getElementById('swal-edit-prod-cat')?.value;
@@ -719,7 +719,7 @@ export function AdminDashboard({ admin, onLogout }) {
         });
         const updated = res?.product || { ...product, ...formValues };
         setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, ...updated } : p));
-        Swal.fire({ title: 'Updated!', text: 'Product updated successfully', icon: 'success', confirmButtonColor: '#0ea5e9' });
+        Swal.fire({ title: 'Updated!', text: 'Product updated successfully', icon: 'success', confirmButtonColor: '#FB821B' });
         loadAdminData();
       } catch (err) {
         Swal.fire('Error', err?.detail || err?.message || 'Failed to update product', 'error');
@@ -956,7 +956,7 @@ export function AdminDashboard({ admin, onLogout }) {
             <button className="admin-refresh-btn" onClick={() => loadAdminData(true)} disabled={loading}>
               <RefreshCw size={14} className={loading ? "spin" : ""} /> {loading ? "Refreshing..." : "Refresh"}
             </button>
-            <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+            <span style={{ fontSize: "0.85rem", color: "#74788A" }}>
               {admin?.email || "admin@slipzo.com"}
             </span>
           </div>
@@ -967,7 +967,7 @@ export function AdminDashboard({ admin, onLogout }) {
             <>
               <div className="admin-stats-grid">
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#e0f2fe", color: "#0284c7" }}>
+                  <div className="admin-stat-icon" style={{ background: "#FFE6D2", color: "#F66016" }}>
                     <Users size={24} />
                   </div>
                   <div>
@@ -997,7 +997,7 @@ export function AdminDashboard({ admin, onLogout }) {
                 </div>
 
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#fef3c7", color: "#d97706" }}>
+                  <div className="admin-stat-icon" style={{ background: "#FFF0C7", color: "#d97706" }}>
                     <Package size={24} />
                   </div>
                   <div>
@@ -1027,15 +1027,15 @@ export function AdminDashboard({ admin, onLogout }) {
                   <tbody>
                     {statsData?.recentUsers?.map((u) => (
                       <tr key={u.id}>
-                        <td style={{ fontWeight: 600, color: "#0f172a" }}>{u.name}</td>
+                        <td style={{ fontWeight: 600, color: "#0C1F41" }}>{u.name}</td>
                         <td>{u.email}</td>
-                        <td>{u.shop_name || <span style={{ color: "#64748b" }}>No Shop Yet</span>}</td>
+                        <td>{u.shop_name || <span style={{ color: "#74788A" }}>No Shop Yet</span>}</td>
                         <td>{u.created_at ? new Date(u.created_at).toLocaleDateString() : "N/A"}</td>
                       </tr>
                     ))}
                     {(!statsData?.recentUsers || statsData.recentUsers.length === 0) && (
                       <tr>
-                        <td colSpan={4} style={{ textAlign: "center", color: "#64748b" }}>
+                        <td colSpan={4} style={{ textAlign: "center", color: "#74788A" }}>
                           No users registered yet.
                         </td>
                       </tr>
@@ -1078,8 +1078,8 @@ export function AdminDashboard({ admin, onLogout }) {
                     {paginatedUsers.map((u) => (
                       <tr key={u.id}>
                         <td>
-                          <div style={{ fontWeight: 600, color: "#0f172a" }}>{u.name}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>@{u.username || "user"}</div>
+                          <div style={{ fontWeight: 600, color: "#0C1F41" }}>{u.name}</div>
+                          <div style={{ fontSize: "0.75rem", color: "#74788A" }}>@{u.username || "user"}</div>
                         </td>
                         <td>{u.email}</td>
                         <td>
@@ -1110,9 +1110,9 @@ export function AdminDashboard({ admin, onLogout }) {
                               width: "38px",
                               height: "38px",
                               borderRadius: "8px",
-                              background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
-                              border: "1.5px solid #bae6fd",
-                              color: "#0284c7",
+                              background: "linear-gradient(135deg, #FFF0E5 0%, #FFF2DE 100%)",
+                              border: "1.5px solid #F7CDAB",
+                              color: "#F66016",
                               fontWeight: 700,
                               fontSize: "0.88rem"
                             }}
@@ -1125,7 +1125,7 @@ export function AdminDashboard({ admin, onLogout }) {
                           {u.shop_name ? (
                             <span className="admin-tag admin-tag-blue">{u.shop_name}</span>
                           ) : (
-                            <span style={{ color: "#64748b" }}>Pending</span>
+                            <span style={{ color: "#74788A" }}>Pending</span>
                           )}
                         </td>
                         <td>{u.shop_phone || "N/A"}</td>
@@ -1137,7 +1137,7 @@ export function AdminDashboard({ admin, onLogout }) {
                         <td>
                           <button
                             className="admin-refresh-btn"
-                            style={{ background: "#e0f2fe", color: "#0284c7", border: "1px solid #bae6fd" }}
+                            style={{ background: "#FFE6D2", color: "#F66016", border: "1px solid #FADCC3" }}
                             onClick={() => handleGrantCredits(u)}
                             title="Grant Print Credits"
                           >
@@ -1148,7 +1148,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     ))}
                     {filteredUsers.length === 0 && (
                       <tr>
-                        <td colSpan={9} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={9} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
                           No matching users found.
                         </td>
                       </tr>
@@ -1174,31 +1174,31 @@ export function AdminDashboard({ admin, onLogout }) {
                       ₹{totalPlanRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                     </h3>
                     <p className="admin-stat-lbl">Total Revenue</p>
-                    <span style={{ fontSize: "0.725rem", color: "#64748b" }}>Successful payments</span>
+                    <span style={{ fontSize: "0.725rem", color: "#74788A" }}>Successful payments</span>
                   </div>
                 </div>
 
                 {/* 2. Total Plan Buyers */}
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#e0f2fe", color: "#0284c7" }}>
+                  <div className="admin-stat-icon" style={{ background: "#FFE6D2", color: "#F66016" }}>
                     <Users size={24} />
                   </div>
                   <div>
                     <h3 className="admin-stat-val">{totalUniquePlanBuyers}</h3>
                     <p className="admin-stat-lbl">Total Plan Buyers</p>
-                    <span style={{ fontSize: "0.725rem", color: "#64748b" }}>Unique buyers</span>
+                    <span style={{ fontSize: "0.725rem", color: "#74788A" }}>Unique buyers</span>
                   </div>
                 </div>
 
                 {/* 3. Starter Pack */}
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#fef3c7", color: "#d97706" }}>
+                  <div className="admin-stat-icon" style={{ background: "#FFF0C7", color: "#d97706" }}>
                     <Zap size={24} />
                   </div>
                   <div>
                     <h3 className="admin-stat-val">{starterPackCount}</h3>
                     <p className="admin-stat-lbl">Starter Pack</p>
-                    <span style={{ fontSize: "0.725rem", color: "#64748b" }}>Starter plan sales</span>
+                    <span style={{ fontSize: "0.725rem", color: "#74788A" }}>Starter plan sales</span>
                   </div>
                 </div>
 
@@ -1210,7 +1210,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   <div>
                     <h3 className="admin-stat-val">{proGrowthCount}</h3>
                     <p className="admin-stat-lbl">Pro Growth</p>
-                    <span style={{ fontSize: "0.725rem", color: "#64748b" }}>Pro plan sales</span>
+                    <span style={{ fontSize: "0.725rem", color: "#74788A" }}>Pro plan sales</span>
                   </div>
                 </div>
 
@@ -1245,19 +1245,19 @@ export function AdminDashboard({ admin, onLogout }) {
                   <tbody>
                     {paginatedPlanBuyers.map((b, idx) => (
                       <tr key={b.subscription_id || b.user_id || idx}>
-                        <td style={{ fontWeight: 600, color: "#0f172a" }}>{b.user_name}</td>
+                        <td style={{ fontWeight: 600, color: "#0C1F41" }}>{b.user_name}</td>
                         <td>{b.user_email}</td>
-                        <td>{b.shop_name || <span style={{ color: "#64748b" }}>Standard Shop</span>}</td>
+                        <td>{b.shop_name || <span style={{ color: "#74788A" }}>Standard Shop</span>}</td>
                         <td>
                           <span className="admin-tag admin-tag-purple">
                             <Crown size={12} /> {b.plan_name || "Pro Plan"}
                           </span>
                         </td>
-                        <td style={{ fontWeight: 700, color: "#0284c7" }}>
+                        <td style={{ fontWeight: 700, color: "#F66016" }}>
                           ₹{b.amount ? Number(b.amount).toFixed(2) : "0.00"}
                         </td>
                         <td>
-                          <code style={{ fontSize: "0.75rem", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", color: "#475569" }}>
+                          <code style={{ fontSize: "0.75rem", background: "#FDF4EB", padding: "2px 6px", borderRadius: "4px", color: "#575B6B" }}>
                             {b.payment_id || "N/A"}
                           </code>
                         </td>
@@ -1265,7 +1265,7 @@ export function AdminDashboard({ admin, onLogout }) {
                         <td>
                           <button
                             className="admin-refresh-btn"
-                            style={{ background: "#e0f2fe", color: "#0284c7", border: "1px solid #bae6fd" }}
+                            style={{ background: "#FFE6D2", color: "#F66016", border: "1px solid #FADCC3" }}
                             onClick={() => handleGrantCredits(b)}
                           >
                             <Plus size={13} /> Grant Credits
@@ -1275,7 +1275,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     ))}
                     {filteredPlanBuyers.length === 0 && (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={8} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
                           No plan buyer records found.
                         </td>
                       </tr>
@@ -1302,7 +1302,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   />
                   <button
                     className="admin-refresh-btn"
-                    style={{ background: '#0ea5e9', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
+                    style={{ background: '#FB821B', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
                     onClick={handleOpenAddProductModal}
                   >
                     <Plus size={14} /> Add New Product
@@ -1341,10 +1341,10 @@ export function AdminDashboard({ admin, onLogout }) {
                               <img
                                 src={mainImg}
                                 alt={p.name}
-                                style={{ width: '34px', height: '34px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #e2e8f0', display: 'inline-block', verticalAlign: 'middle' }}
+                                style={{ width: '34px', height: '34px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #F7CDAB', display: 'inline-block', verticalAlign: 'middle' }}
                               />
                             ) : (
-                              <div style={{ width: '34px', height: '34px', borderRadius: '6px', background: '#f1f5f9', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', border: '1px solid #e2e8f0', margin: '0 auto', verticalAlign: 'middle' }}>
+                              <div style={{ width: '34px', height: '34px', borderRadius: '6px', background: '#FDF4EB', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#8F93A5', border: '1px solid #F7CDAB', margin: '0 auto', verticalAlign: 'middle' }}>
                                 <Package size={16} />
                               </div>
                             )
@@ -1352,7 +1352,7 @@ export function AdminDashboard({ admin, onLogout }) {
                         </td>
 
                         {/* 2. Product Name */}
-                        <td style={{ fontWeight: 600, color: "#0f172a", fontSize: "0.825rem", lineHeight: 1.3, wordBreak: "break-word" }}>
+                        <td style={{ fontWeight: 600, color: "#0C1F41", fontSize: "0.825rem", lineHeight: 1.3, wordBreak: "break-word" }}>
                           {p.name}
                         </td>
 
@@ -1380,7 +1380,7 @@ export function AdminDashboard({ admin, onLogout }) {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '3px',
-                                color: '#0ea5e9',
+                                color: '#FB821B',
                                 fontSize: '0.775rem',
                                 fontWeight: 600,
                                 textDecoration: 'none'
@@ -1390,7 +1390,7 @@ export function AdminDashboard({ admin, onLogout }) {
                               <ExternalLink size={12} /> Link
                             </a>
                           ) : (
-                            <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>No link</span>
+                            <span style={{ color: '#8F93A5', fontSize: '0.75rem' }}>No link</span>
                           )}
                         </td>
 
@@ -1400,9 +1400,9 @@ export function AdminDashboard({ admin, onLogout }) {
                             value={(p.status || 'active').toLowerCase() === 'active' ? 'active' : 'inactive'}
                             onChange={(e) => handleStatusChange(p, e.target.value)}
                             style={{
-                              background: (p.status || 'active').toLowerCase() === 'active' ? '#dcfce7' : '#f1f5f9',
-                              color: (p.status || 'active').toLowerCase() === 'active' ? '#15803d' : '#64748b',
-                              border: `1px solid ${(p.status || 'active').toLowerCase() === 'active' ? '#bbf7d0' : '#cbd5e1'}`,
+                              background: (p.status || 'active').toLowerCase() === 'active' ? '#dcfce7' : '#FDF4EB',
+                              color: (p.status || 'active').toLowerCase() === 'active' ? '#15803d' : '#74788A',
+                              border: `1px solid ${(p.status || 'active').toLowerCase() === 'active' ? '#bbf7d0' : '#D9DDE4'}`,
                               padding: '0.2rem 0.35rem',
                               fontWeight: 700,
                               fontSize: '0.72rem',
@@ -1416,22 +1416,22 @@ export function AdminDashboard({ admin, onLogout }) {
                             title="Change Product Active / Inactive status"
                           >
                             <option value="active" style={{ background: '#ffffff', color: '#15803d', fontWeight: 600 }}>Active</option>
-                            <option value="inactive" style={{ background: '#ffffff', color: '#64748b', fontWeight: 600 }}>Inactive</option>
+                            <option value="inactive" style={{ background: '#ffffff', color: '#74788A', fontWeight: 600 }}>Inactive</option>
                           </select>
                         </td>
 
                         {/* 7. Shop / User */}
                         <td style={{ lineHeight: 1.3 }}>
-                          <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.shop_name || p.user_name || "Unknown"}>
+                          <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.shop_name || p.user_name || "Unknown"}>
                             {p.shop_name || p.user_name || "Unknown"}
                           </div>
-                          <div style={{ fontSize: "0.7rem", color: "#64748b", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.user_email}>
+                          <div style={{ fontSize: "0.7rem", color: "#74788A", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.user_email}>
                             {p.user_email}
                           </div>
                         </td>
 
                         {/* 8. Created Date */}
-                        <td style={{ textAlign: "center", whiteSpace: "nowrap", color: '#64748b', fontSize: '0.775rem' }}>
+                        <td style={{ textAlign: "center", whiteSpace: "nowrap", color: '#74788A', fontSize: '0.775rem' }}>
                           {p.created_at ? new Date(p.created_at).toLocaleDateString() : "N/A"}
                         </td>
 
@@ -1464,7 +1464,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     ))}
                     {filteredProducts.length === 0 && (
                       <tr>
-                        <td colSpan={9} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={9} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
                           No products found in system catalog.
                         </td>
                       </tr>
@@ -1494,7 +1494,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   />
                   <button
                     className="admin-refresh-btn"
-                    style={{ background: '#0ea5e9', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
+                    style={{ background: '#FB821B', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
                     onClick={handleAddTemplate}
                   >
                     <Plus size={14} /> Add New Template
@@ -1516,7 +1516,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   <tbody>
                     {paginatedTemplates.map((t) => (
                       <tr key={t.id}>
-                        <td style={{ fontWeight: 600, color: "#0f172a" }}>{t.name}</td>
+                        <td style={{ fontWeight: 600, color: "#0C1F41" }}>{t.name}</td>
                         <td>
                           <span className="admin-tag admin-tag-purple">{t.category || "Receipt"}</span>
                         </td>
@@ -1525,14 +1525,14 @@ export function AdminDashboard({ admin, onLogout }) {
                         </td>
                         <td>
                           <div>{t.shop_name || t.user_name || "System"}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{t.user_email}</div>
+                          <div style={{ fontSize: "0.75rem", color: "#74788A" }}>{t.user_email}</div>
                         </td>
                         <td>{t.created_at ? new Date(t.created_at).toLocaleDateString() : "N/A"}</td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                             <button
                               className="admin-refresh-btn"
-                              style={{ background: "#fee2e2", color: "#ef4444", border: "1px solid #fecaca", padding: "0.35rem 0.65rem" }}
+                              style={{ background: "#fee2e2", color: "#ef4444", border: "1px solid #FFB8BD", padding: "0.35rem 0.65rem" }}
                               onClick={() => handleDeleteTemplate(t)}
                               title="Delete Template"
                             >
@@ -1544,7 +1544,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     ))}
                     {filteredTemplates.length === 0 && (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={6} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
                           No custom templates registered yet.
                         </td>
                       </tr>
@@ -1582,10 +1582,10 @@ export function AdminDashboard({ admin, onLogout }) {
                   <tbody>
                     {paginatedBills.map((b) => (
                       <tr key={b.id}>
-                        <td style={{ fontWeight: 700, color: "#0284c7" }}>{b.bill_number}</td>
+                        <td style={{ fontWeight: 700, color: "#F66016" }}>{b.bill_number}</td>
                         <td>
                           <div>{b.shop_name || b.user_name || "Unknown Shop"}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{b.user_email}</div>
+                          <div style={{ fontSize: "0.75rem", color: "#74788A" }}>{b.user_email}</div>
                         </td>
                         <td>{b.customer_name || "Cash Customer"}</td>
                         <td style={{ fontWeight: 700, color: "#16a34a" }}>₹{Number(b.total || 0).toLocaleString()}</td>
@@ -1594,7 +1594,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     ))}
                     {filteredBills.length === 0 && (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={5} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
                           No bills generated yet across the system.
                         </td>
                       </tr>
@@ -1632,10 +1632,10 @@ export function AdminDashboard({ admin, onLogout }) {
                   <tbody>
                     {paginatedContacts.map((c) => (
                       <tr key={c.id}>
-                        <td style={{ fontWeight: 600, color: "#0f172a" }}>{c.name}</td>
+                        <td style={{ fontWeight: 600, color: "#0C1F41" }}>{c.name}</td>
                         <td>
                           <div>{c.email}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{c.phone}</div>
+                          <div style={{ fontSize: "0.75rem", color: "#74788A" }}>{c.phone}</div>
                         </td>
                         <td>
                           <span className="admin-tag admin-tag-purple">{c.topic}</span>
@@ -1646,7 +1646,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     ))}
                     {filteredContacts.length === 0 && (
                       <tr>
-                        <td colSpan={5} style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>
+                        <td colSpan={5} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
                           No contact form submissions recorded.
                         </td>
                       </tr>
@@ -1665,22 +1665,22 @@ export function AdminDashboard({ admin, onLogout }) {
                   <Server size={18} style={{ verticalAlign: "middle", marginRight: "0.5rem" }} /> System Diagnostics
                 </h4>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "1rem", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Server Status</div>
+                  <div style={{ background: "#FFF2DE", border: "1px solid #F7CDAB", padding: "1rem", borderRadius: "10px" }}>
+                    <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Server Status</div>
                     <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#16a34a", marginTop: "0.25rem" }}>
                       <CheckCircle size={16} style={{ verticalAlign: "middle", marginRight: "0.25rem" }} /> Online & Healthy
                     </div>
                   </div>
 
-                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "1rem", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Node Runtime</div>
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0284c7", marginTop: "0.25rem" }}>
+                  <div style={{ background: "#FFF2DE", border: "1px solid #F7CDAB", padding: "1rem", borderRadius: "10px" }}>
+                    <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Node Runtime</div>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#F66016", marginTop: "0.25rem" }}>
                       {statsData?.systemHealth?.nodeVersion || process.version || "v20.x"}
                     </div>
                   </div>
 
-                  <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "1rem", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "0.8rem", color: "#64748b" }}>Server Uptime</div>
+                  <div style={{ background: "#FFF2DE", border: "1px solid #F7CDAB", padding: "1rem", borderRadius: "10px" }}>
+                    <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Server Uptime</div>
                     <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#9333ea", marginTop: "0.25rem" }}>
                       {statsData?.systemHealth?.uptime ? `${Math.floor(statsData.systemHealth.uptime / 60)} mins` : "Active"}
                     </div>
@@ -1718,24 +1718,24 @@ export function AdminDashboard({ admin, onLogout }) {
               width: '100%',
               maxWidth: '560px',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #F7CDAB',
               padding: '1.25rem 1.5rem',
               boxSizing: 'border-box'
             }}
           >
             {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid #f1f5f9' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid #FDF4EB' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0C1F41', margin: 0 }}>
                 Add New Product to Catalog
               </h3>
               <button
                 type="button"
                 onClick={handleCloseAddProductModal}
                 style={{
-                  background: '#f1f5f9',
+                  background: '#FDF4EB',
                   border: 'none',
                   borderRadius: '8px',
-                  color: '#64748b',
+                  color: '#74788A',
                   cursor: 'pointer',
                   width: '28px',
                   height: '28px',
@@ -1754,7 +1754,7 @@ export function AdminDashboard({ admin, onLogout }) {
             <form onSubmit={handleSubmitAddProduct} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
               {/* Row 1: Product Name (Full Width) */}
               <div>
-                <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#334155' }}>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#0C1F41' }}>
                   Product Name <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
@@ -1763,13 +1763,13 @@ export function AdminDashboard({ admin, onLogout }) {
                   placeholder="e.g. Thermal Receipt Printer 80mm"
                   value={prodForm.name}
                   onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
-                  style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #D9DDE4', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
               {/* Row 2: Category (Full Width) */}
               <div>
-                <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#334155' }}>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#0C1F41' }}>
                   Category
                 </label>
                 <input
@@ -1777,14 +1777,14 @@ export function AdminDashboard({ admin, onLogout }) {
                   placeholder="e.g. Hardware, POS Accessories"
                   value={prodForm.category}
                   onChange={(e) => setProdForm({ ...prodForm, category: e.target.value })}
-                  style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #D9DDE4', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
               {/* Row 3: Price (₹) & Product Link (Split Row: 135px 1fr) */}
               <div className="admin-modal-row-split">
                 <div>
-                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#334155' }}>
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#0C1F41' }}>
                     Price (₹)
                   </label>
                   <input
@@ -1794,12 +1794,12 @@ export function AdminDashboard({ admin, onLogout }) {
                     placeholder="e.g. 300"
                     value={prodForm.price}
                     onChange={(e) => setProdForm({ ...prodForm, price: e.target.value })}
-                    style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #D9DDE4', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#334155' }}>
+                  <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#0C1F41' }}>
                     Product Link <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
@@ -1808,19 +1808,19 @@ export function AdminDashboard({ admin, onLogout }) {
                     placeholder="https://example.com/product"
                     value={prodForm.product_link}
                     onChange={(e) => setProdForm({ ...prodForm, product_link: e.target.value })}
-                    style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #D9DDE4', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
               {/* Row 4: Product Photos Section (MIN 1, MAX 5) */}
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.65rem 0.85rem' }}>
+              <div style={{ background: '#FFF2DE', border: '1px solid #F7CDAB', borderRadius: '10px', padding: '0.65rem 0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
                   <div>
-                    <label style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0C1F41', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
                       Product Photos <span style={{ color: '#ef4444' }}>*</span>
                     </label>
-                    <span style={{ fontSize: '0.725rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.725rem', color: '#74788A' }}>
                       Upload 1–5 photos (JPG, PNG, WEBP)
                     </span>
                   </div>
@@ -1832,7 +1832,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     borderRadius: '10px',
                     background: prodPhotos.length >= 1 && prodPhotos.length <= 5 ? '#dcfce7' : '#fee2e2',
                     color: prodPhotos.length >= 1 && prodPhotos.length <= 5 ? '#15803d' : '#b91c1c',
-                    border: `1px solid ${prodPhotos.length >= 1 && prodPhotos.length <= 5 ? '#bbf7d0' : '#fecaca'}`
+                    border: `1px solid ${prodPhotos.length >= 1 && prodPhotos.length <= 5 ? '#bbf7d0' : '#FFB8BD'}`
                   }}>
                     {prodPhotos.length} / 5 photos
                   </span>
@@ -1857,8 +1857,8 @@ export function AdminDashboard({ admin, onLogout }) {
                       gap: '0.35rem',
                       padding: '0.4rem 0.8rem',
                       borderRadius: '7px',
-                      background: prodPhotos.length >= 5 ? '#cbd5e1' : '#0ea5e9',
-                      color: prodPhotos.length >= 5 ? '#64748b' : '#ffffff',
+                      background: prodPhotos.length >= 5 ? '#D9DDE4' : '#FB821B',
+                      color: prodPhotos.length >= 5 ? '#74788A' : '#ffffff',
                       fontSize: '0.8rem',
                       fontWeight: 600,
                       cursor: prodPhotos.length >= 5 ? 'not-allowed' : 'pointer',
@@ -1879,7 +1879,7 @@ export function AdminDashboard({ admin, onLogout }) {
                         height: '42px',
                         borderRadius: '7px',
                         overflow: 'hidden',
-                        border: '1px solid #cbd5e1',
+                        border: '1px solid #D9DDE4',
                         background: '#ffffff',
                         boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
                         flexShrink: 0
@@ -1937,8 +1937,8 @@ export function AdminDashboard({ admin, onLogout }) {
               {/* Error Banner */}
               {prodError && (
                 <div style={{
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
+                  background: '#FFE1E5',
+                  border: '1px solid #FFB8BD',
                   color: '#b91c1c',
                   padding: '0.45rem 0.75rem',
                   borderRadius: '8px',
@@ -1961,7 +1961,7 @@ export function AdminDashboard({ admin, onLogout }) {
                 gap: '0.65rem',
                 marginTop: '0.35rem',
                 paddingTop: '0.75rem',
-                borderTop: '1px solid #f1f5f9'
+                borderTop: '1px solid #FDF4EB'
               }}>
                 <button
                   type="button"
@@ -1969,9 +1969,9 @@ export function AdminDashboard({ admin, onLogout }) {
                   style={{
                     padding: '0.45rem 0.95rem',
                     borderRadius: '8px',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    color: '#334155',
+                    background: '#FDF4EB',
+                    border: '1px solid #D9DDE4',
+                    color: '#0C1F41',
                     fontWeight: 600,
                     fontSize: '0.825rem',
                     cursor: 'pointer',
@@ -1987,13 +1987,13 @@ export function AdminDashboard({ admin, onLogout }) {
                   style={{
                     padding: '0.45rem 1.15rem',
                     borderRadius: '8px',
-                    background: '#0ea5e9',
+                    background: '#FB821B',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,
                     fontSize: '0.825rem',
                     cursor: prodSubmitting ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 6px rgba(14, 165, 233, 0.3)',
+                    boxShadow: '0 2px 6px rgba(246, 96, 22, 0.3)',
                     transition: 'all 0.15s ease',
                     height: '36px',
                     display: 'inline-flex',
