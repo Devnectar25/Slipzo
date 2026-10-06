@@ -3,7 +3,7 @@ import {
   Package, Plus, Search, Filter, Edit, Trash2, Tag, DollarSign,
   AlertCircle, CheckCircle2, ShoppingBag, ArrowRight, Sparkles,
   RefreshCw, Layers, Printer, Zap, Store, ChevronRight, X,
-  Truck, CreditCard, Check, Heart
+  Truck, CreditCard, Check, Heart, LayoutGrid, FileText, Cpu, Mic, Crown
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
