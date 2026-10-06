@@ -35,6 +35,7 @@
   "nav": {
     "overview": "Home",
     "newBill": "New bill",
+    "tables": "Tables",
     "menu": "Menu",
     "templates": "Templates",
     "products": "Products",
@@ -563,6 +564,8 @@
   "home": {
     "searchPlaceholder": "Search bills, products, templates, customers...",
     "newBill": "New Bill",
+    "tables": "Tables",
+    "manageTables": "Manage & bill tables",
     "createInvoice": "Create invoice",
     "newProduct": "New Product",
     "addToInventory": "Add to inventory",
@@ -585,5 +588,29 @@
     "pending": "Pending",
     "draft": "Draft",
     "overdue": "Overdue"
+  },
+  "tables": {
+    "title": "Table Management",
+    "subtitle": "Select a table to start billing or manage live orders",
+    "manageTables": "Manage Tables",
+    "addTable": "Add Table",
+    "all": "All",
+    "available": "Available",
+    "occupied": "Occupied",
+    "searchPlaceholder": "Search table number...",
+    "availableCount": "Available",
+    "occupiedCount": "Occupied",
+    "totalTables": "Total Tables",
+    "activeAmount": "Active Bill Amount",
+    "items": "items",
+    "item": "item",
+    "openTable": "Open Table",
+    "reset": "Reset",
+    "saveBill": "Save Bill",
+    "printBill": "Print Bill",
+    "saving": "Saving Bill...",
+    "printing": "Preparing Print...",
+    "resetConfirmTitle": "Reset table order?",
+    "resetConfirmDesc": "This will remove all items from this table. This action cannot be undone."
   }
 }

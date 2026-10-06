@@ -24,16 +24,32 @@ import {
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
-import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang } from "../lib/utils"
+import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, getCachedData } from "../lib/utils"
 
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const { t, i18n } = useTranslation()
   const currentLang = i18n.language || "en"
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0]
 
+  const [shop, setShop] = useState(() => getCachedData("/shop") || {})
+  const isHotel = isHotelRestaurant(shop)
+
+  useEffect(() => {
+    const handleShopUpdate = (e) => {
+      if (e?.detail) setShop(e.detail)
+    }
+    window.addEventListener("slipzo_shop_updated", handleShopUpdate)
+    return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
+  }, [])
+
   const navItems = [
     { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard, protected: false },
-    { id: "bills", label: t("nav.newBill", "New bill"), icon: Receipt, protected: true },
+    { 
+      id: isHotel ? "tables" : "bills", 
+      label: isHotel ? t("nav.tables", "Tables") : t("nav.newBill", "New bill"), 
+      icon: isHotel ? Utensils : Receipt, 
+      protected: true 
+    },
     { id: "menu", label: t("nav.menu", "Menu"), icon: List, protected: true },
     { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
     { id: "products", label: t("nav.products", "Products"), icon: Package, protected: true },
@@ -46,7 +62,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   // Mobile bottom navigation items
   const mobileNavItems = [
     { id: "dashboard", label: t("nav.home", "Home"), icon: Home },
-    { id: "bills", label: t("nav.newBill", "New Bill"), icon: PlusCircle },
+    { 
+      id: isHotel ? "tables" : "bills", 
+      label: isHotel ? t("nav.tables", "Tables") : t("nav.newBill", "New Bill"), 
+      icon: isHotel ? Utensils : PlusCircle 
+    },
     { id: "menu", label: t("nav.menu", "Menu"), icon: List },
     { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
     { id: "history", label: t("nav.history", "History"), icon: History }
@@ -154,7 +174,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
     setIsOpen(false)
   }
 
-  const isMobileNavActive = (id) => view === id
+  const isMobileNavActive = (id) => view === id || (id === "tables" && view === "bills" && isHotel) || (id === "bills" && view === "tables" && isHotel)
 
   return (
     <div className={`app-shell ${!desktopSidebarOpen ? 'desktop-collapsed' : ''}`}>
@@ -239,10 +259,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             paddingRight: '0px',
           }}
         >
-          {navItems.map((item) => (
+          {navItems.map((item) => {
+            const isActive = isMobileNavActive(item.id)
+            return (
             <button
               data-testid={`nav-${item.id}-button`}
-              className={view === item.id ? "active" : ""}
+              className={isActive ? "active" : ""}
               key={item.id}
               onClick={() => handleNavClick(item.id)}
               style={{
@@ -251,7 +273,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 gap: '0.7rem',
                 padding: '0.4rem 0.75rem',
                 border: 'none',
-                background: view === item.id ? '#f1f5f9' : 'transparent',
+                background: isActive ? '#f1f5f9' : 'transparent',
                 borderRadius: '8px',
                 fontSize: '0.84rem',
                 fontWeight: view === item.id ? '600' : '500',
@@ -277,7 +299,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 </span>
               )}
             </button>
-          ))}
+          )})}
         </nav>
 
         {/* ✅ SIDE BOTTOM - Spaced cleanly below navigation categories */}

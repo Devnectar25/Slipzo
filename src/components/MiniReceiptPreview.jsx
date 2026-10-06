@@ -88,15 +88,11 @@ export function MiniReceiptPreview({ template }) {
             <span>Subtotal</span>
             <span>₹55.00</span>
           </div>
-          <div className="mini-sub-row">
-            <span>GST (18%) :</span>
-            <span>₹6.30</span>
-          </div>
         </div>
         <div className="mini-divider-hairline" />
         <div className="mini-total-row-exact">
           <span>Total :</span>
-          <span className="mini-total-val-exact">₹41.30</span>
+          <span className="mini-total-val-exact">₹55.00</span>
         </div>
         <div className="mini-paymode-row">
           <span>Payment Mode :</span>
@@ -186,19 +182,11 @@ export function MiniReceiptPreview({ template }) {
             <span>Butter Naan</span>
             <span>₹55.00</span>
           </div>
-          <div className="mini-mono-row">
-            <span>GST (18%) :</span>
-            <span>₹6.00</span>
-          </div>
-          <div className="mini-mono-row">
-            <span>GST (12%) :</span>
-            <span>₹5.00</span>
-          </div>
         </div>
         <div className="mini-divider-dots" />
         <div className="mini-mono-total-row">
           <span>Total :</span>
-          <span className="mini-mono-bold">₹41.30</span>
+          <span className="mini-mono-bold">₹55.00</span>
         </div>
         <div className="mini-divider-dots" />
         <div className="mini-mono-footer-row">
@@ -260,7 +248,7 @@ export function MiniReceiptPreview({ template }) {
       <div className="mini-receipt mini-receipt-elite-exact">
         <div className="mini-tax-header-exact">
           <span className="mini-shop-name-exact">NEHA'S SHOP</span>
-          <span className="mini-tax-invoice-label">TAX INVOICE</span>
+          <span className="mini-tax-invoice-label">RECEIPT</span>
         </div>
         <div className="mini-divider-hairline" />
         <div className="mini-elite-grid-table">
@@ -279,19 +267,6 @@ export function MiniReceiptPreview({ template }) {
             <span>1</span>
             <span>₹30.00</span>
           </div>
-        </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-tax-break-row">
-          <span>Taxable Value</span>
-          <span>₹72.03</span>
-        </div>
-        <div className="mini-tax-break-row">
-          <span>CGST (9%)</span>
-          <span>₹6.48</span>
-        </div>
-        <div className="mini-tax-break-row">
-          <span>SGST (9%)</span>
-          <span>₹6.48</span>
         </div>
         <div className="mini-divider-hairline" />
         <div className="mini-total-row-exact">

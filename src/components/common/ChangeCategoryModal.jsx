@@ -3,6 +3,7 @@ import { X, Check, Store, AlertCircle, Info } from "lucide-react"
 import { call, getCachedData, setCachedData, clearStoredMenuItems } from "../../lib/utils"
 import { useToast } from "./Toast"
 import { useTranslation } from "react-i18next"
+import { TableSetupModal } from "../tables/TableSetupModal"
 
 export const BUSINESS_CATEGORIES = [
   { 
@@ -31,24 +32,28 @@ export const BUSINESS_CATEGORIES = [
   }
 ]
 
-export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_business", onCategoryChanged, user }) {
+export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_business", onCategoryChanged, user, setView }) {
   const { t } = useTranslation()
   const { success: toastSuccess, error: toastError } = useToast()
   const [selectedCat, setSelectedCat] = useState(currentCategory)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState("")
+  const [showTableSetup, setShowTableSetup] = useState(false)
+  const [savedShop, setSavedShop] = useState(null)
 
   useEffect(() => {
     if (isOpen) {
+      setSelectedCat(currentCategory)
+      setShowTableSetup(false)
       const originalOverflow = document.body.style.overflow
       document.body.style.overflow = "hidden"
       return () => {
         document.body.style.overflow = originalOverflow
       }
     }
-  }, [isOpen])
+  }, [isOpen, currentCategory])
 
-  if (!isOpen) return null
+  if (!isOpen && !showTableSetup) return null
 
   const handleConfirmChange = async () => {
     if (selectedCat === currentCategory) {
@@ -71,6 +76,7 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
 
       // Update shop cache
       setCachedData("/shop", updatedShop)
+      setSavedShop(updatedShop)
 
       // Clear menu cache and local storage items since category changed
       setCachedData("/menu", [])
@@ -86,7 +92,13 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
       if (onCategoryChanged) {
         onCategoryChanged(selectedCat, updatedShop)
       }
-      onClose()
+
+      // If switched to Hotel / Restaurant, trigger Table Setup popup
+      if (selectedCat === "hotel_food") {
+        setShowTableSetup(true)
+      } else {
+        onClose()
+      }
     } catch (err) {
       console.error("Failed to change shop category:", err)
       setErrorMsg(err.detail || err.message || "Failed to update category. Please try again.")
@@ -94,6 +106,25 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
     } finally {
       setIsSaving(false)
     }
+  }
+
+  if (showTableSetup) {
+    return (
+      <TableSetupModal
+        isOpen={true}
+        onClose={() => {
+          setShowTableSetup(false)
+          onClose()
+        }}
+        currentCount={savedShop?.table_count || 10}
+        user={user}
+        onSetupComplete={(count) => {
+          setShowTableSetup(false)
+          onClose()
+          if (setView) setView("tables")
+        }}
+      />
+    )
   }
 
   return (

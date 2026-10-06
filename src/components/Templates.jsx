@@ -24,11 +24,11 @@ export const BUILTIN_TEMPLATES = [
     topBarColor: "#0284c7",
     accentColor: "#0284c7",
     btnClass: "template-btn-blue",
-    description: "Clean and professional receipt template with itemized table, GST breakdown, and clear totals.",
+    description: "Clean and professional receipt template with itemized table, clear rates, and totals.",
     features: [
       "Shop logo header",
       "Itemized list with quantity",
-      "Tax / GST calculation",
+      "Receipt summary & totals",
       "Payment mode badge"
     ],
     is_builtin: true,
@@ -131,10 +131,10 @@ export const BUILTIN_TEMPLATES = [
     topBarColor: "#6366f1",
     accentColor: "#4f46e5",
     btnClass: "template-btn-indigo",
-    description: "Formal tax invoice template designed for electronics, hardware, and B2B services requiring HSN, CGST/SGST details and terms.",
+    description: "Formal business invoice template designed for retail and services with clear totals, signatory, and terms.",
     features: [
-      "HSN / SAC Code column",
-      "Split CGST & SGST",
+      "Formal invoice header",
+      "Itemized table with rates",
       "Authorized signatory box",
       "Terms & conditions"
     ],

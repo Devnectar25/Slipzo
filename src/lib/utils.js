@@ -662,3 +662,32 @@ export function findTemplateMatch(templatesList, targetId) {
 
   return null
 }
+
+// ============ RESTAURANT / HOTEL HELPERS ============
+export const isHotelRestaurant = (shopOrCategory) => {
+  if (!shopOrCategory) return false
+  const cat = typeof shopOrCategory === "string"
+    ? shopOrCategory
+    : (shopOrCategory.business_type || shopOrCategory.category || "")
+  const clean = String(cat).trim().toLowerCase()
+  return clean === "hotel_food" ||
+         clean === "hotel or food restaurant" ||
+         clean.includes("hotel") ||
+         clean.includes("restaurant")
+}
+
+export const getStoredTables = (user) => {
+  const userKey = getCurrentUserKey(user)
+  try {
+    const raw = localStorage.getItem(`slipzo_tables_${userKey}`)
+    if (raw) return JSON.parse(raw)
+  } catch (e) {}
+  return null
+}
+
+export const saveStoredTables = (user, tables) => {
+  const userKey = getCurrentUserKey(user)
+  try {
+    localStorage.setItem(`slipzo_tables_${userKey}`, JSON.stringify(tables))
+  } catch (e) {}
+}

@@ -13,6 +13,8 @@ import {
   Check,
   RotateCcw,
   Utensils,
+  Shirt,
+  ShoppingBag,
   ArrowLeft,
   ChevronDown,
   ChevronLeft,
@@ -104,9 +106,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [templates, setTemplates] = useState(() => (Array.isArray(cachedTemplates) ? cachedTemplates : []))
   const [selectedId, setSelectedId] = useState(() => {
     const list = Array.isArray(cachedTemplates) && cachedTemplates.length > 0 ? cachedTemplates : BUILTIN_TEMPLATES
-    const targetTplId = initialShop?.default_template_id || 
-                        cachedShop?.default_template_id || 
-                        (typeof window !== "undefined" ? localStorage.getItem("slipzo_default_template_id") : null)
+    const targetTplId = initialShop?.default_template_id ||
+      cachedShop?.default_template_id ||
+      (typeof window !== "undefined" ? localStorage.getItem("slipzo_default_template_id") : null)
     if (targetTplId) {
       const match = findTemplateMatch(list, targetTplId)
       if (match) return match.id
@@ -230,9 +232,45 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           setTax(String(shopData.tax_rate))
         }
 
-        // Scoped User Menu Items
-        const validMenu = Array.isArray(menuData) ? menuData : (Array.isArray(menuData?.items) ? menuData.items : [])
-        const userList = validMenu.length > 0 ? validMenu : getStoredMenuItems(user)
+        // Scoped User Menu Items with strict category isolation
+        const currentBType = (shopData?.business_type || "small_business").toLowerCase()
+        const isClothingShop = currentBType.includes("clothing") || currentBType.includes("garment")
+
+        let validMenu = Array.isArray(menuData) ? menuData : (Array.isArray(menuData?.items) ? menuData.items : [])
+
+        // If in clothing shop, strictly filter out food/drink/grocery items
+        if (isClothingShop && validMenu.length > 0) {
+          validMenu = validMenu.filter(it => {
+            const itBType = (it.business_type || "").toLowerCase()
+            const itCat = (it.category || "").toLowerCase()
+            const isFood = itBType.includes("hotel") || itBType.includes("food") || itBType.includes("kirana") || itCat.includes("food") || itCat.includes("bread") || itCat.includes("beverage") || itCat.includes("chai") || itCat.includes("roti") || itCat.includes("snack") || itCat.includes("dessert") || itCat.includes("fast food")
+            return !isFood && (itBType === "clothing_garments" || itCat.includes("wear") || itCat.includes("cloth") || itCat.includes("garment") || itCat.includes("saree") || itCat.includes("shirt") || itCat.includes("jean") || itCat.includes("dress") || itCat.includes("trouser") || itCat.includes("kurti") || itCat.includes("jacket") || itCat.includes("essential"))
+          })
+        }
+
+        // If user menu has no clothing items, fallback to clothing catalog
+        if (validMenu.length === 0 && shopData?.business_type) {
+          const catalog = await call(`/menu/catalog?business_type=${shopData.business_type}`).catch(() => [])
+          if (Array.isArray(catalog) && catalog.length > 0) {
+            validMenu = catalog
+          }
+        }
+
+        let userList = validMenu
+        if (!userList || userList.length === 0) {
+          const stored = getStoredMenuItems(user)
+          if (Array.isArray(stored) && stored.length > 0) {
+            if (isClothingShop) {
+              userList = stored.filter(it => {
+                const itCat = (it.category || "").toLowerCase()
+                return itCat.includes("wear") || itCat.includes("cloth") || itCat.includes("garment") || itCat.includes("shirt") || itCat.includes("jean") || itCat.includes("saree")
+              })
+            } else {
+              userList = stored
+            }
+          }
+        }
+
         setUserMenuItems(Array.isArray(userList) ? userList : [])
         if (Array.isArray(userList) && userList.length > 0) {
           saveStoredMenuItems(userList, user)
@@ -265,15 +303,15 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       } else {
         call("/menu").then(res => {
           if (Array.isArray(res)) setUserMenuItems(res)
-        }).catch(() => {})
+        }).catch(() => { })
       }
     }
 
     window.addEventListener("slipzo_shop_updated", handleShopUpdate)
     window.addEventListener("slipzo-menu-update", handleMenuUpdate)
 
-    return () => { 
-      isMounted = false 
+    return () => {
+      isMounted = false
       window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
       window.removeEventListener("slipzo-menu-update", handleMenuUpdate)
     }
@@ -569,7 +607,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     // 2. Query backend barcode lookup endpoint (server-side shop isolation & availability check)
     try {
       const res = await call(`/menu/barcode/${encodeURIComponent(barcode)}`)
-      
+
       if (res && res.found && res.available && res.item) {
         if (res.item.is_active === false || res.item.is_available === false) {
           playScanErrorBeep()
@@ -1134,7 +1172,13 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                   /* Empty Menu State */
                   <div className="nb-empty-menu-card">
                     <div className="nb-empty-icon">
-                      <Utensils size={28} />
+                      {(shop?.business_type || "").toLowerCase().includes("clothing") || (shop?.business_type || "").toLowerCase().includes("garment") ? (
+                        <Shirt size={28} />
+                      ) : (shop?.business_type || "").toLowerCase().includes("hotel") || (shop?.business_type || "").toLowerCase().includes("food") ? (
+                        <Utensils size={28} />
+                      ) : (
+                        <ShoppingBag size={28} />
+                      )}
                     </div>
                     <h4 className="nb-empty-title">Your Menu is Empty</h4>
                     <p className="nb-empty-desc">
@@ -1172,6 +1216,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       {paginatedMenuItems.map((menuItem) => {
                         const nameKey = (menuItem.name || "").trim().toLowerCase()
                         const addedItem = addedItemMap.get(nameKey)
+                        const itemCat = (menuItem.category || "").toLowerCase()
+                        const isClothItem = (shop?.business_type || "").toLowerCase().includes("clothing") || (shop?.business_type || "").toLowerCase().includes("garment") || itemCat.includes("wear") || itemCat.includes("cloth") || itemCat.includes("garment") || itemCat.includes("shirt") || itemCat.includes("saree") || itemCat.includes("dress")
+                        const isFoodItem = (shop?.business_type || "").toLowerCase().includes("hotel") || (shop?.business_type || "").toLowerCase().includes("food") || itemCat.includes("food") || itemCat.includes("bread") || itemCat.includes("beverage") || itemCat.includes("chai")
+
                         return (
                           <div key={menuItem.id} className="nb-item-card">
                             <div className="nb-item-left">
@@ -1180,13 +1228,18 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                   src={menuItem.image_url}
                                   alt={menuItem.name}
                                   className="nb-item-thumb"
-                                  onError={(e) => { e.target.style.display = "none"; }}
+                                  onError={(e) => {
+                                    e.target.style.display = "none";
+                                    if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
+                                  }}
                                 />
-                              ) : (
-                                <div className="nb-item-thumb-placeholder">
-                                  <Utensils size={18} />
-                                </div>
-                              )}
+                              ) : null}
+                              <div
+                                className="nb-item-thumb-placeholder"
+                                style={{ display: menuItem.image_url ? "none" : "flex" }}
+                              >
+                                {isClothItem ? <Shirt size={18} /> : (isFoodItem ? <Utensils size={18} /> : <ShoppingBag size={18} />)}
+                              </div>
 
                               <div className="nb-item-info">
                                 <h4 className="nb-item-name" title={menuItem.name}>{tDb(menuItem.name)}</h4>
@@ -1454,8 +1507,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           Uses the single source of truth: RealisticReceiptView!
           ==================================================================== */}
       <div style={{ position: "absolute", left: "-9999px", top: "-9999px", opacity: 0, pointerEvents: "none" }}>
-        <div 
-          id="receipt-to-print" 
+        <div
+          id="receipt-to-print"
           className={`receipt-preview-content format-${templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "a4" : "80mm")}`}
           style={{
             background: "#ffffff",

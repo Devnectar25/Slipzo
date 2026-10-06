@@ -12,7 +12,8 @@ import {
   User,
   Calendar,
   Plus,
-  Trash2
+  Trash2,
+  Utensils
 } from "lucide-react"
 import { call, money, getCachedData } from "../lib/utils"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
@@ -254,6 +255,11 @@ export function History({ setView, setSelectedBillId, user }) {
                     </div>
 
                     <div className="history-meta-badges-row">
+                      {bill.table_number && (
+                        <span className="customer-tag" style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe", fontWeight: 600 }}>
+                          <Utensils size={10} /> {bill.table_number}
+                        </span>
+                      )}
                       {bill.customer_name && (
                         <span className="customer-tag">
                           <User size={11} /> {bill.customer_name}

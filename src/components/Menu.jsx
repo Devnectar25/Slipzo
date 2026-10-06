@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   Utensils,
+  Shirt,
+  ShoppingBag,
   Plus,
   Search,
   Edit2,
@@ -64,6 +66,15 @@ export function Menu({ setView, requireAuth, user }) {
   const defaultBusinessType = cachedShop?.business_type || "small_business"
   const [selectedBusinessType, setSelectedBusinessType] = useState(defaultBusinessType)
 
+  const getItemPlaceholderIcon = (category, sz = 22) => {
+    const cat = (category || "").toLowerCase()
+    const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment") || cat.includes("wear") || cat.includes("cloth") || cat.includes("garment") || cat.includes("shirt") || cat.includes("saree") || cat.includes("dress") || cat.includes("kids") || cat.includes("jacket")
+    const isFood = (selectedBusinessType || "").toLowerCase().includes("hotel") || (selectedBusinessType || "").toLowerCase().includes("food") || cat.includes("food") || cat.includes("bread") || cat.includes("beverage") || cat.includes("chai") || cat.includes("roti") || cat.includes("snack")
+    if (isCloth) return <Shirt size={sz} />
+    if (isFood) return <Utensils size={sz} />
+    return <ShoppingBag size={sz} />
+  }
+
   // Listen to shop updates to sync business type and clear personal menu
   useEffect(() => {
     const handleShopUpdate = (e) => {
@@ -96,9 +107,17 @@ export function Menu({ setView, requireAuth, user }) {
   // ==========================================
   const cachedItems = getCachedData("/menu")
   const [items, setItems] = useState(() => {
-    if (Array.isArray(cachedItems) && cachedItems.length > 0) return cachedItems
+    const isCloth = (defaultBusinessType || "").toLowerCase().includes("clothing") || (defaultBusinessType || "").toLowerCase().includes("garment")
+    const filterForCloth = (arr) => {
+      if (!Array.isArray(arr) || !isCloth) return Array.isArray(arr) ? arr : []
+      return arr.filter(it => {
+        const itCat = (it.category || "").toLowerCase()
+        return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
+      })
+    }
+    if (Array.isArray(cachedItems) && cachedItems.length > 0) return filterForCloth(cachedItems)
     const stored = getStoredMenuItems(user)
-    return stored.length > 0 ? stored : []
+    return filterForCloth(stored)
   })
   const [loading, setLoading] = useState(() => !cachedItems && items.length === 0)
   const [search, setSearch] = useState("")
@@ -234,17 +253,32 @@ export function Menu({ setView, requireAuth, user }) {
     try {
       if (showSpinner) setLoading(true)
       const data = await call("/menu").catch(() => null)
+      const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment")
+      const filterForCloth = (arr) => {
+        if (!Array.isArray(arr) || !isCloth) return Array.isArray(arr) ? arr : []
+        return arr.filter(it => {
+          const itCat = (it.category || "").toLowerCase()
+          return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
+        })
+      }
       if (Array.isArray(data)) {
-        setItems(data)
-        saveStoredMenuItems(data, user)
+        const cleanData = filterForCloth(data)
+        setItems(cleanData)
+        saveStoredMenuItems(cleanData, user)
       } else {
         const local = getStoredMenuItems(user)
-        if (local.length > 0) setItems(local)
+        const cleanLocal = filterForCloth(local)
+        if (cleanLocal.length > 0) setItems(cleanLocal)
       }
     } catch (err) {
       console.warn("Failed to load user menu, using offline storage:", err)
+      const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment")
       const local = getStoredMenuItems(user)
-      if (local.length > 0) setItems(local)
+      const cleanLocal = isCloth ? local.filter(it => {
+        const itCat = (it.category || "").toLowerCase()
+        return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
+      }) : local
+      if (cleanLocal.length > 0) setItems(cleanLocal)
     } finally {
       if (showSpinner) setLoading(false)
     }
@@ -863,7 +897,7 @@ export function Menu({ setView, requireAuth, user }) {
                             />
                           ) : (
                             <div className="menu-card-image-placeholder">
-                              <Utensils size={22} />
+                              {getItemPlaceholderIcon(catItem.category, 22)}
                             </div>
                           )}
                           <span className="menu-card-cat-badge">{catItem.category || "General"}</span>
@@ -997,7 +1031,7 @@ export function Menu({ setView, requireAuth, user }) {
                           />
                         ) : (
                           <div className="menu-card-image-placeholder">
-                            <Utensils size={22} />
+                            {getItemPlaceholderIcon(item.category, 22)}
                           </div>
                         )}
                         <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
@@ -1208,7 +1242,7 @@ export function Menu({ setView, requireAuth, user }) {
                           />
                         ) : (
                           <div className="menu-card-image-placeholder">
-                            <Utensils size={22} />
+                            {getItemPlaceholderIcon(catItem.category, 22)}
                           </div>
                         )}
                         <span className="menu-card-cat-badge">{tDb(catItem.category || "General")}</span>
@@ -1363,7 +1397,7 @@ export function Menu({ setView, requireAuth, user }) {
                     />
                   ) : (
                     <div className="menu-card-image-placeholder" style={{ width: "60px", height: "60px" }}>
-                      <Utensils size={24} />
+                      {getItemPlaceholderIcon(selectedCatalogItem.category, 24)}
                     </div>
                   )}
                   <div className="menu-modal-preview-details">
@@ -1505,7 +1539,7 @@ export function Menu({ setView, requireAuth, user }) {
                     />
                   ) : (
                     <div className="menu-card-image-placeholder" style={{ width: "52px", height: "52px" }}>
-                      <Utensils size={20} />
+                      {getItemPlaceholderIcon(editingItem.category, 20)}
                     </div>
                   )}
                   <div className="menu-modal-preview-details">

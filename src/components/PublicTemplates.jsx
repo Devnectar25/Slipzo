@@ -127,7 +127,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         shopName: "URBAN FASHION PRO",
         address: "Level 2, Phoenix Marketcity, Mumbai",
         phone: "+91 22 6789 0011",
-        gst: "27AAACU1234M1Z2",
+        gst: "",
         invoiceNo: "UFP-INV-4401",
         date: "09 Mar 2026, 04:30 PM",
         items: [
@@ -187,7 +187,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         shopName: "LUMINA BEAUTY & SPA",
         address: "3rd Block, Koramangala, Bengaluru",
         phone: "+91 80 9988 7766",
-        gst: "29AABCL5544R1Z8",
+        gst: "",
         invoiceNo: "LUM-2026-55",
         date: "09 Mar 2026, 05:15 PM",
         items: [

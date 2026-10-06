@@ -1,5 +1,5 @@
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -8,36 +8,76 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Build outputs and binaries
-node_modules
-dist
-dist-ssr
+node_modules/
+dist/
+dist-ssr/
 *.apk
 *.aab
 *.local
+Slipzo.apk
+
+# Environment and local configurations
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
-!.env.example
 
 # Temporary / Test files & assets
 public/products/
 public/products/*
 public/templates_hero_bg.jpg
-Slipzo.apk
 *.test.js
 *.spec.js
 test/
+tests/
 seed/
+temp/
+tmp/
+coverage/
+.eslintcache
 
+# Temporary, debug, migration-helper & seed scripts
+scripts/
+src/scripts/
+src/scripts/*
+check_barcodes.js
+check_clothing_images.js
+inspect_schema_menu_items.js
+inspect_tables.js
+migrate_barcode_menu_items.js
+migrate_user_menu_items.js
+seed_authentic_hotel_items.js
+seed_menu_items_and_bucket.js
+sync_clothing_garments.js
+upload_real_food_images.js
+upload_ui_images.js
+verify_clothing_images.js
+verify_menu_system.js
+src/scripts/check_barcodes.js
+src/scripts/check_clothing_images.js
+src/scripts/inspect_schema_menu_items.js
+src/scripts/inspect_tables.js
+src/scripts/migrate_barcode_menu_items.js
+src/scripts/migrate_user_menu_items.js
+src/scripts/seed_authentic_hotel_items.js
+src/scripts/seed_menu_items_and_bucket.js
+src/scripts/sync_clothing_garments.js
+src/scripts/upload_real_food_images.js
+src/scripts/upload_ui_images.js
+src/scripts/verify_clothing_images.js
+src/scripts/verify_menu_system.js
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
 
