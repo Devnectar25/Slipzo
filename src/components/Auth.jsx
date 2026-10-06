@@ -396,7 +396,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           right: 0.75rem;
           background: none !important;
           border: none !important;
-          color: #64748b !important;
+          color: #74788A !important;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -407,15 +407,15 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         }
 
         .password-toggle-btn:hover {
-          color: #0f172a !important;
+          color: #0C1F41 !important;
         }
 
         .auth-error-banner {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          background: #fef2f2;
-          border: 1px solid #fecaca;
+          background: #FFE1E5;
+          border: 1px solid #FFB8BD;
           color: #b91c1c;
           font-size: 0.82rem;
           font-weight: 500;
@@ -445,7 +445,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           max-width: 420px;
           padding: 1.5rem;
           box-shadow: 0 20px 48px rgba(15, 23, 42, 0.25);
-          border: 1px solid #e2e8f0;
+          border: 1px solid #F7CDAB;
           animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -476,12 +476,12 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         .popup-icon-title h3 {
           font-size: 1.15rem;
           font-weight: 700;
-          color: #0f172a;
+          color: #0C1F41;
           margin: 0;
         }
 
         .popup-close-btn {
-          background: #f1f5f9;
+          background: #FDF4EB;
           border: none;
           width: 30px;
           height: 30px;
@@ -489,26 +489,26 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #64748b;
+          color: #74788A;
           cursor: pointer;
           transition: all 0.2s;
         }
 
         .popup-close-btn:hover {
-          background: #e2e8f0;
-          color: #0f172a;
+          background: #F7CDAB;
+          color: #0C1F41;
         }
 
         .popup-desc {
           font-size: 0.88rem;
-          color: #64748b;
+          color: #74788A;
           line-height: 1.5;
           margin: 0 0 1rem 0;
         }
 
         .popup-rules-list {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: #FFF2DE;
+          border: 1px solid #F7CDAB;
           border-radius: 12px;
           padding: 0.75rem 1rem;
           display: flex;
@@ -560,7 +560,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         .popup-ok-btn {
           width: 100%;
           padding: 0.75rem 1rem;
-          background: #0f172a;
+          background: #0C1F41;
           color: #ffffff;
           border: none;
           border-radius: 10px;
@@ -571,7 +571,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         }
 
         .popup-ok-btn:hover {
-          background: #1e293b;
+          background: #111827;
         }
 
         @keyframes fadeIn {
@@ -590,10 +590,11 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           }
         }
 
-        /* Auth Left Side - Unified Dark Theme */
+        /* Auth Left Side - Website Warm Theme */
         .auth-art {
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-          color: #ffffff !important;
+          background: linear-gradient(145deg, #FFF0E5 0%, #FFF2DE 100%) !important;
+          border-right: 1.5px solid #F7CDAB !important;
+          color: #0C1F41 !important;
           padding: 2.25rem !important;
           display: flex !important;
           flex-direction: column !important;
@@ -611,7 +612,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           right: -50%;
           width: 100%;
           height: 100%;
-          background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(246, 96, 22, 0.12) 0%, transparent 70%);
           pointer-events: none;
         }
 
@@ -630,14 +631,15 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           object-fit: contain !important;
           object-position: left center !important;
           display: block !important;
-          filter: brightness(0) invert(1) drop-shadow(0 2px 10px rgba(14, 165, 233, 0.3)) !important;
+          filter: none !important;
         }
 
         .auth-art .eyebrow {
-          font-size: 10px !important;
+          font-size: 11px !important;
           letter-spacing: 2.5px !important;
           text-transform: uppercase !important;
-          color: rgba(255, 255, 255, 0.5) !important;
+          color: #F66016 !important;
+          font-weight: 700 !important;
           margin-bottom: 0.35rem !important;
           position: relative;
           z-index: 1;
@@ -645,21 +647,22 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
 
         .auth-art h1 {
           font-size: 1.85rem !important;
-          font-weight: 700 !important;
+          font-weight: 800 !important;
           line-height: 1.25 !important;
           margin: 0 0 0.5rem 0 !important;
-          color: #ffffff !important;
+          color: #0C1F41 !important;
           position: relative;
           z-index: 1;
         }
 
         .auth-art h1 em {
-          color: #38bdf8 !important;
-          font-style: normal;
+          color: #F66016 !important;
+          font-style: normal !important;
+          font-weight: 800 !important;
         }
 
         .auth-art .art-note {
-          color: rgba(255, 255, 255, 0.7) !important;
+          color: #575B6B !important;
           font-size: 0.92rem !important;
           max-width: 320px !important;
           line-height: 1.5 !important;
@@ -672,12 +675,12 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           display: inline-flex !important;
           align-items: center !important;
           gap: 0.75rem !important;
-          background: rgba(255, 255, 255, 0.08) !important;
-          border: 1px solid rgba(255, 255, 255, 0.15) !important;
-          backdrop-filter: blur(8px) !important;
+          background: #ffffff !important;
+          border: 1.5px solid #F7CDAB !important;
+          box-shadow: 0 4px 14px rgba(12, 31, 65, 0.05) !important;
           padding: 0.55rem 1rem !important;
-          border-radius: 10px !important;
-          color: rgba(255, 255, 255, 0.85) !important;
+          border-radius: 12px !important;
+          color: #575B6B !important;
           font-size: 0.8rem !important;
           width: fit-content !important;
           position: relative;
@@ -685,15 +688,19 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           margin-top: auto !important;
         }
 
+        .auth-art .receipt-stamp svg {
+          color: #F66016 !important;
+        }
+
         .auth-art .receipt-stamp b {
-          color: #ffffff !important;
-          font-weight: 600 !important;
+          color: #0C1F41 !important;
+          font-weight: 700 !important;
         }
 
 
         .auth-form input.input-error {
           border-color: #ef4444 !important;
-          background: #fef2f2 !important;
+          background: #FFE1E5 !important;
         }
 
         /* Responsive */
