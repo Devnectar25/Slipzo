@@ -841,21 +841,17 @@ export function Products({ setView, requireAuth, user }) {
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="products-cards-grid">
-              {filteredProducts.map(product => (
-                <div
-                  key={product.id}
-                  className="product-card product-card-hover"
-                >
+              {filteredProducts.map(product => {
+                const numPrice = Number(product.price) || 0
+                const formattedPrice = numPrice.toFixed(2)
+                const isWish = wishlist && wishlist.has ? wishlist.has(product.id) : false
+                return (
+                  <div
+                    key={product.id}
+                    className="product-card product-card-hover"
+                  >
                   <div style={{ position: 'relative' }}>
                     {/* Product Image */}
-                    {product.image ? (
-                      <div className="product-image-box">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                        />
-                      </div>
-                    )}
                     {product.image ? (
                       <img
                         src={product.image}

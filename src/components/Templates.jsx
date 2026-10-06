@@ -10,6 +10,7 @@ import { CardSkeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
 import { RealisticReceiptView } from "./RealisticReceiptView"
+import { VoiceInputButton } from "./common/VoiceInputButton"
 
 export const BUILTIN_TEMPLATES = [
   {
@@ -352,7 +353,7 @@ export function Templates({ setView, user }) {
             onChange={(e) => setSearch(e.target.value)}
             className="templates-search-input-field"
           />
-          {search && (
+          {search ? (
             <button className="templates-search-clear-btn" onClick={() => setSearch("")}>
               <X size={15} />
             </button>

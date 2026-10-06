@@ -691,3 +691,6 @@ export const saveStoredTables = (user, tables) => {
     localStorage.setItem(`slipzo_tables_${userKey}`, JSON.stringify(tables))
   } catch (e) {}
 }
+
+export const DEFAULT_SHOP_MENU_ITEMS = []
+

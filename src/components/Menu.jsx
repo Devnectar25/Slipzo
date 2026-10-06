@@ -1090,52 +1090,32 @@ export function Menu({ setView, requireAuth, user }) {
 
                         <div className="menu-card-details">
                           <h4 className="menu-card-item-name" title={catItem.name}>
-                            {catItem.name}
+                            {tDb(catItem.name)}
                           </h4>
                           <div className="menu-card-price-row">
                             <span className="catalog-card-base-price">{money(catItem.price)}</span>
                           </div>
-                        )}
-                        <button
-                          type="button"
-                          className={`mob-catalog-heart-btn ${isFav ? "favorited" : ""}`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleFavorite(catItem.id)
-                          }}
-                          aria-label="Favorite"
-                        >
-                          <Heart
-                            size={15}
-                            fill={isFav ? "#EF4444" : "none"}
-                            color={isFav ? "#EF4444" : "#475569"}
-                          />
-                        </button>
-                      </div>
+                        </div>
 
-                      <h4 className="mob-catalog-item-name">{catItem.name}</h4>
-
-                      <div className="mob-catalog-card-bottom">
-                        <span className="mob-catalog-price">{money(catItem.price)}</span>
-                        <button
-                          type="button"
-                          className={`mob-catalog-add-btn ${isAlreadyAdded ? "added" : ""}`}
-                          onClick={() => handleQuickAdd(catItem)}
-                        >
+                        <div className="user-menu-card-actions">
                           {isAlreadyAdded ? (
-                            <>
-                              <Check size={13} style={{ strokeWidth: 2.5 }} />
-                              <span>Added</span>
-                            </>
+                            <span className="catalog-card-added-badge">
+                              <Check size={14} /> {t("menu.added", "Added")}
+                            </span>
                           ) : (
-                            <span>Add</span>
+                            <button
+                              className="catalog-card-add-btn"
+                              onClick={() => handleOpenAddModal(catItem)}
+                            >
+                              <Plus size={15} /> {t("menu.add", "Add")}
+                            </button>
                           )}
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1303,43 +1283,42 @@ export function Menu({ setView, requireAuth, user }) {
                         )}
                       </div>
 
-                          <div className="menu-card-details">
-                            <h4 className="menu-card-item-name" title={item.name}>
-                              {tDb(item.name)}
-                            </h4>
-                            <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
-                            <div className="menu-card-price-row">
-                              <span className="menu-card-selling-price">{money(item.price)}</span>
-                              {isItemActive && (
-                                <span className="menu-card-status-pill">
-                                  <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="user-menu-card-actions">
-                          <button
-                            className="menu-action-icon-btn"
-                            onClick={() => handleOpenEditModal(item)}
-                            title={t("menu.editPrice", "Edit selling price")}
-                          >
-                            <Edit2 size={15} />
-                          </button>
-                          <button
-                            className="menu-action-icon-btn delete-btn"
-                            onClick={() => handleRemoveFromUserMenu(item)}
-                            disabled={deletingId === item.id}
-                            title={t("menu.removeMenu", "Remove from My Menu")}
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                      <div className="menu-card-details">
+                        <h4 className="menu-card-item-name" title={item.name}>
+                          {tDb(item.name)}
+                        </h4>
+                        <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
+                        <div className="menu-card-price-row">
+                          <span className="menu-card-selling-price">{money(item.price)}</span>
+                          {isItemActive && (
+                            <span className="menu-card-status-pill">
+                              <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
+                            </span>
+                          )}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
+
+                      <div className="user-menu-card-actions">
+                        <button
+                          className="menu-action-icon-btn"
+                          onClick={() => handleOpenEditModal(item)}
+                          title={t("menu.editPrice", "Edit selling price")}
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          className="menu-action-icon-btn delete-btn"
+                          onClick={() => handleRemoveFromUserMenu(item)}
+                          disabled={deletingId === item.id}
+                          title={t("menu.removeMenu", "Remove from My Menu")}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
               </>
             )}
           </>
