@@ -142,6 +142,10 @@ export const BUILTIN_TEMPLATES = [
   }
 ]
 
+/**
+ * Templates Showcase & Selection Component
+ * Manages thermal receipt templates, search filtering, and realistic preview modal.
+ */
 export function Templates({ setView, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum } = useDbTranslation()
