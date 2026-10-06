@@ -299,27 +299,43 @@
 }
 
 /* Cards Grid Layout */
+/* Cards Grid Layout */
 .menu-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .menu-cards-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.65rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
   }
 }
 
 /* Single User Menu Item Card */
-.user-menu-card {
+.user-menu-card,
+.catalog-item-card {
   background: #ffffff;
   border: 1.5px solid #F66016;
   border-radius: 16px;
   padding: 10px 14px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
   gap: 12px;
   box-shadow: 0 2px 8px rgba(246, 96, 22, 0.05);
@@ -328,6 +344,8 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .user-menu-card:hover {
@@ -336,7 +354,25 @@
   transform: translateY(-1px);
 }
 
-.user-menu-card-left {
+.user-menu-card:active,
+.catalog-item-card:active {
+  transform: scale(0.98);
+}
+
+.catalog-item-card.already-added {
+  border-color: #bbf7d0;
+  background: #fdfefe;
+}
+
+.menu-card-image-box {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  max-height: 105px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -392,12 +428,15 @@
 }
 
 .menu-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0.1rem 0 0;
   min-width: 0;
-  flex: 1;
 }
 
 .menu-card-item-name {
-  font-size: 0.96rem;
+  font-size: 0.84rem;
   font-weight: 700;
   color: #0C1F41;
   margin: 0 0 0.2rem 0;
@@ -420,36 +459,67 @@
 .menu-card-price-row {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: space-between;
+  margin-top: 0.05rem;
 }
 
+.catalog-card-base-price,
 .menu-card-selling-price {
-  font-size: 1.15rem;
+  font-size: 0.96rem;
   font-weight: 800;
   color: #F66016;
-}
-
-.menu-card-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #16a34a;
-}
-
-.menu-card-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #16a34a;
 }
 
 .user-menu-card-actions {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
+  gap: 0.3rem;
+  width: 100%;
+  margin-top: 0.1rem;
+}
+
+.catalog-card-add-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.38rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.catalog-card-add-btn:hover {
+  background: #0369a1;
+  box-shadow: 0 4px 8px rgba(2, 132, 199, 0.25);
+  transform: translateY(-1px);
+}
+
+.catalog-card-add-btn:active {
+  transform: scale(0.96);
+}
+
+.catalog-card-added-badge {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 7px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  white-space: nowrap;
 }
 
 .menu-action-icon-btn {
@@ -461,7 +531,23 @@
   color: #0C1F41;
   display: flex;
   align-items: center;
+  gap: 0.35rem;
+}
+
+.user-card-bottom-actions .menu-action-icon-btn.edit-btn {
+  flex: 1;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  gap: 0.3rem;
+  padding: 0 0.45rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -695,6 +781,29 @@
    Modals: Add to Menu & Edit Price Confirmation
    ========================================================================== */
 
+/* Prevent background and container scrolling when any modal is present */
+body:has(.menu-modal-backdrop),
+html:has(.menu-modal-backdrop),
+body:has(.modal-backdrop),
+html:has(.modal-backdrop),
+body:has(.add-menu-modal-backdrop),
+html:has(.add-menu-modal-backdrop),
+body:has(.print-modal-backdrop),
+html:has(.print-modal-backdrop) {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+body:has(.menu-modal-backdrop) .shell-content,
+body:has(.menu-modal-backdrop) .shell-main,
+body:has(.menu-modal-backdrop) .menu-page-container,
+body:has(.modal-backdrop) .shell-content,
+body:has(.modal-backdrop) .shell-main,
+body:has(.add-menu-modal-backdrop) .shell-content,
+body:has(.add-menu-modal-backdrop) .shell-main {
+  overflow: hidden !important;
+}
+
 .menu-modal-backdrop {
   position: fixed;
   top: 0;
@@ -707,15 +816,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.75rem;
   animation: fadeIn 0.15s ease;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .menu-modal-card {
   background: #ffffff;
-  border-radius: 18px;
+  border-radius: 14px;
   width: 100%;
   max-width: 440px;
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
   overflow: hidden;
   border: 1px solid #F7CDAB;
@@ -731,7 +845,7 @@
 }
 
 .menu-modal-title {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #0C1F41;
   margin: 0;
@@ -742,11 +856,12 @@
   border: none;
   color: #74788A;
   cursor: pointer;
-  padding: 0.35rem;
+  padding: 0.25rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s ease;
 }
 
 .menu-modal-close-btn:hover {
@@ -755,7 +870,9 @@
 }
 
 .menu-modal-body {
-  padding: 1.25rem;
+  padding: 0.85rem 1rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .menu-modal-item-preview {
@@ -798,19 +915,19 @@
 }
 
 .menu-modal-preview-name {
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: #0C1F41;
   margin: 0 0 0.2rem 0;
 }
 
 .menu-modal-field {
-  margin-bottom: 1.15rem;
+  margin-bottom: 0.65rem;
 }
 
 .menu-modal-label {
   display: block;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #0C1F41;
   margin-bottom: 0.4rem;
@@ -824,8 +941,8 @@
 
 .menu-modal-currency-symbol {
   position: absolute;
-  left: 12px;
-  font-size: 1.05rem;
+  left: 9px;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #F66016;
 }
@@ -841,6 +958,13 @@
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s ease;
+  height: 36px;
+}
+
+.menu-modal-price-input-box .menu-modal-input {
+  padding-left: 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .menu-modal-input:focus {
@@ -875,8 +999,8 @@
 
 @media (max-width: 768px) {
   .menu-cards-grid {
-    grid-template-columns: 1fr;
-    gap: 0.65rem;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
   }
 }
 
@@ -998,38 +1122,40 @@
     padding: 0.1rem 0.45rem;
   }
 
-  /* Cards Grid: Ensure Full Width Single Column with Zero Overflow */
+  /* Cards Grid: 2 Cards per line on mobile */
   .menu-cards-grid {
-    grid-template-columns: 1fr !important;
-    gap: 0.5rem !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.55rem !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
-  /* Compact User Menu & Catalog Cards */
+  /* Compact User Menu & Catalog Cards (Square Box) */
   .catalog-item-card,
   .user-menu-card {
-    padding: 0.5rem 0.65rem !important;
-    border-radius: 10px !important;
-    gap: 0.45rem !important;
+    padding: 0.5rem !important;
+    border-radius: 12px !important;
+    gap: 0.4rem !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
   }
 
-  .user-menu-card-left {
-    gap: 0.55rem !important;
-    min-width: 0 !important;
-    flex: 1 !important;
-    overflow: hidden !important;
+  .menu-card-image-box {
+    width: 100% !important;
+    aspect-ratio: 4 / 3 !important;
+    height: auto !important;
+    border-radius: 8px !important;
   }
 
   .menu-card-image,
   .menu-card-image-placeholder {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
+    width: 100% !important;
+    height: 100% !important;
     border-radius: 8px !important;
   }
 
@@ -1037,61 +1163,76 @@
     min-width: 0 !important;
     flex: 1 !important;
     overflow: hidden !important;
+    padding: 0.1rem 0 0 !important;
   }
 
   .menu-card-item-name {
-    font-size: 0.86rem !important;
+    font-size: 0.8rem !important;
     font-weight: 700 !important;
     margin-bottom: 0.1rem !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    line-height: 1.25 !important;
+    min-height: 2em !important;
   }
 
   .menu-card-cat-badge {
-    font-size: 0.65rem !important;
-    padding: 0.05rem 0.35rem !important;
-    border-radius: 3px !important;
-    margin-bottom: 0.15rem !important;
+    font-size: 0.6rem !important;
+    padding: 0.08rem 0.35rem !important;
+    border-radius: 4px !important;
+  }
+
+  .menu-card-status-pill {
+    font-size: 0.58rem !important;
+    padding: 0.08rem 0.3rem !important;
   }
 
   .menu-card-price-row {
-    gap: 0.35rem !important;
+    gap: 0.25rem !important;
+    margin-top: 0.05rem !important;
   }
 
   .catalog-card-base-price,
   .menu-card-selling-price {
-    font-size: 0.92rem !important;
+    font-size: 0.95rem !important;
     font-weight: 800 !important;
   }
 
   /* Action Buttons on Mobile */
   .user-menu-card-actions {
-    gap: 0.3rem !important;
-    flex-shrink: 0 !important;
+    width: 100% !important;
+    gap: 0.25rem !important;
+    margin-top: 0.1rem !important;
   }
 
   .catalog-card-add-btn {
-    padding: 0.38rem 0.65rem !important;
-    font-size: 0.78rem !important;
-    border-radius: 6px !important;
-    gap: 0.25rem !important;
-    flex-shrink: 0 !important;
+    width: 100% !important;
+    padding: 0.38rem 0.45rem !important;
+    font-size: 0.76rem !important;
+    border-radius: 7px !important;
+    gap: 0.2rem !important;
+    justify-content: center !important;
     white-space: nowrap !important;
   }
 
   .catalog-card-added-badge {
-    padding: 0.32rem 0.55rem !important;
-    font-size: 0.74rem !important;
-    border-radius: 6px !important;
+    width: 100% !important;
+    padding: 0.34rem 0.45rem !important;
+    font-size: 0.72rem !important;
+    border-radius: 7px !important;
     gap: 0.2rem !important;
-    flex-shrink: 0 !important;
+    justify-content: center !important;
     white-space: nowrap !important;
   }
 
-  .menu-action-icon-btn {
-    width: 30px !important;
-    height: 30px !important;
+  .user-card-bottom-actions .menu-action-icon-btn.edit-btn {
+    height: 28px !important;
+    font-size: 0.7rem !important;
+    padding: 0 0.35rem !important;
+    border-radius: 6px !important;
+  }
+
+  .user-card-bottom-actions .menu-action-icon-btn.delete-btn {
+    width: 28px !important;
+    height: 28px !important;
     border-radius: 6px !important;
   }
 

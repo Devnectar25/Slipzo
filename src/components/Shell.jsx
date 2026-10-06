@@ -355,10 +355,14 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             </span>
           </div>
 
-          {/* User Language Status Pill - links to Shop Profile */}
+          {/* User Language Status Pill - links to Shop Profile App Settings */}
           <div
             data-testid="sidebar-language-status"
-            onClick={() => handleNavClick("shop")}
+            onClick={() => {
+              sessionStorage.setItem("slipzo_scroll_to", "app-settings-section")
+              handleNavClick("shop")
+              window.dispatchEvent(new CustomEvent("slipzo-scroll-to-app-settings"))
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',

@@ -18,8 +18,8 @@ export const BUILTIN_TEMPLATES = [
     badge: "Standard",
     width: "58mm",
     paperSize: "58mm Thermal",
-    show_tax: true,
-    tax_rate: 18,
+    show_tax: false,
+    tax_rate: 0,
     footer: "Thank you for shopping with us! Please come again.",
     description: "Clean and professional receipt template with itemized table and clear totals.",
     gradient: "linear-gradient(135deg, #FC9B3E 0%, #F66016 100%)",
@@ -29,7 +29,7 @@ export const BUILTIN_TEMPLATES = [
       shopName: "CLASSIC MART & GROCERY",
       address: "Shop 14, Main Market, Connaught Place, New Delhi",
       phone: "+91 11 2341 5678",
-      gst: "07AAAA000A1Z5",
+      gst: "",
       invoiceNo: "CM-2026-8821",
       date: "09 Mar 2026, 01:15 PM",
       items: [
@@ -37,9 +37,9 @@ export const BUILTIN_TEMPLATES = [
         { name: "Refined Sunflower Oil 1L", qty: 1, rate: 195, total: 195 }
       ],
       subtotal: 435,
-      tax: 78.30,
+      tax: 0,
       discount: 0,
-      total: 513.30,
+      total: 435,
       payment: "Cash",
       footer: "Thank you for shopping with us! Please come again."
     },
@@ -90,13 +90,13 @@ export const BUILTIN_TEMPLATES = [
     badge: "Retail Choice",
     width: "80mm",
     paperSize: "80mm POS",
-    show_tax: true,
-    tax_rate: 18,
+    show_tax: false,
+    tax_rate: 0,
     footer: "Thank you for shopping with us! Please come again.",
     description: "Professional high-volume retail POS receipt with clean column headers, item discounts, and net totals.",
     gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
     accentColor: "#2563eb",
-    features: ["Retail store header", "Itemized table with quantity", "Tax / GST calculation", "Editable footer note"],
+    features: ["Retail store header", "Itemized table with quantity", "Net total calculation", "Editable footer note"],
     previewData: {
       shopName: "URBAN FASHION PRO",
       address: "Level 2, Phoenix Marketcity, Mumbai",
@@ -195,8 +195,8 @@ export const BUILTIN_TEMPLATES = [
     badge: "Premium",
     width: "80mm",
     paperSize: "80mm Standard / A4",
-    show_tax: true,
-    tax_rate: 18,
+    show_tax: false,
+    tax_rate: 0,
     footer: "Thank you for your business. Terms & conditions apply.",
     description: "Formal tax invoice template designed for businesses requiring full GST details, itemized totals, and formal terms.",
     gradient: "linear-gradient(135deg, #FC9B3E 0%, #FA4406 100%)",
@@ -206,7 +206,7 @@ export const BUILTIN_TEMPLATES = [
       shopName: "TECHNO COMPUTERS & PERIPHERALS",
       address: "Plot 88, Electronic City Phase 1, Bengaluru",
       phone: "+91 80 4123 9900",
-      gst: "29AABCT9981K1ZT",
+      gst: "",
       invoiceNo: "TC-INV-2026-904",
       date: "09 Mar 2026, 03:00 PM",
       items: [
@@ -214,9 +214,9 @@ export const BUILTIN_TEMPLATES = [
         { name: "Mechanical RGB Keyboard", qty: 1, rate: 2400, total: 2400 }
       ],
       subtotal: 3250,
-      tax: 585,
+      tax: 0,
       discount: 0,
-      total: 3835,
+      total: 3250,
       payment: "Bank / Online",
       footer: "Thank you for your business. Terms & conditions apply."
     },
@@ -459,7 +459,19 @@ export function Templates({ setView, user }) {
   }
 
   const remove = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this template?")) return
+    const confirmResult = await Swal.fire({
+      title: "Delete Template?",
+      text: "Are you sure you want to delete this template?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Delete",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true
+    })
+    if (!confirmResult.isConfirmed) return
     try {
       setActionLoadingId(id)
       await call(`/templates/${id}`, { method: "DELETE" })

@@ -97,7 +97,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         shopName: "CLASSIC MART & GROCERY",
         address: "Shop 14, Main Market, Connaught Place, New Delhi",
         phone: "+91 11 2341 5678",
-        gst: "07AAAA000A1Z5",
+        gst: "",
         invoiceNo: "CM-2026-8821",
         date: "09 Mar 2026, 01:15 PM",
         items: [
@@ -105,9 +105,9 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
           { name: "Refined Sunflower Oil 1L", qty: 1, rate: 195, total: 195 }
         ],
         subtotal: 435,
-        tax: 78.30,
+        tax: 0,
         discount: 0,
-        total: 513.30,
+        total: 435,
         payment: "Cash",
         footer: "Thank you for shopping with us! Please come again."
       }
@@ -122,7 +122,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       description: "Professional high-volume retail POS receipt with clean column headers, item discounts, and net totals.",
       gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
       accentColor: "#2563eb",
-      features: ["Retail store header", "Itemized table with quantity", "Tax / GST calculation", "Editable footer note"],
+      features: ["Retail store header", "Itemized table with quantity", "Net total calculation", "Editable footer note"],
       previewData: {
         shopName: "URBAN FASHION PRO",
         address: "Level 2, Phoenix Marketcity, Mumbai",
@@ -217,7 +217,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         shopName: "TECHNO COMPUTERS & PERIPHERALS",
         address: "Plot 88, Electronic City Phase 1, Bengaluru",
         phone: "+91 80 4123 9900",
-        gst: "29AABCT9981K1ZT",
+        gst: "",
         invoiceNo: "TC-INV-2026-904",
         date: "09 Mar 2026, 03:00 PM",
         items: [
@@ -225,9 +225,9 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
           { name: "Mechanical RGB Keyboard", qty: 1, rate: 2400, total: 2400 }
         ],
         subtotal: 3250,
-        tax: 585,
+        tax: 0,
         discount: 0,
-        total: 3835,
+        total: 3250,
         payment: "Bank / Online",
         footer: "Thank you for your business. Terms & conditions apply."
       }

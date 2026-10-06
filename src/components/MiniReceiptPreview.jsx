@@ -86,11 +86,10 @@ export function MiniReceiptPreview({ template }) {
         <div className="mini-dashed-divider" />
         <div className="mini-tax-breakdown">
           <div><span>{lbl("Subtotal", "उप-एकूण", "उप-योग")}</span><span>{money(435)}</span></div>
-          <div><span>{lbl("GST (18%)", `जीएसटी (${formatNum(18)}%)`, `जीएसटी (${formatNum(18)}%)`)}</span><span>{money(78.3)}</span></div>
         </div>
         <div className="mini-total-row-classic">
           <span>{lbl("GRAND TOTAL", "एकूण देय रक्कम", "कुल राशि")}</span>
-          <span style={{ color: template.color || "#0284c7" }}>{money(513.3)}</span>
+          <span style={{ color: template.color || "#0284c7" }}>{money(435)}</span>
         </div>
         <div className="mini-barcode-line">||| | |||| | |||||| || |</div>
         <div className="mini-policy-note">{tDb("Thank you! Please visit again.")}</div>
@@ -216,11 +215,10 @@ export function MiniReceiptPreview({ template }) {
         </div>
         <div className="mini-cgst-sgst">
           <div><span>{lbl("Subtotal", "उप-एकूण", "उप-योग")}</span><span>{money(3250)}</span></div>
-          <div><span>{lbl("GST (18%)", `जीएसटी (${formatNum(18)}%)`, `जीएसटी (${formatNum(18)}%)`)}</span><span>{money(585)}</span></div>
         </div>
         <div className="mini-total-elite" style={{ background: template.gradient || "linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)" }}>
-          <span>{lbl("TOTAL INVOICE", "एकूण पावती", "कुल चालान")}</span>
-          <span>{money(3835)}</span>
+          <span>{lbl("TOTAL AMOUNT", "एकूण रक्कम", "कुल राशि")}</span>
+          <span>{money(3250)}</span>
         </div>
         <div className="mini-thank-subtle">{lbl("Terms & conditions apply. Thank you!", "अटी व शर्ती लागू. धन्यवाद!", "नियम व शर्तें लागू। धन्यवाद!")}</div>
       </div>

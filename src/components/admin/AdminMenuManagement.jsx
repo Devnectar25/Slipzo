@@ -13,20 +13,33 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  Filter
+  Filter,
+  Barcode as BarcodeIcon
 } from "lucide-react"
 import { call, money } from "../../lib/utils"
+import { BarcodeModal } from "../common/BarcodeModal"
 import Swal from "sweetalert2"
 
 const DEFAULT_CATEGORIES = [
-  "Bakery",
-  "Beverages",
-  "Breakfast",
-  "Desserts",
-  "Fast Food",
-  "Main Course",
+  "Atta & Flour",
+  "Rice",
+  "Dal & Pulses",
+  "Oil & Ghee",
+  "Spices & Masala",
+  "Salt & Sugar",
+  "Biscuits & Cookies",
   "Snacks",
-  "South Indian",
+  "Tea & Coffee",
+  "Beverages",
+  "Dairy",
+  "Breakfast & Cereals",
+  "Instant Food",
+  "Noodles & Pasta",
+  "Sauces & Spreads",
+  "Dry Fruits & Nuts",
+  "Personal Care",
+  "Household Cleaning",
+  "Laundry",
   "General"
 ]
 
@@ -52,6 +65,9 @@ export function AdminMenuManagement({ getAdminHeaders }) {
   const [formIsAvailable, setFormIsAvailable] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState("")
+
+  // Barcode Modal state
+  const [barcodeModalItem, setBarcodeModalItem] = useState(null)
 
   const loadMasterMenu = async () => {
     setLoading(true)
@@ -526,6 +542,26 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                         <div style={{ display: "inline-flex", gap: "0.4rem" }}>
                           <button
                             type="button"
+                            className="admin-action-btn"
+                            onClick={() => setBarcodeModalItem(item)}
+                            title="View & Print Barcode"
+                            style={{
+                              width: "30px",
+                              height: "30px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderRadius: "6px",
+                              border: "1px solid #bae6fd",
+                              background: "#f0f9ff",
+                              color: "#0284c7",
+                              cursor: "pointer"
+                            }}
+                          >
+                            <BarcodeIcon size={14} />
+                          </button>
+                          <button
+                            type="button"
                             className="admin-action-btn admin-action-btn-edit"
                             onClick={() => handleOpenEditModal(item)}
                             title="Edit master item"
@@ -875,6 +911,13 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           </div>
         </div>
       )}
+
+      {/* Barcode View & Print Modal */}
+      <BarcodeModal
+        item={barcodeModalItem}
+        isOpen={Boolean(barcodeModalItem)}
+        onClose={() => setBarcodeModalItem(null)}
+      />
     </div>
   )
 }

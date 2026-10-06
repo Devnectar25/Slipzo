@@ -178,6 +178,42 @@
   background: #FDF4EB;
 }
 
+.nb-scan-barcode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  margin-left: 0.4rem;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.25);
+}
+
+.nb-scan-barcode-btn:hover {
+  background: #0369a1;
+  transform: translateY(-1px);
+}
+
+.nb-scan-barcode-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .nb-scan-barcode-btn span {
+    display: none;
+  }
+  .nb-scan-barcode-btn {
+    padding: 0.45rem 0.6rem;
+  }
+}
+
 /* ==========================================================================
    Category Filter Chips
    ========================================================================== */

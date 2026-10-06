@@ -26,6 +26,7 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
 
 export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   const [name, setName] = useState("")
+  const [businessType, setBusinessType] = useState("small_business")
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
   const [prefix, setPrefix] = useState("SLP")
@@ -57,6 +58,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
         if (data) {
           if (data.name && !data.name.endsWith("'s Shop")) setName(data.name)
+          if (data.business_type) setBusinessType(data.business_type)
           if (data.phone) setPhone(data.phone)
           if (data.address) setAddress(data.address)
           if (data.invoice_prefix) setPrefix(data.invoice_prefix)
@@ -192,6 +194,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           name: name.trim(),
           phone: phone.trim(),
           address: address.trim(),
+          business_type: businessType,
           invoice_prefix: prefix.trim().toUpperCase(),
           invoice_sequence: Number(sequence),
           invoice_format: format,
@@ -207,6 +210,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         name: name.trim(),
         phone: phone.trim(),
         address: address.trim(),
+        business_type: businessType,
         invoice_prefix: prefix.trim().toUpperCase(),
         invoice_sequence: Number(sequence),
         invoice_format: format,
@@ -381,6 +385,47 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               {touched.name && errors.name && (
                 <span className="error-text"><AlertCircle size={12} /> {errors.name}</span>
               )}
+            </div>
+
+            {/* Shop Category / Business Type */}
+            <div className="onboarding-field" style={{ marginBottom: "1rem" }}>
+              <label className="onboarding-label" style={{ marginBottom: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <Store size={14} className="field-icon" />
+                <span>Shop Category / Business Type <b className="req-star">*</b></span>
+              </label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.5rem" }}>
+                {[
+                  { id: "small_business", label: "Small Business / Cafe", icon: "☕", desc: "Tea tapri, snacks, cafe & fast food" },
+                  { id: "kirana_grocery", label: "Kirana / Grocery Store", icon: "🛒", desc: "Daily grocery, staples, FMCG items" },
+                  { id: "clothing_garments", label: "Cloth & Garments Shop", icon: "👗", desc: "Apparel, sarees, shirts & garments" },
+                  { id: "hotel_food", label: "Hotel & Food Restaurant", icon: "🍽️", desc: "Dine-in, thalis & restaurant meals" }
+                ].map(cat => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setBusinessType(cat.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "0.6rem",
+                      padding: "0.65rem 0.75rem",
+                      borderRadius: "10px",
+                      border: businessType === cat.id ? "2px solid #0284c7" : "1.5px solid #e2e8f0",
+                      background: businessType === cat.id ? "#f0f9ff" : "#ffffff",
+                      boxShadow: businessType === cat.id ? "0 2px 8px rgba(2,132,199,0.12)" : "none",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease"
+                    }}
+                  >
+                    <span style={{ fontSize: "1.35rem", lineHeight: 1 }}>{cat.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "0.82rem", fontWeight: 700, color: businessType === cat.id ? "#0369a1" : "#1e293b" }}>{cat.label}</div>
+                      <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "2px", lineHeight: 1.25 }}>{cat.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Phone Number */}
