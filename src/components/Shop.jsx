@@ -15,17 +15,20 @@ import {
   Edit2,
   ChevronDown,
   Settings,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Utensils,
+  ArrowRight
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
-import { call, getCachedData, setCachedData, getActivePlanDetails, findTemplateMatch } from "../lib/utils"
+import { call, getCachedData, setCachedData, getActivePlanDetails, findTemplateMatch, isHotelRestaurant } from "../lib/utils"
 import { ButtonLoader, Skeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { ChangeCategoryModal, BUSINESS_CATEGORIES } from "./common/ChangeCategoryModal"
+import { ManageTablesModal } from "./tables/ManageTablesModal"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -92,6 +95,7 @@ export function Shop({ user, setView } = {}) {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isChangeCategoryModalOpen, setIsChangeCategoryModalOpen] = useState(false)
+  const [isManageTablesModalOpen, setIsManageTablesModalOpen] = useState(false)
   const edited = useRef(false)
 
   const currentCategoryObj = useMemo(() => {
@@ -609,6 +613,68 @@ export function Shop({ user, setView } = {}) {
                   <SlidersHorizontal size={14} /> {t("profile.changeCategoryBtn", "Change Category")}
                 </button>
               </div>
+
+              {isHotelRestaurant(shop) && (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "10px",
+                  background: "#ffffff",
+                  border: "1.5px solid #e0f2fe",
+                  marginTop: "0.6rem",
+                  flexWrap: "wrap",
+                  gap: "0.5rem"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <Utensils size={16} color="#0284c7" />
+                    <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "#0f172a" }}>
+                      {shop.table_count || 10} {t("tables.tablesConfigured", "Tables Configured")}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsManageTablesModalOpen(true)}
+                      style={{
+                        background: "#f0f9ff",
+                        color: "#0284c7",
+                        border: "1px solid #bae6fd",
+                        borderRadius: "8px",
+                        padding: "0.35rem 0.75rem",
+                        fontSize: "0.78rem",
+                        fontWeight: "700",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {t("tables.manageTables", "Manage Tables")}
+                    </button>
+                    {setView && (
+                      <button
+                        type="button"
+                        onClick={() => setView("tables")}
+                        style={{
+                          background: "#0284c7",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "8px",
+                          padding: "0.35rem 0.75rem",
+                          fontSize: "0.78rem",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.25rem"
+                        }}
+                      >
+                        <span>{t("tables.openTables", "Open Table Billing")}</span>
+                        <ArrowRight size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <span className="sp-helper-text" style={{ marginTop: "0.4rem" }}>
                 {t("profile.categoryHelper", "Slipzo automatically tailors your product catalog recommendations to your selected category.")}
@@ -2061,8 +2127,19 @@ export function Shop({ user, setView } = {}) {
         onClose={() => setIsChangeCategoryModalOpen(false)}
         currentCategory={shop.business_type || "small_business"}
         user={user}
+        setView={setView}
         onCategoryChanged={(newCat, updatedShop) => {
-          setShop((prev) => ({ ...prev, business_type: newCat }))
+          setShop((prev) => ({ ...prev, business_type: newCat, ...updatedShop }))
+        }}
+      />
+
+      {/* Manage Tables Modal */}
+      <ManageTablesModal
+        isOpen={isManageTablesModalOpen}
+        onClose={() => setIsManageTablesModalOpen(false)}
+        currentCount={shop.table_count || 10}
+        onCountUpdated={(newCount) => {
+          setShop((prev) => ({ ...prev, table_count: newCount }))
         }}
       />
     </div>

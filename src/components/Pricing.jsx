@@ -1,8 +1,14 @@
 import { useState, useEffect } from "react"
-import { ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, ShieldCheck, HelpCircle, Printer, RefreshCw } from "lucide-react"
+import { 
+  ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, 
+  ShieldCheck, Printer, Crown, Layers, Percent, TrendingUp 
+} from "lucide-react"
 import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
-import { getActivePlanDetails, activatePlan, syncUserQuota, call, getCurrentUserKey, formatNumberByLang } from "../lib/utils"
+import { 
+  getActivePlanDetails, activatePlan, syncUserQuota, call, 
+  getCurrentUserKey, formatNumberByLang 
+} from "../lib/utils"
 
 export function Pricing({ setView, setShowAuth, user }) {
   const { t, i18n } = useTranslation()
@@ -63,7 +69,7 @@ export function Pricing({ setView, setShowAuth, user }) {
         title: "Connection Error",
         text: "Razorpay SDK failed to load. Please check your internet connection.",
         icon: "warning",
-        confirmButtonColor: "#FB821B"
+        confirmButtonColor: "#0284c7"
       })
       return
     }
@@ -85,7 +91,7 @@ export function Pricing({ setView, setShowAuth, user }) {
         prints: printCount
       },
       theme: {
-        color: "#0C1F41"
+        color: "#0284c7"
       },
       handler: async function (response) {
         console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
@@ -129,7 +135,7 @@ export function Pricing({ setView, setShowAuth, user }) {
           `,
           icon: "success",
           confirmButtonText: "Great, Let's Print!",
-          confirmButtonColor: "#FB821B",
+          confirmButtonColor: "#0284c7",
           background: "#ffffff",
           borderRadius: "20px"
         })
@@ -163,9 +169,10 @@ export function Pricing({ setView, setShowAuth, user }) {
     }
   }
 
-  // Preset plans: 1,000, 2,000, 5,000
+  // Preset plans: Starter Pack (1,000), Pro Growth (2,000), Business Super (5,000)
   const plans = [
     {
+      id: "starter",
       name: t("pricing.starterPack", "Starter Pack"),
       rawName: "Starter Pack",
       prints: `1,000 ${t("pricing.prints", "prints")}`,
@@ -173,7 +180,7 @@ export function Pricing({ setView, setShowAuth, user }) {
       price: "₹250",
       numericPrice: 250,
       originalPrice: null,
-      description: t("pricing.starterPackDesc", "Ideal for small shops and new merchants getting started with digital billing."),
+      description: t("pricing.starterPackDesc", "Perfect for small shops and new merchants getting started with digital billing."),
       features: [
         t("pricing.feature1000Prints", "1,000 prints total"),
         t("pricing.featureRate25", "₹0.25 per print standard rate"),
@@ -185,9 +192,13 @@ export function Pricing({ setView, setShowAuth, user }) {
       cta: t("pricing.getPrints", { count: "1,000", defaultValue: "Get 1,000 Prints" }),
       popular: false,
       savings: null,
-      perPrintCost: `₹0.25 ${t("pricing.perPrint", "/ print")}`
+      perPrintCost: `₹0.25 ${t("pricing.perPrint", "/ print")}`,
+      cardClass: "card-starter",
+      btnClass: "btn-starter",
+      iconType: "starter"
     },
     {
+      id: "pro",
       name: t("pricing.proGrowth", "Pro Growth"),
       rawName: "Pro Growth",
       prints: `2,000 ${t("pricing.prints", "prints")}`,
@@ -208,9 +219,13 @@ export function Pricing({ setView, setShowAuth, user }) {
       cta: t("pricing.getPrints", { count: "2,000", defaultValue: "Get 2,000 Prints" }),
       popular: true,
       savings: t("pricing.save50", "Save ₹50 (10% OFF)"),
-      perPrintCost: `₹0.225 ${t("pricing.perPrint", "/ print")}`
+      perPrintCost: `₹0.225 ${t("pricing.perPrint", "/ print")}`,
+      cardClass: "card-pro popular-plan-card",
+      btnClass: "btn-pro",
+      iconType: "pro"
     },
     {
+      id: "business",
       name: t("pricing.businessSuper", "Business Super"),
       rawName: "Business Super",
       prints: `5,000 ${t("pricing.prints", "prints")}`,
@@ -232,7 +247,10 @@ export function Pricing({ setView, setShowAuth, user }) {
       cta: t("pricing.getPrints", { count: "5,000", defaultValue: "Get 5,000 Prints" }),
       popular: false,
       savings: t("pricing.save250", "Save ₹250 (20% OFF)"),
-      perPrintCost: `₹0.20 ${t("pricing.perPrint", "/ print")}`
+      perPrintCost: `₹0.20 ${t("pricing.perPrint", "/ print")}`,
+      cardClass: "card-business",
+      btnClass: "btn-business",
+      iconType: "business"
     }
   ]
 
@@ -274,215 +292,225 @@ export function Pricing({ setView, setShowAuth, user }) {
   const quickPresets = [250, 500, 1000, 2000, 3500, 5000, 10000]
 
   return (
-    <div className="pricing-page">
-      {/* Header */}
-      <section className="pricing-header">
-        <div className="pricing-header-content">
-          <p className="eyebrow">{t("pricing.eyebrow", "SLIPZO PRICING")}</p>
-          <h1>{t("pricing.title", "Pay only for what you print")}</h1>
-          <p className="header-description">
-            {t("pricing.subtitle", "Transparent pricing based on ₹0.25 per print with automatic bulk discounts up to 28% OFF. No monthly subscriptions or hidden fees.")}
-          </p>
+    <div className="pricing-page-root">
+      {/* 1. Hero Section Banner */}
+      <section className="pricing-hero-banner">
+        <div className="pricing-hero-grid">
+          <div className="pricing-hero-left">
+            <span className="pricing-eyebrow">{t("pricing.eyebrow", "SLIPZO PRICING")}</span>
+            <h1 className="pricing-hero-heading">
+              {t("pricing.payOnlyFor", "Pay only for")}<br />
+              <span className="pricing-hero-accent">{t("pricing.whatYouPrint", "what you print")}</span>
+            </h1>
+            <p className="pricing-hero-subtext">
+              {t("pricing.subtitle", "Transparent pricing based on ₹0.25 per print with automatic bulk discounts up to 28% OFF. No monthly subscriptions or hidden fees.")}
+            </p>
+
+            {/* 3 Horizontal Benefit Badges */}
+            <div className="pricing-hero-badges-row">
+              <div className="pricing-hero-badge-card">
+                <div className="pricing-feat-icon feat-icon-green">
+                  <ShieldCheck size={14} />
+                </div>
+                <div className="pricing-feat-content">
+                  <span className="feat-title">No Monthly Fees</span>
+                  <span className="feat-subtitle">Pay as you go</span>
+                </div>
+              </div>
+
+              <div className="pricing-hero-badge-card">
+                <div className="pricing-feat-icon feat-icon-blue">
+                  <Zap size={14} />
+                </div>
+                <div className="pricing-feat-content">
+                  <span className="feat-title">Automatic Discounts</span>
+                  <span className="feat-subtitle">Up to 28% OFF</span>
+                </div>
+              </div>
+
+              <div className="pricing-hero-badge-card">
+                <div className="pricing-feat-icon feat-icon-purple">
+                  <Sparkles size={14} />
+                </div>
+                <div className="pricing-feat-content">
+                  <span className="feat-title">Transparent Pricing</span>
+                  <span className="feat-subtitle">Only ₹0.25 per print</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Printer 3D Artwork */}
+          <div className="pricing-hero-center-art">
+            <div className="pricing-hero-art-wrapper">
+              <img 
+                src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/pricing_hero_printer.jpg" 
+                alt="Slipzo POS Thermal Printer" 
+                className="pricing-hero-printer-img" 
+              />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Active Subscription & Print Quota Manager Banner */}
-      <section className="active-quota-section" style={{ maxWidth: '1200px', margin: '0 auto 2.5rem', padding: '0 1.5rem' }}>
-        <div className="active-quota-card" style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #FFF2DE 100%)',
-          borderRadius: '20px',
-          padding: '1.75rem 2rem',
-          border: '1.5px solid #F7CDAB',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.25rem'
-        }}>
-          <div className="active-quota-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div className="active-quota-info">
-              <div className="active-plan-tag-row" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                <span className="active-plan-badge" style={{
-                  background: activePlan.isFreeTier ? '#FFF0C7' : '#dcfce7',
-                  color: activePlan.isFreeTier ? '#d97706' : '#15803d',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '20px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  whiteSpace: 'nowrap'
-                }}>
-                  <ShieldCheck size={14} /> {activePlan.name || t("pricing.freeStarterTier", "Free Starter Tier")}
+      {/* 2. Current Print Usage Card */}
+      <section className="pricing-usage-section">
+        <div className="pricing-usage-card">
+          <div className="pricing-usage-top-row">
+            <div className="pricing-usage-left">
+              <div className="usage-plan-badge-row">
+                <span className={`usage-plan-pill ${activePlan.isFreeTier ? 'pill-free-tier' : 'pill-active-tier'}`}>
+                  <Sparkles size={13} /> {activePlan.name || t("pricing.freeStarterTier", "FREE STARTER TIER")}
                 </span>
-                <span style={{ fontSize: '0.82rem', color: '#74788A', fontWeight: 600 }}>{t("pricing.activePlan", "Active Plan")}</span>
+                <span className="usage-active-label">{t("pricing.activePlan", "Active Plan")}</span>
               </div>
-              <h2 className="active-quota-heading" style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Printer size={22} style={{ color: '#0ea5e9' }} />
-                {formatNum((activePlan.printsRemaining || 0).toLocaleString())} {t("pricing.printsRemaining", "prints remaining")}
+              <h2 className="usage-prints-heading">
+                <Printer size={22} className="usage-printer-icon" />
+                <span>{formatNum((activePlan.printsRemaining || 0).toLocaleString())} {t("pricing.printsRemaining", "prints remaining")}</span>
               </h2>
             </div>
 
-            <div className="active-quota-stats-row" style={{ display: 'flex', alignItems: 'center', gap: '1.75rem', flexWrap: 'wrap' }}>
-              <div>
-                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{t("pricing.totalQuota", "TOTAL QUOTA")}</span>
-                <strong style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
-                  {formatNum((activePlan.totalPrints || 10).toLocaleString())} {t("pricing.prints", "prints")}
-                </strong>
+            <div className="pricing-usage-stats-right">
+              <div className="usage-stat-box">
+                <span className="stat-label">{t("pricing.totalQuota", "TOTAL QUOTA")}</span>
+                <span className="stat-value">{formatNum((activePlan.totalPrints || 10).toLocaleString())} {t("pricing.prints", "prints")}</span>
               </div>
-              <div>
-                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{t("pricing.printsUsed", "PRINTS USED")}</span>
-                <strong style={{ fontSize: '1.15rem', color: '#0ea5e9', fontWeight: 800 }}>
-                  {formatNum((activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString())} {t("pricing.prints", "prints")}
-                </strong>
+              <div className="usage-stat-box">
+                <span className="stat-label">{t("pricing.printsUsed", "PRINTS USED")}</span>
+                <span className="stat-value used-value">{formatNum((activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString())} {t("pricing.prints", "prints")}</span>
               </div>
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#74788A', fontWeight: 600, marginBottom: '0.4rem' }}>
+          {/* Progress Bar Row */}
+          <div className="pricing-progress-wrapper">
+            <div className="progress-labels-strip">
               <span>{t("pricing.quotaConsumption", "Print Quota Consumption")}</span>
-              <span>
+              <span className="progress-pct">
                 {formatNum(Math.round(((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}% {t("pricing.used", "Used")}
               </span>
             </div>
-            <div style={{ width: '100%', height: '10px', background: '#F7CDAB', borderRadius: '9999px', overflow: 'hidden' }}>
-              <div style={{
-                width: `${Math.min(100, Math.max(0, ((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #FC9B3E 0%, #FB821B 100%)',
-                borderRadius: '9999px',
-                transition: 'width 0.4s ease'
-              }} />
+            <div className="pricing-progress-track">
+              <div 
+                className="pricing-progress-fill" 
+                style={{ 
+                  width: `${Math.min(100, Math.max(0, ((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}%` 
+                }} 
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Preset Plans (1,000, 2,000, 5,000) */}
-      <section className="pricing-plans">
-        <div className="plans-grid">
-          {plans.map((plan, index) => (
-            <div className={`pricing-card ${plan.popular ? 'popular' : ''}`} key={index}>
+      {/* 3. Pricing Plan Cards (3 Cards in one row) */}
+      <section className="pricing-cards-section">
+        <div className="pricing-cards-grid">
+          {plans.map((plan) => (
+            <div className={`pricing-plan-card ${plan.cardClass}`} key={plan.id}>
               {plan.popular && (
-                <div className="popular-badge">
-                  <Zap size={14} /> {t("pricing.mostPopular", "Most Popular")}
+                <div className="floating-popular-badge">
+                  <Crown size={13} /> {t("pricing.mostPopular", "Most Popular")}
                 </div>
               )}
-              {plan.savings && !plan.popular && (
-                <div className="popular-badge green-badge" style={{ background: '#10b981' }}>
-                  🎉 {plan.savings}
-                </div>
-              )}
-              <div className="plan-header">
-                <h3>{plan.name}</h3>
-                <div className="plan-price">
-                  <span className="price-amount">{formatNum(plan.price)}</span>
-                  {plan.originalPrice && (
-                    <span style={{
-                      textDecoration: 'line-through',
-                      color: '#8F93A5',
-                      fontSize: '1.25rem',
-                      fontWeight: 500,
-                      marginLeft: '0.4rem'
-                    }}>
-                      {formatNum(plan.originalPrice)}
-                    </span>
+
+              {/* Plan Header & Icon */}
+              <div className="plan-header-box">
+                <div className="plan-icon-container">
+                  {plan.iconType === "starter" && (
+                    <div className="plan-icon-pill icon-pill-blue">
+                      <Layers size={20} />
+                    </div>
+                  )}
+                  {plan.iconType === "pro" && (
+                    <div className="plan-icon-pill icon-pill-cyan">
+                      <Zap size={20} />
+                    </div>
+                  )}
+                  {plan.iconType === "business" && (
+                    <div className="plan-icon-pill icon-pill-purple">
+                      <Crown size={20} />
+                    </div>
                   )}
                 </div>
-                <div style={{
-                  fontSize: '0.85rem',
-                  color: plan.savings ? '#F66016' : '#74788A',
-                  marginTop: '-0.2rem',
-                  marginBottom: '0.35rem',
-                  fontWeight: 600
-                }}>
-                  {formatNum(plan.perPrintCost)}
+
+                <h3 className="plan-title">{plan.name}</h3>
+                <p className="plan-desc">{plan.description}</p>
+              </div>
+
+              {/* Price Row */}
+              <div className="plan-pricing-display">
+                <div className="plan-price-main-line">
+                  <span className="plan-price-large">{formatNum(plan.price)}</span>
+                  {plan.originalPrice && (
+                    <span className="plan-price-strike">{formatNum(plan.originalPrice)}</span>
+                  )}
+                  {!plan.originalPrice && (
+                    <span className="plan-unit-rate-side">{formatNum(plan.perPrintCost)}</span>
+                  )}
                 </div>
-                {plan.savings && (
-                  <div className="plan-savings" style={{ 
-                    color: '#10b981', 
-                    fontSize: '0.82rem', 
-                    fontWeight: 700,
-                    marginBottom: '0.5rem'
-                  }}>
-                    🎉 {formatNum(plan.savings)}
+
+                {plan.originalPrice && (
+                  <div className="plan-rate-savings-strip">
+                    <span className={`plan-unit-rate-badge ${plan.id === "pro" ? "badge-rate-blue" : "badge-rate-purple"}`}>
+                      {formatNum(plan.perPrintCost)}
+                    </span>
+                    {plan.savings && (
+                      <span className="plan-savings-pill-green">
+                        <Sparkles size={12} /> {formatNum(plan.savings)}
+                      </span>
+                    )}
                   </div>
                 )}
-                <p className="plan-description">{plan.description}</p>
               </div>
-              <div className="plan-features">
+
+              {/* Feature Checklist */}
+              <div className="plan-features-list">
                 {plan.features.map((feature, idx) => (
-                  <div className="plan-feature" key={idx}>
-                    <Check size={16} />
+                  <div className="plan-feature-item" key={idx}>
+                    <div className={`feature-check-dot ${plan.id === "business" ? "dot-purple" : "dot-blue"}`}>
+                      <Check size={13} />
+                    </div>
                     <span>{formatNum(feature)}</span>
                   </div>
                 ))}
               </div>
+
+              {/* CTA Button */}
               <button 
-                className={`plan-cta ${plan.popular ? 'primary' : 'secondary'}`}
+                className={`plan-cta-button ${plan.btnClass}`}
                 onClick={() => handleBuyPlan(plan.rawName || plan.name, plan.numericPrice, plan.numericPrints)}
               >
-                {formatNum(plan.cta)}
-                <ArrowRight size={16} />
+                <span>{formatNum(plan.cta)}</span>
+                <ArrowRight size={15} />
               </button>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Interactive Custom Self-Pricing Calculator */}
-      <section className="custom-pricing-section">
-        <div className="custom-pricing-box">
-          <div style={{
-            position: 'absolute',
-            top: '-60px',
-            right: '-60px',
-            width: '240px',
-            height: '240px',
-            background: 'radial-gradient(circle, rgba(246, 96, 22, 0.25) 0%, transparent 70%)',
-            pointerEvents: 'none'
-          }} />
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.6rem',
-            marginBottom: '0.5rem'
-          }}>
-            <span style={{
-              background: '#FB821B',
-              color: 'white',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              padding: '0.25rem 0.75rem',
-              borderRadius: '20px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              <Calculator size={14} /> {t("pricing.selfPriceEyebrow", "Self-Price Custom Pack")}
+      {/* 4. Interactive Custom Self-Pricing Calculator */}
+      <section className="pricing-calculator-section">
+        <div className="pricing-calculator-box">
+          {/* Top Eyebrow */}
+          <div className="calc-eyebrow-row">
+            <span className="calc-eyebrow-pill">
+              <Calculator size={13} /> {t("pricing.selfPriceEyebrow", "SELF-PRICE CUSTOM PACK")}
             </span>
           </div>
 
-          <h2 style={{ fontSize: '1.85rem', fontWeight: 700, margin: '0.25rem 0 0.5rem' }}>
+          <h2 className="calc-heading">
             {t("pricing.selfPriceTitle", "Enter your exact print requirement")}
           </h2>
-          <p style={{ color: '#8F93A5', fontSize: '0.95rem', maxWidth: '650px', marginBottom: '2rem' }}>
+          <p className="calc-subtext">
             {t("pricing.selfPriceDesc", "Need 250, 1,500, or 10,000 prints? Drag the slider or type your custom count below to calculate your instant bulk discount.")}
           </p>
 
-          <div className="custom-pricing-grid">
-            {/* Controls */}
-            <div>
-              {/* Preset Buttons */}
-              <div className="quick-presets-container" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#8F93A5', marginBottom: '0.5rem', fontWeight: 600 }}>
+          <div className="calc-inner-grid">
+            {/* Left Controls */}
+            <div className="calc-controls-col">
+              {/* Quick Presets */}
+              <div className="quick-presets-container">
+                <label className="quick-presets-label">
                   {t("pricing.quickPresets", "QUICK PRESETS")}
                 </label>
                 <div className="quick-presets-grid">
@@ -490,22 +518,21 @@ export function Pricing({ setView, setShowAuth, user }) {
                     <button
                       key={preset}
                       onClick={() => setCustomPrints(preset)}
-                      className={`preset-card-btn ${customPrints === preset ? 'active' : ''}`}
+                      className={`preset-pill-btn ${customPrints === preset ? 'active-preset' : ''}`}
                     >
-                      <span className="preset-count-text">{formatNum(preset.toLocaleString())} {t("pricing.prints", "prints")}</span>
+                      <span>{formatNum(preset.toLocaleString())} {t("pricing.prints", "prints")}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Range Slider & Number Input */}
-              <div className="adjust-prints-card" style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                <div className="slider-header-controls">
-                  <span style={{ fontSize: '0.85rem', color: '#D9DDE4', fontWeight: 600 }}>
-                    <Sliders size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.4rem' }} />
-                    {t("pricing.adjustPrints", "Adjust Prints:")}
+              <div className="adjust-prints-box">
+                <div className="slider-header-strip">
+                  <span className="adjust-prints-label">
+                    <Sliders size={15} /> {t("pricing.adjustPrints", "Adjust Prints:")}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <div className="slider-input-group">
                     <input
                       type="number"
                       min="100"
@@ -513,19 +540,9 @@ export function Pricing({ setView, setShowAuth, user }) {
                       step="50"
                       value={customPrints}
                       onChange={(e) => setCustomPrints(Math.max(100, Math.min(50000, Number(e.target.value) || 100)))}
-                      style={{
-                        background: 'white',
-                        color: '#0C1F41',
-                        border: 'none',
-                        padding: '0.4rem 0.5rem',
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        width: '95px',
-                        textAlign: 'center'
-                      }}
+                      className="slider-number-input"
                     />
-                    <span style={{ fontSize: '0.85rem', color: '#8F93A5', fontWeight: 600 }}>{t("pricing.prints", "prints")}</span>
+                    <span className="slider-prints-unit">{t("pricing.prints", "prints")}</span>
                   </div>
                 </div>
 
@@ -536,351 +553,172 @@ export function Pricing({ setView, setShowAuth, user }) {
                   step="100"
                   value={customPrints}
                   onChange={(e) => setCustomPrints(Number(e.target.value))}
-                  style={{
-                    width: '100%',
-                    height: '8px',
-                    accentColor: '#FB821B',
-                    cursor: 'pointer'
-                  }}
+                  className="custom-range-slider"
                 />
                 
-                <div className="slider-marks" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem', gap: '0.25rem', flexWrap: 'wrap' }}>
-                  <span>{formatNum("100")} {t("pricing.prints", "prints")}</span>
-                  <span>{formatNum("5,000")} {t("pricing.prints", "prints")}</span>
-                  <span>{formatNum("10,000")} {t("pricing.prints", "prints")}</span>
-                  <span>{formatNum("20,000")} {t("pricing.prints", "prints")}</span>
+                <div className="slider-marks-row">
+                  <span>{formatNum("100")} prints</span>
+                  <span>{formatNum("5,000")} prints</span>
+                  <span>{formatNum("10,000")} prints</span>
+                  <span>{formatNum("20,000")} prints</span>
                 </div>
               </div>
             </div>
 
-            {/* Self Price Output Card */}
-            <div className="self-price-card" style={{
-              background: 'rgba(255, 255, 255, 0.07)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '20px',
-              padding: '1.75rem',
-              textAlign: 'center',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <p style={{ fontSize: '0.78rem', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#FC9B3E', fontWeight: 700, margin: '0 0 0.35rem' }}>
+            {/* Right Output Card */}
+            <div className="calc-output-card">
+              <div className="floating-percent-badge">
+                <Percent size={18} />
+              </div>
+
+              <p className="self-price-sublabel">
                 {t("pricing.yourSelfPrice", "YOUR SELF PRICE")}
               </p>
               
-              <div className="self-price-amount" style={{ fontSize: '3rem', fontWeight: 800, color: 'white', lineHeight: 1, margin: '0.25rem 0' }}>
+              <div className="self-price-figure">
                 ₹{formatNum(calc.finalPrice.toLocaleString())}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0 1rem' }}>
-                <span style={{ fontSize: '0.88rem', color: '#cbd5e1' }}>
+              <div className="self-price-rate-line">
+                <span className="calc-rate-text">
                   {t("pricing.rate", "Rate:")} <strong>₹{formatNum(calc.rate)} {t("pricing.perPrint", "/ print")}</strong>
                 </span>
                 {calc.baseCost > calc.finalPrice && (
-                  <span style={{ textDecoration: 'line-through', fontSize: '0.82rem', color: '#64748b' }}>
+                  <span className="calc-strikethrough-base">
                     ₹{formatNum(calc.baseCost.toLocaleString())}
                   </span>
                 )}
               </div>
 
               {calc.savings > 0 ? (
-                <div className="self-price-savings-badge" style={{
-                  background: 'rgba(16, 185, 129, 0.18)',
-                  border: '1px solid rgba(16, 185, 129, 0.35)',
-                  color: '#34d399',
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '12px',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  marginBottom: '1.25rem',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem'
-                }}>
-                  <Sparkles size={16} /> {t("pricing.youSave", { amount: formatNum(calc.savings.toLocaleString()), percent: formatNum(calc.savingsPercent), defaultValue: `🎉 You Save ₹${formatNum(calc.savings.toLocaleString())} (${formatNum(calc.savingsPercent)}% OFF)` })}
+                <div className="self-price-savings-pill">
+                  <Sparkles size={14} /> 
+                  <span>{t("pricing.youSave", { amount: formatNum(calc.savings.toLocaleString()), percent: formatNum(calc.savingsPercent), defaultValue: `🎉 You Save ₹${formatNum(calc.savings.toLocaleString())} (${formatNum(calc.savingsPercent)}% OFF)` })}</span>
                 </div>
               ) : (
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  color: '#D9DDE4',
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '12px',
-                  fontSize: '0.8rem',
-                  marginBottom: '1.25rem'
-                }}>
+                <div className="self-price-hint-pill">
                   {formatNum(t("pricing.bulkDiscountHint", "Add 1,500+ prints to unlock bulk discounts!"))}
                 </div>
               )}
 
               <button
                 onClick={() => handleBuyPlan("Custom Print Pack", calc.finalPrice, calc.count)}
-                className="custom-price-buy-btn"
-                style={{
-                  width: '100%',
-                  background: '#FB821B',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.85rem 1.25rem',
-                  borderRadius: '12px',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 6px 20px rgba(246, 96, 22, 0.4)'
-                }}
+                className="calc-buy-cta-btn"
               >
-                {t("pricing.buyCustomBtn", { count: formatNum(calc.count.toLocaleString()), price: formatNum(calc.finalPrice.toLocaleString()), defaultValue: `Buy ${formatNum(calc.count.toLocaleString())} Prints for ₹${formatNum(calc.finalPrice.toLocaleString())}` })}
+                <span>{t("pricing.buyCustomBtn", { count: formatNum(calc.count.toLocaleString()), price: formatNum(calc.finalPrice.toLocaleString()), defaultValue: `Buy ${formatNum(calc.count.toLocaleString())} Prints for ₹${formatNum(calc.finalPrice.toLocaleString())}` })}</span>
                 <ArrowRight size={15} />
               </button>
 
-              <p style={{ fontSize: '0.75rem', color: '#74788A', marginTop: '0.75rem', margin: '0.75rem 0 0 0' }}>
-                <ShieldCheck size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.2rem', color: '#10b981' }} />
-                {t("pricing.instantActivation", "Instant activation • Prints never expire")}
-              </p>
+              <div className="calc-security-note">
+                <ShieldCheck size={14} />
+                <span>{t("pricing.instantActivation", "Instant activation • Prints never expire")}</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing Comparison Table */}
-      <section className="pricing-comparison">
+      {/* 5. Plan Comparison Table */}
+      <section className="pricing-comparison-section">
         <div className="pricing-comparison-box">
-          <h3 style={{ 
-            textAlign: 'center', 
-            fontSize: '1.35rem', 
-            fontWeight: 700,
-            marginBottom: '1.5rem',
-            color: '#0C1F41'
-          }}>
-            {t("pricing.comparisonTitle", "Plan Comparison Summary")}
+          <h3 className="comparison-main-title">
+            <TrendingUp size={20} className="comp-title-icon" />
+            <span>{t("pricing.comparisonTitle", "Plan Comparison Summary")}</span>
           </h3>
           
-          {/* Desktop Comparison Table */}
-          <div className="desktop-comparison-table">
-            <div className="comparison-grid" style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1.8fr 1fr 1fr 1fr',
-              gap: '0.5rem',
-              fontSize: '0.9rem'
-            }}>
-              <div style={{ fontWeight: 700, color: '#74788A', padding: '0.65rem' }}>{t("pricing.colFeature", "Feature / Plan")}</div>
-              <div style={{ fontWeight: 700, color: '#0C1F41', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colStarter", "Starter Pack")}</div>
-              <div style={{ fontWeight: 700, color: '#FB821B', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colPro", "Pro Growth (2K)")}</div>
-              <div style={{ fontWeight: 700, color: '#10b981', textAlign: 'center', padding: '0.65rem' }}>{t("pricing.colBusiness", "Business (5K)")}</div>
-              
-              <div style={{ color: '#74788A', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>{t("pricing.rowTotalPrints", "Total Prints")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', fontWeight: 600 }}>1,000</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', fontWeight: 600 }}>2,000</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', fontWeight: 600 }}>5,000</div>
-              
-              <div style={{ color: '#74788A', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>{t("pricing.rowPlanPrice", "Plan Price")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>₹250</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#FB821B', fontWeight: 700 }}>₹450</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#10b981', fontWeight: 700 }}>₹1,000</div>
-              
-              <div style={{ color: '#74788A', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>{t("pricing.rowUnitRate", "Effective Unit Rate")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>₹0.25 {t("pricing.perPrint", "/ print")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#FB821B', fontWeight: 600 }}>₹0.225 {t("pricing.perPrint", "/ print")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#10b981', fontWeight: 700 }}>₹0.20 {t("pricing.perPrint", "/ print")}</div>
-              
-              <div style={{ color: '#74788A', padding: '0.65rem', borderTop: '1px solid #FDF4EB' }}>{t("pricing.rowSavings", "Discount & Savings")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#8F93A5' }}>{t("pricing.standardBase", "Standard Base")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#FB821B', fontWeight: 700 }}>{t("pricing.save50", "Save ₹50 (10% OFF)")}</div>
-              <div style={{ textAlign: 'center', padding: '0.65rem', borderTop: '1px solid #FDF4EB', color: '#10b981', fontWeight: 700 }}>{t("pricing.save250", "Save ₹250 (20% OFF)")}</div>
-            </div>
+          {/* Comparison Table */}
+          <div className="comparison-table-scroll-wrapper">
+            <table className="comparison-data-table">
+              <thead>
+                <tr>
+                  <th className="th-feature">{t("pricing.colFeature", "Feature / Plan")}</th>
+                  <th className="th-starter">{t("pricing.colStarter", "Starter Pack")}</th>
+                  <th className="th-pro">{t("pricing.colPro", "Pro Growth (2K)")}</th>
+                  <th className="th-business">{t("pricing.colBusiness", "Business (5K)")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="td-label">{t("pricing.rowTotalPrints", "Total Prints")}</td>
+                  <td className="td-val">1,000</td>
+                  <td className="td-val highlight-pro">2,000</td>
+                  <td className="td-val highlight-business">5,000</td>
+                </tr>
+                <tr>
+                  <td className="td-label">{t("pricing.rowPlanPrice", "Plan Price")}</td>
+                  <td className="td-val">₹250</td>
+                  <td className="td-val highlight-pro-price">₹450</td>
+                  <td className="td-val highlight-business-price">₹1,000</td>
+                </tr>
+                <tr>
+                  <td className="td-label">{t("pricing.rowUnitRate", "Effective Unit Rate")}</td>
+                  <td className="td-val">₹0.25 / print</td>
+                  <td className="td-val highlight-pro">₹0.225 / print</td>
+                  <td className="td-val highlight-business-green">₹0.20 / print</td>
+                </tr>
+                <tr>
+                  <td className="td-label">{t("pricing.rowSavings", "Discount & Savings")}</td>
+                  <td className="td-val standard-base-text">{t("pricing.standardBase", "Standard Base")}</td>
+                  <td className="td-val savings-pro-text">{t("pricing.save50", "Save ₹50 (10% OFF)")}</td>
+                  <td className="td-val savings-biz-text">{t("pricing.save250", "Save ₹250 (20% OFF)")}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          {/* Mobile Non-Scrolling Comparison Cards */}
-          <div className="mobile-comparison-cards">
-            <div className="mobile-comp-card">
-              <div className="comp-card-header">
-                <h4>{t("pricing.colStarter", "Starter Pack")}</h4>
-                <span className="comp-price">₹250</span>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowTotalPrints", "Total Prints")}</span>
-                <strong>1,000 {t("pricing.prints", "prints")}</strong>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowUnitRate", "Unit Rate")}</span>
-                <strong>₹0.25 {t("pricing.perPrint", "/ print")}</strong>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowSavings", "Savings")}</span>
-                <span className="badge-standard">{t("pricing.standardBase", "Standard Base")}</span>
-              </div>
-            </div>
-
-            <div className="mobile-comp-card popular">
-              <div className="comp-card-header">
-                <h4>{t("pricing.colPro", "Pro Growth (2K)")}</h4>
-                <span className="comp-price">₹450</span>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowTotalPrints", "Total Prints")}</span>
-                <strong>2,000 {t("pricing.prints", "prints")}</strong>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowUnitRate", "Unit Rate")}</span>
-                <strong>₹0.225 {t("pricing.perPrint", "/ print")}</strong>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowSavings", "Savings")}</span>
-                <span className="badge-savings blue">{t("pricing.save50", "Save ₹50 (10% OFF)")}</span>
-              </div>
-            </div>
-
-            <div className="mobile-comp-card best-value">
-              <div className="comp-card-header">
-                <h4>{t("pricing.colBusiness", "Business (5K)")}</h4>
-                <span className="comp-price">₹1,000</span>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowTotalPrints", "Total Prints")}</span>
-                <strong>5,000 {t("pricing.prints", "prints")}</strong>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowUnitRate", "Unit Rate")}</span>
-                <strong>₹0.20 {t("pricing.perPrint", "/ print")}</strong>
-              </div>
-              <div className="comp-card-row">
-                <span>{t("pricing.rowSavings", "Savings")}</span>
-                <span className="badge-savings green">{t("pricing.save250", "Save ₹250 (20% OFF)")}</span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ 
-            marginTop: '1.25rem', 
-            padding: '0.85rem 1.25rem', 
-            background: '#FFF0E5', 
-            border: '1px solid #FADCC3',
-            borderRadius: '12px',
-            fontSize: '0.85rem',
-            color: '#FA4406',
-            textAlign: 'center'
-          }}>
-            {t("pricing.proTip", "💡 Pro Tip: Buy larger packs or use our Self-Price Calculator above for up to 28% volume discounts on high-volume print orders!")}
+          {/* Pro Tip Box */}
+          <div className="comparison-pro-tip-box">
+            <span className="pro-tip-bulb">💡</span>
+            <span>
+              <strong>Pro Tip:</strong> {t("pricing.proTip", "Buy larger packs or use our Self-Price Calculator above for up to 28% volume discounts on high-volume print orders!")}
+            </span>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="pricing-cta">
-        <div className="cta-content">
-          <h2>{t("pricing.ctaHeading", "Start billing with Slipzo today")}</h2>
-          <p>{t("pricing.ctaSub", "Join thousands of retail shop owners across India. Quick 1-minute setup.")}</p>
-          <button className="cta-button primary large" onClick={() => user ? setView?.("bills") : (setShowAuth ? setShowAuth(true) : setView?.("bills"))}>
-            {t("pricing.ctaButton", "Get Started Now")} <ArrowRight size={18} />
-          </button>
+      {/* 6. Final CTA Section */}
+      <section className="pricing-final-cta-section">
+        <div className="pricing-final-cta-card">
+          <div className="cta-left-art">
+            <img 
+              src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/templates_hero_illustration.jpg" 
+              alt="Slipzo Receipt Billing" 
+              className="cta-receipt-art-img" 
+            />
+          </div>
+
+          <div className="cta-center-content">
+            <h2 className="cta-heading">{t("pricing.ctaHeading", "Start billing with Slipzo today")}</h2>
+            <p className="cta-subtext">{t("pricing.ctaSub", "Join thousands of retail shop owners across India. Quick 1-minute setup.")}</p>
+            <button 
+              className="cta-get-started-btn" 
+              onClick={() => user ? setView?.("bills") : (setShowAuth ? setShowAuth(true) : setView?.("bills"))}
+            >
+              <span>{t("pricing.ctaButton", "Get Started Now")}</span>
+              <ArrowRight size={16} />
+            </button>
+          </div>
+
+          <div className="cta-right-checklist">
+            <div className="cta-check-row">
+              <div className="cta-check-icon"><Check size={13} /></div>
+              <span>No credit card required</span>
+            </div>
+            <div className="cta-check-row">
+              <div className="cta-check-icon"><Check size={13} /></div>
+              <span>Instant activation</span>
+            </div>
+            <div className="cta-check-row">
+              <div className="cta-check-icon"><Check size={13} /></div>
+              <span>Works with all thermal printers</span>
+            </div>
+            <div className="cta-check-row">
+              <div className="cta-check-icon"><Check size={13} /></div>
+              <span>Trusted by 10,000+ businesses</span>
+            </div>
+          </div>
         </div>
       </section>
-
-      <style>{`
-        /* Active Plan Card Mobile Fixes */
-        @media (max-width: 640px) {
-          .pricing-page .active-quota-section {
-            padding: 0 0.75rem !important;
-            margin: 0.75rem auto 1.25rem !important;
-          }
-
-          .pricing-page .active-quota-card {
-            padding: 1rem 0.85rem !important;
-            border-radius: 16px !important;
-            gap: 0.75rem !important;
-            text-align: center !important;
-            align-items: center !important;
-          }
-
-          .pricing-page .active-quota-header {
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            text-align: center !important;
-            gap: 0.65rem !important;
-            width: 100% !important;
-          }
-
-          .pricing-page .active-quota-info {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            text-align: center !important;
-            width: 100% !important;
-          }
-
-          .pricing-page .active-plan-tag-row {
-            justify-content: center !important;
-            width: 100% !important;
-          }
-
-          .pricing-page .active-plan-badge {
-            white-space: nowrap !important;
-            font-size: 0.7rem !important;
-            padding: 0.2rem 0.65rem !important;
-          }
-
-          .pricing-page .active-quota-heading {
-            justify-content: center !important;
-            text-align: center !important;
-            font-size: 1.3rem !important;
-          }
-
-          .pricing-page .active-quota-stats-row {
-            justify-content: center !important;
-            width: 100% !important;
-            gap: 1.25rem !important;
-            text-align: center !important;
-          }
-
-          /* Business Super & Preset Cards Mobile Alignment & Spacing */
-          .pricing-plans .plans-grid {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 2.25rem !important;
-          }
-
-          .pricing-card {
-            padding-top: 1.85rem !important;
-          }
-
-          /* Adjust Prints Card Mobile Reduction */
-          .adjust-prints-card {
-            padding: 0.85rem 0.9rem !important;
-            margin: 0 auto !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-          }
-        }
-
-        /* Badge Positioning & Centering */
-        .popular-badge {
-          position: absolute;
-          top: -14px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #FB821B;
-          color: white;
-          padding: 0.35rem 1rem;
-          border-radius: 20px;
-          font-size: 0.78rem;
-          font-weight: 700;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          gap: 0.35rem;
-          white-space: nowrap;
-          z-index: 2;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-
-        .popular-badge.green-badge {
-          background: #10b981 !important;
-        }
-      `}</style>
     </div>
   )
 }

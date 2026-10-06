@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import {
   Utensils,
+  Shirt,
+  ShoppingBag,
   Search,
   X,
   Plus,
@@ -103,6 +105,86 @@ const FALLBACK_CATALOG = [
   }
 ]
 
+// Sample master clothing products for Cloth & Garments Shop
+const CLOTHING_FALLBACK_CATALOG = [
+  {
+    id: "cloth_000001_men_s_pure_cotton_slim_fit_shi",
+    name: "Men's Pure Cotton Slim Fit Shirt",
+    category: "Men's Wear",
+    price: 699.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/men-s-pure-cotton-slim-fit-shirt.jpg?v=cloth_cloth_000001_men_s_pure_cotton_slim_fit_shi"
+  },
+  {
+    id: "cloth_000003_men_s_regular_fit_denim_jeans",
+    name: "Men's Regular Fit Denim Jeans",
+    category: "Men's Wear",
+    price: 999.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/men-s-regular-fit-denim-jeans.jpg?v=cloth_cloth_000003_men_s_regular_fit_denim_jeans"
+  },
+  {
+    id: "cloth_000005_men_s_solid_polo_t_shirt",
+    name: "Men's Solid Polo T-Shirt",
+    category: "Men's Wear",
+    price: 499.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/men-s-solid-polo-t-shirt.jpg?v=cloth_cloth_000005_men_s_solid_polo_t_shirt"
+  },
+  {
+    id: "cloth_000007_men_s_formal_trousers__black_",
+    name: "Men's Formal Trousers (Black)",
+    category: "Men's Wear",
+    price: 849.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/men-s-formal-trousers-black.jpg?v=cloth_cloth_000007_men_s_formal_trousers__black_"
+  },
+  {
+    id: "cloth_000009_women_s_printed_cotton_kurti",
+    name: "Women's Printed Cotton Kurti",
+    category: "Women's Wear",
+    price: 599.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/women-s-printed-cotton-kurti.jpg?v=cloth_cloth_000009_women_s_printed_cotton_kurti"
+  },
+  {
+    id: "cloth_000010_women_s_anarkali_kurta_with_du",
+    name: "Women's Anarkali Kurta with Dupatta Set",
+    category: "Women's Wear",
+    price: 1299.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/women-s-anarkali-kurta-with-dupatta-set.jpg?v=cloth_cloth_000010_women_s_anarkali_kurta_with_du"
+  },
+  {
+    id: "cloth_000011_traditional_kanjeevaram_silk_s",
+    name: "Traditional Kanjeevaram Silk Saree",
+    category: "Women's Wear",
+    price: 1899.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/traditional-kanjeevaram-silk-saree.jpg?v=cloth_cloth_000011_traditional_kanjeevaram_silk_s"
+  },
+  {
+    id: "cloth_000012_women_s_high_waist_denim_jeans",
+    name: "Women's High-Waist Denim Jeans",
+    category: "Women's Wear",
+    price: 899.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/women-s-high-waist-denim-jeans.jpg?v=cloth_cloth_000012_women_s_high_waist_denim_jeans"
+  },
+  {
+    id: "cloth_000018_girls_floral_party_frock_dress",
+    name: "Girls Floral Party Frock Dress",
+    category: "Kids Wear",
+    price: 649.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/girls-floral-party-frock-dress.jpg?v=cloth_cloth_000018_girls_floral_party_frock_dress"
+  },
+  {
+    id: "cloth_000025_classic_blue_denim_jacket",
+    name: "Classic Blue Denim Jacket",
+    category: "Jackets & Winterwear",
+    price: 1399.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/clothing_garments/classic-blue-denim-jacket.jpg?v=cloth_cloth_000025_classic_blue_denim_jacket"
+  }
+]
+
+const getFallbackCatalog = (bType) => {
+  const bt = (bType || "").toLowerCase()
+  if (bt.includes("clothing") || bt.includes("garment")) return CLOTHING_FALLBACK_CATALOG
+  return FALLBACK_CATALOG
+}
+
 // Predefined category filter icons map
 const CATEGORY_ICON_MAP = {
   "tea & chai tapri": "☕",
@@ -125,7 +207,14 @@ const CATEGORY_ICON_MAP = {
   "tea & coffee": "☕",
   "beverages": "🥤",
   "dairy": "🥛",
-  "household cleaning": "🧼"
+  "household cleaning": "🧼",
+  "men's wear": "👔",
+  "women's wear": "👗",
+  "kids wear": "🧒",
+  "jackets & winterwear": "🧥",
+  "essentials & active": "🧦",
+  "clothing & garments": "👗",
+  "apparel": "👕"
 }
 
 function isVegItem(item) {
@@ -144,10 +233,14 @@ function isVegItem(item) {
   return true
 }
 
-export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
+export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   const { t } = useTranslation()
   const { tDb, formatNum } = useDbTranslation()
-  const [catalog, setCatalog] = useState(() => FALLBACK_CATALOG)
+  const currentBType = (shop?.business_type || user?.shopCategory || "").toLowerCase()
+  const isClothShop = currentBType.includes("clothing") || currentBType.includes("garment")
+  const isFoodShop = currentBType.includes("hotel") || currentBType.includes("food") || currentBType.includes("cafe") || currentBType.includes("small_business")
+
+  const [catalog, setCatalog] = useState(() => getFallbackCatalog(shop?.business_type || user?.shopCategory))
   const [loadingCatalog, setLoadingCatalog] = useState(false)
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
@@ -169,11 +262,11 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
       chips.push({
         id: key,
         label: cat,
-        icon: CATEGORY_ICON_MAP[key] || "🍽️"
+        icon: CATEGORY_ICON_MAP[key] || (isClothShop ? "👗" : isFoodShop ? "🍽️" : "🛍️")
       })
     })
     return chips
-  }, [catalog])
+  }, [catalog, isClothShop, isFoodShop])
 
   // Lock background scrolling when modal is active
   useEffect(() => {
@@ -194,23 +287,25 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
   useEffect(() => {
     if (isOpen) {
       setLoadingCatalog(true)
-      call("/menu/catalog")
+      const bType = shop?.business_type || (user?.shopCategory === "Hotel or Food Restaurant" ? "hotel_food" : "")
+      const endpoint = bType ? `/menu/catalog?business_type=${encodeURIComponent(bType)}` : "/menu/catalog"
+      call(endpoint)
         .then((data) => {
           if (Array.isArray(data) && data.length > 0) {
             setCatalog(data)
           } else {
-            setCatalog(FALLBACK_CATALOG)
+            setCatalog(getFallbackCatalog(bType))
           }
         })
         .catch((err) => {
           console.warn("Failed to fetch backend catalog, using fallback catalog:", err)
-          setCatalog(FALLBACK_CATALOG)
+          setCatalog(getFallbackCatalog(bType))
         })
         .finally(() => {
           setLoadingCatalog(false)
         })
     }
-  }, [isOpen])
+  }, [isOpen, shop?.business_type])
 
   // Filter master catalog products based on search & category chip
   const filteredProducts = useMemo(() => {
@@ -440,7 +535,13 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
         <div className="add-menu-header">
           <div className="add-menu-header-left">
             <div className="add-menu-icon-circle">
-              <Utensils size={22} color="#F66016" strokeWidth={2.2} />
+              {isClothShop ? (
+                <Shirt size={22} color="#0284c7" strokeWidth={2.2} />
+              ) : isFoodShop ? (
+                <Utensils size={22} color="#0284c7" strokeWidth={2.2} />
+              ) : (
+                <ShoppingBag size={22} color="#0284c7" strokeWidth={2.2} />
+              )}
             </div>
             <div>
               <h2 className="add-menu-title">Add Menu Items</h2>
@@ -468,7 +569,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
             className={`mobile-tab-btn ${mobileTab === "catalog" ? "active" : ""}`}
             onClick={() => setMobileTab("catalog")}
           >
-            <Utensils size={14} />
+            {isClothShop ? <Shirt size={14} /> : isFoodShop ? <Utensils size={14} /> : <ShoppingBag size={14} />}
             <span>{t("menu.availableItems", "Available Items")} ({formatNum(filteredProducts.length)})</span>
           </button>
           <button
@@ -491,7 +592,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
               <Search size={18} color="#F66016" className="search-lead-icon" />
               <input
                 type="text"
-                placeholder="Search items (e.g. Tea, Coffee, Pizza, Burger...)"
+                placeholder={isClothShop ? "Search items (e.g. Shirt, Jeans, Saree, Kurti...)" : "Search items (e.g. Tea, Coffee, Pizza, Burger...)"}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="add-menu-search-input"
@@ -552,19 +653,40 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                       className={`add-menu-product-row ${isAdded ? "item-selected" : ""}`}
                     >
                       <div className="product-row-left">
-                        <img
-                          src={product.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120"}
-                          alt={product.name}
-                          className="product-thumbnail"
-                          onError={(e) => {
-                            e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120"
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="product-thumbnail"
+                            onError={(e) => {
+                              e.target.style.display = "none"
+                              if (e.target.nextSibling) e.target.nextSibling.style.display = "flex"
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className="product-thumbnail-fallback"
+                          style={{
+                            display: product.image_url ? "none" : "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "48px",
+                            height: "48px",
+                            borderRadius: "8px",
+                            background: "#f1f5f9",
+                            color: "#94a3b8",
+                            flexShrink: 0
                           }}
-                        />
+                        >
+                          {isClothShop ? <Shirt size={20} /> : isFoodShop ? <Utensils size={20} /> : <ShoppingBag size={20} />}
+                        </div>
                         <div className="product-info-box">
                           <div className="product-name-line">
-                            <span className={`fssai-symbol ${isVeg ? "veg" : "non-veg"}`}>
-                              {isVeg ? <span className="fssai-dot" /> : <span className="fssai-triangle" />}
-                            </span>
+                            {isFoodShop && (
+                              <span className={`fssai-symbol ${isVeg ? "veg" : "non-veg"}`}>
+                                {isVeg ? <span className="fssai-dot" /> : <span className="fssai-triangle" />}
+                              </span>
+                            )}
                             <span className="product-name" title={product.name}>
                               {tDb(product.name)}
                             </span>
@@ -630,7 +752,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
             <div className="selected-items-scroll">
               {selectedItems.length === 0 ? (
                 <div className="selected-items-empty">
-                  <Utensils size={28} color="#D9DDE4" />
+                  {isClothShop ? <Shirt size={28} color="#cbd5e1" /> : isFoodShop ? <Utensils size={28} color="#cbd5e1" /> : <ShoppingBag size={28} color="#cbd5e1" />}
                   <p>No items selected yet.</p>
                   <small>Click "+ Add" on any product to customize price and add to your menu.</small>
                   <button
@@ -645,14 +767,33 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
                 selectedItems.map((item) => (
                   <div key={item.id} className="selected-item-card">
                     <div className="selected-item-main">
-                      <img
-                        src={item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120"}
-                        alt={item.name}
-                        className="selected-item-thumb"
-                        onError={(e) => {
-                          e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120"
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="selected-item-thumb"
+                          onError={(e) => {
+                            e.target.style.display = "none"
+                            if (e.target.nextSibling) e.target.nextSibling.style.display = "flex"
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="selected-item-thumb-fallback"
+                        style={{
+                          display: item.image_url ? "none" : "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "42px",
+                          height: "42px",
+                          borderRadius: "8px",
+                          background: "#f1f5f9",
+                          color: "#94a3b8",
+                          flexShrink: 0
                         }}
-                      />
+                      >
+                        {isClothShop ? <Shirt size={18} /> : isFoodShop ? <Utensils size={18} /> : <ShoppingBag size={18} />}
+                      </div>
                       <div className="selected-item-info">
                         <span className="selected-name" title={item.name}>
                           {tDb(item.name)}
@@ -788,14 +929,33 @@ export function AddYourItemsModal({ isOpen, onClose, user, onContinue }) {
               <div className="set-price-body">
                 {/* Product Preview */}
                 <div className="set-price-product-info">
-                  <img
-                    src={settingPriceProduct.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120"}
-                    alt={settingPriceProduct.name}
-                    className="set-price-thumb"
-                    onError={(e) => {
-                      e.target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=120"
+                  {settingPriceProduct.image_url ? (
+                    <img
+                      src={settingPriceProduct.image_url}
+                      alt={settingPriceProduct.name}
+                      className="set-price-thumb"
+                      onError={(e) => {
+                        e.target.style.display = "none"
+                        if (e.target.nextSibling) e.target.nextSibling.style.display = "flex"
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    className="set-price-thumb-fallback"
+                    style={{
+                      display: settingPriceProduct.image_url ? "none" : "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "56px",
+                      height: "56px",
+                      borderRadius: "10px",
+                      background: "#f1f5f9",
+                      color: "#94a3b8",
+                      flexShrink: 0
                     }}
-                  />
+                  >
+                    {isClothShop ? <Shirt size={24} /> : isFoodShop ? <Utensils size={24} /> : <ShoppingBag size={24} />}
+                  </div>
                   <div className="set-price-details">
                     <span className="set-price-name">{tDb(settingPriceProduct.name)}</span>
                     <span className="set-price-cat">{tDb(settingPriceProduct.category || "General")}</span>

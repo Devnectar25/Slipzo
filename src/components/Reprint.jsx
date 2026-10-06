@@ -140,6 +140,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         address: bill.shop_address || "",
         phone: bill.shop_phone || "",
         gst: bill.gst || bill.gstin || "",
+        tableNumber: bill.table_number || "",
         customerName: bill.customer_name || "",
         customerPhone: bill.customer_phone || "",
         invoiceNo: bill.number || "",

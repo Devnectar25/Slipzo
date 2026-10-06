@@ -12,16 +12,28 @@ import {
   Receipt,
   Plus,
   ArrowRight,
-  X
+  X,
+  Utensils
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
-import { call, money, getCachedData } from "../lib/utils"
+import { call, money, getCachedData, isHotelRestaurant } from "../lib/utils"
 
 export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum, lang } = useDbTranslation()
   const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
+
+  const [shop, setShop] = useState(() => getCachedData("/shop") || {})
+  const isHotel = isHotelRestaurant(shop)
+
+  useEffect(() => {
+    const handleShopUpdate = (e) => {
+      if (e?.detail) setShop(e.detail)
+    }
+    window.addEventListener("slipzo_shop_updated", handleShopUpdate)
+    return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
+  }, [])
 
   const filter10Days = (list) => {
     if (!Array.isArray(list)) return []
@@ -160,18 +172,19 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
         const cust = String(b.customer_name || "").toLowerCase()
         const tot = String(b.total || "").toLowerCase()
         const mode = String(b.payment_mode || "").toLowerCase()
-        return num.includes(q) || cust.includes(q) || tot.includes(q) || mode.includes(q)
+        const tbl = String(b.table_number || "").toLowerCase()
+        return num.includes(q) || cust.includes(q) || tot.includes(q) || mode.includes(q) || tbl.includes(q)
       })
       .slice(0, 5)
   }, [bills, search])
 
   const quickActionCards = [
     {
-      id: "new-bill",
-      title: t("home.newBill", "New Bill"),
-      subtitle: t("home.createInvoice", "Create invoice"),
-      icon: FileText,
-      targetView: "bills"
+      id: isHotel ? "tables" : "new-bill",
+      title: isHotel ? t("home.tables", "Tables") : t("home.newBill", "New Bill"),
+      subtitle: isHotel ? t("home.manageTables", "Manage tables & billing") : t("home.createInvoice", "Create invoice"),
+      icon: isHotel ? Utensils : FileText,
+      targetView: isHotel ? "tables" : "bills"
     },
     {
       id: "new-product",
@@ -911,7 +924,14 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
                       <Receipt size={18} />
                     </div>
                     <div className="home-bill-info">
-                      <p className="home-bill-number">{formatNum(billNumberDisplay)}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <p className="home-bill-number">{formatNum(billNumberDisplay)}</p>
+                        {bill.table_number && (
+                          <span style={{ fontSize: "0.68rem", fontWeight: "600", padding: "1px 5px", borderRadius: "4px", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", whiteSpace: "nowrap" }}>
+                            {bill.table_number}
+                          </span>
+                        )}
+                      </div>
                       <p className="home-bill-date">
                         {formatDate(bill.created_at)}
                         {bill.created_at && " • "}

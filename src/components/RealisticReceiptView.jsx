@@ -38,7 +38,7 @@ export function RealisticReceiptView({ template }) {
     shopName: template.name || "Slipzo Mart",
     address: "Shop 14, Main Market, Connaught Place, New Delhi",
     phone: "+91 98765 43210",
-    gst: "07AAAA000A1Z5",
+    gst: "",
     invoiceNo: "SLP-2026-101",
     date: "09 Mar 2026, 02:45 PM",
     items: [
@@ -55,6 +55,7 @@ export function RealisticReceiptView({ template }) {
 
   const items = Array.isArray(data.items) ? data.items : []
   const totalUnits = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0)
+  const tableNumber = data.tableNumber || data.table_number || data.table || data.tableName || ""
 
   // =========================================================================
   // 1. MINIMAL CLEAN BILL (58mm Minimalist)
@@ -73,16 +74,12 @@ export function RealisticReceiptView({ template }) {
             <p style={{ color: "#1e293b", fontSize: "0.82rem", fontWeight: 600, margin: "0.2rem 0 0", lineHeight: 1.3 }}>
               {[formatNum(data.phone), tDb(data.address)].filter(Boolean).join(" · ")}
             </p>
-            {data.gst && (
-              <p style={{ color: "#0f172a", fontSize: "0.8rem", fontWeight: 700, margin: "0.15rem 0 0" }}>
-                {lbl("GSTIN:", "जीएसटी क्र.:", "जीएसटी:")} {data.gst}
-              </p>
-            )}
           </div>
 
           {/* Bill Meta - Safe Wrap without text overlap */}
           <div className="minimal-meta-clean receipt-meta" style={{ margin: "0.4rem 0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "2px 8px", fontSize: "0.82rem", fontWeight: 700, color: "#0f172a", borderBottom: "1px solid #0f172a", paddingBottom: "0.3rem" }}>
             <span style={{ whiteSpace: "nowrap", flexShrink: 0 }}>#{formatNum(data.invoiceNo)}</span>
+            {tableNumber && <span style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: "4px", fontSize: "0.78rem" }}>{lbl("Table:", "टेबल:", "टेबल:")} {tableNumber}</span>}
             <span style={{ whiteSpace: "nowrap", flexShrink: 0, marginLeft: "auto" }}>{formatNum(data.date)}</span>
           </div>
 
@@ -160,16 +157,14 @@ export function RealisticReceiptView({ template }) {
             </h2>
             <p style={{ fontSize: "0.82rem", color: "#1e293b", fontWeight: 600, margin: "0.1rem 0" }}>{tDb(data.address)}</p>
             <p style={{ fontSize: "0.82rem", color: "#1e293b", fontWeight: 600, margin: "0.1rem 0" }}>{lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}</p>
-            {data.gst && (
-              <p style={{ fontSize: "0.82rem", color: "#0f172a", fontWeight: 800, margin: "0.1rem 0" }}>
-                {lbl("GSTIN:", "जीएसटी क्र.:", "जीएसटीआईएन:")} {data.gst}
-              </p>
-            )}
           </div>
 
           {/* Meta Grid */}
           <div className="classic-meta-grid" style={{ display: "flex", flexDirection: "column", gap: "3px", fontSize: "0.78rem", padding: "0.35rem 0.5rem", color: "#0f172a" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("INVOICE:", "पावती क्र.:", "चालान क्र.:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>#{formatNum(data.invoiceNo)}</b></div>
+            {tableNumber && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("TABLE:", "टेबल:", "टेबल:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tableNumber}</b></div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("DATE:", "दिनांक:", "दिनांक:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(data.date)}</b></div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("PAYMENT:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)}</b></div>
             {items.length > 0 && (
@@ -255,16 +250,18 @@ export function RealisticReceiptView({ template }) {
             <p style={{ fontSize: "0.72rem", fontWeight: 700, margin: "0.1rem 0 0", opacity: 0.95 }}>{lbl("RETAIL POS RECEIPT", "किरकोळ विक्री पावती", "खुदरा बिक्री रसीद")}</p>
           </div>
 
-          {/* Contact & GSTIN */}
+          {/* Contact */}
           <div style={{ textAlign: "center", fontSize: "0.8rem", fontWeight: 600, color: "#1e293b", marginBottom: "0.4rem", lineHeight: 1.3 }}>
             <div>{tDb(data.address)}</div>
             <div>{lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}</div>
-            {data.gst && <div style={{ fontWeight: 800, color: "#0f172a" }}>{lbl("GSTIN:", "जीएसटी क्र.:", "जीएसटीआईएन:")} {data.gst}</div>}
           </div>
 
           {/* Meta Bar */}
           <div className="pro-meta-bar receipt-meta" style={{ display: "flex", flexDirection: "column", gap: "2px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "0.35rem 0.55rem", fontSize: "0.78rem", margin: "0.4rem 0", color: "#0f172a" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("BILL NO:", "बिल क्र.:", "बिल नं.:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>#{formatNum(data.invoiceNo)}</b></div>
+            {tableNumber && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("TABLE:", "टेबल:", "टेबल:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tableNumber}</b></div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("DATE:", "दिनांक:", "दिनांक:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(data.date)}</b></div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("PAY:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)}</b></div>
           </div>
@@ -343,7 +340,6 @@ export function RealisticReceiptView({ template }) {
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1e293b", marginTop: "0.15rem" }}>
               <div>{tDb(data.address)}</div>
               <div>{lbl("TEL:", "फोन:", "फोन:")} {formatNum(data.phone)}</div>
-              {data.gst && <div style={{ fontWeight: 800 }}>{lbl("GSTIN:", "जीएसटी क्र.:", "जीएसटीआईएन:")} {data.gst}</div>}
             </div>
           </div>
 
@@ -353,6 +349,7 @@ export function RealisticReceiptView({ template }) {
           {/* Bill Meta */}
           <div className="receipt-meta" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "2px 8px", fontSize: "0.8rem", fontWeight: 700, margin: "0.3rem 0", color: "#0f172a" }}>
             <span style={{ whiteSpace: "nowrap", flexShrink: 0 }}>{lbl("BILL:", "बिल:", "बिल:")} #{formatNum(data.invoiceNo)}</span>
+            {tableNumber && <span style={{ whiteSpace: "nowrap", flexShrink: 0 }}>TBL: {tableNumber}</span>}
             <span style={{ whiteSpace: "nowrap", flexShrink: 0, marginLeft: "auto" }}>{formatNum(data.date)}</span>
           </div>
 
@@ -437,16 +434,12 @@ export function RealisticReceiptView({ template }) {
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1e293b" }}>
               {lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}
             </div>
-            {data.gst && (
-              <div style={{ fontSize: "0.78rem", color: "#0284c7", fontWeight: 700, marginTop: "0.1rem" }}>
-                {lbl("GSTIN:", "जीएसटी क्र.:", "जीएसटीआईएन:")} {data.gst}
-              </div>
-            )}
           </div>
 
           {/* Meta Line */}
           <div className="receipt-meta" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "2px 8px", borderBottom: "1.5px solid #e2e8f0", padding: "0.35rem 0", fontSize: "0.8rem", fontWeight: 600, color: "#0f172a" }}>
             <span style={{ whiteSpace: "nowrap", flexShrink: 0 }}>{lbl("Invoice:", "पावती:", "चालान:")} <b>#{formatNum(data.invoiceNo)}</b></span>
+            {tableNumber && <span style={{ background: "#e0f2fe", color: "#0369a1", padding: "1px 6px", borderRadius: "4px", fontSize: "0.75rem", fontWeight: 700 }}>{lbl("Table:", "टेबल:", "टेबल:")} {tableNumber}</span>}
             <span style={{ whiteSpace: "nowrap", flexShrink: 0, marginLeft: "auto" }}>{formatNum(data.date)}</span>
           </div>
 
@@ -512,9 +505,9 @@ export function RealisticReceiptView({ template }) {
       <div className="realistic-thermal-receipt tpl-style-elite">
         <div className="receipt-paper-top" />
         <div className="receipt-content" style={{ padding: "0.75rem 0.65rem" }}>
-          {/* Formal Tax Banner */}
+          {/* Formal Header Banner */}
           <div className="elite-tax-banner" style={{ background: "#0284c7", color: "#ffffff", padding: "0.4rem 0.6rem", display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 900, fontSize: "0.82rem", letterSpacing: "0.5px", borderRadius: "4px", marginBottom: "0.45rem" }}>
-            <span>{lbl("TAX INVOICE", "कर पावती", "कर चालान")}</span>
+            <span>{lbl("RECEIPT / INVOICE", "पावती", "रसीद")}</span>
             <span>{lbl("ORIGINAL FOR RECIPIENT", "मूळ प्रत ग्राहकासाठी", "मूल प्रति ग्राहक के लिए")}</span>
           </div>
 
@@ -526,7 +519,6 @@ export function RealisticReceiptView({ template }) {
             <h4 style={{ fontSize: "0.9rem", fontWeight: 900, color: "#0f172a", margin: "0 0 0.1rem" }}>{data.shopName}</h4>
             <p style={{ color: "#1e293b", margin: "0.05rem 0", fontSize: "0.78rem", fontWeight: 600 }}>{tDb(data.address)}</p>
             <p style={{ color: "#1e293b", margin: "0.05rem 0", fontSize: "0.78rem", fontWeight: 600 }}>{lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}</p>
-            {data.gst && <p style={{ color: "#0f172a", fontWeight: 800, margin: "0.05rem 0", fontSize: "0.78rem" }}>{lbl("GSTIN:", "जीएसटी क्र.:", "जीएसटीआईएन:")} {data.gst}</p>}
           </div>
 
           {/* Customer / Buyer Card */}
@@ -543,6 +535,9 @@ export function RealisticReceiptView({ template }) {
           {/* Invoice Meta Grid */}
           <div className="classic-meta-grid" style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "0.78rem", background: "#f8fafc", padding: "0.35rem 0.55rem", borderRadius: "4px", margin: "0.3rem 0", color: "#0f172a" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Invoice No:", "पावती क्र.:", "बिल क्र.:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>#{formatNum(data.invoiceNo)}</b></div>
+            {tableNumber && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Table:", "टेबल:", "टेबल:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tableNumber}</b></div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Date:", "दिनांक:", "दिनांक:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(data.date)}</b></div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Payment:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)}</b></div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Total Items:", "एकूण वस्तू:", "कुल आइटम:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(items.length)}</b></div>
@@ -611,6 +606,11 @@ export function RealisticReceiptView({ template }) {
       <div className="receipt-content" style={{ padding: "0.75rem 0.65rem" }}>
         <h2 style={{ textAlign: "center", fontSize: "1.15rem", fontWeight: 900, color: "#0f172a" }}>{data.shopName}</h2>
         <p style={{ textAlign: "center", fontSize: "0.8rem", fontWeight: 600, color: "#1e293b" }}>{tDb(data.address)}</p>
+        {tableNumber && (
+          <p style={{ textAlign: "center", fontSize: "0.82rem", fontWeight: 700, color: "#0f172a", margin: "0.15rem 0" }}>
+            {lbl("TABLE:", "टेबल:", "टेबल:")} {tableNumber}
+          </p>
+        )}
         <div style={{ borderTop: "1.5px solid #0f172a", margin: "0.4rem 0" }} />
         {items.map((item, idx) => (
           <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 600, padding: "0.15rem 0", color: "#0f172a" }}>

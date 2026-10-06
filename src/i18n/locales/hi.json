@@ -35,6 +35,7 @@
   "nav": {
     "overview": "होम",
     "newBill": "नया बिल",
+    "tables": "टेबल्स",
     "menu": "मेनू",
     "templates": "टेम्पलेट्स",
     "products": "उत्पाद",
@@ -563,6 +564,8 @@
   "home": {
     "searchPlaceholder": "बिल, उत्पाद, टेम्पलेट, ग्राहक खोजें...",
     "newBill": "नया बिल",
+    "tables": "टेबल्स",
+    "manageTables": "टेबल्स और बिलिंग प्रबंधित करें",
     "createInvoice": "चालान बनाएं",
     "newProduct": "नया उत्पाद",
     "addToInventory": "इन्वेंट्री में जोड़ें",
@@ -585,5 +588,29 @@
     "pending": "लंबित",
     "draft": "ड्राफ्ट",
     "overdue": "अतिदेय"
+  },
+  "tables": {
+    "title": "टेबल प्रबंधन",
+    "subtitle": "बिलिंग शुरू करने या ऑर्डर प्रबंधित करने के लिए टेबल चुनें",
+    "manageTables": "टेबल्स प्रबंधित करें",
+    "addTable": "टेबल जोड़ें",
+    "all": "सभी",
+    "available": "उपलब्ध",
+    "occupied": "व्यस्त",
+    "searchPlaceholder": "टेबल नंबर खोजें...",
+    "availableCount": "उपलब्ध",
+    "occupiedCount": "व्यस्त",
+    "totalTables": "कुल टेबल्स",
+    "activeAmount": "सक्रिय बिल राशि",
+    "items": "आइटम",
+    "item": "आइटम",
+    "openTable": "टेबल खोलें",
+    "reset": "रीसेट",
+    "saveBill": "बिल सहेजें",
+    "printBill": "बिल प्रिंट करें",
+    "saving": "बिल सहेजा जा रहा है...",
+    "printing": "प्रिंट तैयार हो रहा है...",
+    "resetConfirmTitle": "टेबल ऑर्डर रीसेट करें?",
+    "resetConfirmDesc": "यह इस टेबल से सभी आइटम हटा देगा। यह क्रिया पूर्ववत नहीं की जा सकती।"
   }
 }

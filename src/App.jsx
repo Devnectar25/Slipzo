@@ -19,10 +19,11 @@ import { Menu as ShopMenu } from "./components/Menu"
 import { AddYourItemsModal } from "./components/AddYourItemsModal"
 import { OnboardingRewardModal } from "./components/OnboardingRewardModal"
 import { FreeRewardExpiredModal } from "./components/FreeRewardExpiredModal"
+import { TableManagement } from "./components/tables/TableManagement"
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider, useToast } from "./components/common/Toast"
-import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp } from "./lib/utils"
+import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData } from "./lib/utils"
 import { AdminLogin } from "./components/admin/AdminLogin"
 import { AdminDashboard } from "./components/admin/AdminDashboard"
 import { useTranslation } from "react-i18next"
@@ -44,6 +45,7 @@ const pathToView = (pathname) => {
   const clean = pathname.toLowerCase().trim()
   if (clean === "/products") return "products"
   if (clean === "/new-bill" || clean === "/bills") return "bills"
+  if (clean === "/tables" || clean === "/table-management" || clean === "/restaurant-tables") return "tables"
   if (clean === "/menu") return "menu"
   if (clean === "/templates") return "templates"
   if (clean === "/pricing") return "pricing"
@@ -61,6 +63,7 @@ const viewToPath = (viewName) => {
     case "dashboard": return "/overview"
     case "products": return "/products"
     case "bills": return "/new-bill"
+    case "tables": return "/tables"
     case "menu": return "/menu"
     case "templates": return "/templates"
     case "pricing": return "/pricing"
@@ -94,6 +97,17 @@ function AppContent() {
   const [showAddItemsModal, setShowAddItemsModal] = useState(false)
   const [showRewardModal, setShowRewardModal] = useState(false)
   const [showFreeRewardExpiredModal, setShowFreeRewardExpiredModal] = useState(false)
+  const [cachedShop, setCachedShop] = useState(() => getCachedData("/shop") || {})
+  const isHotel = isHotelRestaurant(cachedShop)
+
+  useEffect(() => {
+    const handleShopUpdate = (e) => {
+      if (e?.detail) setCachedShop(e.detail)
+    }
+    window.addEventListener("slipzo_shop_updated", handleShopUpdate)
+    return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
+  }, [])
+
   const { error: toastError } = useToast()
   const isClaimingRewardRef = useRef(false)
 
@@ -542,7 +556,18 @@ function AppContent() {
       <ErrorBoundary onGoHome={() => setView("dashboard")} onReset={() => setView("dashboard")}>
         {view === "dashboard" && <Dashboard setView={setView} setSelectedBillId={setSelectedBillId} requireAuth={requireAuth} user={user} />}
         {view === "templates" && <Templates setView={setView} requireAuth={requireAuth} user={user} />}
-        {view === "bills" && <Bill setView={setView} setSelectedBillId={setSelectedBillId} requireAuth={requireAuth} user={user} />}
+        {(view === "tables" || (view === "bills" && isHotel)) && (
+          <TableManagement
+            user={user}
+            setView={setView}
+            setSelectedBillId={setSelectedBillId}
+            requireAuth={requireAuth}
+            shop={cachedShop}
+          />
+        )}
+        {(view === "bills" && !isHotel) && (
+          <Bill setView={setView} setSelectedBillId={setSelectedBillId} requireAuth={requireAuth} user={user} />
+        )}
         {view === "menu" && <ShopMenu setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "products" && <Products setView={setView} requireAuth={requireAuth} user={user} />}
         {view === "history" && (
@@ -583,6 +608,7 @@ function AppContent() {
     <AddYourItemsModal
       isOpen={showAddItemsModal}
       user={user}
+      shop={cachedShop}
       onClose={() => setShowAddItemsModal(false)}
       onContinue={handleClaimOnboardingReward}
     />

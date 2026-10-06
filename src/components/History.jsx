@@ -13,13 +13,7 @@ import {
   Calendar,
   Plus,
   Trash2,
-  Mic,
-  CreditCard,
-  List,
-  ChevronDown,
-  MoreVertical,
-  Banknote,
-  Send
+  Utensils
 } from "lucide-react"
 import { call, money, getCachedData } from "../lib/utils"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
@@ -339,23 +333,18 @@ export function History({ setView, setSelectedBillId, user }) {
                       </small>
                     </div>
 
-                    <div className="history-details-col">
-                      <div className="history-bill-number">
-                        <b>{bill.number}</b>
-                      </div>
-
-                      <div className="history-meta-badges-row">
-                        {bill.customer_name && (
-                          <span className="customer-tag">
-                            <User size={11} /> {bill.customer_name}
-                          </span>
-                        )}
-                        <span className="payment-badge">{bill.payment_mode || "Cash"}</span>
-                      </div>
-
-                      <div className="history-items-count text-muted">
-                        {itemsCount} {itemsCount === 1 ? t("history.item", "item") : t("history.items", "items")}
-                      </div>
+                    <div className="history-meta-badges-row">
+                      {bill.table_number && (
+                        <span className="customer-tag" style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe", fontWeight: 600 }}>
+                          <Utensils size={10} /> {bill.table_number}
+                        </span>
+                      )}
+                      {bill.customer_name && (
+                        <span className="customer-tag">
+                          <User size={11} /> {bill.customer_name}
+                        </span>
+                      )}
+                      <span className="payment-badge">{tDb(bill.payment_mode || "Cash")}</span>
                     </div>
 
                     <div className="history-amount-col">

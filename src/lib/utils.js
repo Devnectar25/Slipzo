@@ -359,67 +359,16 @@ export const getCurrentUserKey = (user) => {
   return "guest"
 }
 
-export const DEFAULT_SHOP_MENU_ITEMS = [
-  {
-    id: "menu_croissant",
-    name: "Butter Croissant",
-    category: "Bakery",
-    price: 70.00,
-    image_url: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=400&q=80",
-    is_active: true
-  },
-  {
-    id: "menu_badam_milk",
-    name: "Badam Milk",
-    category: "Beverages",
-    price: 60.00,
-    image_url: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80",
-    is_active: true
-  },
-  {
-    id: "menu_cappuccino",
-    name: "Cappuccino",
-    category: "Beverages",
-    price: 90.00,
-    image_url: "https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=400&q=80",
-    is_active: true
-  },
-  {
-    id: "menu_club_sandwich",
-    name: "Club Sandwich",
-    category: "Snacks",
-    price: 110.00,
-    image_url: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=400&q=80",
-    is_active: true
-  },
-  {
-    id: "menu_chocolate_muffin",
-    name: "Chocolate Muffin",
-    category: "Bakery",
-    price: 80.00,
-    image_url: "https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=400&q=80",
-    is_active: true
-  },
-  {
-    id: "menu_fresh_orange_juice",
-    name: "Fresh Orange Juice",
-    category: "Beverages",
-    price: 100.00,
-    image_url: "https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=400&q=80",
-    is_active: true
-  }
-]
-
 export const getStoredMenuItems = (user) => {
   const key = getCurrentUserKey(user)
   try {
     const raw = localStorage.getItem(`slipzo_menu_items_${key}`)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed)) return parsed
     }
   } catch (e) {}
-  return DEFAULT_SHOP_MENU_ITEMS
+  return []
 }
 
 export const saveStoredMenuItems = (items, user) => {
@@ -712,4 +661,33 @@ export function findTemplateMatch(templatesList, targetId) {
   if (matched) return matched
 
   return null
+}
+
+// ============ RESTAURANT / HOTEL HELPERS ============
+export const isHotelRestaurant = (shopOrCategory) => {
+  if (!shopOrCategory) return false
+  const cat = typeof shopOrCategory === "string"
+    ? shopOrCategory
+    : (shopOrCategory.business_type || shopOrCategory.category || "")
+  const clean = String(cat).trim().toLowerCase()
+  return clean === "hotel_food" ||
+         clean === "hotel or food restaurant" ||
+         clean.includes("hotel") ||
+         clean.includes("restaurant")
+}
+
+export const getStoredTables = (user) => {
+  const userKey = getCurrentUserKey(user)
+  try {
+    const raw = localStorage.getItem(`slipzo_tables_${userKey}`)
+    if (raw) return JSON.parse(raw)
+  } catch (e) {}
+  return null
+}
+
+export const saveStoredTables = (user, tables) => {
+  const userKey = getCurrentUserKey(user)
+  try {
+    localStorage.setItem(`slipzo_tables_${userKey}`, JSON.stringify(tables))
+  } catch (e) {}
 }

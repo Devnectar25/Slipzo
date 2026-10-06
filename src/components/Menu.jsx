@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import {
   Utensils,
+  Shirt,
+  ShoppingBag,
   Plus,
   Search,
   Edit2,
@@ -128,6 +130,15 @@ export function Menu({ setView, requireAuth, user }) {
   const defaultBusinessType = cachedShop?.business_type || "small_business"
   const [selectedBusinessType, setSelectedBusinessType] = useState(defaultBusinessType)
 
+  const getItemPlaceholderIcon = (category, sz = 22) => {
+    const cat = (category || "").toLowerCase()
+    const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment") || cat.includes("wear") || cat.includes("cloth") || cat.includes("garment") || cat.includes("shirt") || cat.includes("saree") || cat.includes("dress") || cat.includes("kids") || cat.includes("jacket")
+    const isFood = (selectedBusinessType || "").toLowerCase().includes("hotel") || (selectedBusinessType || "").toLowerCase().includes("food") || cat.includes("food") || cat.includes("bread") || cat.includes("beverage") || cat.includes("chai") || cat.includes("roti") || cat.includes("snack")
+    if (isCloth) return <Shirt size={sz} />
+    if (isFood) return <Utensils size={sz} />
+    return <ShoppingBag size={sz} />
+  }
+
   // Listen to shop updates to sync business type and clear personal menu
   useEffect(() => {
     const handleShopUpdate = (e) => {
@@ -160,9 +171,17 @@ export function Menu({ setView, requireAuth, user }) {
   // ==========================================
   const cachedItems = getCachedData("/menu")
   const [items, setItems] = useState(() => {
-    if (Array.isArray(cachedItems) && cachedItems.length > 0) return cachedItems
+    const isCloth = (defaultBusinessType || "").toLowerCase().includes("clothing") || (defaultBusinessType || "").toLowerCase().includes("garment")
+    const filterForCloth = (arr) => {
+      if (!Array.isArray(arr) || !isCloth) return Array.isArray(arr) ? arr : []
+      return arr.filter(it => {
+        const itCat = (it.category || "").toLowerCase()
+        return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
+      })
+    }
+    if (Array.isArray(cachedItems) && cachedItems.length > 0) return filterForCloth(cachedItems)
     const stored = getStoredMenuItems(user)
-    return stored.length > 0 ? stored : DEFAULT_SHOP_MENU_ITEMS
+    return filterForCloth(stored)
   })
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState("")
@@ -286,16 +305,32 @@ export function Menu({ setView, requireAuth, user }) {
     try {
       if (showSpinner) setLoading(true)
       const data = await call("/menu").catch(() => null)
-      if (Array.isArray(data) && data.length > 0) {
-        setItems(data)
-        saveStoredMenuItems(data, user)
+      const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment")
+      const filterForCloth = (arr) => {
+        if (!Array.isArray(arr) || !isCloth) return Array.isArray(arr) ? arr : []
+        return arr.filter(it => {
+          const itCat = (it.category || "").toLowerCase()
+          return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
+        })
+      }
+      if (Array.isArray(data)) {
+        const cleanData = filterForCloth(data)
+        setItems(cleanData)
+        saveStoredMenuItems(cleanData, user)
       } else {
         const local = getStoredMenuItems(user)
-        if (local.length > 0) setItems(local)
+        const cleanLocal = filterForCloth(local)
+        if (cleanLocal.length > 0) setItems(cleanLocal)
       }
     } catch (err) {
+      console.warn("Failed to load user menu, using offline storage:", err)
+      const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment")
       const local = getStoredMenuItems(user)
-      if (local.length > 0) setItems(local)
+      const cleanLocal = isCloth ? local.filter(it => {
+        const itCat = (it.category || "").toLowerCase()
+        return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
+      }) : local
+      if (cleanLocal.length > 0) setItems(cleanLocal)
     } finally {
       if (showSpinner) setLoading(false)
     }
@@ -1010,23 +1045,55 @@ export function Menu({ setView, requireAuth, user }) {
                 )}
               </div>
             ) : (
-              <div className="mob-catalog-2col-grid">
-                {filteredCatalogItems.map((catItem) => {
-                  const isFav = favorites.has(catItem.id)
-                  const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
-                  return (
-                    <div key={catItem.id} className="mob-catalog-card">
-                      <div className="mob-catalog-image-wrap">
-                        {catItem.image_url ? (
-                          <img
-                            src={catItem.image_url}
-                            alt={catItem.name}
-                            className="mob-catalog-image"
-                            onError={(e) => { e.target.style.display = "none" }}
-                          />
-                        ) : (
-                          <div className="mob-catalog-image-placeholder">
-                            <Utensils size={24} />
+              <>
+                <div className="menu-section-subheader">
+                  <h3 className="menu-section-title">
+                    Search Results
+                    <span className="menu-items-count-badge">
+                      {filteredCatalogItemsForSearch.length} found
+                    </span>
+                  </h3>
+                  <button
+                    className="menu-secondary-btn"
+                    style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                    onClick={() => setSearch("")}
+                  >
+                    Clear Search
+                  </button>
+                </div>
+
+                <div className="menu-cards-grid">
+                  {filteredCatalogItemsForSearch.map((catItem) => {
+                    const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
+                    return (
+                      <div
+                        key={catItem.id}
+                        className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
+                      >
+                        <div className="menu-card-image-box">
+                          {catItem.image_url ? (
+                            <img
+                              src={catItem.image_url}
+                              alt={catItem.name}
+                              className="menu-card-image"
+                              onError={(e) => {
+                                e.target.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <div className="menu-card-image-placeholder">
+                              {getItemPlaceholderIcon(catItem.category, 22)}
+                            </div>
+                          )}
+                          <span className="menu-card-cat-badge">{catItem.category || "General"}</span>
+                        </div>
+
+                        <div className="menu-card-details">
+                          <h4 className="menu-card-item-name" title={catItem.name}>
+                            {catItem.name}
+                          </h4>
+                          <div className="menu-card-price-row">
+                            <span className="catalog-card-base-price">{money(catItem.price)}</span>
                           </div>
                         )}
                         <button
@@ -1208,26 +1275,33 @@ export function Menu({ setView, requireAuth, user }) {
                   </h3>
                 </div>
 
-                <div className="menu-cards-grid">
-                  {filteredUserItems.map((item) => {
-                    const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
-                    return (
-                      <div key={item.id} className="user-menu-card">
-                        <div className="user-menu-card-left">
-                          {item.image_url ? (
-                            <img
-                              src={item.image_url}
-                              alt={item.name}
-                              className="menu-card-image"
-                              onError={(e) => {
-                                e.target.style.display = "none"
-                              }}
-                            />
-                          ) : (
-                            <div className="menu-card-image-placeholder">
-                              <Utensils size={20} />
-                            </div>
-                          )}
+              <div className="menu-cards-grid">
+                {paginatedUserItems.map((item) => {
+                  const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
+                  return (
+                    <div key={item.id} className="user-menu-card">
+                      <div className="menu-card-image-box">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="menu-card-image"
+                            onError={(e) => {
+                              e.target.style.display = "none"
+                            }}
+                          />
+                        ) : (
+                          <div className="menu-card-image-placeholder">
+                            {getItemPlaceholderIcon(item.category, 22)}
+                          </div>
+                        )}
+                        <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
+                        {isItemActive && (
+                          <span className="menu-card-status-pill">
+                            <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
+                          </span>
+                        )}
+                      </div>
 
                           <div className="menu-card-details">
                             <h4 className="menu-card-item-name" title={item.name}>
@@ -1371,22 +1445,37 @@ export function Menu({ setView, requireAuth, user }) {
               </button>
             </div>
           ) : (
-            <div className="menu-cards-grid">
-              {filteredCatalogItems.map((catItem) => {
-                const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
-                return (
-                  <div
-                    key={catItem.id}
-                    className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
-                  >
-                    <div className="user-menu-card-left">
-                      <MenuImageThumbnail
-                        src={catItem.image_url}
-                        alt={catItem.name}
-                        className="menu-card-image"
-                        wrapClassName="menu-card-image-wrap"
-                        iconSize={24}
-                      />
+            <>
+              <div className="menu-cards-grid">
+                {paginatedCatalogItems.map((catItem) => {
+                  const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
+                  return (
+                    <div
+                      key={catItem.id}
+                      className={`catalog-item-card ${isAlreadyAdded ? "already-added" : ""}`}
+                    >
+                      <div className="menu-card-image-box">
+                        {catItem.image_url ? (
+                          <img
+                            src={catItem.image_url}
+                            alt={catItem.name}
+                            className="menu-card-image"
+                            onError={(e) => {
+                              e.target.style.display = "none"
+                            }}
+                          />
+                        ) : (
+                          <div className="menu-card-image-placeholder">
+                            {getItemPlaceholderIcon(catItem.category, 22)}
+                          </div>
+                        )}
+                        <span className="menu-card-cat-badge">{tDb(catItem.category || "General")}</span>
+                        {catItem.barcode && (
+                          <span style={{ position: "absolute", bottom: "6px", right: "6px", fontSize: "0.64rem", fontWeight: "700", background: "rgba(255,255,255,0.94)", color: "#334155", border: "1px solid #cbd5e1", padding: "1px 5px", borderRadius: "5px", display: "flex", alignItems: "center", gap: "3px", zIndex: 2, backdropFilter: "blur(4px)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                            <BarcodeIcon size={10} /> {catItem.barcode}
+                          </span>
+                        )}
+                      </div>
 
                       <div className="menu-card-details">
                         <h4 className="menu-card-item-name" title={catItem.name}>
@@ -1520,13 +1609,20 @@ export function Menu({ setView, requireAuth, user }) {
             <form onSubmit={handleConfirmAddToMenu}>
               <div className="menu-modal-body">
                 <div className="menu-modal-item-preview">
-                  <MenuImageThumbnail
-                    src={selectedCatalogItem.image_url}
-                    alt={selectedCatalogItem.name}
-                    className="menu-modal-preview-img"
-                    wrapClassName="menu-modal-image-wrap"
-                    iconSize={28}
-                  />
+                  {selectedCatalogItem.image_url ? (
+                    <img
+                      src={selectedCatalogItem.image_url}
+                      alt={selectedCatalogItem.name}
+                      className="menu-modal-preview-img"
+                      onError={(e) => {
+                        e.target.style.display = "none"
+                      }}
+                    />
+                  ) : (
+                    <div className="menu-card-image-placeholder" style={{ width: "60px", height: "60px" }}>
+                      {getItemPlaceholderIcon(selectedCatalogItem.category, 24)}
+                    </div>
+                  )}
                   <div className="menu-modal-preview-details">
                     <h4 className="menu-modal-preview-name">{tDb(selectedCatalogItem.name)}</h4>
                     <span className="menu-card-cat-badge">{tDb(selectedCatalogItem.category)}</span>
@@ -1657,13 +1753,17 @@ export function Menu({ setView, requireAuth, user }) {
             <form onSubmit={handleSaveEditPrice}>
               <div className="menu-modal-body">
                 <div className="menu-modal-item-preview">
-                  <MenuImageThumbnail
-                    src={editingItem.image_url}
-                    alt={editingItem.name}
-                    className="menu-modal-preview-img"
-                    wrapClassName="menu-modal-image-wrap"
-                    iconSize={28}
-                  />
+                  {editingItem.image_url ? (
+                    <img
+                      src={editingItem.image_url}
+                      alt={editingItem.name}
+                      className="menu-modal-preview-img"
+                    />
+                  ) : (
+                    <div className="menu-card-image-placeholder" style={{ width: "52px", height: "52px" }}>
+                      {getItemPlaceholderIcon(editingItem.category, 20)}
+                    </div>
+                  )}
                   <div className="menu-modal-preview-details">
                     <h4 className="menu-modal-preview-name">{tDb(editingItem.name)}</h4>
                     <span className="menu-card-cat-badge">{tDb(editingItem.category)}</span>
