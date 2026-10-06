@@ -3,6 +3,10 @@ import { money } from "../../lib/utils"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../../lib/translator"
 
+/**
+ * TableCard Component
+ * Displays individual restaurant dining table status, active items count, and order subtotal.
+ */
 export function TableCard({ table, onSelectTable }) {
   const { t } = useTranslation()
   const { formatNum } = useDbTranslation()
