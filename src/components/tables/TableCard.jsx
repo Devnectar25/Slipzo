@@ -53,7 +53,7 @@ export function TableCard({ table, onSelectTable }) {
 
       <div className="table-card-header">
         <div className="table-number-title">
-          <Utensils size={18} style={{ color: isOccupied ? "#0284c7" : "#64748b" }} />
+          <Utensils size={18} style={{ color: isOccupied ? "#0284c7" : "#7dd3fc" }} />
           <span>{table.name || `Table ${table.table_number}`}</span>
         </div>
 

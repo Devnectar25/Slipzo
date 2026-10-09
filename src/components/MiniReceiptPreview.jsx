@@ -1,12 +1,8 @@
 import React from "react"
-import { money, formatNumberByLang } from "../lib/utils"
 import { useDbTranslation } from "../lib/translator"
-import { Store, QrCode } from "lucide-react"
 
 export function MiniReceiptPreview({ template }) {
-  const { tDb, formatNum, lang } = useDbTranslation()
-  const isMr = (lang || "").toLowerCase().startsWith("mr")
-  const isHi = (lang || "").toLowerCase().startsWith("hi")
+  const { tDb } = useDbTranslation()
 
   const p = String(template.preview || template.builtin_id || template.templateId || template.id || "").toLowerCase()
   const n = String(template.name || "").toLowerCase()
@@ -21,41 +17,47 @@ export function MiniReceiptPreview({ template }) {
   // 1. CLASSIC RECEIPT (Card 1)
   if (isClassic) {
     return (
-      <div className="mini-receipt mini-receipt-classic-exact">
-        <div className="mini-shop-header-exact">
-          <div className="mini-s-logo-dot">S</div>
-          <span className="mini-shop-name-exact">NEHA'S SHOP</span>
-          <span className="mini-receipt-type-sub">Cash Receipt</span>
+      <div className="mini-receipt mini-receipt-classic-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div className="mini-shop-header-exact" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", marginBottom: "4px" }}>
+          <div style={{ border: "1.5px solid #0284c7", color: "#0284c7", width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "10px" }}>S</div>
+          <span style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a", marginTop: "1px" }}>CLASSIC MART</span>
+          <span style={{ fontSize: "9px", color: "#64748b" }}>Connaught Place, New Delhi</span>
+          <span style={{ fontSize: "8px", color: "#94a3b8" }}>GSTIN: 07AAAAA0000A1Z5</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-table-header-row">
-          <span>Item</span>
-          <span>Qty</span>
-          <span>Amount</span>
+        <div style={{ borderTop: "1px dashed #cbd5e1", margin: "4px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#64748b", fontWeight: 600 }}>
+          <span>INV: #8821</span>
+          <span>DATE: 09-MAR</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-items-rows-exact">
-          <div className="mini-item-row-exact">
-            <span>Badam Milk</span>
-            <span>1</span>
-            <span>₹55.00</span>
+        <div style={{ borderTop: "1px solid #0f172a", margin: "4px 0 3px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", fontWeight: 800, color: "#0f172a", borderBottom: "1px solid #0f172a", paddingBottom: "2px" }}>
+          <span style={{ flex: 1.5, textAlign: "left" }}>ITEM</span>
+          <span style={{ width: "26px", textAlign: "center" }}>QTY</span>
+          <span style={{ flex: 1, textAlign: "right" }}>AMT</span>
+        </div>
+        <div style={{ margin: "3px 0", display: "flex", flexDirection: "column", gap: "2px", fontSize: "9px", textAlign: "left" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ flex: 1.5, color: "#334155" }}>Basmati Rice 1kg</span>
+            <span style={{ width: "26px", textAlign: "center", color: "#64748b" }}>2</span>
+            <span style={{ flex: 1, textAlign: "right", fontWeight: 600, color: "#0f172a" }}>₹240.00</span>
           </div>
-          <div className="mini-item-row-exact">
-            <span>Samosa</span>
-            <span>1</span>
-            <span>₹30.00</span>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ flex: 1.5, color: "#334155" }}>Sunflower Oil 1L</span>
+            <span style={{ width: "26px", textAlign: "center", color: "#64748b" }}>1</span>
+            <span style={{ flex: 1, textAlign: "right", fontWeight: 600, color: "#0f172a" }}>₹195.00</span>
           </div>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-total-row-exact">
-          <span>Total</span>
-          <span className="mini-total-val-exact">₹85.00</span>
+        <div style={{ borderTop: "1px dashed #cbd5e1", margin: "4px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#64748b", fontWeight: 600 }}>
+          <span>Subtotal</span>
+          <span>₹435.00</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-footer-note-exact">Thank you!</div>
-        <div className="mini-barcode-graphic">
-          <div className="barcode-bars">||||| | |||| | |||||| |||| | |||</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "3px 0 4px 0" }}>
+          <span style={{ fontWeight: 800, fontSize: "10px", color: "#0f172a" }}>GRAND TOTAL</span>
+          <span style={{ fontWeight: 800, fontSize: "11px", color: "#0284c7" }}>₹435.00</span>
         </div>
+        <div style={{ fontSize: "9px", letterSpacing: "1.5px", color: "#94a3b8", margin: "4px 0 2px 0" }}>||||| | ||||| | |||||</div>
+        <div style={{ fontSize: "8px", color: "#94a3b8", fontStyle: "italic", textAlign: "center" }}>Thank you! Please come again.</div>
       </div>
     )
   }
@@ -63,44 +65,36 @@ export function MiniReceiptPreview({ template }) {
   // 2. MINIMAL CLEAN BILL (Card 2)
   if (isMinimal) {
     return (
-      <div className="mini-receipt mini-receipt-minimal-exact">
-        <div className="mini-shop-header-exact">
-          <Store size={14} className="mini-store-icon" />
-          <span className="mini-shop-name-exact">test4's Shop</span>
+      <div className="mini-receipt mini-receipt-minimal-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "left", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div className="mini-shop-header-exact" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", marginBottom: "6px" }}>
+          <div style={{ background: "#0ea5e9", color: "#ffffff", width: "18px", height: "18px", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "10px" }}>S</div>
+          <span style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a", marginTop: "1px" }}>MINIMAL CAFE</span>
+          <span style={{ fontSize: "9px", color: "#94a3b8" }}>MG Road, Bengaluru</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-table-header-row">
-          <span>Item</span>
-          <span>Qty</span>
-          <span>Amount</span>
+        <div style={{ borderTop: "1px dashed #e2e8f0", margin: "4px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94a3b8", fontWeight: 500 }}>
+          <span>#INV-102</span>
+          <span>02:45 PM</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-items-rows-exact">
-          <div className="mini-item-row-exact">
-            <span>Butter Naan</span>
-            <span>1</span>
-            <span>₹55.00</span>
+        <div style={{ margin: "4px 0", display: "flex", flexDirection: "column", gap: "3px", fontSize: "9.5px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: "#334155" }}>Espresso Shot <small style={{ color: "#94a3b8" }}>× ₹120.00</small></span>
+            <span style={{ fontWeight: 600, color: "#0f172a" }}>₹120.00</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ color: "#334155" }}>Butter Croissant <small style={{ color: "#94a3b8" }}>× ₹100.00</small></span>
+            <span style={{ fontWeight: 600, color: "#0f172a" }}>₹100.00</span>
           </div>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-subtotal-meta-exact">
-          <div className="mini-sub-row">
-            <span>Subtotal</span>
-            <span>₹55.00</span>
-          </div>
+        <div style={{ borderTop: "1px dashed #e2e8f0", margin: "4px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "4px 0" }}>
+          <span style={{ fontWeight: 800, fontSize: "10px", color: "#0f172a" }}>TOTAL</span>
+          <span style={{ fontWeight: 800, fontSize: "11px", color: "#0ea5e9" }}>₹220.00</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-total-row-exact">
-          <span>Total :</span>
-          <span className="mini-total-val-exact">₹55.00</span>
+        <div style={{ marginTop: "4px" }}>
+          <span style={{ background: "#f1f5f9", padding: "1px 6px", borderRadius: "3px", fontSize: "8px", fontWeight: 700, color: "#475569", letterSpacing: "0.5px" }}>PAID VIA UPI</span>
         </div>
-        <div className="mini-paymode-row">
-          <span>Payment Mode :</span>
-          <span>Cash</span>
-        </div>
-        <div className="mini-barcode-graphic">
-          <div className="barcode-bars">|||||| | |||| | |||||| |||| | ||</div>
-        </div>
+        <div style={{ marginTop: "4px", fontSize: "8px", color: "#94a3b8", fontStyle: "italic", textAlign: "center" }}>thank you for visiting</div>
       </div>
     )
   }
@@ -108,65 +102,40 @@ export function MiniReceiptPreview({ template }) {
   // 3. SHOP PRO (Card 3)
   if (isPro) {
     return (
-      <div className="mini-receipt mini-receipt-pro-exact">
-        <div className="mini-shop-header-exact">
-          <div className="mini-s-logo-dot">S</div>
-          <span className="mini-shop-name-exact">NEHA'S SHOP</span>
-          <span className="mini-receipt-type-sub">Cash Receipt</span>
+      <div className="mini-receipt mini-receipt-pro-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div style={{ background: "#2563eb", color: "#ffffff", padding: "4px 6px", borderRadius: "4px", display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "6px" }}>
+          <span style={{ fontWeight: 800, fontSize: "10px", letterSpacing: "0.5px" }}>URBAN FASHION PRO</span>
+          <span style={{ fontSize: "7.5px", opacity: 0.85, letterSpacing: "0.5px" }}>RETAIL POS RECEIPT</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-table-header-row">
-          <span>Item</span>
-          <span>Qty</span>
-          <span>Amount</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#64748b", fontWeight: 600, marginBottom: "4px" }}>
+          <span>BILL: #4401</span>
+          <span>DATE: 09-MAR</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-items-rows-exact">
-          <div className="mini-item-row-exact">
-            <span>Badam Milk</span>
-            <span>1</span>
-            <span>₹55.00</span>
+        <div style={{ margin: "3px 0", display: "flex", flexDirection: "column", gap: "2px", fontSize: "9px", textAlign: "left" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#334155" }}>Pure Linen Shirt (x1)</span>
+            <span style={{ fontWeight: 600, color: "#0f172a" }}>₹1499.00</span>
           </div>
-          <div className="mini-item-row-exact">
-            <span>Samosa</span>
-            <span>1</span>
-            <span>₹30.00</span>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#334155" }}>Classic Denim Jeans</span>
+            <span style={{ fontWeight: 600, color: "#0f172a" }}>₹1899.00</span>
           </div>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-total-row-exact">
-          <span>Total</span>
-          <span className="mini-total-val-exact">₹135.00</span>
+        <div style={{ borderTop: "1px dashed #cbd5e1", margin: "4px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#64748b" }}>
+          <span>Subtotal</span>
+          <span>₹3398.00</span>
         </div>
-        <div className="mini-upi-section-exact">
-          <span className="mini-upi-badge">PAY VIA UPI</span>
-          <div className="mini-qr-code-box">
-            <svg viewBox="0 0 40 40" width="36" height="36" fill="#0f172a">
-              <rect x="0" y="0" width="12" height="12" fill="#0f172a" rx="2" />
-              <rect x="2" y="2" width="8" height="8" fill="#ffffff" rx="1" />
-              <rect x="4" y="4" width="4" height="4" fill="#0f172a" />
-              
-              <rect x="28" y="0" width="12" height="12" fill="#0f172a" rx="2" />
-              <rect x="30" y="2" width="8" height="8" fill="#ffffff" rx="1" />
-              <rect x="32" y="4" width="4" height="4" fill="#0f172a" />
-              
-              <rect x="0" y="28" width="12" height="12" fill="#0f172a" rx="2" />
-              <rect x="2" y="30" width="8" height="8" fill="#ffffff" rx="1" />
-              <rect x="4" y="32" width="4" height="4" fill="#0f172a" />
-
-              <rect x="16" y="2" width="4" height="6" fill="#0f172a" />
-              <rect x="22" y="4" width="4" height="4" fill="#0f172a" />
-              <rect x="14" y="14" width="12" height="12" fill="#0f172a" />
-              <rect x="18" y="18" width="4" height="4" fill="#ffffff" />
-              <rect x="2" y="16" width="6" height="4" fill="#0f172a" />
-              <rect x="30" y="16" width="6" height="4" fill="#0f172a" />
-              <rect x="16" y="30" width="6" height="6" fill="#0f172a" />
-              <rect x="24" y="28" width="6" height="4" fill="#0f172a" />
-              <rect x="32" y="32" width="6" height="6" fill="#0f172a" />
-            </svg>
-          </div>
-          <span className="mini-thank-qr">Thank you!</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#dc2626" }}>
+          <span>Discount</span>
+          <span>-₹300.00</span>
         </div>
+        <div style={{ borderTop: "1px solid #e2e8f0", margin: "3px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: 800, fontSize: "10px", color: "#0f172a" }}>Net Payable</span>
+          <span style={{ fontWeight: 800, fontSize: "11px", color: "#2563eb" }}>₹3098.00</span>
+        </div>
+        <div style={{ marginTop: "6px", fontSize: "8px", color: "#94a3b8", fontStyle: "italic" }}>Thank you for shopping with us!</div>
       </div>
     )
   }
@@ -174,26 +143,27 @@ export function MiniReceiptPreview({ template }) {
   // 4. ECO PRINT (Card 4)
   if (isEco) {
     return (
-      <div className="mini-receipt mini-receipt-eco-exact">
-        <div className="mini-shop-name-mono">NEHA'S SHOP</div>
-        <div className="mini-divider-dots" />
-        <div className="mini-mono-rows">
-          <div className="mini-mono-row">
-            <span>Butter Naan</span>
-            <span>₹55.00</span>
+      <div className="mini-receipt mini-receipt-eco-exact" style={{ background: "#f0fdf4", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "left", fontFamily: "monospace", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+        <div style={{ textAlign: "center", fontWeight: 800, fontSize: "10px", color: "#166534", marginBottom: "3px" }}>*** KRISHNA JUICE ***</div>
+        <div style={{ textAlign: "center", fontSize: "8px", color: "#15803d" }}>OTLB 7734 | 09-MAR | 11:30AM</div>
+        <div style={{ borderTop: "1px dashed #bbf7d0", margin: "4px 0" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "9px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#166534" }}>2x Pomegranate</span>
+            <span style={{ fontWeight: 700, color: "#14532d" }}>₹160.00</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#166534" }}>1x Fruit Bowl</span>
+            <span style={{ fontWeight: 700, color: "#14532d" }}>₹120.00</span>
           </div>
         </div>
-        <div className="mini-divider-dots" />
-        <div className="mini-mono-total-row">
-          <span>Total :</span>
-          <span className="mini-mono-bold">₹55.00</span>
+        <div style={{ borderTop: "1px dashed #bbf7d0", margin: "4px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "10px", color: "#14532d" }}>
+          <span>TOTAL:</span>
+          <span>₹280.00</span>
         </div>
-        <div className="mini-divider-dots" />
-        <div className="mini-mono-footer-row">
-          <span>Cash</span>
-          <span>Cash</span>
-        </div>
-        <div className="mini-mono-thank">Thank you!</div>
+        <div style={{ borderTop: "1px dashed #bbf7d0", margin: "4px 0" }} />
+        <div style={{ fontSize: "8px", color: "#15803d", fontWeight: 700, textAlign: "center" }}>PAID VIA UPI - THANK YOU</div>
       </div>
     )
   }
@@ -201,43 +171,32 @@ export function MiniReceiptPreview({ template }) {
   // 5. MODERN SHOP (Card 5)
   if (isModern) {
     return (
-      <div className="mini-receipt mini-receipt-modern-exact">
-        <div className="mini-shop-header-exact">
-          <div className="mini-s-logo-dot">S</div>
-          <span className="mini-shop-name-exact">NEHA'S SHOP</span>
-          <span className="mini-receipt-type-sub">Cash Receipt</span>
+      <div className="mini-receipt mini-receipt-modern-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "left", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div style={{ textAlign: "center", marginBottom: "4px" }}>
+          <div style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a" }}>Lumina Boutique & Spa</div>
+          <div style={{ fontSize: "8px", color: "#94a3b8" }}>Koramangala, Bengaluru</div>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-table-header-row">
-          <span>Item</span>
-          <span>Qty</span>
-          <span>Amount</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "8.5px", color: "#94a3b8", marginBottom: "4px" }}>
+          <span>#LUM-55</span>
+          <span>05:15 PM</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-items-rows-exact">
-          <div className="mini-item-row-exact">
-            <span>Badam Milk</span>
-            <span>1</span>
-            <span>₹55.00</span>
+        <div style={{ borderTop: "1px solid #f1f5f9", margin: "3px 0" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "3px", fontSize: "9px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#475569" }}>Rose Water Toner</span>
+            <span style={{ fontWeight: 600, color: "#2563eb" }}>₹450.00</span>
           </div>
-          <div className="mini-item-row-exact">
-            <span>Samosa</span>
-            <span>1</span>
-            <span>₹30.00</span>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#475569" }}>Facial Serum 50ml</span>
+            <span style={{ fontWeight: 600, color: "#2563eb" }}>₹890.00</span>
           </div>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-total-row-exact">
-          <span>Total</span>
-          <span className="mini-total-val-exact">₹135.00</span>
+        <div style={{ borderTop: "1px solid #f1f5f9", margin: "4px 0" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: 700, fontSize: "10px", color: "#0f172a" }}>Amount Due</span>
+          <span style={{ fontWeight: 800, fontSize: "11px", color: "#2563eb" }}>₹1340.00</span>
         </div>
-        <div className="mini-modern-badge-pill">PAID VIA CASH</div>
-        <div className="mini-social-dots-row">
-          <span className="social-dot dot-ig">IG</span>
-          <span className="social-dot dot-fb">FB</span>
-          <span className="social-dot dot-tw">TW</span>
-        </div>
-        <div className="mini-footer-note-exact">Thank you!</div>
+        <div style={{ marginTop: "4px", fontSize: "8px", color: "#94a3b8", fontStyle: "italic", textAlign: "center" }}>Thank you for your visit!</div>
       </div>
     )
   }
@@ -245,49 +204,43 @@ export function MiniReceiptPreview({ template }) {
   // 6. BUSINESS ELITE (Card 6)
   if (isElite) {
     return (
-      <div className="mini-receipt mini-receipt-elite-exact">
-        <div className="mini-tax-header-exact">
-          <span className="mini-shop-name-exact">NEHA'S SHOP</span>
-          <span className="mini-tax-invoice-label">RECEIPT</span>
+      <div className="mini-receipt mini-receipt-elite-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <div style={{ fontSize: "8px", fontWeight: 800, color: "#2563eb", letterSpacing: "1px", marginBottom: "1px" }}>TAX INVOICE</div>
+        <div style={{ fontWeight: 800, fontSize: "10px", color: "#0f172a" }}>Techno Corp</div>
+        <div style={{ fontSize: "8px", color: "#94a3b8", marginBottom: "4px" }}>Electronic City, Bengaluru</div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "8.5px", color: "#64748b", fontWeight: 600, borderTop: "1px solid #f1f5f9", paddingTop: "3px" }}>
+          <span>INV: #TC-904</span>
+          <span>DATE: 09-MAR</span>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-elite-grid-table">
-          <div className="mini-elite-th">
-            <span>Item</span>
-            <span>Qty</span>
-            <span>Amount</span>
+        <div style={{ margin: "3px 0", display: "flex", flexDirection: "column", gap: "2px", fontSize: "9px", textAlign: "left" }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#334155" }}>Wireless Mouse (x1)</span>
+            <span style={{ fontWeight: 600, color: "#0f172a" }}>₹850.00</span>
           </div>
-          <div className="mini-elite-tr">
-            <span>Badam Milk</span>
-            <span>1</span>
-            <span>₹55.00</span>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#334155" }}>Mech Keyboard (x1)</span>
+            <span style={{ fontWeight: 600, color: "#0f172a" }}>₹2600.00</span>
           </div>
-          <div className="mini-elite-tr">
-            <span>Samosa</span>
-            <span>1</span>
-            <span>₹30.00</span>
+          <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b", fontSize: "8px", marginTop: "1px" }}>
+            <span>Subtotal</span>
+            <span>₹3450.00</span>
           </div>
         </div>
-        <div className="mini-divider-hairline" />
-        <div className="mini-total-row-exact">
-          <span>Grand Total</span>
-          <span className="mini-total-val-exact">₹85.00</span>
+        <div style={{ background: "#0284c7", color: "#ffffff", padding: "3px 6px", borderRadius: "4px", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+          <span style={{ fontSize: "8px", fontWeight: 700 }}>TOTAL AMOUNT</span>
+          <span style={{ fontSize: "10px", fontWeight: 800 }}>₹3250.00</span>
         </div>
-        <div className="mini-sign-line">
-          <div className="sign-stroke" />
-          <span>Auth. Signatory</span>
-        </div>
-        <div className="mini-footer-note-exact">Thank you!</div>
+        <div style={{ marginTop: "4px", fontSize: "7.5px", color: "#94a3b8", fontStyle: "italic" }}>Terms & conditions apply. Thank you!</div>
       </div>
     )
   }
 
   // Default fallback
   return (
-    <div className="mini-receipt mini-receipt-classic-exact">
+    <div className="mini-receipt mini-receipt-classic-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
       <div className="mini-shop-header-exact">
         <div className="mini-s-logo-dot">S</div>
-        <span className="mini-shop-name-exact">{template.name || "NEHA'S SHOP"}</span>
+        <span className="mini-shop-name-exact">{tDb(template.name || "NEHA'S SHOP")}</span>
         <span className="mini-receipt-type-sub">Cash Receipt</span>
       </div>
       <div className="mini-divider-hairline" />

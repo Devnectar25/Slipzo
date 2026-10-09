@@ -167,6 +167,10 @@ export const call = async (path, options = {}) => {
     }
     else if (cleanPath.startsWith('/shop')) invalidateApiCache('/shop')
     else if (cleanPath.startsWith('/customers')) invalidateApiCache('/customers')
+    else if (cleanPath.startsWith('/restaurant') || cleanPath.startsWith('/tables')) {
+      invalidateApiCache('/restaurant')
+      invalidateApiCache('/tables')
+    }
     else if (cleanPath.startsWith('/auth/logout')) clearApiCache()
   }
 
@@ -331,6 +335,15 @@ export const formatNumberByLang = (val, customLang) => {
   return String(val ?? "")
 }
 
+export const getItemRate = (item) => {
+  if (!item) return 0
+  if (item.rate !== undefined && item.rate !== null && Number(item.rate) > 0) return Number(item.rate)
+  if (item.custom_price !== undefined && item.custom_price !== null && Number(item.custom_price) > 0) return Number(item.custom_price)
+  if (item.price !== undefined && item.price !== null && Number(item.price) > 0) return Number(item.price)
+  const val = Number(item.rate ?? item.custom_price ?? item.price ?? 0)
+  return isNaN(val) ? 0 : val
+}
+
 export const money = (n, customLang) => {
   const formatted = Number(n || 0).toFixed(2)
   const lang = (customLang || getAppLanguage()).toLowerCase()
@@ -358,6 +371,57 @@ export const getCurrentUserKey = (user) => {
   } catch (e) {}
   return "guest"
 }
+
+export const DEFAULT_SHOP_MENU_ITEMS = [
+  {
+    id: "menu_croissant",
+    name: "Butter Croissant",
+    category: "Bakery",
+    price: 70.00,
+    image_url: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=400&q=80",
+    is_active: true
+  },
+  {
+    id: "menu_badam_milk",
+    name: "Badam Milk",
+    category: "Beverages",
+    price: 60.00,
+    image_url: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80",
+    is_active: true
+  },
+  {
+    id: "menu_cappuccino",
+    name: "Cappuccino",
+    category: "Beverages",
+    price: 90.00,
+    image_url: "https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=400&q=80",
+    is_active: true
+  },
+  {
+    id: "menu_club_sandwich",
+    name: "Club Sandwich",
+    category: "Snacks",
+    price: 110.00,
+    image_url: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=400&q=80",
+    is_active: true
+  },
+  {
+    id: "menu_chocolate_muffin",
+    name: "Chocolate Muffin",
+    category: "Bakery",
+    price: 80.00,
+    image_url: "https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=400&q=80",
+    is_active: true
+  },
+  {
+    id: "menu_fresh_orange_juice",
+    name: "Fresh Orange Juice",
+    category: "Beverages",
+    price: 100.00,
+    image_url: "https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=400&q=80",
+    is_active: true
+  }
+]
 
 export const getStoredMenuItems = (user) => {
   const key = getCurrentUserKey(user)

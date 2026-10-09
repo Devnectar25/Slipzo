@@ -13,7 +13,12 @@ import {
   Calendar,
   Plus,
   Trash2,
-  Utensils
+  Utensils,
+  Banknote,
+  Bookmark,
+  Pencil,
+  Check,
+  Clock
 } from "lucide-react"
 import { call, money, getCachedData } from "../lib/utils"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
@@ -33,6 +38,10 @@ export function History({ setView, setSelectedBillId, user }) {
     const cutoff = Date.now() - TEN_DAYS_MS
     return list.filter((b) => b && b.created_at && new Date(b.created_at).getTime() >= cutoff)
   }
+
+  const [activeTab, setActiveTab] = useState("saved") // "saved" | "printed"
+  const [savedCount, setSavedCount] = useState(0)
+  const [printedCount, setPrintedCount] = useState(0)
 
   const [bills, setBills] = useState(() => {
     if (cachedData?.bills && Array.isArray(cachedData.bills)) return filter10Days(cachedData.bills)
@@ -68,20 +77,42 @@ export function History({ setView, setSelectedBillId, user }) {
   const loadBills = async () => {
     try {
       if (!Array.isArray(bills) || bills.length === 0) setLoading(true)
+      const isSavedVal = activeTab === "saved" ? "true" : "false"
       const queryParams = new URLSearchParams({
         page: String(page),
         limit: String(limit),
-        days_limit: "10"
+        days_limit: "10",
+        is_saved: isSavedVal
       })
       if (search.trim()) queryParams.append("search", search.trim())
       if (paymentMode !== "All") queryParams.append("payment_mode", paymentMode)
 
-      const data = await call(`/bills?${queryParams.toString()}`)
+      const oppositeIsSaved = activeTab === "saved" ? "false" : "true"
+      const [data, oppositeData] = await Promise.all([
+        call(`/bills?${queryParams.toString()}`),
+        call(`/bills?page=1&limit=1&days_limit=10&is_saved=${oppositeIsSaved}`).catch(() => ({}))
+      ])
+
+      const curTotal = (data && typeof data === "object" && data.total !== undefined)
+        ? Number(data.total)
+        : (Array.isArray(data?.bills) ? data.bills.length : (Array.isArray(data) ? data.length : 0))
+
+      const otherTotal = (oppositeData && typeof oppositeData === "object" && oppositeData.total !== undefined)
+        ? Number(oppositeData.total)
+        : 0
+
+      if (activeTab === "saved") {
+        setSavedCount(curTotal)
+        setPrintedCount(otherTotal)
+      } else {
+        setPrintedCount(curTotal)
+        setSavedCount(otherTotal)
+      }
 
       if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.bills)) {
         const filtered = filter10Days(data.bills)
         setBills(filtered)
-        setTotalRecords(data.total || filtered.length)
+        setTotalRecords(data.total !== undefined ? data.total : filtered.length)
         setTotalPages(data.totalPages || 1)
       } else {
         const billsList = filter10Days(Array.isArray(data) ? data : [])
@@ -100,7 +131,7 @@ export function History({ setView, setSelectedBillId, user }) {
 
   useEffect(() => {
     loadBills()
-  }, [page, limit, paymentMode, user?.id])
+  }, [page, limit, paymentMode, activeTab, user?.id])
 
   // Debounced search
   useEffect(() => {
@@ -136,12 +167,23 @@ export function History({ setView, setSelectedBillId, user }) {
     setView("reprint")
   }
 
+  const handleEditBill = (bill) => {
+    const billToEdit = bill?.rawBill || bill
+    sessionStorage.setItem("slipzo_edit_bill", JSON.stringify(billToEdit))
+    if (billToEdit.table_number) {
+      sessionStorage.setItem("slipzo_edit_table", billToEdit.table_number)
+      setView("tables")
+    } else {
+      setView("bills")
+    }
+  }
+
   const handleDeleteBill = async (bill) => {
     if (deletingId) return
     const result = await Swal.fire({
       title: t("history.deleteTitle", "Delete this bill?"),
       html: `<div style="font-size: 0.95rem; color: #575B6B; margin-top: 0.35rem;">
-        ${t("history.deleteConfirm", "Are you sure you want to delete bill")} <b style="color: #0C1F41;">${bill.number}</b> (${money(bill.total)})?
+        ${t("history.deleteConfirm", "Are you sure you want to delete bill")} <b style="color: #0C1F41;">${bill.number}</b> (${money(bill.total ?? bill.total_amount ?? bill.amount)})?
       </div>
       <div style="font-size: 0.82rem; color: #ef4444; margin-top: 0.5rem; font-weight: 600;">
         ${t("history.deleteWarning", "This action cannot be undone.")}
@@ -176,7 +218,7 @@ export function History({ setView, setSelectedBillId, user }) {
     }
   }
 
-  const effectiveTotalRecords = bills.length > 0 ? totalRecords : fallbackHistoryBills.length
+  const effectiveTotalRecords = bills.length > 0 ? totalRecords : (user ? 0 : fallbackHistoryBills.length)
   const effectiveTotalPages = Math.max(1, Math.ceil(effectiveTotalRecords / limit))
   const startRecord = (page - 1) * limit + 1
   const endRecord = Math.min(page * limit, effectiveTotalRecords)
@@ -202,9 +244,16 @@ export function History({ setView, setSelectedBillId, user }) {
       timeFormatted,
       payment_mode: b.payment_mode || (idx % 3 === 0 ? "Cash" : idx % 3 === 1 ? "Card" : "UPI"),
       itemsCount,
-      total: Number(b.total || b.grandTotal || 0)
+      total: Number(b.total !== undefined && b.total !== null ? b.total : (b.total_amount !== undefined && b.total_amount !== null ? b.total_amount : (b.amount || 0))),
+      table_number: b.table_number,
+      customer_name: b.customer_name,
+      customer_phone: b.customer_phone,
+      items: b.items,
+      discount: b.discount,
+      tax_rate: b.tax_rate,
+      rawBill: b
     }
-  }) : fallbackHistoryBills
+  }) : (user ? [] : fallbackHistoryBills)
 
   const filteredBills = search.trim()
     ? displayedBills.filter(b =>
@@ -235,10 +284,51 @@ export function History({ setView, setSelectedBillId, user }) {
       <div className="page-intro">
         <div>
           <span className="menu-eyebrow">
-            <Receipt size={13} /> {t("history.eyebrow", "YOUR RECEIPTS")}
+            <Banknote size={13} /> {t("history.eyebrow", "YOUR RECEIPTS")}
           </span>
           <h1 className="menu-main-title">{t("history.title", "Bill history.")}</h1>
           <p className="menu-sub-title">{t("history.subtitle", "Every saved receipt, ready to find and reprint again.")}</p>
+        </div>
+      </div>
+
+      {/* 2-Part Tab Switcher: Saved Bills & Print Bills */}
+      <div className="history-tab-switcher-wrapper">
+        <div className="history-tab-switcher" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "saved"}
+            data-testid="history-tab-saved"
+            className={`history-tab-btn ${activeTab === "saved" ? "active" : ""}`}
+            onClick={() => {
+              if (activeTab !== "saved") {
+                setActiveTab("saved")
+                setPage(1)
+              }
+            }}
+          >
+            <Bookmark size={15} />
+            <span className="history-tab-text">{t("history.savedBills", "Saved Bills")}</span>
+            <span className="history-tab-badge">{formatNum(savedCount)}</span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "printed"}
+            data-testid="history-tab-printed"
+            className={`history-tab-btn ${activeTab === "printed" ? "active" : ""}`}
+            onClick={() => {
+              if (activeTab !== "printed") {
+                setActiveTab("printed")
+                setPage(1)
+              }
+            }}
+          >
+            <Printer size={15} />
+            <span className="history-tab-text">{t("history.printBills", "Print Bills")}</span>
+            <span className="history-tab-badge">{formatNum(printedCount)}</span>
+          </button>
         </div>
       </div>
 
@@ -301,79 +391,131 @@ export function History({ setView, setSelectedBillId, user }) {
         {/* Bills Content */}
         {loading ? (
           <TableSkeleton rows={limit > 10 ? 10 : limit} cols={4} />
-        ) : Array.isArray(bills) && bills.length > 0 ? (
+        ) : Array.isArray(filteredBills) && filteredBills.length > 0 ? (
           <>
             <div className="history-list">
-              {bills.map((bill) => {
-                const itemsCount = Array.isArray(bill.items)
-                  ? bill.items.length
-                  : typeof bill.items === "string"
-                  ? (() => { try { const p = JSON.parse(bill.items); return Array.isArray(p) ? p.length : 0 } catch(e) { return 0 } })()
-                  : 0
+              {filteredBills.map((bill) => {
+                const d = bill.created_at ? new Date(bill.created_at) : null
+                const dateStr = bill.dateFormatted || (d ? d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "18 Sept 2026")
+                const timeStr = bill.timeFormatted || (d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "02:56 PM")
+
+                const itemsCount = typeof bill.itemsCount === "number" ? bill.itemsCount : (
+                  Array.isArray(bill.items)
+                    ? bill.items.length
+                    : typeof bill.items === "string"
+                    ? (() => { try { const p = JSON.parse(bill.items); return Array.isArray(p) ? p.length : 0 } catch(e) { return 0 } })()
+                    : 1
+                )
+
+                const itemsLabel = itemsCount === 1 ? "1 item" : `${itemsCount} items`
+                const invoiceNum = bill.number || bill.invoiceNo || bill.billNumber || `SLP-${bill.id}`
+
                 return (
-                <div
-                  data-testid={`history-bill-${bill.id}`}
-                  className="history-row"
-                  key={bill.id}
-                >
-                  <div className="history-main-content">
-                    <div className="history-date">
-                      <b>
-                        {new Date(bill.created_at).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric"
-                        })}
-                      </b>
-                      <small>
-                        {new Date(bill.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}
-                      </small>
+                  <div
+                    data-testid={`history-bill-${bill.id}`}
+                    className="history-row-card"
+                    key={bill.id}
+                  >
+                    <div className="history-card-top-group">
+                      <div className="history-main-info-group">
+                        {/* 2. Invoice No. */}
+                        <div className="history-col-invoice">
+                          <span className="history-invoice-num">{invoiceNum}</span>
+                          {(bill.customer_name || bill.table_number) && (
+                            <div className="history-sub-meta-row">
+                              {bill.customer_name && (
+                                <span className="history-sub-meta">
+                                  <User size={11} /> {bill.customer_name}
+                                </span>
+                              )}
+                              {bill.table_number && (
+                                <span className="history-sub-meta">
+                                  <Utensils size={10} /> {bill.table_number}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 1. Date & Time */}
+                        <div className="history-col-date">
+                          <span className="history-date-main">{dateStr}</span>
+                          <span className="history-time-sub">{timeStr}</span>
+                        </div>
+                      </div>
+
+                      {/* Total Amount for Mobile Top Row */}
+                      <div className="history-col-total mobile-only-total">
+                        <strong>{money(bill.total ?? bill.total_amount ?? bill.amount)}</strong>
+                      </div>
                     </div>
 
-                    <div className="history-meta-badges-row">
-                      {bill.table_number && (
-                        <span className="customer-tag" style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe", fontWeight: 600 }}>
-                          <Utensils size={10} /> {bill.table_number}
+                    <div className="history-card-bottom-group">
+                      {/* 3. Payment Mode & Status */}
+                      <div className="history-col-payment">
+                        <span className={`history-payment-badge ${getPaymentClass(bill.payment_mode)}`}>
+                          {tDb(bill.payment_mode || "Cash")}
                         </span>
-                      )}
-                      {bill.customer_name && (
-                        <span className="customer-tag">
-                          <User size={11} /> {bill.customer_name}
-                        </span>
-                      )}
-                      <span className="payment-badge">{tDb(bill.payment_mode || "Cash")}</span>
-                    </div>
+                        {activeTab === "printed" && (
+                          ((bill.payment_mode || "").toLowerCase() === "credit" || (bill.status || "").toLowerCase() === "pending") ? (
+                            <span className="history-status-badge-pending">
+                              <Clock size={11} strokeWidth={2.5} />
+                              <span>{t("common.pending", "Pending")}</span>
+                            </span>
+                          ) : (
+                            <span className="history-status-badge-paid">
+                              <Check size={11} strokeWidth={2.5} />
+                              <span>{t("common.paid", "Paid")}</span>
+                            </span>
+                          )
+                        )}
+                      </div>
 
-                    <div className="history-amount-col">
-                      <strong>{money(bill.total)}</strong>
+                      {/* 4. Items Count */}
+                      <div className="history-col-items">
+                        <span>{itemsLabel}</span>
+                      </div>
+
+                      {/* 5. Total Amount (Desktop Grid Column) */}
+                      <div className="history-col-total desktop-only-total">
+                        <strong>{money(bill.total ?? bill.total_amount ?? bill.amount)}</strong>
+                      </div>
+
+                      {/* 6. Actions */}
+                      <div className="history-col-actions">
+                        {activeTab === "saved" && (
+                          <button
+                            data-testid={`edit-bill-${bill.id}-button`}
+                            className="history-edit-bill-btn"
+                            title={t("history.editBill", "Edit Bill")}
+                            onClick={() => handleEditBill(bill.rawBill || bill)}
+                          >
+                            <Pencil size={13} />
+                            <span>{t("common.edit", "Edit")}</span>
+                          </button>
+                        )}
+                        <button
+                          data-testid={`reprint-bill-${bill.id}-button`}
+                          className="history-action-btn print"
+                          title={activeTab === "saved" ? t("history.printBill", "Print Bill") : t("history.reprint", "Reprint Receipt")}
+                          onClick={() => handleReprint(bill.id)}
+                        >
+                          <Printer size={15} />
+                        </button>
+                        <button
+                          data-testid={`delete-bill-${bill.id}-button`}
+                          className="history-action-btn delete"
+                          title={t("history.delete", "Delete Receipt")}
+                          disabled={deletingId === bill.id}
+                          onClick={() => handleDeleteBill(bill.rawBill || bill)}
+                        >
+                          {deletingId === bill.id ? <Spinner size="sm" /> : <Trash2 size={15} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="history-actions-col">
-                    <button
-                      data-testid={`reprint-bill-${bill.id}-button`}
-                      className="icon-button print-button"
-                      title="Reprint Receipt"
-                      onClick={() => handleReprint(bill.id)}
-                    >
-                      <Printer size={16} />
-                    </button>
-                    <button
-                      data-testid={`delete-bill-${bill.id}-button`}
-                      className="icon-button delete-button"
-                      title="Delete Receipt"
-                      disabled={deletingId === bill.id}
-                      onClick={() => handleDeleteBill(bill)}
-                    >
-                      {deletingId === bill.id ? <Spinner size="sm" /> : <Trash2 size={16} />}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                )
+              })}
             </div>
 
             {/* Pagination Navigation Bar */}
@@ -466,19 +608,27 @@ export function History({ setView, setSelectedBillId, user }) {
         ) : (
           <div className="history-empty-card fade-in">
             <div className="history-empty-icon">
-              <Receipt size={32} />
+              {activeTab === "saved" ? <Bookmark size={32} /> : <Receipt size={32} />}
             </div>
-            <h3>{t("history.noBillsYet", "No bills yet")}</h3>
+            <h3>
+              {activeTab === "saved"
+                ? t("history.noSavedBillsYet", "No saved bills yet")
+                : t("history.noPrintedBillsYet", "No printed bills yet")}
+            </h3>
             <p>
-              {t("history.noBillsYetDesc", "Your saved receipts from the last 10 days will automatically appear here once you create your first bill.")}
+              {activeTab === "saved"
+                ? t("history.noSavedBillsDesc", "Saved bills and orders from the last 10 days will automatically appear here. You can reopen, edit items, and finalize them anytime.")
+                : t("history.noPrintedBillsDesc", "Printed thermal receipts from the last 10 days will appear here, ready to find and reprint.")}
             </p>
-            <button
-              type="button"
-              className="primary-button history-create-btn"
-              onClick={() => setView("bills")}
-            >
-              <Plus size={16} /> {t("history.createNewBill", "Create New Bill")}
-            </button>
+            {activeTab === "saved" && (
+              <button
+                type="button"
+                className="primary-button history-create-btn"
+                onClick={() => setView("bills")}
+              >
+                <Plus size={16} /> {t("history.createNewBill", "Create New Bill")}
+              </button>
+            )}
           </div>
         )}
 
@@ -515,9 +665,9 @@ export function History({ setView, setSelectedBillId, user }) {
             display: inline-block !important;
             font-size: 0.68rem !important;
             font-weight: 700 !important;
-            color: #EA580C !important;
-            background: #FFF0E5 !important;
-            border: 1px solid #FCD4B7 !important;
+            color: #0284c7 !important;
+            background: #e0f2fe !important;
+            border: 1px solid #bae6fd !important;
             padding: 2px 9px !important;
             border-radius: 9999px !important;
             letter-spacing: 0.5px !important;
@@ -576,9 +726,9 @@ export function History({ setView, setSelectedBillId, user }) {
             width: 36px !important;
             height: 36px !important;
             border-radius: 12px !important;
-            background: #FFF0E5 !important;
-            border: 1px solid #FCD4B7 !important;
-            color: #F66016 !important;
+            background: #e0f2fe !important;
+            border: 1px solid #bae6fd !important;
+            color: #0284c7 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -588,7 +738,7 @@ export function History({ setView, setSelectedBillId, user }) {
           }
 
           .mobile-history-mic-btn.listening {
-            background: #F66016 !important;
+            background: #0284c7 !important;
             color: #FFFFFF !important;
             animation: pulse 1s infinite !important;
           }
@@ -700,8 +850,8 @@ export function History({ setView, setSelectedBillId, user }) {
           .mobile-history-date-pill {
             font-size: 0.71rem !important;
             font-weight: 700 !important;
-            color: #EA580C !important;
-            background: #FFF0E5 !important;
+            color: #0284c7 !important;
+            background: #f0f9ff !important;
             padding: 2px 8px !important;
             border-radius: 6px !important;
             display: inline-block !important;
@@ -781,7 +931,8 @@ export function History({ setView, setSelectedBillId, user }) {
           }
 
           .mobile-history-dropdown-menu button:hover {
-            background: #FFF0E5 !important;
+            background: #f0f9ff !important;
+            color: #0284c7 !important;
           }
 
           /* Bottom Row */
@@ -853,9 +1004,9 @@ export function History({ setView, setSelectedBillId, user }) {
             width: 30px !important;
             height: 30px !important;
             border-radius: 8px !important;
-            background: #FFF0E5 !important;
-            border: 1px solid #FCD4B7 !important;
-            color: #F66016 !important;
+            background: #f0f9ff !important;
+            border: 1px solid #bae6fd !important;
+            color: #0284c7 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
@@ -864,7 +1015,7 @@ export function History({ setView, setSelectedBillId, user }) {
           }
 
           .mobile-history-print-action-btn:active {
-            background: #F66016 !important;
+            background: #0284c7 !important;
             color: #FFFFFF !important;
           }
 
@@ -933,9 +1084,9 @@ export function History({ setView, setSelectedBillId, user }) {
           }
 
           .mobile-page-arrow-btn:active:not(:disabled) {
-            background: #FFF0E5 !important;
-            border-color: #FCD4B7 !important;
-            color: #F66016 !important;
+            background: #f0f9ff !important;
+            border-color: #bae6fd !important;
+            color: #0284c7 !important;
           }
 
           .mobile-page-arrow-btn:disabled {
@@ -973,11 +1124,11 @@ export function History({ setView, setSelectedBillId, user }) {
           }
 
           .mobile-page-num-btn.active {
-            background: linear-gradient(135deg, #FC9C3F 0%, #F66016 100%) !important;
-            border-color: #F66016 !important;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%) !important;
+            border-color: #0284c7 !important;
             color: #FFFFFF !important;
             font-weight: 700 !important;
-            box-shadow: 0 3px 10px rgba(246, 96, 22, 0.35) !important;
+            box-shadow: 0 3px 10px rgba(2, 132, 199, 0.35) !important;
           }
 
           .mobile-page-ellipsis {
@@ -990,7 +1141,7 @@ export function History({ setView, setSelectedBillId, user }) {
         /* Desktop specific styles */
         .history-empty-card {
           background: #ffffff;
-          border: 1px solid #F7CDAB;
+          border: 1px solid #bae6fd;
           border-radius: 16px;
           padding: 3rem 1.5rem;
           text-align: center;
@@ -1006,8 +1157,8 @@ export function History({ setView, setSelectedBillId, user }) {
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background: #FFE6D2;
-          color: #FB821B;
+          background: #e0f2fe;
+          color: #0284c7;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1015,8 +1166,9 @@ export function History({ setView, setSelectedBillId, user }) {
         }
 
         .history-empty-icon.muted {
-          background: #FDF4EB;
-          color: #74788A;
+          background: #f0f9ff;
+          color: #0284c7;
+          border: 1px solid #bae6fd;
         }
 
         .history-empty-card h3 {
@@ -1042,164 +1194,560 @@ export function History({ setView, setSelectedBillId, user }) {
           font-weight: 600;
         }
 
-        /* Action Icons Color & Box Size Consistency */
-        .history-page .history-actions-col .icon-button {
-          width: 36px !important;
-          height: 36px !important;
-          min-width: 36px !important;
-          max-width: 36px !important;
-          min-height: 36px !important;
-          max-height: 36px !important;
-          border-radius: 10px !important;
+        /* Desktop Controls Row */
+        .page.history-page .table-controls-bar {
           display: flex !important;
           align-items: center !important;
-          justify-content: center !important;
-          padding: 0 !important;
-          box-sizing: border-box !important;
+          justify-content: space-between !important;
+          gap: 0.75rem !important;
+          margin: 1.25rem 0 1.25rem 0 !important;
+          flex-wrap: nowrap !important;
+          width: 100% !important;
+        }
+
+        .page.history-page .search-input-wrapper {
+          flex: 1 !important;
+          min-width: 280px !important;
+          height: 48px !important;
+          background: #ffffff !important;
+          border: 1px solid #d5e0eb !important;
+          border-radius: 12px !important;
+        }
+
+        .page.history-page .filter-controls-group {
+          display: flex !important;
+          align-items: center !important;
+          gap: 0.65rem !important;
           flex-shrink: 0 !important;
-          transition: all 0.15s ease !important;
         }
 
-        .history-page .icon-button.print-button {
-          color: #F66016 !important;
-          background: #FFF0E5 !important;
-          border: 1.5px solid #F7CDAB !important;
+        .page.history-page .filter-select {
+          height: 48px !important;
+          background: #ffffff !important;
+          border: 1px solid #d5e0eb !important;
+          border-radius: 12px !important;
+          padding: 0 2rem 0 0.9rem !important;
+          font-size: 14px !important;
+          font-weight: 600 !important;
+          color: #0C1F41 !important;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+          outline: none !important;
+          cursor: pointer !important;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
         }
 
-        .history-page .icon-button.print-button:hover:not(:disabled) {
-          background: #F66016 !important;
-          color: #ffffff !important;
-          border-color: #F66016 !important;
+        .page.history-page .filter-select:focus {
+          border-color: #0284c7 !important;
+          box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
         }
 
-        .history-page .icon-button.delete-button {
-          color: #EF4444 !important;
-          background: #FFE1E5 !important;
-          border: 1.5px solid #FFB8BD !important;
-        }
-
-        .history-page .icon-button.delete-button:hover:not(:disabled) {
-          background: #EF4444 !important;
-          color: #ffffff !important;
-          border-color: #EF4444 !important;
-        }
-
-        .history-meta-badges-row {
+        /* History Row Card - Clean Responsive Slipzo Design */
+        .history-list {
           display: flex;
-          align-items: center;
-          gap: 0.35rem;
-          flex-wrap: wrap;
+          flex-direction: column;
+          gap: 0.5rem;
+          width: 100%;
         }
 
-        .history-meta-badges-row .customer-tag {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.25rem;
-          max-width: 170px;
-          overflow: hidden;
-          text-overflow: ellipsis;
+        .history-row-card {
+          display: grid !important;
+          grid-template-columns: 105px 170px 145px 95px 1fr auto !important;
+          align-items: center !important;
+          background: #ffffff !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 10px !important;
+          padding: 0.45rem 1rem !important;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease !important;
+          min-height: 48px !important;
+          box-sizing: border-box !important;
+          gap: 0.75rem !important;
+          width: 100% !important;
+        }
+
+        .history-card-top-group,
+        .history-main-info-group,
+        .history-card-bottom-group {
+          display: contents !important;
+        }
+
+        .mobile-only-total {
+          display: none !important;
+        }
+
+        .desktop-only-total {
+          display: block !important;
+        }
+
+        .history-row-card:hover {
+          border-color: #0284c7 !important;
+          box-shadow: 0 3px 8px rgba(15, 23, 42, 0.05) !important;
+          transform: translateY(-1px) !important;
+        }
+
+        .history-col-date {
+          display: flex;
+          flex-direction: column;
+          min-width: 100px;
+          flex-shrink: 0;
+          order: 1 !important;
+        }
+
+        .history-date-main {
+          font-size: 0.83rem;
+          font-weight: 700;
+          color: #0C1F41;
+          line-height: 1.15;
+        }
+
+        .history-time-sub {
+          font-size: 0.70rem;
+          color: #64748b;
+          margin-top: 1px;
+          line-height: 1.15;
+        }
+
+        .history-col-invoice {
+          display: flex;
+          flex-direction: column;
+          flex: 1.5;
+          min-width: 140px;
+          order: 2 !important;
+        }
+
+        .history-invoice-num {
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #0C1F41;
+          letter-spacing: -0.2px;
           white-space: nowrap;
         }
 
-        @media (min-width: 769px) {
-          .history-page .history-row {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            padding: 0.55rem 1.15rem !important;
-            margin-bottom: 0.4rem !important;
-            border-radius: 10px !important;
-            background: #ffffff !important;
-            border: 1px solid #F7CDAB !important;
-            gap: 1.25rem !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
-            transition: all 0.15s ease !important;
+        .history-sub-meta-row {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          flex-wrap: wrap;
+          margin-top: 1px;
+        }
+
+        .history-sub-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 0.72rem;
+          color: #64748b;
+        }
+
+        .history-col-payment {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          min-width: 75px;
+          flex-shrink: 0;
+          order: 3 !important;
+        }
+
+        .history-status-badge-paid {
+          display: inline-flex;
+          align-items: center;
+          gap: 3.5px;
+          padding: 0.15rem 0.55rem;
+          background: #dcfce7 !important;
+          border: 1px solid #bbf7d0 !important;
+          border-radius: 6px !important;
+          font-size: 0.75rem !important;
+          font-weight: 700 !important;
+          color: #15803d !important;
+          white-space: nowrap !important;
+          line-height: 1.25;
+        }
+
+        .history-status-badge-pending {
+          display: inline-flex;
+          align-items: center;
+          gap: 3.5px;
+          padding: 0.15rem 0.55rem;
+          background: #fef3c7 !important;
+          border: 1px solid #fde68a !important;
+          border-radius: 6px !important;
+          font-size: 0.75rem !important;
+          font-weight: 700 !important;
+          color: #b45309 !important;
+          white-space: nowrap !important;
+          line-height: 1.25;
+        }
+
+        .history-payment-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.15rem 0.55rem;
+          background: #f1f5f9 !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 6px !important;
+          font-size: 0.78rem !important;
+          font-weight: 600 !important;
+          color: #475569 !important;
+          text-transform: capitalize;
+        }
+
+        .history-payment-badge.mode-card,
+        .history-payment-badge.mode-cash,
+        .history-payment-badge.mode-upi {
+          background: #f1f5f9 !important;
+          border-color: #e2e8f0 !important;
+          color: #475569 !important;
+        }
+
+        .history-col-items {
+          min-width: 75px;
+          font-size: 0.82rem;
+          color: #64748b;
+          font-weight: 500;
+          flex-shrink: 0;
+          order: 4 !important;
+        }
+
+        .history-col-total {
+          min-width: 100px;
+          text-align: right;
+          flex-shrink: 0;
+          order: 5 !important;
+          padding-right: 0.75rem;
+        }
+
+        .history-col-total strong {
+          font-size: 0.98rem;
+          font-weight: 800;
+          color: #0C1F41;
+        }
+
+        .history-col-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+          flex-shrink: 0;
+          order: 6 !important;
+          margin-left: 0.75rem;
+        }
+
+        .history-action-btn {
+          width: 34px !important;
+          height: 34px !important;
+          min-width: 34px !important;
+          min-height: 34px !important;
+          border-radius: 8px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          cursor: pointer !important;
+          transition: all 0.15s ease !important;
+          box-sizing: border-box !important;
+        }
+
+        /* 2-Part Tab Switcher */
+        .history-tab-switcher-wrapper {
+          display: flex;
+          align-items: center;
+          margin-bottom: 1.25rem;
+          width: 100%;
+        }
+
+        .history-tab-switcher {
+          display: inline-flex;
+          align-items: center;
+          background: #f1f5f9;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 4px;
+          gap: 4px;
+          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+
+        .history-tab-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 18px;
+          border-radius: 10px;
+          font-size: 0.88rem;
+          font-weight: 600;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          user-select: none;
+        }
+
+        .history-tab-btn:hover:not(.active) {
+          background: #e2e8f0;
+          color: #0f172a;
+        }
+
+        .history-tab-btn.active {
+          background: #0284c7;
+          color: #ffffff;
+          box-shadow: 0 3px 10px rgba(2, 132, 199, 0.28);
+        }
+
+        .history-tab-btn.active svg {
+          color: #ffffff;
+        }
+
+        .history-tab-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.72rem;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: 999px;
+          line-height: 1;
+        }
+
+        .history-tab-btn.active .history-tab-badge {
+          background: rgba(255, 255, 255, 0.25);
+          color: #ffffff;
+        }
+
+        .history-tab-btn:not(.active) .history-tab-badge {
+          background: #e2e8f0;
+          color: #475569;
+        }
+
+        .history-edit-bill-btn {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+          color: #ffffff !important;
+          border: 1px solid #0284c7 !important;
+          padding: 6px 14px !important;
+          border-radius: 9px !important;
+          font-size: 0.82rem !important;
+          font-weight: 700 !important;
+          cursor: pointer !important;
+          box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
+          transition: all 0.18s ease !important;
+          white-space: nowrap !important;
+          height: 34px !important;
+          box-sizing: border-box !important;
+        }
+
+        .history-edit-bill-btn:hover {
+          background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+          transform: translateY(-1px) !important;
+          box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
+        }
+
+        .history-edit-bill-btn:active {
+          transform: scale(0.97) !important;
+        }
+
+        .history-edit-bill-btn svg {
+          color: #ffffff !important;
+        }
+
+        .history-action-btn.print {
+          background: #f0f9ff !important;
+          border: 1px solid #bae6fd !important;
+          color: #0284c7 !important;
+        }
+
+        .history-action-btn.print:hover:not(:disabled) {
+          background: #0284c7 !important;
+          color: #ffffff !important;
+          border-color: #0284c7 !important;
+        }
+
+        .history-action-btn.delete {
+          background: #fef2f2 !important;
+          border: 1px solid #fca5a5 !important;
+          color: #ef4444 !important;
+        }
+
+        .history-action-btn.delete:hover:not(:disabled) {
+          background: #ef4444 !important;
+          color: #ffffff !important;
+          border-color: #ef4444 !important;
+        }
+
+        /* --------------------------------------------------------
+           MOBILE RESPONSIVE BILL CARDS (<= 768px down to 320px)
+           -------------------------------------------------------- */
+        @media (max-width: 768px) {
+          .history-list {
+            gap: 0.65rem !important;
           }
 
-          .history-page .history-row:hover {
-            border-color: #D9DDE4 !important;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
-          }
-
-          .history-page .history-main-content {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            flex: 1 !important;
-            gap: 1.25rem !important;
-            min-width: 0 !important;
-          }
-
-          .history-page .history-date {
-            min-width: 110px !important;
+          .history-row-card {
             display: flex !important;
             flex-direction: column !important;
-            gap: 0.08rem !important;
-            flex-shrink: 0 !important;
+            gap: 0.5rem !important;
+            padding: 0.85rem 0.95rem !important;
+            border-radius: 14px !important;
+            min-height: unset !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
           }
 
-          .history-page .history-date b {
-            font-size: 0.82rem !important;
-            color: #0C1F41 !important;
-            line-height: 1.2 !important;
-          }
-
-          .history-page .history-date small {
-            font-size: 0.72rem !important;
-            color: #74788A !important;
-            line-height: 1.2 !important;
-          }
-
-          .history-page .history-details-col {
-            flex: 1 !important;
+          .history-card-top-group {
             display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 1.25rem !important;
-            min-width: 0 !important;
-            flex-wrap: wrap !important;
+            align-items: flex-start !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            gap: 0.5rem !important;
           }
 
-          .history-page .history-bill-number b {
+          .history-main-info-group {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 2px !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+
+          .history-col-invoice {
+            order: 1 !important;
+            min-width: 0 !important;
+            width: 100% !important;
+          }
+
+          .history-invoice-num {
             font-size: 0.88rem !important;
             font-weight: 700 !important;
-            color: #0C1F41 !important;
+            color: #0284c7 !important;
             white-space: nowrap !important;
+            display: block !important;
+            letter-spacing: -0.2px !important;
           }
 
-          .history-page .history-meta-badges-row {
+          .history-col-date {
+            order: 2 !important;
             display: flex !important;
             flex-direction: row !important;
             align-items: center !important;
-            gap: 0.4rem !important;
-            flex-wrap: wrap !important;
+            gap: 6px !important;
+            margin-top: 1px !important;
+            min-width: unset !important;
           }
 
-          .history-page .history-items-count {
-            font-size: 0.78rem !important;
-            color: #74788A !important;
+          .history-date-main {
+            font-size: 0.74rem !important;
+            font-weight: 600 !important;
+            color: #475569 !important;
             white-space: nowrap !important;
           }
 
-          .history-page .history-amount-col {
-            min-width: 90px !important;
-            text-align: right !important;
-            flex-shrink: 0 !important;
+          .history-time-sub {
+            font-size: 0.70rem !important;
+            color: #94a3b8 !important;
+            white-space: nowrap !important;
+            margin-top: 0 !important;
           }
 
-          .history-page .history-amount-col strong {
+          .mobile-only-total {
+            display: block !important;
+            text-align: right !important;
+            margin-left: auto !important;
+            flex-shrink: 0 !important;
+            min-width: unset !important;
+            white-space: nowrap !important;
+          }
+
+          .mobile-only-total strong {
             font-size: 1.05rem !important;
             font-weight: 800 !important;
             color: #0C1F41 !important;
+            white-space: nowrap !important;
           }
 
-          .history-page .history-actions-col {
+          .history-card-bottom-group {
             display: flex !important;
-            flex-direction: row !important;
             align-items: center !important;
-            gap: 0.45rem !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            gap: 0.5rem !important;
+            padding-top: 0.45rem !important;
+            border-top: 1px dashed #f1f5f9 !important;
+          }
+
+          .desktop-only-total {
+            display: none !important;
+          }
+
+          .history-col-payment {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            min-width: unset !important;
             flex-shrink: 0 !important;
+          }
+
+          .history-payment-badge {
+            font-size: 0.72rem !important;
+            padding: 0.12rem 0.45rem !important;
+            font-weight: 600 !important;
+            white-space: nowrap !important;
+          }
+
+          .history-status-badge-paid,
+          .history-status-badge-pending {
+            font-size: 0.70rem !important;
+            padding: 0.12rem 0.45rem !important;
+            border-radius: 5px !important;
+          }
+
+          .history-col-items {
+            min-width: unset !important;
+            flex-shrink: 0 !important;
+            font-size: 0.76rem !important;
+            color: #64748b !important;
+            white-space: nowrap !important;
+          }
+
+          .history-col-actions {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.6rem !important;
+            margin-left: auto !important;
+            flex-shrink: 0 !important;
+          }
+
+          .history-tab-switcher-wrapper {
+            margin-bottom: 0.85rem !important;
+          }
+
+          .history-tab-switcher {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            box-sizing: border-box !important;
+          }
+
+          .history-tab-btn {
+            justify-content: center !important;
+            padding: 8px 10px !important;
+            font-size: 0.82rem !important;
+            gap: 6px !important;
+          }
+
+          .history-edit-bill-btn {
+            height: 32px !important;
+            padding: 5px 10px !important;
+            font-size: 0.78rem !important;
+            border-radius: 8px !important;
+            gap: 4px !important;
+          }
+
+          .history-action-btn {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            border-radius: 8px !important;
           }
         }
       `}</style>

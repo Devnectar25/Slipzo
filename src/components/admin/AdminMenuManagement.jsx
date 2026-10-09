@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import {
   Utensils,
   Plus,
@@ -14,6 +14,8 @@ import {
   ChevronRight,
   Eye,
   Filter,
+  Upload,
+  AlertCircle,
   Barcode as BarcodeIcon
 } from "lucide-react"
 import { call, money } from "../../lib/utils"
@@ -61,6 +63,9 @@ export function AdminMenuManagement({ getAdminHeaders }) {
   const [formCategory, setFormCategory] = useState("Beverages")
   const [formPrice, setFormPrice] = useState("")
   const [formImageUrl, setFormImageUrl] = useState("")
+  const [uploadedImageDataUrl, setUploadedImageDataUrl] = useState("")
+  const [uploadError, setUploadError] = useState("")
+  const itemFileInputRef = useRef(null)
   const [formDescription, setFormDescription] = useState("")
   const [formIsAvailable, setFormIsAvailable] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -68,6 +73,58 @@ export function AdminMenuManagement({ getAdminHeaders }) {
 
   // Barcode Modal state
   const [barcodeModalItem, setBarcodeModalItem] = useState(null)
+
+  const handleItemFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadError("")
+
+    // Size validation (Max 2 MB = 2 * 1024 * 1024 bytes)
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadError("Image size must be 2 MB or less.")
+      if (itemFileInputRef.current) itemFileInputRef.current.value = ""
+      return
+    }
+
+    // Type validation (PNG, JPG, JPEG, WEBP)
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
+    const fileNameLower = file.name.toLowerCase()
+    const isValidExtension = /\.(png|jpe?g|webp)$/i.test(fileNameLower)
+
+    if (!allowedTypes.includes(file.type) || !isValidExtension) {
+      setUploadError("Please upload a PNG, JPG, JPEG, or WEBP image.")
+      if (itemFileInputRef.current) itemFileInputRef.current.value = ""
+      return
+    }
+
+    // Read file and validate image loading via Image() object
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target.result
+      const img = new Image()
+      img.onload = () => {
+        setUploadedImageDataUrl(dataUrl)
+        setUploadError("")
+      }
+      img.onerror = () => {
+        setUploadError("Unable to use this image. Please select a valid image.")
+        if (itemFileInputRef.current) itemFileInputRef.current.value = ""
+      }
+      img.src = dataUrl
+    }
+    reader.onerror = () => {
+      setUploadError("Unable to use this image. Please select a valid image.")
+      if (itemFileInputRef.current) itemFileInputRef.current.value = ""
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveUploadedImage = () => {
+    setUploadedImageDataUrl("")
+    setUploadError("")
+    if (itemFileInputRef.current) itemFileInputRef.current.value = ""
+  }
 
   const loadMasterMenu = async () => {
     setLoading(true)
@@ -138,6 +195,9 @@ export function AdminMenuManagement({ getAdminHeaders }) {
     setFormCategory("Beverages")
     setFormPrice("")
     setFormImageUrl("")
+    setUploadedImageDataUrl("")
+    setUploadError("")
+    if (itemFileInputRef.current) itemFileInputRef.current.value = ""
     setFormDescription("")
     setFormIsAvailable(true)
     setFormError("")
@@ -151,6 +211,9 @@ export function AdminMenuManagement({ getAdminHeaders }) {
     setFormCategory(item.category || "General")
     setFormPrice(item.price !== undefined ? String(item.price) : "")
     setFormImageUrl(item.image_url || "")
+    setUploadedImageDataUrl("")
+    setUploadError("")
+    if (itemFileInputRef.current) itemFileInputRef.current.value = ""
     setFormDescription(item.description || "")
     setFormIsAvailable(item.is_available !== undefined ? Boolean(item.is_available) : true)
     setFormError("")
@@ -160,6 +223,9 @@ export function AdminMenuManagement({ getAdminHeaders }) {
   const handleCloseModal = () => {
     setShowModal(false)
     setEditingItem(null)
+    setUploadedImageDataUrl("")
+    setUploadError("")
+    if (itemFileInputRef.current) itemFileInputRef.current.value = ""
   }
 
   // Save (Create or Update)
@@ -180,6 +246,14 @@ export function AdminMenuManagement({ getAdminHeaders }) {
       return
     }
 
+    const isDuplicate = menuItems.some(
+      (it) => it.id !== editingItem?.id && (it.name || "").trim().toLowerCase() === cleanName.toLowerCase()
+    )
+    if (isDuplicate) {
+      setFormError(`A product with name "${cleanName}" already exists.`)
+      return
+    }
+
     setSubmitting(true)
     const headers = getAdminHeaders ? getAdminHeaders() : {}
 
@@ -187,7 +261,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
       name: cleanName,
       category: formCategory.trim() || "General",
       price: numPrice,
-      image_url: formImageUrl.trim(),
+      image_url: (uploadedImageDataUrl || formImageUrl || "").trim(),
       description: formDescription.trim(),
       is_available: formIsAvailable
     }
@@ -208,7 +282,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           title: "Updated!",
           text: `Master item "${cleanName}" updated successfully.`,
           icon: "success",
-          confirmButtonColor: "#F66016"
+          confirmButtonColor: "#0284c7"
         })
       } else {
         // Create
@@ -224,7 +298,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           title: "Created!",
           text: `Master item "${cleanName}" added to catalog.`,
           icon: "success",
-          confirmButtonColor: "#F66016"
+          confirmButtonColor: "#0284c7"
         })
       }
 
@@ -291,7 +365,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           title: "Deactivated",
           text: res.detail || "Item was deactivated to protect existing user menu assignments.",
           icon: "info",
-          confirmButtonColor: "#F66016"
+          confirmButtonColor: "#0284c7"
         })
       } else {
         setMenuItems((prev) => prev.filter((it) => it.id !== item.id))
@@ -299,7 +373,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
           title: "Deleted!",
           text: `"${item.name}" has been removed from the master catalog.`,
           icon: "success",
-          confirmButtonColor: "#F66016"
+          confirmButtonColor: "#0284c7"
         })
       }
     } catch (err) {
@@ -346,7 +420,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
               display: "inline-flex",
               alignItems: "center",
               gap: "0.45rem",
-              background: "#F66016",
+              background: "#0284c7",
               color: "#ffffff",
               padding: "0.55rem 1rem",
               borderRadius: "8px",
@@ -401,11 +475,11 @@ export function AdminMenuManagement({ getAdminHeaders }) {
       </div>
 
       {/* Table Data */}
-      <div className="admin-table-wrapper" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #F7CDAB", overflow: "hidden" }}>
+      <div className="admin-table-wrapper" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #bae6fd", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
           <table className="admin-table" style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
             <thead>
-              <tr style={{ background: "#FFF2DE", borderBottom: "1px solid #F7CDAB" }}>
+              <tr style={{ background: "#f0f9ff", borderBottom: "1px solid #bae6fd" }}>
                 <th style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "#575B6B" }}>
                   Item
                 </th>
@@ -440,7 +514,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                 paginatedItems.map((item) => {
                   const isActive = item.is_available !== undefined ? Boolean(item.is_available) : true
                   return (
-                    <tr key={item.id} style={{ borderBottom: "1px solid #FDF4EB" }}>
+                    <tr key={item.id} style={{ borderBottom: "1px solid #f0f9ff" }}>
                       {/* Image & Name */}
                       <td style={{ padding: "0.75rem 1rem" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -453,7 +527,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                                 height: "42px",
                                 borderRadius: "8px",
                                 objectFit: "cover",
-                                border: "1px solid #F7CDAB",
+                                border: "1px solid #bae6fd",
                                 flexShrink: 0
                               }}
                               onError={(e) => {
@@ -466,8 +540,8 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                                 width: "42px",
                                 height: "42px",
                                 borderRadius: "8px",
-                                background: "#FFF0E5",
-                                color: "#F66016",
+                                background: "#f0f9ff",
+                                color: "#0284c7",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -494,8 +568,8 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                       <td style={{ padding: "0.75rem 1rem" }}>
                         <span
                           style={{
-                            background: "#FDF4EB",
-                            color: "#575B6B",
+                            background: "#f0f9ff",
+                            color: "#0284c7",
                             padding: "0.2rem 0.6rem",
                             borderRadius: "4px",
                             fontSize: "0.75rem",
@@ -526,7 +600,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                             fontWeight: "700",
                             border: "none",
                             cursor: "pointer",
-                            background: isActive ? "#dcfce7" : "#FDF4EB",
+                            background: isActive ? "#dcfce7" : "#f8fafc",
                             color: isActive ? "#15803d" : "#74788A",
                             transition: "all 0.15s ease"
                           }}
@@ -572,9 +646,9 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                               alignItems: "center",
                               justifyContent: "center",
                               borderRadius: "6px",
-                              border: "1px solid #F7CDAB",
-                              background: "#ffffff",
-                              color: "#F66016",
+                              border: "1px solid #bae6fd",
+                              background: "#f0f9ff",
+                              color: "#0284c7",
                               cursor: "pointer"
                             }}
                           >
@@ -617,8 +691,8 @@ export function AdminMenuManagement({ getAdminHeaders }) {
             justifyContent: "space-between",
             alignItems: "center",
             padding: "0.75rem 1rem",
-            background: "#FFF2DE",
-            borderTop: "1px solid #F7CDAB",
+            background: "#f0f9ff",
+            borderTop: "1px solid #bae6fd",
             flexWrap: "wrap",
             gap: "0.75rem"
           }}
@@ -699,7 +773,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
               width: "100%",
               maxWidth: "480px",
               boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
-              border: "1px solid #F7CDAB",
+              border: "1px solid #bae6fd",
               overflow: "hidden"
             }}
             onClick={(e) => e.stopPropagation()}
@@ -710,7 +784,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "1rem 1.25rem",
-                borderBottom: "1px solid #FDF4EB"
+                borderBottom: "1px solid #f0f9ff"
               }}
             >
               <h4 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "800", color: "#0C1F41" }}>
@@ -798,6 +872,132 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                   </div>
                 </div>
 
+                {/* Item Image Upload (Optional) */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                    <label style={{ fontSize: "0.82rem", fontWeight: "700", color: "#334155", margin: 0 }}>
+                      Item Image
+                    </label>
+                    <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 600, background: "#f1f5f9", padding: "0.15rem 0.45rem", borderRadius: "4px" }}>
+                      Optional
+                    </span>
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={itemFileInputRef}
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={handleItemFileChange}
+                    style={{ display: "none" }}
+                  />
+
+                  {uploadedImageDataUrl ? (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      padding: "0.6rem 0.75rem",
+                      borderRadius: "10px",
+                      border: "1.5px solid #0284c7",
+                      background: "#f0f9ff"
+                    }}>
+                      <div style={{
+                        width: "54px",
+                        height: "54px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "#ffffff",
+                        flexShrink: 0
+                      }}>
+                        <img
+                          src={uploadedImageDataUrl}
+                          alt="Product Preview"
+                          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                        />
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#0369a1" }}>Image Uploaded</div>
+                        <div style={{ fontSize: "0.68rem", color: "#64748b" }}>PNG, JPG, JPEG or WEBP • Max 2 MB</div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "0.35rem" }}>
+                        <button
+                          type="button"
+                          onClick={() => itemFileInputRef.current?.click()}
+                          style={{
+                            padding: "0.35rem 0.65rem",
+                            fontSize: "0.78rem",
+                            fontWeight: 600,
+                            borderRadius: "6px",
+                            border: "1px solid #0284c7",
+                            color: "#0284c7",
+                            background: "#ffffff",
+                            cursor: "pointer"
+                          }}
+                        >
+                          Change Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveUploadedImage}
+                          style={{
+                            padding: "0.35rem 0.65rem",
+                            fontSize: "0.78rem",
+                            fontWeight: 600,
+                            borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            color: "#ef4444",
+                            background: "#ffffff",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.2rem"
+                          }}
+                        >
+                          <X size={12} /> Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div
+                        onClick={() => itemFileInputRef.current?.click()}
+                        style={{
+                          border: "1.5px dashed #cbd5e1",
+                          borderRadius: "10px",
+                          padding: "0.85rem 1rem",
+                          textAlign: "center",
+                          background: "#fafafa",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: "0.3rem"
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#0284c7", fontWeight: 700, fontSize: "0.85rem" }}>
+                          <Upload size={16} /> Choose Image
+                        </div>
+                        <div style={{ fontSize: "0.7rem", color: "#64748b" }}>
+                          PNG, JPG, JPEG or WEBP • Max 2 MB
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadError && (
+                    <span style={{ fontSize: "0.78rem", color: "#ef4444", marginTop: "0.3rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                      <AlertCircle size={12} /> {uploadError}
+                    </span>
+                  )}
+                </div>
+
                 {/* Image URL with preview */}
                 <div>
                   <label style={{ display: "block", fontSize: "0.82rem", fontWeight: "700", color: "#0C1F41", marginBottom: "0.35rem" }}>
@@ -818,14 +1018,17 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                         boxSizing: "border-box"
                       }}
                     />
-                    {formImageUrl && (
+                    {!uploadedImageDataUrl && formImageUrl && (
                       <img
                         src={formImageUrl}
                         alt="Preview"
-                        style={{ width: "36px", height: "36px", borderRadius: "6px", objectFit: "cover", border: "1px solid #F7CDAB" }}
+                        style={{ width: "36px", height: "36px", borderRadius: "6px", objectFit: "cover", border: "1px solid #bae6fd" }}
                         onError={(e) => { e.target.style.display = "none"; }}
                       />
                     )}
+                  </div>
+                  <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "0.25rem" }}>
+                    Uploaded image will be used if both options are provided.
                   </div>
                 </div>
 
@@ -858,7 +1061,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                     id="admin-item-active"
                     checked={formIsAvailable}
                     onChange={(e) => setFormIsAvailable(e.target.checked)}
-                    style={{ width: "16px", height: "16px", accentColor: "#F66016" }}
+                    style={{ width: "16px", height: "16px", accentColor: "#0284c7" }}
                   />
                   <label htmlFor="admin-item-active" style={{ fontSize: "0.85rem", fontWeight: "600", color: "#0C1F41", cursor: "pointer" }}>
                     Available in User Catalog (Active)
@@ -878,8 +1081,8 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                   justifyContent: "flex-end",
                   gap: "0.65rem",
                   padding: "0.85rem 1.25rem",
-                  borderTop: "1px solid #FDF4EB",
-                  background: "#FFF2DE"
+                  borderTop: "1px solid #f0f9ff",
+                  background: "#f8fafc"
                 }}
               >
                 <button
@@ -898,7 +1101,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                     padding: "0.5rem 1.15rem",
                     borderRadius: "8px",
                     border: "none",
-                    background: "#F66016",
+                    background: "#0284c7",
                     color: "#ffffff",
                     fontWeight: "600",
                     cursor: "pointer"

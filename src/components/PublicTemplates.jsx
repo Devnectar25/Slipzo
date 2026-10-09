@@ -60,8 +60,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       badge: "Most Popular",
       paperSize: "58mm Thermal",
       description: "Streamlined layout engineered to reduce paper roll consumption while maintaining crystal clear readability.",
-      gradient: "linear-gradient(135deg, #FB821B 0%, #F66016 100%)",
-      accentColor: "#FB821B",
+      gradient: "#0284c7",
+      accentColor: "#0284c7",
       features: ["Compact receipt layout", "Large legible totals", "Zero-waste spacing", "Thermal optimized"],
       previewData: {
         shopName: "MINIMAL CAFE & BAKERY",
@@ -89,10 +89,10 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Standard",
       badge: "Standard",
       paperSize: "58mm Thermal",
-      description: "Clean and professional receipt template with itemized table, GST breakdown, and clear totals.",
-      gradient: "linear-gradient(135deg, #FC9B3E 0%, #F66016 100%)",
-      accentColor: "#F66016",
-      features: ["Shop header & GSTIN", "Itemized table (Qty, Rate, Total)", "Tax / GST calculation", "Payment mode & barcode"],
+      description: "Clean and professional receipt template with itemized table, discounts, and clear totals.",
+      gradient: "#0284c7",
+      accentColor: "#0284c7",
+      features: ["Shop header & contact", "Itemized table (Qty, Rate, Total)", "Payment mode & barcode", "Custom footer note"],
       previewData: {
         shopName: "CLASSIC MART & GROCERY",
         address: "Shop 14, Main Market, Connaught Place, New Delhi",
@@ -120,8 +120,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       badge: "Retail Choice",
       paperSize: "80mm POS",
       description: "Professional high-volume retail POS receipt with clean column headers, item discounts, and net totals.",
-      gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
-      accentColor: "#2563eb",
+      gradient: "#0284c7",
+      accentColor: "#0284c7",
       features: ["Retail store header", "Itemized table with quantity", "Net total calculation", "Editable footer note"],
       previewData: {
         shopName: "URBAN FASHION PRO",
@@ -149,10 +149,10 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Thermal",
       badge: "Paper Saver",
       paperSize: "58mm Ultra Compact",
-      description: "Ultra-compact monospace thermal bill layout engineered specifically to maximize speed and minimize roll paper consumption.",
-      gradient: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)",
-      accentColor: "#0d9488",
-      features: ["58mm compact layout", "Monospace font alignment", "High-density item lines", "Paper saving spacing"],
+      description: "Ultra compact monospace thermal bill layout engineered specifically to maximize speed and minimize roll paper consumption.",
+      gradient: "#0284c7",
+      accentColor: "#0284c7",
+      features: ["58mm compact layout", "Monospace font alignment", "High density item lines", "Paper saving spacing"],
       previewData: {
         shopName: "KRISHNA JUICE & SHAKES",
         address: "Near Metro Station Gate 2, Hyderabad",
@@ -180,8 +180,8 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       badge: "Trendy",
       paperSize: "58mm Thermal",
       description: "Contemporary aesthetic for boutiques, cafes, and modern shops with clean typography and spacing.",
-      gradient: "linear-gradient(135deg, #FB821B 0%, #FA4406 100%)",
-      accentColor: "#FB821B",
+      gradient: "#0284c7",
+      accentColor: "#0284c7",
       features: ["Modern typography", "Clean item list with rates", "Clear amount due card", "Custom footer note"],
       previewData: {
         shopName: "LUMINA BEAUTY & SPA",
@@ -209,10 +209,10 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Business",
       badge: "Premium",
       paperSize: "80mm Standard / A4",
-      description: "Formal tax invoice template designed for businesses requiring full GST details, itemized totals, and formal terms.",
-      gradient: "linear-gradient(135deg, #FC9B3E 0%, #FA4406 100%)",
-      accentColor: "#F66016",
-      features: ["Formal Tax Invoice header", "GSTIN & seller details", "Itemized table with rates", "Tax breakdown & totals"],
+      description: "Formal retail invoice template designed for businesses requiring clean itemized totals and formal terms.",
+      gradient: "#0284c7",
+      accentColor: "#0284c7",
+      features: ["Formal Invoice header", "Seller contact details", "Itemized table with rates", "Clear amount due & totals"],
       previewData: {
         shopName: "TECHNO COMPUTERS & PERIPHERALS",
         address: "Plot 88, Electronic City Phase 1, Bengaluru",
@@ -319,11 +319,11 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
                 <MiniReceiptPreview template={template} />
               </div>
 
-              {/* Features List */}
-              <div className="template-features-list">
+              {/* Features Box */}
+              <div className="template-features-box">
                 {template.features.map((feat, idx) => (
                   <div className="template-feat-item" key={idx}>
-                    <Check size={16} style={{ color: template.accentColor, flexShrink: 0 }} />
+                    <Check size={16} style={{ color: template.accentColor || "#0ea5e9", flexShrink: 0 }} />
                     <span>{feat}</span>
                   </div>
                 ))}
@@ -335,14 +335,14 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
                   className="template-preview-btn"
                   onClick={() => setPreviewTemplate(template)}
                 >
-                  <Eye size={16} /> Preview
+                  <Eye size={14} /> Preview
                 </button>
                 <button
                   className="template-use-btn"
                   style={{ background: template.gradient }}
                   onClick={() => handleUseTemplate(template)}
                 >
-                  Use Template <ArrowRight size={16} />
+                  Use Template <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -361,7 +361,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
 
           <div className="specs-grid">
             <div className="spec-card">
-              <div className="spec-icon" style={{ background: "#FFE6D2", color: "#FB821B" }}>
+              <div className="spec-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                 <Printer size={28} />
               </div>
               <h3>Universal Thermal Compatibility</h3>
@@ -369,7 +369,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
             </div>
 
             <div className="spec-card">
-              <div className="spec-icon" style={{ background: "#dcfce7", color: "#10b981" }}>
+              <div className="spec-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                 <QrCode size={28} />
               </div>
               <h3>Dynamic Payment QR Codes</h3>
@@ -377,7 +377,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
             </div>
 
             <div className="spec-card">
-              <div className="spec-icon" style={{ background: "#FFE6D2", color: "#FB821B" }}>
+              <div className="spec-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                 <Sparkles size={28} />
               </div>
               <h3>Instant Brand Customization</h3>
@@ -385,7 +385,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
             </div>
 
             <div className="spec-card">
-              <div className="spec-icon" style={{ background: "#FFF0C7", color: "#f59e0b" }}>
+              <div className="spec-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                 <Zap size={28} />
               </div>
               <h3>Sub-Second Printing</h3>

@@ -67,7 +67,11 @@ export function RealisticReceiptView({ template }) {
         <div className="receipt-content" style={{ padding: "0.75rem 0.65rem" }}>
           {/* Shop Header */}
           <div className="receipt-shop" style={{ textAlign: "center", borderBottom: "1.5px solid #0f172a", paddingBottom: "0.6rem" }}>
-            <div className="minimal-dot-logo">{(data.shopName || "S").trim().charAt(0).toUpperCase()}</div>
+            {data.logo_url || data.logo ? (
+              <img src={data.logo_url || data.logo} alt="Shop Logo" style={{ maxHeight: "45px", maxWidth: "120px", objectFit: "contain", margin: "0 auto 0.25rem", display: "block" }} />
+            ) : (
+              <div className="minimal-dot-logo">{(data.shopName || "S").trim().charAt(0).toUpperCase()}</div>
+            )}
             <h2 className="receipt-shop-name" style={{ fontSize: "1.25rem", fontWeight: 900, letterSpacing: "-0.3px", margin: "0.2rem 0 0", color: "#0f172a", lineHeight: 1.2 }}>
               {data.shopName}
             </h2>
@@ -149,9 +153,13 @@ export function RealisticReceiptView({ template }) {
         <div className="receipt-content" style={{ padding: "0.75rem 0.65rem" }}>
           {/* Shop Header */}
           <div className="receipt-shop" style={{ textAlign: "center", borderBottom: "2px solid #0f172a", paddingBottom: "0.6rem" }}>
-            <div className="classic-crest">
-              {(data.shopName || "S").trim().charAt(0).toUpperCase()}
-            </div>
+            {data.logo_url || data.logo ? (
+              <img src={data.logo_url || data.logo} alt="Shop Logo" style={{ maxHeight: "45px", maxWidth: "120px", objectFit: "contain", margin: "0 auto 0.25rem", display: "block" }} />
+            ) : (
+              <div className="classic-crest">
+                {(data.shopName || "S").trim().charAt(0).toUpperCase()}
+              </div>
+            )}
             <h2 className="receipt-shop-name" style={{ fontSize: "1.25rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0.2rem 0 0.1rem", color: "#0f172a", lineHeight: 1.2 }}>
               {data.shopName}
             </h2>
@@ -166,7 +174,7 @@ export function RealisticReceiptView({ template }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("TABLE:", "टेबल:", "टेबल:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tableNumber}</b></div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("DATE:", "दिनांक:", "दिनांक:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(data.date)}</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("PAYMENT:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)}</b></div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("PAYMENT:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)} {!String(data.payment || "").toLowerCase().includes("credit") ? "(PAID)" : ""}</b></div>
             {items.length > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("ITEMS:", "वस्तू:", "आइटम:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(items.length)} ({formatNum(totalUnits)} {lbl("pcs", "नग", "पीस")})</b></div>
             )}
@@ -263,7 +271,7 @@ export function RealisticReceiptView({ template }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("TABLE:", "टेबल:", "टेबल:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tableNumber}</b></div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("DATE:", "दिनांक:", "दिनांक:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(data.date)}</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("PAY:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)}</b></div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("PAY:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)} {!String(data.payment || "").toLowerCase().includes("credit") ? "(PAID)" : ""}</b></div>
           </div>
 
           {/* Customer Line */}
@@ -539,7 +547,7 @@ export function RealisticReceiptView({ template }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Table:", "टेबल:", "टेबल:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tableNumber}</b></div>
             )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Date:", "दिनांक:", "दिनांक:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(data.date)}</b></div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Payment:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)}</b></div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Payment:", "पेमेंट:", "भुगतान:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{tDb(data.payment)} {!String(data.payment || "").toLowerCase().includes("credit") ? "(PAID)" : ""}</b></div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ color: "#475569", fontWeight: 600 }}>{lbl("Total Items:", "एकूण वस्तू:", "कुल आइटम:")}</span> <b style={{ whiteSpace: "nowrap", fontWeight: 700 }}>{formatNum(items.length)}</b></div>
           </div>
 

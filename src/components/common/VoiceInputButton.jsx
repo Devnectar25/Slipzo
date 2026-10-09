@@ -128,7 +128,7 @@ export function VoiceInputButton({
             </>
           ) : (
             <>
-              <Mic size={currentSize.iconSize} style={{ color: "#F66016" }} />
+              <Mic size={currentSize.iconSize} style={{ color: "#0284c7" }} />
               {label ? <span>{label}</span> : <span>Voice Input</span>}
             </>
           )}
@@ -228,7 +228,7 @@ export function VoiceInputButton({
           borderRadius: "8px",
           border: isListening ? "1.5px solid #ef4444" : "1.5px solid transparent",
           background: isListening ? "#FFE1E5" : "transparent",
-          color: isListening ? "#dc2626" : "#F66016",
+          color: isListening ? "#dc2626" : "#0284c7",
           cursor: "pointer",
           outline: "none",
           transition: "all 0.2s ease",
@@ -239,7 +239,7 @@ export function VoiceInputButton({
         {isListening ? (
           <Volume2 size={currentSize.iconSize} className="speech-icon-anim" style={{ color: "#ef4444" }} />
         ) : (
-          <Mic size={currentSize.iconSize} style={{ color: "#F66016" }} />
+          <Mic size={currentSize.iconSize} style={{ color: "#0284c7" }} />
         )}
       </button>
 
@@ -262,10 +262,10 @@ export function VoiceInputButton({
 
       <style>{`
         .voice-mic-icon-btn:hover {
-          background: rgba(246, 96, 22, 0.08) !important;
+          background: rgba(2, 132, 199, 0.08) !important;
         }
         .voice-mic-icon-btn:focus-visible {
-          outline: 2px solid #F66016;
+          outline: 2px solid #0284c7;
           outline-offset: 1px;
         }
         .speech-icon-anim {

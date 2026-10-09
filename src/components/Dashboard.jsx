@@ -13,7 +13,8 @@ import {
   Plus,
   ArrowRight,
   X,
-  Utensils
+  Utensils,
+  Pencil
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
@@ -41,6 +42,17 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     return list.filter((b) => b && b.created_at && new Date(b.created_at).getTime() >= cutoff)
   }
 
+  const filterSavedBills = (list) => {
+    if (!Array.isArray(list)) return []
+    return list.filter((b) => {
+      if (!b) return false
+      // Strictly include ONLY saved bills, never print bills
+      const isExplicitPrint = b.is_saved === 0 || b.is_saved === false || b.is_saved === "0" || b.is_saved === "false"
+      if (isExplicitPrint) return false
+      return b.is_saved === true || b.is_saved === 1 || b.is_saved === "1" || b.is_saved === "true"
+    })
+  }
+
   const sortNewestFirst = (list) => {
     if (!Array.isArray(list)) return []
     return [...list].sort(
@@ -48,14 +60,14 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     )
   }
 
-  const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10")
+  const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=true")
 
   const [bills, setBills] = useState(() => {
     if (cachedData?.bills && Array.isArray(cachedData.bills)) {
-      return sortNewestFirst(filter10Days(cachedData.bills))
+      return sortNewestFirst(filter10Days(filterSavedBills(cachedData.bills)))
     }
     if (Array.isArray(cachedData)) {
-      return sortNewestFirst(filter10Days(cachedData))
+      return sortNewestFirst(filter10Days(filterSavedBills(cachedData)))
     }
     return []
   })
@@ -63,19 +75,23 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   const [loading, setLoading] = useState(() => !cachedData)
   const [search, setSearch] = useState("")
 
-  const loadRecentBills = async () => {
+  const loadRecentBills = async (forceRefresh = false) => {
     try {
       if (!Array.isArray(bills) || bills.length === 0) {
         setLoading(true)
       }
-      const data = await call("/bills?page=1&limit=10&days_limit=10")
+      const fetchOpts = forceRefresh ? { noCache: true } : {}
+
+      // Strictly query ONLY saved bills from database
+      const data = await call("/bills?page=1&limit=10&days_limit=10&is_saved=true", fetchOpts)
       let rawList = []
       if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.bills)) {
         rawList = data.bills
       } else if (Array.isArray(data)) {
         rawList = data
       }
-      const filtered = sortNewestFirst(filter10Days(rawList))
+
+      const filtered = sortNewestFirst(filter10Days(filterSavedBills(rawList)))
       setBills(filtered)
     } catch (err) {
       console.error("Failed to load recent bills on Home:", err)
@@ -93,14 +109,43 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   ]
 
   useEffect(() => {
-    loadRecentBills()
+    loadRecentBills(true)
 
-    const handleBillSaved = () => {
-      loadRecentBills()
+    const handleBillSaved = (e) => {
+      const savedBill = e?.detail
+      // Strictly accept only saved bills, reject print-only bills
+      const isExplicitPrint = savedBill?.is_saved === 0 || savedBill?.is_saved === false || savedBill?.is_saved === "0" || savedBill?.is_saved === "false"
+      if (savedBill && savedBill.id && !isExplicitPrint) {
+        setBills((prev) => {
+          const list = Array.isArray(prev) ? prev : []
+          if (!list.some((b) => String(b.id) === String(savedBill.id))) {
+            return sortNewestFirst([savedBill, ...list])
+          }
+          return list
+        })
+      }
+      loadRecentBills(true)
     }
+
+    const handleBillPrinted = (e) => {
+      const printedId = e?.detail?.id || e?.detail?.billId
+      const tableNum = e?.detail?.table_number
+      setBills((prev) => {
+        if (!Array.isArray(prev)) return []
+        return prev.filter((b) => {
+          if (printedId && String(b.id) === String(printedId)) return false
+          if (tableNum && b.table_number && String(b.table_number).trim().toLowerCase() === String(tableNum).trim().toLowerCase()) return false
+          return true
+        })
+      })
+      loadRecentBills(true)
+    }
+
     window.addEventListener("slipzo_bill_saved", handleBillSaved)
+    window.addEventListener("slipzo_bill_printed", handleBillPrinted)
     return () => {
       window.removeEventListener("slipzo_bill_saved", handleBillSaved)
+      window.removeEventListener("slipzo_bill_printed", handleBillPrinted)
     }
   }, [user?.id])
 
@@ -109,6 +154,16 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     sessionStorage.setItem("slipzo-reprint-id", billId)
     sessionStorage.setItem("slipzo-print-origin", "dashboard")
     setView("reprint")
+  }
+
+  const handleEditBill = (bill) => {
+    sessionStorage.setItem("slipzo_edit_bill", JSON.stringify(bill))
+    if (bill.table_number) {
+      sessionStorage.setItem("slipzo_edit_table", bill.table_number)
+      setView("tables")
+    } else {
+      setView("bills")
+    }
   }
 
   const formatDate = (dateStr) => {
@@ -137,7 +192,13 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   }
 
   const getStatusBadge = (bill) => {
-    const rawStatus = (bill.status || (bill.payment_mode === "Credit" ? "Pending" : "Paid")).toLowerCase()
+    // Saved bills are open orders pending final print - do NOT display Paid status!
+    const isSaved = bill.is_saved === true || bill.is_saved === 1 || bill.is_saved === "1" || bill.is_saved === "true"
+    if (isSaved) {
+      return null
+    }
+
+    const rawStatus = (bill.status || (bill.payment_mode === "Credit" ? "Pending" : "")).toLowerCase()
 
     if (rawStatus.includes("pend") || rawStatus.includes("credit")) {
       return {
@@ -239,35 +300,45 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
           display: flex;
           align-items: center;
           background: #ffffff;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #d5e0eb;
           border-radius: 12px;
-          padding: 10px 14px;
+          height: 48px;
+          padding: 0 0.85rem;
           gap: 10px;
-          box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
           margin-bottom: 20px;
-          transition: border-color 0.2s, box-shadow 0.2s;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
           box-sizing: border-box;
           width: 100%;
         }
 
         .home-search-bar:focus-within {
           border-color: #0284c7;
-          box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+          box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+
+        .home-search-icon {
+          color: #8F93A5;
+          flex-shrink: 0;
         }
 
         .home-search-input {
           flex: 1;
-          border: none;
-          outline: none;
-          background: transparent;
-          font-size: 0.92rem;
-          color: #0f172a;
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
+          background: transparent !important;
+          font-size: 16px;
+          font-weight: 400;
+          color: #0C1F41;
           min-width: 0;
+          padding: 0;
         }
 
         .home-search-input::placeholder {
-          color: #94a3b8;
-          font-size: 0.88rem;
+          color: #8F93A5;
+          font-size: 16px;
+          font-weight: 400;
         }
 
         .home-search-icon {
@@ -561,6 +632,39 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
         .status-pill-overdue {
           background: #fee2e2;
           color: #b91c1c;
+        }
+
+        .home-bill-edit-pill-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+          color: #ffffff;
+          border: 1px solid #0284c7;
+          padding: 5px 12px;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.22);
+          transition: all 0.15s ease;
+          height: 32px;
+          box-sizing: border-box;
+          white-space: nowrap;
+        }
+
+        .home-bill-edit-pill-btn:hover {
+          background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 10px rgba(2, 132, 199, 0.32);
+        }
+
+        .home-bill-edit-pill-btn:active {
+          transform: scale(0.97);
+        }
+
+        .home-bill-edit-pill-btn svg {
+          color: #ffffff;
         }
 
         .home-bill-print-btn {
@@ -942,19 +1046,34 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
 
                   <div className="home-bill-right">
                     <div className="home-bill-financials">
-                      <p className="home-bill-amount">{money(bill.total)}</p>
-                      <span className={statusInfo.className}>{statusInfo.label}</span>
+                      <p className="home-bill-amount">{money(bill.total ?? bill.total_amount ?? bill.amount)}</p>
+                      {statusInfo && (
+                        <span className={statusInfo.className}>{statusInfo.label}</span>
+                      )}
                     </div>
 
-                    <button
-                      type="button"
-                      data-testid={`home-reprint-${bill.id}`}
-                      className="home-bill-print-btn"
-                      title={t("common.print", "Print")}
-                      onClick={() => handleReprint(bill.id)}
-                    >
-                      <Printer size={15} />
-                    </button>
+                    <div className="home-bill-actions" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <button
+                        type="button"
+                        data-testid={`home-edit-${bill.id}`}
+                        className="home-bill-edit-pill-btn"
+                        title={t("history.editBill", "Edit Bill")}
+                        onClick={() => handleEditBill(bill)}
+                      >
+                        <Pencil size={13} />
+                        <span>{t("common.edit", "Edit")}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        data-testid={`home-reprint-${bill.id}`}
+                        className="home-bill-print-btn"
+                        title={t("common.print", "Print")}
+                        onClick={() => handleReprint(bill.id)}
+                      >
+                        <Printer size={15} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )

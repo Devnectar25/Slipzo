@@ -126,7 +126,7 @@ export function Pricing({ setView, setShowAuth, user }) {
           html: `
             <div style="text-align: center; font-size: 0.95rem; line-height: 1.6; color: #0C1F41; padding: 0.5rem 0;">
               <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
-                <strong>Payment ID:</strong> <code style="background: #FFE6D2; color: #FA4406; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${response.razorpay_payment_id}</code>
+                <strong>Payment ID:</strong> <code style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${response.razorpay_payment_id}</code>
               </p>
               <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.85rem 1rem; border-radius: 12px; color: #166534; font-weight: 600;">
                 Your <strong>${printCount.toLocaleString()} print quota</strong> has been activated for <strong>${planName}</strong>!

@@ -1,0 +1,223 @@
+/* ==========================================================================
+   Slipzo Universal Search Bar Component & Global Search Styling
+   Exact match to reference search bar UI (NO blue border/glow on focus):
+   - White background (#ffffff)
+   - Subtle light blue/gray border (1px solid #d5e0eb)
+   - Smooth rounded corners (border-radius: 14px)
+   - Standard height (48px)
+   - Left magnifying glass search icon (#8F93A5)
+   - Centered input text (16px, font-weight 400, color #0C1F41)
+   - Muted placeholder text (#8F93A5, 16px)
+   - Right microphone icon in Slipzo primary blue (#0284c7)
+   ========================================================================== */
+
+/* Search Container Wrapper */
+.slipzo-search-bar,
+.menu-search-wrapper,
+.products-search-box,
+.products-search-bar-row,
+.search-input-wrapper,
+.templates-search-bar,
+.home-search-bar,
+.nb-search-bar,
+.tables-search-box,
+.table-menu-search-input,
+.mob-menu-search-bar {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border: 1px solid #d5e0eb !important;
+  border-radius: 14px !important;
+  padding: 0 0.85rem !important;
+  height: 48px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+}
+
+/* Container Focus-Within State - NO blue glow / border */
+.slipzo-search-bar:focus-within,
+.menu-search-wrapper:focus-within,
+.products-search-box:focus-within,
+.products-search-bar-row:focus-within,
+.search-input-wrapper:focus-within,
+.templates-search-bar:focus-within,
+.home-search-bar:focus-within,
+.nb-search-bar:focus-within,
+.tables-search-box:focus-within,
+.table-menu-search-input:focus-within,
+.mob-menu-search-bar:focus-within {
+  border-color: #d5e0eb !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03) !important;
+  outline: none !important;
+  background: #ffffff !important;
+}
+
+/* Left Search Icon */
+.slipzo-search-icon,
+.menu-search-icon,
+.mob-search-icon,
+.products-search-icon,
+.products-search-magnifier,
+.search-icon,
+.templates-search-icon,
+.home-search-icon,
+.nb-search-icon,
+.tables-search-box svg:first-child,
+.table-menu-search-input svg:first-child {
+  color: #8F93A5 !important;
+  margin-right: 0.65rem !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+}
+
+/* Central Input Field - Strips ALL borders, outlines, box-shadows on focus */
+.slipzo-search-input,
+.menu-search-input,
+.products-search-input,
+.products-search-input-field,
+.search-input,
+.templates-search-input-field,
+.home-search-input,
+.nb-search-input,
+.tables-search-box input,
+.table-menu-search-input input,
+.mob-menu-search-bar input {
+  flex: 1 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #0C1F41 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  min-width: 60px !important;
+  height: 100% !important;
+  font-family: inherit !important;
+}
+
+.slipzo-search-input:focus,
+.slipzo-search-input:active,
+.slipzo-search-input:focus-visible,
+.menu-search-input:focus,
+.menu-search-input:active,
+.menu-search-input:focus-visible,
+.products-search-input:focus,
+.products-search-input:active,
+.products-search-input:focus-visible,
+.products-search-input-field:focus,
+.products-search-input-field:active,
+.products-search-input-field:focus-visible,
+.search-input:focus,
+.search-input:active,
+.search-input:focus-visible,
+.templates-search-input-field:focus,
+.templates-search-input-field:active,
+.templates-search-input-field:focus-visible,
+.home-search-input:focus,
+.home-search-input:active,
+.home-search-input:focus-visible,
+.nb-search-input:focus,
+.nb-search-input:active,
+.nb-search-input:focus-visible,
+.tables-search-box input:focus,
+.tables-search-box input:active,
+.tables-search-box input:focus-visible,
+.table-menu-search-input input:focus,
+.table-menu-search-input input:active,
+.table-menu-search-input input:focus-visible,
+.mob-menu-search-bar input:focus,
+.mob-menu-search-bar input:active,
+.mob-menu-search-bar input:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Input Placeholder */
+.slipzo-search-input::placeholder,
+.menu-search-input::placeholder,
+.products-search-input::placeholder,
+.products-search-input-field::placeholder,
+.search-input::placeholder,
+.templates-search-input-field::placeholder,
+.home-search-input::placeholder,
+.nb-search-input::placeholder,
+.tables-search-box input::placeholder,
+.table-menu-search-input input::placeholder,
+.mob-menu-search-bar input::placeholder {
+  color: #8F93A5 !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
+
+/* Right Clear Button */
+.slipzo-search-clear-btn,
+.menu-search-clear-btn,
+.products-search-clear,
+.products-search-clear-btn,
+.search-clear-btn,
+.templates-search-clear-btn,
+.home-search-clear,
+.nb-search-clear-btn {
+  background: none !important;
+  border: none !important;
+  padding: 0.35rem !important;
+  color: #8F93A5 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 6px !important;
+  margin-right: 0.35rem !important;
+}
+
+.slipzo-search-clear-btn:hover,
+.menu-search-clear-btn:hover,
+.products-search-clear:hover,
+.products-search-clear-btn:hover,
+.search-clear-btn:hover,
+.templates-search-clear-btn:hover,
+.home-search-clear:hover,
+.nb-search-clear-btn:hover {
+  color: #575B6B !important;
+  background: #f0f9ff !important;
+}
+
+/* Right Microphone / Voice Icon Button */
+.menu-search-mic-btn,
+.products-mic-btn,
+.nb-search-mic-btn,
+.voice-mic-icon-btn,
+.mob-search-mic-btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 0.35rem !important;
+  color: #0284c7 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  transition: all 0.15s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.menu-search-mic-btn:hover,
+.products-mic-btn:hover,
+.nb-search-mic-btn:hover,
+.voice-mic-icon-btn:hover,
+.mob-search-mic-btn:hover {
+  background: #f0f9ff !important;
+  color: #0369a1 !important;
+}

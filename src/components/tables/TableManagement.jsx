@@ -27,6 +27,7 @@ import { ManageTablesModal } from "./ManageTablesModal"
 import { TableSetupModal } from "./TableSetupModal"
 import { CardSkeleton } from "../common/Skeleton"
 import { useToast } from "../common/Toast"
+import { VoiceInputButton } from "../common/VoiceInputButton"
 import "../../styles/TableManagement.css"
 
 export function TableManagement({
@@ -62,13 +63,80 @@ export function TableManagement({
   const [isManageModalOpen, setIsManageModalOpen] = useState(false)
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false)
 
+  // Helper to match table by ID, table_number, or string label (e.g. "table-1", 1, "1", UUID)
+  const isTableMatch = (t, identifier) => {
+    if (!t || identifier === undefined || identifier === null) return false
+    if (String(t.id) === String(identifier)) return true
+    if (String(t.table_number) === String(identifier)) return true
+
+    const extractNum = (val) => {
+      if (val === undefined || val === null) return null
+      if (!isNaN(Number(val))) return Number(val)
+      const m = String(val).trim().match(/^table[-_\s]?(\d+)$/i)
+      return m ? Number(m[1]) : null
+    }
+
+    const idNum = extractNum(identifier)
+    const tNum = extractNum(t.table_number)
+    if (idNum !== null && tNum !== null && idNum === tNum) return true
+
+    const tIdNum = extractNum(t.id)
+    if (idNum !== null && tIdNum !== null && idNum === tIdNum) return true
+
+    return false
+  }
+
+  const getTableItems = (tbl) => {
+    if (!tbl || !tbl.current_items) return []
+    if (Array.isArray(tbl.current_items)) return tbl.current_items
+    if (typeof tbl.current_items === "string") {
+      try {
+        const parsed = JSON.parse(tbl.current_items)
+        if (Array.isArray(parsed)) return parsed
+      } catch (_) {}
+    }
+    return []
+  }
+
+  const isTableOccupied = (tbl) => {
+    if (!tbl) return false
+    if (tbl.status === "OCCUPIED") return true
+    return getTableItems(tbl).length > 0
+  }
+
   // Load tables from backend
-  const loadTables = async () => {
+  const loadTables = async (bypassCache = false) => {
     try {
-      const data = await call("/restaurant/tables")
+      const data = await call("/restaurant/tables", bypassCache ? { noCache: true } : {})
       if (Array.isArray(data) && data.length > 0) {
-        setTables(data)
-        saveStoredTables(user, data)
+        setTables((prev) => {
+          const merged = data.map((remote) => {
+            const local = prev.find((p) => isTableMatch(p, remote.id) || isTableMatch(p, remote.table_number))
+            if (!local) return remote
+
+            const localOcc = isTableOccupied(local)
+            const remoteOcc = isTableOccupied(remote)
+
+            // If locally marked OCCUPIED, preserve OCCUPIED so remote latency doesn't revert state
+            if (localOcc && !remoteOcc) {
+              return {
+                ...remote,
+                ...local,
+                status: "OCCUPIED",
+                current_items: local.current_items,
+                total_amount: local.total_amount
+              }
+            }
+
+            return {
+              ...local,
+              ...remote,
+              current_items: getTableItems(remote).length > 0 ? getTableItems(remote) : (local.current_items || [])
+            }
+          })
+          saveStoredTables(user, merged)
+          return merged
+        })
       }
     } catch (err) {
       console.warn("Could not fetch remote tables, using local state:", err)
@@ -87,16 +155,56 @@ export function TableManagement({
     return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
   }, [user])
 
-  // Update single table state (items, total, status)
+  // Automatically open table for editing if navigated from Bill History
+  useEffect(() => {
+    const editTable = sessionStorage.getItem("slipzo_edit_table")
+    const editBillStr = sessionStorage.getItem("slipzo_edit_bill")
+    if (editTable && tables && tables.length > 0) {
+      sessionStorage.removeItem("slipzo_edit_table")
+      let editBill = null
+      try {
+        if (editBillStr) editBill = JSON.parse(editBillStr)
+      } catch (_) {}
+
+      const matched = tables.find((t) => isTableMatch(t, editTable))
+      if (matched) {
+        let billItems = []
+        if (editBill && editBill.items) {
+          if (Array.isArray(editBill.items)) {
+            billItems = editBill.items
+          } else if (typeof editBill.items === "string") {
+            try { billItems = JSON.parse(editBill.items) } catch (_) {}
+          }
+        }
+
+        const itemsToUse = billItems.length > 0 ? billItems : getTableItems(matched)
+        const updatedTableObj = {
+          ...matched,
+          current_items: itemsToUse,
+          status: "OCCUPIED",
+          total_amount: editBill?.total ? Number(editBill.total) : matched.total_amount,
+          editing_bill_id: editBill?.id || null,
+          editing_bill_number: editBill?.number || null
+        }
+
+        handleUpdateTableState(matched.id || matched.table_number, updatedTableObj)
+        setSelectedTable(updatedTableObj)
+      }
+    }
+  }, [tables])
+
   const handleUpdateTableState = (tableIdOrNum, updates) => {
     setTables((prev) => {
       const updatedList = prev.map((t) => {
-        const matches = String(t.id) === String(tableIdOrNum) || String(t.table_number) === String(tableIdOrNum)
-        if (matches) {
+        if (isTableMatch(t, tableIdOrNum)) {
+          // Only change status if explicitly provided in updates
+          const newStatus = updates.status !== undefined
+            ? updates.status
+            : t.status  // keep existing status if not explicitly set
           return {
             ...t,
             ...updates,
-            status: updates.status || ((Array.isArray(updates.current_items) && updates.current_items.length > 0) ? "OCCUPIED" : "AVAILABLE")
+            status: newStatus
           }
         }
         return t
@@ -104,18 +212,12 @@ export function TableManagement({
       saveStoredTables(user, updatedList)
       return updatedList
     })
-
-    // Debounced or direct backend update
-    call(`/restaurant/tables/${tableIdOrNum}`, {
-      method: "PUT",
-      body: JSON.stringify(updates)
-    }).catch((e) => console.warn("Backend table update warning:", e))
   }
 
   // Metrics Calculations
   const metrics = useMemo(() => {
     const totalCount = tables.length
-    const occupied = tables.filter((t) => t.status === "OCCUPIED" || (Array.isArray(t.current_items) && t.current_items.length > 0))
+    const occupied = tables.filter((t) => isTableOccupied(t))
     const occupiedCount = occupied.length
     const availableCount = Math.max(0, totalCount - occupiedCount)
     const activeTotalRevenue = occupied.reduce((sum, t) => sum + (Number(t.total_amount) || 0), 0)
@@ -132,7 +234,7 @@ export function TableManagement({
   const filteredTables = useMemo(() => {
     const q = search.trim().toLowerCase()
     return tables.filter((t) => {
-      const isOcc = t.status === "OCCUPIED" || (Array.isArray(t.current_items) && t.current_items.length > 0)
+      const isOcc = isTableOccupied(t)
       
       if (activeFilter === "available" && isOcc) return false
       if (activeFilter === "occupied" && !isOcc) return false
@@ -150,7 +252,7 @@ export function TableManagement({
   // If a table is opened for billing, show the TableBilling workspace
   if (selectedTable) {
     const currentTableData = tables.find(
-      (t) => String(t.id) === String(selectedTable.id) || String(t.table_number) === String(selectedTable.table_number)
+      (t) => isTableMatch(t, selectedTable.id) || isTableMatch(t, selectedTable.table_number)
     ) || selectedTable
 
     return (
@@ -160,7 +262,7 @@ export function TableManagement({
         shop={shop}
         onBack={() => {
           setSelectedTable(null)
-          loadTables()
+          loadTables(true)
         }}
         onUpdateTableState={handleUpdateTableState}
         setView={setView}
@@ -246,39 +348,11 @@ export function TableManagement({
 
       {/* 3. Filter & Search Control Bar */}
       <section className="tables-control-bar">
-        <div className="tables-filter-pills">
-          <button
-            type="button"
-            className={`table-filter-pill ${activeFilter === "all" ? "active" : ""}`}
-            onClick={() => setActiveFilter("all")}
-          >
-            <span>{t("tables.filterAll", "All Tables")}</span>
-            <span className="pill-count">{metrics.totalCount}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`table-filter-pill ${activeFilter === "available" ? "active" : ""}`}
-            onClick={() => setActiveFilter("available")}
-          >
-            <span>{t("tables.filterAvailable", "Available")}</span>
-            <span className="pill-count">{metrics.availableCount}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`table-filter-pill ${activeFilter === "occupied" ? "active" : ""}`}
-            onClick={() => setActiveFilter("occupied")}
-          >
-            <span>{t("tables.filterOccupied", "Occupied")}</span>
-            <span className="pill-count">{metrics.occupiedCount}</span>
-          </button>
-        </div>
-
         <div className="tables-search-box">
           <Search size={16} color="#64748b" />
           <input
             type="text"
+            className="tables-search-input"
             placeholder={t("tables.searchPlaceholder", "Search table (e.g. 4, Table 5)...")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -287,11 +361,42 @@ export function TableManagement({
             <button
               type="button"
               onClick={() => setSearch("")}
-              style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
+              style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", marginRight: "0.25rem" }}
+              title={t("bills.clearSearch", "Clear search")}
             >
               <X size={14} />
             </button>
           )}
+          <VoiceInputButton
+            onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
+            placeholder={t("tables.voiceSearch", "Speak table number")}
+          />
+        </div>
+
+        <div className="tables-filter-pills">
+          <button
+            type="button"
+            className={`table-filter-pill ${activeFilter === "all" ? "active" : ""}`}
+            onClick={() => setActiveFilter("all")}
+          >
+            <span>{t("tables.filterAll", "All Tables")}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`table-filter-pill ${activeFilter === "available" ? "active" : ""}`}
+            onClick={() => setActiveFilter("available")}
+          >
+            <span>{t("tables.filterAvailable", "Available")}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`table-filter-pill ${activeFilter === "occupied" ? "active" : ""}`}
+            onClick={() => setActiveFilter("occupied")}
+          >
+            <span>{t("tables.filterOccupied", "Occupied")}</span>
+          </button>
         </div>
       </section>
 

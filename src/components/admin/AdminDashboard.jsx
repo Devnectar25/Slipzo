@@ -193,7 +193,7 @@ export function AdminDashboard({ admin, onLogout }) {
       input: 'number',
       inputValue: 1000,
       showCancelButton: true,
-      confirmButtonColor: '#FB821B',
+      confirmButtonColor: '#0284c7',
       confirmButtonText: 'Grant Credits',
       inputValidator: (value) => {
         if (!value || parseInt(value) <= 0) {
@@ -213,7 +213,7 @@ export function AdminDashboard({ admin, onLogout }) {
           title: 'Success!',
           text: res?.detail || `Granted ${printCount} prints successfully!`,
           icon: 'success',
-          confirmButtonColor: '#FB821B'
+          confirmButtonColor: '#0284c7'
         })
         loadAdminData()
       } catch (err) {
@@ -251,7 +251,7 @@ export function AdminDashboard({ admin, onLogout }) {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Create Template',
-      confirmButtonColor: '#FB821B',
+      confirmButtonColor: '#0284c7',
       preConfirm: () => {
         const name = document.getElementById('swal-template-name').value;
         const category = document.getElementById('swal-template-cat').value;
@@ -271,7 +271,7 @@ export function AdminDashboard({ admin, onLogout }) {
           headers: getAdminHeaders(),
           body: JSON.stringify(formValues)
         });
-        Swal.fire({ title: 'Success!', text: 'New template created successfully', icon: 'success', confirmButtonColor: '#FB821B' });
+        Swal.fire({ title: 'Success!', text: 'New template created successfully', icon: 'success', confirmButtonColor: '#0284c7' });
         loadAdminData();
       } catch (err) {
         Swal.fire('Error', err?.detail || err?.message || 'Failed to create template', 'error');
@@ -461,7 +461,7 @@ export function AdminDashboard({ admin, onLogout }) {
         title: 'Success!',
         text: res.detail || 'New product with photos added successfully!',
         icon: 'success',
-        confirmButtonColor: '#FB821B'
+        confirmButtonColor: '#0284c7'
       })
       await loadAdminData()
     } catch (err) {
@@ -501,7 +501,7 @@ export function AdminDashboard({ admin, onLogout }) {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Update Template',
-      confirmButtonColor: '#FB821B',
+      confirmButtonColor: '#0284c7',
       preConfirm: () => {
         const name = document.getElementById('swal-edit-template-name').value;
         const category = document.getElementById('swal-edit-template-cat').value;
@@ -521,7 +521,7 @@ export function AdminDashboard({ admin, onLogout }) {
           headers: getAdminHeaders(),
           body: JSON.stringify(formValues)
         });
-        Swal.fire({ title: 'Updated!', text: 'Template updated successfully', icon: 'success', confirmButtonColor: '#FB821B' });
+        Swal.fire({ title: 'Updated!', text: 'Template updated successfully', icon: 'success', confirmButtonColor: '#0284c7' });
         loadAdminData();
       } catch (err) {
         Swal.fire('Error', err?.detail || err?.message || 'Failed to update template', 'error');
@@ -545,7 +545,7 @@ export function AdminDashboard({ admin, onLogout }) {
           method: 'DELETE',
           headers: getAdminHeaders()
         });
-        Swal.fire({ title: 'Deleted!', text: 'Template has been deleted', icon: 'success', confirmButtonColor: '#FB821B' });
+        Swal.fire({ title: 'Deleted!', text: 'Template has been deleted', icon: 'success', confirmButtonColor: '#0284c7' });
         invalidateApiCache('/admin/templates');
         invalidateApiCache('/templates');
         loadAdminData();
@@ -652,11 +652,11 @@ export function AdminDashboard({ admin, onLogout }) {
         }).catch(() => null);
 
         setProductsList((prev) => prev.filter((p) => p.id !== product.id));
-        Swal.fire({ title: 'Deleted!', text: 'Product removed successfully', icon: 'success', confirmButtonColor: '#FB821B' });
+        Swal.fire({ title: 'Deleted!', text: 'Product removed successfully', icon: 'success', confirmButtonColor: '#0284c7' });
         loadAdminData();
       } catch (err) {
         setProductsList((prev) => prev.filter((p) => p.id !== product.id));
-        Swal.fire({ title: 'Deleted!', text: 'Product removed from catalog', icon: 'success', confirmButtonColor: '#FB821B' });
+        Swal.fire({ title: 'Deleted!', text: 'Product removed from catalog', icon: 'success', confirmButtonColor: '#0284c7' });
       }
     }
   }
@@ -682,7 +682,7 @@ export function AdminDashboard({ admin, onLogout }) {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: 'Save Changes',
-      confirmButtonColor: '#FB821B',
+      confirmButtonColor: '#0284c7',
       preConfirm: () => {
         const name = document.getElementById('swal-edit-prod-name')?.value;
         const category = document.getElementById('swal-edit-prod-cat')?.value;
@@ -719,7 +719,7 @@ export function AdminDashboard({ admin, onLogout }) {
         });
         const updated = res?.product || { ...product, ...formValues };
         setProductsList(prev => prev.map(p => p.id === product.id ? { ...p, ...updated } : p));
-        Swal.fire({ title: 'Updated!', text: 'Product updated successfully', icon: 'success', confirmButtonColor: '#FB821B' });
+        Swal.fire({ title: 'Updated!', text: 'Product updated successfully', icon: 'success', confirmButtonColor: '#0284c7' });
         loadAdminData();
       } catch (err) {
         Swal.fire('Error', err?.detail || err?.message || 'Failed to update product', 'error');
@@ -967,7 +967,7 @@ export function AdminDashboard({ admin, onLogout }) {
             <>
               <div className="admin-stats-grid">
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#FFE6D2", color: "#F66016" }}>
+                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                     <Users size={24} />
                   </div>
                   <div>
@@ -977,7 +977,7 @@ export function AdminDashboard({ admin, onLogout }) {
                 </div>
 
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#f3e8ff", color: "#7e22ce" }}>
+                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                     <Store size={24} />
                   </div>
                   <div>
@@ -987,7 +987,7 @@ export function AdminDashboard({ admin, onLogout }) {
                 </div>
 
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#dcfce7", color: "#15803d" }}>
+                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                     <Receipt size={24} />
                   </div>
                   <div>
@@ -997,7 +997,7 @@ export function AdminDashboard({ admin, onLogout }) {
                 </div>
 
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#FFF0C7", color: "#d97706" }}>
+                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                     <Package size={24} />
                   </div>
                   <div>
@@ -1110,9 +1110,9 @@ export function AdminDashboard({ admin, onLogout }) {
                               width: "38px",
                               height: "38px",
                               borderRadius: "8px",
-                              background: "linear-gradient(135deg, #FFF0E5 0%, #FFF2DE 100%)",
-                              border: "1.5px solid #F7CDAB",
-                              color: "#F66016",
+                              background: "#f0f9ff",
+                              border: "1.5px solid #bae6fd",
+                              color: "#0284c7",
                               fontWeight: 700,
                               fontSize: "0.88rem"
                             }}
@@ -1137,7 +1137,7 @@ export function AdminDashboard({ admin, onLogout }) {
                         <td>
                           <button
                             className="admin-refresh-btn"
-                            style={{ background: "#FFE6D2", color: "#F66016", border: "1px solid #FADCC3" }}
+                            style={{ background: "#f0f9ff", color: "#0284c7", border: "1px solid #bae6fd" }}
                             onClick={() => handleGrantCredits(u)}
                             title="Grant Print Credits"
                           >
@@ -1180,7 +1180,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
                 {/* 2. Total Plan Buyers */}
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#FFE6D2", color: "#F66016" }}>
+                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                     <Users size={24} />
                   </div>
                   <div>
@@ -1192,7 +1192,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
                 {/* 3. Starter Pack */}
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#FFF0C7", color: "#d97706" }}>
+                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                     <Zap size={24} />
                   </div>
                   <div>
@@ -1204,7 +1204,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
                 {/* 4. Pro Growth */}
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#cff4fc", color: "#0891b2" }}>
+                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
                     <Sparkles size={24} />
                   </div>
                   <div>
@@ -1253,11 +1253,11 @@ export function AdminDashboard({ admin, onLogout }) {
                             <Crown size={12} /> {b.plan_name || "Pro Plan"}
                           </span>
                         </td>
-                        <td style={{ fontWeight: 700, color: "#F66016" }}>
+                        <td style={{ fontWeight: 700, color: "#0284c7" }}>
                           ₹{b.amount ? Number(b.amount).toFixed(2) : "0.00"}
                         </td>
                         <td>
-                          <code style={{ fontSize: "0.75rem", background: "#FDF4EB", padding: "2px 6px", borderRadius: "4px", color: "#575B6B" }}>
+                          <code style={{ fontSize: "0.75rem", background: "#f0f9ff", padding: "2px 6px", borderRadius: "4px", color: "#0284c7" }}>
                             {b.payment_id || "N/A"}
                           </code>
                         </td>
@@ -1265,7 +1265,7 @@ export function AdminDashboard({ admin, onLogout }) {
                         <td>
                           <button
                             className="admin-refresh-btn"
-                            style={{ background: "#FFE6D2", color: "#F66016", border: "1px solid #FADCC3" }}
+                            style={{ background: "#f0f9ff", color: "#0284c7", border: "1px solid #bae6fd" }}
                             onClick={() => handleGrantCredits(b)}
                           >
                             <Plus size={13} /> Grant Credits
@@ -1302,7 +1302,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   />
                   <button
                     className="admin-refresh-btn"
-                    style={{ background: '#FB821B', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
+                    style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
                     onClick={handleOpenAddProductModal}
                   >
                     <Plus size={14} /> Add New Product
@@ -1341,10 +1341,10 @@ export function AdminDashboard({ admin, onLogout }) {
                               <img
                                 src={mainImg}
                                 alt={p.name}
-                                style={{ width: '34px', height: '34px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #F7CDAB', display: 'inline-block', verticalAlign: 'middle' }}
+                                style={{ width: '34px', height: '34px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #bae6fd', display: 'inline-block', verticalAlign: 'middle' }}
                               />
                             ) : (
-                              <div style={{ width: '34px', height: '34px', borderRadius: '6px', background: '#FDF4EB', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#8F93A5', border: '1px solid #F7CDAB', margin: '0 auto', verticalAlign: 'middle' }}>
+                              <div style={{ width: '34px', height: '34px', borderRadius: '6px', background: '#f0f9ff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', border: '1px solid #bae6fd', margin: '0 auto', verticalAlign: 'middle' }}>
                                 <Package size={16} />
                               </div>
                             )
@@ -1380,7 +1380,7 @@ export function AdminDashboard({ admin, onLogout }) {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 gap: '3px',
-                                color: '#FB821B',
+                                color: '#0284c7',
                                 fontSize: '0.775rem',
                                 fontWeight: 600,
                                 textDecoration: 'none'
@@ -1400,7 +1400,7 @@ export function AdminDashboard({ admin, onLogout }) {
                             value={(p.status || 'active').toLowerCase() === 'active' ? 'active' : 'inactive'}
                             onChange={(e) => handleStatusChange(p, e.target.value)}
                             style={{
-                              background: (p.status || 'active').toLowerCase() === 'active' ? '#dcfce7' : '#FDF4EB',
+                              background: (p.status || 'active').toLowerCase() === 'active' ? '#dcfce7' : '#f8fafc',
                               color: (p.status || 'active').toLowerCase() === 'active' ? '#15803d' : '#74788A',
                               border: `1px solid ${(p.status || 'active').toLowerCase() === 'active' ? '#bbf7d0' : '#D9DDE4'}`,
                               padding: '0.2rem 0.35rem',
@@ -1494,7 +1494,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   />
                   <button
                     className="admin-refresh-btn"
-                    style={{ background: '#FB821B', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
+                    style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
                     onClick={handleAddTemplate}
                   >
                     <Plus size={14} /> Add New Template
@@ -1582,7 +1582,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   <tbody>
                     {paginatedBills.map((b) => (
                       <tr key={b.id}>
-                        <td style={{ fontWeight: 700, color: "#F66016" }}>{b.bill_number}</td>
+                        <td style={{ fontWeight: 700, color: "#0284c7" }}>{b.bill_number}</td>
                         <td>
                           <div>{b.shop_name || b.user_name || "Unknown Shop"}</div>
                           <div style={{ fontSize: "0.75rem", color: "#74788A" }}>{b.user_email}</div>
@@ -1665,21 +1665,21 @@ export function AdminDashboard({ admin, onLogout }) {
                   <Server size={18} style={{ verticalAlign: "middle", marginRight: "0.5rem" }} /> System Diagnostics
                 </h4>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-                  <div style={{ background: "#FFF2DE", border: "1px solid #F7CDAB", padding: "1rem", borderRadius: "10px" }}>
+                  <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "1rem", borderRadius: "10px" }}>
                     <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Server Status</div>
                     <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#16a34a", marginTop: "0.25rem" }}>
                       <CheckCircle size={16} style={{ verticalAlign: "middle", marginRight: "0.25rem" }} /> Online & Healthy
                     </div>
                   </div>
 
-                  <div style={{ background: "#FFF2DE", border: "1px solid #F7CDAB", padding: "1rem", borderRadius: "10px" }}>
+                  <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "1rem", borderRadius: "10px" }}>
                     <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Node Runtime</div>
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#F66016", marginTop: "0.25rem" }}>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0284c7", marginTop: "0.25rem" }}>
                       {statsData?.systemHealth?.nodeVersion || process.version || "v20.x"}
                     </div>
                   </div>
 
-                  <div style={{ background: "#FFF2DE", border: "1px solid #F7CDAB", padding: "1rem", borderRadius: "10px" }}>
+                  <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "1rem", borderRadius: "10px" }}>
                     <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Server Uptime</div>
                     <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#9333ea", marginTop: "0.25rem" }}>
                       {statsData?.systemHealth?.uptime ? `${Math.floor(statsData.systemHealth.uptime / 60)} mins` : "Active"}
@@ -1718,13 +1718,13 @@ export function AdminDashboard({ admin, onLogout }) {
               width: '100%',
               maxWidth: '560px',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              border: '1px solid #F7CDAB',
+              border: '1px solid #bae6fd',
               padding: '1.25rem 1.5rem',
               boxSizing: 'border-box'
             }}
           >
             {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid #FDF4EB' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem', paddingBottom: '0.65rem', borderBottom: '1px solid #f0f9ff' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0C1F41', margin: 0 }}>
                 Add New Product to Catalog
               </h3>
@@ -1732,10 +1732,10 @@ export function AdminDashboard({ admin, onLogout }) {
                 type="button"
                 onClick={handleCloseAddProductModal}
                 style={{
-                  background: '#FDF4EB',
-                  border: 'none',
+                  background: '#f0f9ff',
+                  border: '1px solid #bae6fd',
                   borderRadius: '8px',
-                  color: '#74788A',
+                  color: '#0284c7',
                   cursor: 'pointer',
                   width: '28px',
                   height: '28px',
@@ -1814,7 +1814,7 @@ export function AdminDashboard({ admin, onLogout }) {
               </div>
 
               {/* Row 4: Product Photos Section (MIN 1, MAX 5) */}
-              <div style={{ background: '#FFF2DE', border: '1px solid #F7CDAB', borderRadius: '10px', padding: '0.65rem 0.85rem' }}>
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '0.65rem 0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
                   <div>
                     <label style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0C1F41', display: 'flex', alignItems: 'center', gap: '0.35rem', margin: 0 }}>
@@ -1857,7 +1857,7 @@ export function AdminDashboard({ admin, onLogout }) {
                       gap: '0.35rem',
                       padding: '0.4rem 0.8rem',
                       borderRadius: '7px',
-                      background: prodPhotos.length >= 5 ? '#D9DDE4' : '#FB821B',
+                      background: prodPhotos.length >= 5 ? '#D9DDE4' : '#0284c7',
                       color: prodPhotos.length >= 5 ? '#74788A' : '#ffffff',
                       fontSize: '0.8rem',
                       fontWeight: 600,
@@ -1961,7 +1961,7 @@ export function AdminDashboard({ admin, onLogout }) {
                 gap: '0.65rem',
                 marginTop: '0.35rem',
                 paddingTop: '0.75rem',
-                borderTop: '1px solid #FDF4EB'
+                borderTop: '1px solid #f0f9ff'
               }}>
                 <button
                   type="button"
@@ -1969,7 +1969,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   style={{
                     padding: '0.45rem 0.95rem',
                     borderRadius: '8px',
-                    background: '#FDF4EB',
+                    background: '#f8fafc',
                     border: '1px solid #D9DDE4',
                     color: '#0C1F41',
                     fontWeight: 600,
@@ -1987,13 +1987,13 @@ export function AdminDashboard({ admin, onLogout }) {
                   style={{
                     padding: '0.45rem 1.15rem',
                     borderRadius: '8px',
-                    background: '#FB821B',
+                    background: '#0284c7',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 700,
                     fontSize: '0.825rem',
                     cursor: prodSubmitting ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 6px rgba(246, 96, 22, 0.3)',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.3)',
                     transition: 'all 0.15s ease',
                     height: '36px',
                     display: 'inline-flex',

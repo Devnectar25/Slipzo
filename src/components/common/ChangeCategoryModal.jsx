@@ -51,7 +51,8 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
         document.body.style.overflow = originalOverflow
       }
     }
-  }, [isOpen, currentCategory])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]) // intentionally omit currentCategory — we only want to reset when the modal opens, not when the category prop changes mid-flow (e.g. during hotel_food save)
 
   if (!isOpen && !showTableSetup) return null
 
@@ -233,8 +234,7 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
             type="button"
             className="menu-primary-btn"
             onClick={handleConfirmChange}
-            disabled={isSaving || selectedCat === currentCategory}
-            style={{ opacity: selectedCat === currentCategory ? 0.6 : 1 }}
+            disabled={isSaving}
           >
             {isSaving ? t("common.saving", "Saving...") : t("profile.confirmChange", "Switch Category")}
           </button>

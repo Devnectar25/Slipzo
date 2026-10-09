@@ -3,7 +3,7 @@ import {
   Package, Plus, Search, Filter, Edit, Trash2, Tag, DollarSign,
   AlertCircle, CheckCircle2, ShoppingBag, ArrowRight, Sparkles,
   RefreshCw, Layers, Printer, Zap, Store, ChevronRight, X,
-  Truck, CreditCard, Check, Heart
+  Truck, CreditCard, Check, Heart, LayoutGrid, FileText, Cpu, Mic
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
@@ -760,7 +760,7 @@ export function Products({ setView, requireAuth, user }) {
               </div>
 
               <div className="feature-item-card">
-                <div className="feature-item-icon amber">
+                <div className="feature-item-icon blue">
                   <Sparkles size={22} />
                 </div>
                 <h3>Jam-Free Thermal Paper</h3>
@@ -841,21 +841,18 @@ export function Products({ setView, requireAuth, user }) {
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="products-cards-grid">
-              {filteredProducts.map(product => (
-                <div
-                  key={product.id}
-                  className="product-card product-card-hover"
-                >
+              {filteredProducts.map(product => {
+                const numPrice = Number(product.price) || 0
+                const formattedPrice = numPrice.toFixed(2)
+                const isWish = wishlist ? wishlist.has(product.id) : false
+
+                return (
+                  <div
+                    key={product.id}
+                    className="product-card product-card-hover"
+                  >
                   <div style={{ position: 'relative' }}>
                     {/* Product Image */}
-                    {product.image ? (
-                      <div className="product-image-box">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                        />
-                      </div>
-                    )}
                     {product.image ? (
                       <img
                         src={product.image}
@@ -919,8 +916,8 @@ export function Products({ setView, requireAuth, user }) {
                         onClick={() => handleBuyNow(product)}
                         className="product-add-pill-btn"
                         style={{
-                          background: '#FFF0E5',
-                          color: '#F66016',
+                          background: '#f0f9ff',
+                          color: '#0284c7',
                           border: 'none',
                           borderRadius: '10px',
                           padding: '0.45rem 1.25rem',
@@ -961,10 +958,10 @@ export function Products({ setView, requireAuth, user }) {
       {/* Buy Product Checkout Modal */}
       {buyProduct && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(3px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #F7CDAB', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '480px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #bae6fd', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <ShoppingBag size={18} style={{ color: '#FB821B' }} />
+                <ShoppingBag size={18} style={{ color: '#0284c7' }} />
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0C1F41', margin: 0 }}>
                   Buy Product / Hardware
                 </h3>
@@ -981,10 +978,10 @@ export function Products({ setView, requireAuth, user }) {
                 </div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0C1F41', margin: '0 0 0.25rem 0' }}>Order Placed Successfully!</h3>
                 <p style={{ fontSize: '0.85rem', color: '#74788A', margin: '0 0 1rem 0' }}>
-                  Order ID: <strong style={{ color: '#FB821B' }}>#{orderPlaced.orderId}</strong>
+                  Order ID: <strong style={{ color: '#0284c7' }}>#{orderPlaced.orderId}</strong>
                 </p>
 
-                <div style={{ background: '#FFF2DE', border: '1px solid #F7CDAB', borderRadius: '10px', padding: '0.85rem', textAlign: 'left', fontSize: '0.8rem', color: '#0C1F41', marginBottom: '1.25rem' }}>
+                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '0.85rem', textAlign: 'left', fontSize: '0.8rem', color: '#0C1F41', marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                     <span>Product:</span>
                     <strong>{orderPlaced.productName} (x{orderPlaced.quantity})</strong>
@@ -1014,11 +1011,11 @@ export function Products({ setView, requireAuth, user }) {
             ) : (
               <form onSubmit={handlePlaceOrder} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {/* Product Summary Box */}
-                <div style={{ display: 'flex', gap: '0.85rem', background: '#FFF2DE', border: '1px solid #F7CDAB', borderRadius: '10px', padding: '0.75rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.85rem', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '0.75rem', alignItems: 'center' }}>
                   {buyProduct.image ? (
-                    <img src={buyProduct.image} alt={buyProduct.name} style={{ width: '56px', height: '56px', objectFit: 'contain', background: '#fff', borderRadius: '6px', padding: '0.2rem', border: '1px solid #F7CDAB' }} />
+                    <img src={buyProduct.image} alt={buyProduct.name} style={{ width: '56px', height: '56px', objectFit: 'contain', background: '#fff', borderRadius: '6px', padding: '0.2rem', border: '1px solid #bae6fd' }} />
                   ) : (
-                    <div style={{ width: '56px', height: '56px', background: '#F7CDAB', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#74788A' }}>
+                    <div style={{ width: '56px', height: '56px', background: '#bae6fd', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#74788A' }}>
                       <Package size={24} />
                     </div>
                   )}
@@ -1029,13 +1026,13 @@ export function Products({ setView, requireAuth, user }) {
                 </div>
 
                 {/* Quantity Selector */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '0.5rem 0.75rem', border: '1px solid #F7CDAB', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '0.5rem 0.75rem', border: '1px solid #bae6fd', borderRadius: '8px' }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0C1F41' }}>Quantity</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <button
                       type="button"
                       onClick={() => setBuyQty(Math.max(1, buyQty - 1))}
-                      style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #D9DDE4', background: '#FDF4EB', fontWeight: 700, cursor: 'pointer' }}
+                      style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #D9DDE4', background: '#f0f9ff', fontWeight: 700, cursor: 'pointer' }}
                     >
                       -
                     </button>
@@ -1043,7 +1040,7 @@ export function Products({ setView, requireAuth, user }) {
                     <button
                       type="button"
                       onClick={() => setBuyQty(buyQty + 1)}
-                      style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #D9DDE4', background: '#FDF4EB', fontWeight: 700, cursor: 'pointer' }}
+                      style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #D9DDE4', background: '#f0f9ff', fontWeight: 700, cursor: 'pointer' }}
                     >
                       +
                     </button>
@@ -1118,7 +1115,7 @@ export function Products({ setView, requireAuth, user }) {
                   <button
                     type="button"
                     onClick={() => setBuyProduct(null)}
-                    style={{ flex: 1, padding: '0.55rem', border: '1px solid #D9DDE4', background: '#FFF2DE', color: '#575B6B', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '0.55rem', border: '1px solid #D9DDE4', background: '#f0f9ff', color: '#575B6B', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Cancel
                   </button>
@@ -1126,7 +1123,7 @@ export function Products({ setView, requireAuth, user }) {
                     type="submit"
                     disabled={placingOrder}
                     className="primary-button"
-                    style={{ flex: 2, justifyContent: 'center', background: 'linear-gradient(135deg, #FB821B 0%, #F66016 100%)' }}
+                    style={{ flex: 2, justifyContent: 'center', background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)' }}
                   >
                     {placingOrder ? "Placing Order..." : "Place Order Now"}
                   </button>
@@ -1140,7 +1137,7 @@ export function Products({ setView, requireAuth, user }) {
       {/* Add / Edit Product Modal */}
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(3px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #F7CDAB', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', border: '1px solid #bae6fd', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0C1F41', margin: 0 }}>
                 {editingProduct ? "Edit Product" : "Add New Product"}
@@ -1204,14 +1201,14 @@ export function Products({ setView, requireAuth, user }) {
                   <button
                     type="button"
                     onClick={() => setImage("/products/pos_printer.jpg")}
-                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #D9DDE4', background: '#FDF4EB', cursor: 'pointer' }}
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', cursor: 'pointer' }}
                   >
                     POS Printer
                   </button>
                   <button
                     type="button"
                     onClick={() => setImage("/products/paper_rolls.jpg")}
-                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #D9DDE4', background: '#FDF4EB', cursor: 'pointer' }}
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', cursor: 'pointer' }}
                   >
                     Paper Rolls
                   </button>
@@ -1268,7 +1265,7 @@ export function Products({ setView, requireAuth, user }) {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  style={{ flex: 1, padding: '0.55rem', border: '1px solid #D9DDE4', background: '#FFF2DE', color: '#575B6B', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '0.55rem', border: '1px solid #D9DDE4', background: '#f0f9ff', color: '#575B6B', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>

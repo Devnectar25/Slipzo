@@ -17,7 +17,9 @@ import {
   Settings,
   SlidersHorizontal,
   Utensils,
-  ArrowRight
+  ArrowRight,
+  Trash2,
+  AlertTriangle
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
@@ -96,7 +98,16 @@ export function Shop({ user, setView } = {}) {
   const [loading, setLoading] = useState(false)
   const [isChangeCategoryModalOpen, setIsChangeCategoryModalOpen] = useState(false)
   const [isManageTablesModalOpen, setIsManageTablesModalOpen] = useState(false)
+  const [isRemoveLogoModalOpen, setIsRemoveLogoModalOpen] = useState(false)
   const edited = useRef(false)
+
+  const handleConfirmRemoveLogo = () => {
+    setIsRemoveLogoModalOpen(false)
+    handleChange("logo_url", "")
+    if (logoInputRef.current) {
+      logoInputRef.current.value = ""
+    }
+  }
 
   const currentCategoryObj = useMemo(() => {
     return BUSINESS_CATEGORIES.find(c => c.id === (shop.business_type || "small_business")) || BUSINESS_CATEGORIES[0]
@@ -148,23 +159,19 @@ export function Shop({ user, setView } = {}) {
     }
 
     if (key === "invoice_prefix") {
-      if (currentShop.invoice_format !== "SEQ") {
-        if (!val) {
-          errorMsg = t("validation.prefixRequired", "Invoice prefix is required.")
-        } else if (!/^[A-Za-z0-9]{1,8}$/.test(val)) {
-          errorMsg = t("validation.prefixInvalid", "Prefix must be 1–8 letters or numbers (e.g. HB, SLP).")
-        }
+      if (val && !/^[A-Za-z0-9]{1,8}$/.test(val)) {
+        errorMsg = t("validation.prefixInvalid", "Prefix must be 1–8 letters or numbers (e.g. HB, SLP).")
       }
     }
 
     if (key === "invoice_sequence") {
-      const num = Number(value)
-      if (value === "" || isNaN(num)) {
-        errorMsg = t("validation.seqRequired", "Sequence number is required.")
-      } else if (!Number.isInteger(num) || num < 1) {
-        errorMsg = t("validation.seqMin", "Sequence number must be at least 1.")
-      } else if (num > 999999999) {
-        errorMsg = t("validation.seqMax", "Sequence number is too large.")
+      if (value !== "" && value !== undefined && value !== null) {
+        const num = Number(value)
+        if (isNaN(num) || !Number.isInteger(num) || num < 1) {
+          errorMsg = t("validation.seqMin", "Sequence number must be at least 1.")
+        } else if (num > 999999999) {
+          errorMsg = t("validation.seqMax", "Sequence number is too large.")
+        }
       }
     }
 
@@ -267,7 +274,16 @@ export function Shop({ user, setView } = {}) {
 
   const handleBlur = (key) => {
     setTouched((prev) => ({ ...prev, [key]: true }))
-    const fieldError = validateField(key, shop[key], shop)
+    let val = shop[key]
+    if (key === "invoice_sequence" && (val === "" || val === undefined || val === null)) {
+      val = 1
+      setShop((prev) => ({ ...prev, invoice_sequence: 1 }))
+    }
+    if (key === "invoice_prefix" && !val) {
+      val = "SLP"
+      setShop((prev) => ({ ...prev, invoice_prefix: "SLP" }))
+    }
+    const fieldError = validateField(key, val, shop)
     setErrors((prev) => ({ ...prev, [key]: fieldError }))
   }
 
@@ -295,6 +311,12 @@ export function Shop({ user, setView } = {}) {
   const saveShop = async (e) => {
     e?.preventDefault?.()
 
+    const sanitizedShop = {
+      ...shop,
+      invoice_prefix: (shop.invoice_prefix || "SLP").trim().toUpperCase(),
+      invoice_sequence: shop.invoice_sequence && !isNaN(Number(shop.invoice_sequence)) && Number(shop.invoice_sequence) >= 1 ? Number(shop.invoice_sequence) : 1
+    }
+
     setTouched({
       name: true,
       phone: true,
@@ -303,7 +325,7 @@ export function Shop({ user, setView } = {}) {
       invoice_sequence: true
     })
 
-    const validationErrors = validateAll(shop)
+    const validationErrors = validateAll(sanitizedShop)
     if (Object.keys(validationErrors).length > 0) {
       const errMsg = t("validation.fixErrors", "Please fix the validation errors before saving.")
       if (toastWarning) {
@@ -318,10 +340,13 @@ export function Shop({ user, setView } = {}) {
     try {
       const updatedShop = await call("/shop", {
         method: "PUT",
-        body: JSON.stringify(shop)
+        body: JSON.stringify(sanitizedShop)
       })
-      if (updatedShop?.logo_url) {
+      if (updatedShop?.logo_url !== undefined) {
         setShop((prev) => ({ ...prev, logo_url: updatedShop.logo_url }))
+      } else if (sanitizedShop.logo_url) {
+        // Server didn't return logo_url — keep the local base64 version
+        setShop((prev) => ({ ...prev, logo_url: sanitizedShop.logo_url }))
       }
       if (user?.id) {
         if (shop.name && shop.phone && shop.phone.trim() && shop.address && shop.address.trim()) {
@@ -466,7 +491,7 @@ export function Shop({ user, setView } = {}) {
 
       {/* Top Card: Store Details */}
       <div className="sp-store-details-card">
-        {/* Mobile Header Row (Visible only on mobile) */}
+        {/* Mobile Header Row (Visible only on mobile <= 640px) */}
         <div className="sp-store-mobile-header mobile-only">
           <div className="sp-icon-box blue">
             <Store size={18} />
@@ -489,69 +514,222 @@ export function Shop({ user, setView } = {}) {
           </button>
         </div>
 
-        <div className="sp-store-left">
+        {/* Mobile Logo & Actions (Visible only on mobile <= 640px) */}
+        <div className="sp-store-mobile-actions mobile-only">
           <div className={`sp-avatar-wrap ${shop.logo_url ? "has-image" : ""}`} onClick={() => logoInputRef.current?.click()} title={t("profile.clickChangeLogo", "Click to change logo")}>
             {shop.logo_url ? (
               <img src={shop.logo_url} alt="Shop Logo" className="sp-avatar-img" />
             ) : (
               <span className="sp-avatar-letter">{shop.name ? shop.name.trim().charAt(0).toUpperCase() : "H"}</span>
             )}
-            <button type="button" className="sp-camera-btn" title={t("profile.changeLogo", "Change logo")} aria-label={t("profile.changeLogo", "Change logo")}>
-              <Camera size={13} />
-            </button>
           </div>
-
-          <div className="sp-store-info">
-            <span className="sp-store-eyebrow desktop-only">{t("profile.storeIdentity", "STORE DETAILS")}</span>
-            <div className="sp-store-name-row desktop-only">
-              <h2 className="sp-store-name">{shop.name || "Hydrabadi Biryani , Chopda"}</h2>
+          <div className="sp-mobile-logo-btns-col">
+            <div className="sp-logo-buttons-group">
               <button
                 type="button"
-                className="sp-edit-icon-btn"
-                onClick={() => shopNameInputRef.current?.focus()}
-                title={t("profile.editShopName", "Edit Shop Name")}
-                aria-label={t("profile.editShopName", "Edit Shop Name")}
+                className="sp-change-logo-btn"
+                onClick={() => logoInputRef.current?.click()}
               >
-                <Edit2 size={15} />
+                <Camera size={14} /> {t("profile.changeLogo", "Change Logo")}
               </button>
-              <span className="sp-verified-badge">
-                <Check size={12} strokeWidth={3} /> {t("profile.verifiedStore", "Verified Store")}
-              </span>
+              <button
+                type="button"
+                className="sp-remove-logo-btn"
+                onClick={() => setIsRemoveLogoModalOpen(true)}
+              >
+                <Trash2 size={14} /> {t("profile.removeLogo", "Remove Logo")}
+              </button>
             </div>
-            <p className="sp-store-subtext">{t("profile.storeSubtext", "These details will appear on your thermal receipt and invoice.")}</p>
+            <span className="sp-logo-hint">{t("profile.recommendedSize", "Recommended size: 512 × 512")}</span>
+          </div>
+        </div>
+
+        {/* Mobile Details: Subtext & Pills */}
+        <div className="sp-store-mobile-details mobile-only">
+          <p className="sp-store-subtext">{t("profile.storeSubtext", "These details will appear on your thermal receipt and invoice.")}</p>
+          {(shop.phone || shop.address) && (
             <div className="sp-store-pills-row">
               {shop.phone && (
                 <span className="sp-info-pill">
-                  <Phone size={13} /> {shop.phone}
+                  <Phone size={13} /> <span className="sp-pill-text">{shop.phone}</span>
                 </span>
               )}
               {shop.address && (
                 <span className="sp-info-pill" title={shop.address}>
-                  <MapPin size={13} /> {shop.address}
+                  <MapPin size={13} /> <span className="sp-pill-text">{shop.address}</span>
                 </span>
               )}
             </div>
+          )}
+        </div>
+
+        {/* Desktop Content (Visible only on desktop > 640px) */}
+        <div className="sp-store-desktop-content desktop-only">
+          <div className="sp-store-left">
+            <div className={`sp-avatar-wrap ${shop.logo_url ? "has-image" : ""}`} onClick={() => logoInputRef.current?.click()} title={t("profile.clickChangeLogo", "Click to change logo")}>
+              {shop.logo_url ? (
+                <img src={shop.logo_url} alt="Shop Logo" className="sp-avatar-img" />
+              ) : (
+                <span className="sp-avatar-letter">{shop.name ? shop.name.trim().charAt(0).toUpperCase() : "H"}</span>
+              )}
+            </div>
+
+            <div className="sp-store-info">
+              <span className="sp-store-eyebrow">{t("profile.storeIdentity", "STORE DETAILS")}</span>
+              <div className="sp-store-name-row">
+                <h2 className="sp-store-name">{shop.name || "Hydrabadi Biryani , Chopda"}</h2>
+                <button
+                  type="button"
+                  className="sp-edit-icon-btn"
+                  onClick={() => shopNameInputRef.current?.focus()}
+                  title={t("profile.editShopName", "Edit Shop Name")}
+                  aria-label={t("profile.editShopName", "Edit Shop Name")}
+                >
+                  <Edit2 size={15} />
+                </button>
+                <span className="sp-verified-badge">
+                  <Check size={12} strokeWidth={3} /> {t("profile.verifiedStore", "Verified Store")}
+                </span>
+              </div>
+              <p className="sp-store-subtext">{t("profile.storeSubtext", "These details will appear on your thermal receipt and invoice.")}</p>
+              <div className="sp-store-pills-row">
+                {shop.phone && (
+                  <span className="sp-info-pill">
+                    <Phone size={13} /> <span className="sp-pill-text">{shop.phone}</span>
+                  </span>
+                )}
+                {shop.address && (
+                  <span className="sp-info-pill" title={shop.address}>
+                    <MapPin size={13} /> <span className="sp-pill-text">{shop.address}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="sp-store-right">
+            <div className="sp-logo-buttons-group">
+              <button
+                type="button"
+                className="sp-change-logo-btn"
+                onClick={() => logoInputRef.current?.click()}
+              >
+                <Camera size={14} /> {t("profile.changeLogo", "Change Logo")}
+              </button>
+              <button
+                type="button"
+                className="sp-remove-logo-btn"
+                onClick={() => setIsRemoveLogoModalOpen(true)}
+              >
+                <Trash2 size={14} /> {t("profile.removeLogo", "Remove Logo")}
+              </button>
+            </div>
+            <span className="sp-logo-hint">{t("profile.recommendedSize", "Recommended size: 512 × 512")}</span>
           </div>
         </div>
 
-        <div className="sp-store-right">
-          <input
-            type="file"
-            ref={logoInputRef}
-            accept="image/*"
-            style={{ display: "none" }}
-            onChange={handleLogoUpload}
-          />
-          <button
-            type="button"
-            className="sp-change-logo-btn"
-            onClick={() => logoInputRef.current?.click()}
-          >
-            <Upload size={14} /> {t("profile.changeLogo", "Change Logo")}
-          </button>
-          <span className="sp-logo-hint">{t("profile.recommendedSize", "Recommended size: 512 × 512")}</span>
-        </div>
+        <input
+          type="file"
+          ref={logoInputRef}
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={handleLogoUpload}
+        />
       </div>
+
+      {/* Remove Shop Logo Confirmation Modal */}
+      {isRemoveLogoModalOpen && (
+        <div
+          onClick={() => setIsRemoveLogoModalOpen(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(15, 23, 42, 0.55)",
+            backdropFilter: "blur(4px)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+            paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+            overscrollBehavior: "contain",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "420px",
+              boxShadow: "0 20px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.08)",
+              border: "1px solid #fecdd3",
+              overflow: "hidden",
+              animation: "scaleUp 0.18s ease",
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "1.2rem 1.25rem 1rem" }}>
+              <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "#ffe4e6", color: "#e11d48", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <AlertTriangle size={20} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.3rem" }}>
+                  {t("profile.removeLogoTitle", "Remove shop logo?")}
+                </h3>
+                <p style={{ fontSize: "0.82rem", color: "#64748b", margin: 0, lineHeight: 1.45 }}>
+                  {t("profile.removeLogoDesc", "Are you sure you want to remove your shop logo? It will no longer appear on your receipts.")}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", padding: "0.85rem 1.25rem", background: "#f8fafc", borderTop: "1px solid #f1f5f9" }}>
+              <button
+                type="button"
+                onClick={() => setIsRemoveLogoModalOpen(false)}
+                style={{
+                  padding: "0.6rem 1.1rem",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  borderRadius: "9px",
+                  border: "1.5px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#334155",
+                  cursor: "pointer",
+                  minWidth: "80px",
+                }}
+              >
+                {t("common.cancel", "Cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRemoveLogo}
+                style={{
+                  padding: "0.6rem 1.1rem",
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  borderRadius: "9px",
+                  border: "none",
+                  background: "#e11d48",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  minWidth: "80px",
+                }}
+              >
+                <Trash2 size={14} />
+                {t("profile.removeLogoBtn", "Remove Logo")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Two-Column Desktop Grid Layout */}
       <form className="sp-desktop-layout" onSubmit={saveShop} noValidate>
@@ -869,15 +1047,15 @@ export function Shop({ user, setView } = {}) {
 
               <div className="sp-field-group">
                 <label className="sp-label">
-                  {t("profile.startingSequence", "Next Invoice Number")} <span className="sp-req">*</span>
+                  {t("profile.startingSequence", "Next Invoice Number")}
                 </label>
                 <div className={`sp-input-wrap ${touched.invoice_sequence && errors.invoice_sequence ? "error" : ""}`}>
                   <span className="sp-hash-adornment">#</span>
                   <input
                     type="number"
                     min="1"
-                    placeholder="7"
-                    value={shop.invoice_sequence}
+                    placeholder="1"
+                    value={shop.invoice_sequence || ""}
                     onChange={(e) => handleChange("invoice_sequence", e.target.value)}
                     onBlur={() => handleBlur("invoice_sequence")}
                     className="sp-input"
@@ -1012,9 +1190,7 @@ export function Shop({ user, setView } = {}) {
             )}
           </div>
         </div>
-      </form>
-
-      <style>{`
+      </form>      <style>{`
         /* ============================================================
            SLIPZO SHOP PROFILE — EXACT REFERENCE UI DESIGN
            ============================================================ */
@@ -1065,16 +1241,22 @@ export function Shop({ user, setView } = {}) {
         /* Store Details Top Card */
         .sp-store-details-card {
           background: #ffffff;
-          border: 1.5px solid #F7CDAB;
+          border: 1.5px solid #bae6fd;
           border-radius: 16px;
           padding: 1.15rem 1.5rem;
           box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04);
           display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-bottom: 1.25rem;
+        }
+
+        .sp-store-desktop-content {
+          display: flex;
           justify-content: space-between;
           align-items: center;
           gap: 1.5rem;
-          flex-wrap: wrap;
-          margin-bottom: 1.25rem;
+          width: 100%;
         }
 
         .sp-store-left {
@@ -1089,7 +1271,7 @@ export function Shop({ user, setView } = {}) {
           width: 66px;
           height: 66px;
           border-radius: 18px;
-          background: linear-gradient(135deg, #FB821B 0%, #F66016 100%);
+          background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
           color: #ffffff;
           display: flex;
           align-items: center;
@@ -1097,13 +1279,15 @@ export function Shop({ user, setView } = {}) {
           position: relative;
           flex-shrink: 0;
           cursor: pointer;
-          box-shadow: 0 2px 8px rgba(246, 96, 22, 0.28);
+          box-shadow: 0 2px 8px rgba(2, 132, 199, 0.28);
+          overflow: hidden;
         }
 
         .sp-avatar-wrap.has-image {
-          background: transparent !important;
-          box-shadow: none !important;
+          background: #f8fafc !important;
+          box-shadow: 0 0 0 2px #e2e8f0 !important;
           border: none !important;
+          overflow: hidden;
         }
 
         .sp-avatar-letter {
@@ -1115,9 +1299,9 @@ export function Shop({ user, setView } = {}) {
         .sp-avatar-img {
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: contain;
           border-radius: 18px;
-          background: transparent !important;
+          background: #f8fafc !important;
           display: block;
         }
 
@@ -1128,7 +1312,7 @@ export function Shop({ user, setView } = {}) {
           width: 24px;
           height: 24px;
           border-radius: 50%;
-          background: #F66016;
+          background: #0284c7;
           border: 2px solid #ffffff;
           display: flex;
           align-items: center;
@@ -1140,7 +1324,7 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-camera-btn:hover {
-          background: #FA4406;
+          background: #0369a1;
           transform: scale(1.05);
         }
 
@@ -1179,7 +1363,7 @@ export function Shop({ user, setView } = {}) {
         .sp-edit-icon-btn {
           background: none;
           border: none;
-          color: #F66016;
+          color: #0284c7;
           cursor: pointer;
           display: inline-flex;
           align-items: center;
@@ -1189,8 +1373,8 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-edit-icon-btn:hover {
-          background: #FFF0E5;
-          color: #FA4406;
+          background: #e0f2fe;
+          color: #0369a1;
         }
 
         .sp-verified-badge {
@@ -1223,24 +1407,38 @@ export function Shop({ user, setView } = {}) {
           display: inline-flex;
           align-items: center;
           gap: 0.4rem;
-          background: #FFF0E5;
-          border: 1px solid #FADCC3;
+          background: #f0f9ff;
+          border: 1px solid #bae6fd;
           border-radius: 8px;
           padding: 0.28rem 0.7rem;
           font-size: 0.8rem;
           font-weight: 600;
-          color: #F66016;
+          color: #0284c7;
           max-width: 420px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
+        .sp-pill-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          min-width: 0;
+        }
+
         .sp-store-right {
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-end;
           flex-shrink: 0;
+          gap: 0.35rem;
+        }
+
+        .sp-logo-buttons-group {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
 
         .sp-change-logo-btn {
@@ -1248,8 +1446,8 @@ export function Shop({ user, setView } = {}) {
           align-items: center;
           gap: 0.45rem;
           background: #ffffff;
-          color: #F66016;
-          border: 1.5px solid #F7CDAB;
+          color: #0284c7;
+          border: 1.5px solid #bae6fd;
           border-radius: 10px;
           padding: 0.55rem 1.15rem;
           font-size: 0.85rem;
@@ -1259,15 +1457,35 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-change-logo-btn:hover {
-          background: #FFF0E5;
-          border-color: #F66016;
-          color: #FA4406;
+          background: #e0f2fe;
+          border-color: #0284c7;
+          color: #0369a1;
+        }
+
+        .sp-remove-logo-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          background: #ffffff;
+          color: #e11d48;
+          border: 1.5px solid #fecdd3;
+          border-radius: 10px;
+          padding: 0.55rem 1.15rem;
+          font-size: 0.85rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .sp-remove-logo-btn:hover {
+          background: #fff1f2;
+          border-color: #fda4af;
         }
 
         .sp-logo-hint {
           font-size: 0.72rem;
           color: #8F93A5;
-          margin-top: 0.35rem;
+          margin-top: 0.15rem;
         }
 
         /* Two-Column Desktop Grid Layout */
@@ -1295,7 +1513,7 @@ export function Shop({ user, setView } = {}) {
         /* Reusable Card Style */
         .sp-card {
           background: #ffffff;
-          border: 1.5px solid #F7CDAB;
+          border: 1.5px solid #bae6fd;
           border-radius: 16px;
           padding: 1.25rem 1.35rem;
           box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04);
@@ -1319,9 +1537,9 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-icon-box.blue {
-          background: #FFF0E5;
-          border: 1.5px solid #FADCC3;
-          color: #F66016;
+          background: #f0f9ff;
+          border: 1.5px solid #bae6fd;
+          color: #0284c7;
         }
 
         .sp-icon-box.green {
@@ -1331,9 +1549,9 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-icon-box.purple {
-          background: #FFF2DE;
-          border: 1.5px solid #FADCC3;
-          color: #FB821B;
+          background: #f0f9ff;
+          border: 1.5px solid #bae6fd;
+          color: #0284c7;
         }
 
         .sp-card-titles {
@@ -1423,8 +1641,8 @@ export function Shop({ user, setView } = {}) {
         .sp-input-wrap:focus-within,
         .sp-select-wrap:focus-within,
         .sp-textarea-wrap:focus-within {
-          border-color: #F66016;
-          box-shadow: 0 0 0 3px rgba(246, 96, 22, 0.12);
+          border-color: #0284c7;
+          box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
         .sp-input-wrap.error,
@@ -1482,13 +1700,13 @@ export function Shop({ user, setView } = {}) {
 
         .sp-textarea-wrap {
           align-items: flex-start;
-          padding-top: 0.4rem;
+          padding: 0;
         }
 
         .sp-textarea-icon {
           position: absolute;
           left: 0.85rem;
-          top: 0.75rem;
+          top: 0.65rem;
           color: #8F93A5;
           pointer-events: none;
         }
@@ -1498,14 +1716,14 @@ export function Shop({ user, setView } = {}) {
           border: none;
           outline: none;
           background: transparent;
-          padding: 0.35rem 2.5rem 0.55rem 2.4rem;
+          padding: 0.6rem 2.6rem 0.6rem 2.85rem;
           font-size: 0.88rem;
           color: #0C1F41;
           resize: vertical;
-          min-height: 56px;
+          min-height: 68px;
           font-family: inherit;
           box-sizing: border-box;
-          line-height: 1.4;
+          line-height: 1.45;
         }
 
         .sp-voice-wrap {
@@ -1517,6 +1735,7 @@ export function Shop({ user, setView } = {}) {
 
         .sp-voice-wrap.textarea-voice {
           top: 0.55rem;
+          right: 0.65rem;
         }
 
         .sp-helper-text {
@@ -1563,21 +1782,21 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-preset-btn:hover {
-          background: #FFF0E5;
-          border-color: #F7CDAB;
-          color: #F66016;
+          background: #e0f2fe;
+          border-color: #bae6fd;
+          color: #0284c7;
         }
 
         .sp-preset-btn.active {
-          background: #F66016;
-          border-color: #F66016;
+          background: #0284c7;
+          border-color: #0284c7;
           color: #ffffff;
         }
 
         /* Live Receipt Preview Card */
         .sp-preview-card {
           background: #ffffff;
-          border: 1.5px solid #F7CDAB;
+          border: 1.5px solid #bae6fd;
           border-radius: 16px;
           padding: 1.15rem 1.25rem;
           box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04);
@@ -1621,12 +1840,12 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-paper-dropdown:focus {
-          border-color: #F66016;
+          border-color: #0284c7;
         }
 
         .sp-receipt-wrapper {
-          background: #FDF4EB;
-          border: 1px solid #FADCC3;
+          background: #f0f9ff;
+          border: 1px solid #bae6fd;
           border-radius: 12px;
           padding: 0.5rem;
           display: flex;
@@ -1640,7 +1859,7 @@ export function Shop({ user, setView } = {}) {
         }
 
         .desktop-only {
-          display: flex;
+          display: flex !important;
         }
 
         /* Compact Attractive Top-Right Save Settings Button & Alerts */
@@ -1648,7 +1867,7 @@ export function Shop({ user, setView } = {}) {
           display: inline-flex;
           align-items: center;
           gap: 0.45rem;
-          background: #F66016;
+          background: #0284c7;
           color: #ffffff;
           border: none;
           border-radius: 9px;
@@ -1656,14 +1875,14 @@ export function Shop({ user, setView } = {}) {
           font-size: 0.88rem;
           font-weight: 700;
           cursor: pointer;
-          box-shadow: 0 2px 6px rgba(246, 96, 22, 0.28);
+          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.28);
           transition: all 0.15s ease;
           white-space: nowrap;
         }
 
         .sp-top-save-btn:hover:not(:disabled) {
-          background: #FA4406;
-          box-shadow: 0 4px 10px rgba(246, 96, 22, 0.38);
+          background: #0369a1;
+          box-shadow: 0 4px 10px rgba(2, 132, 199, 0.38);
           transform: translateY(-1px);
         }
 
@@ -1712,7 +1931,15 @@ export function Shop({ user, setView } = {}) {
            ============================================================ */
         @media (max-width: 960px) {
           .sp-desktop-layout {
-            grid-template-columns: 1fr;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1.15rem !important;
+            width: 100% !important;
+          }
+
+          .sp-left-col,
+          .sp-right-col {
+            width: 100% !important;
           }
         }
 
@@ -1726,8 +1953,9 @@ export function Shop({ user, setView } = {}) {
           }
 
           .shop-page {
-            padding: 0.6rem 0.5rem calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+            padding: 0.65rem 0.55rem calc(85px + env(safe-area-inset-bottom, 0px)) !important;
             max-width: 100% !important;
+            box-sizing: border-box !important;
             overflow-x: hidden !important;
           }
 
@@ -1750,10 +1978,10 @@ export function Shop({ user, setView } = {}) {
           }
 
           .sp-title {
-            font-size: 1.45rem !important;
+            font-size: 1.35rem !important;
             font-weight: 800 !important;
             color: #0C1F41 !important;
-            margin: 0 0 0.25rem 0 !important;
+            margin: 0 0 0.15rem 0 !important;
             line-height: 1.2 !important;
           }
 
@@ -1769,9 +1997,9 @@ export function Shop({ user, setView } = {}) {
           .sp-store-details-card,
           .sp-preview-card {
             background: #ffffff !important;
-            border: 1.5px solid #F7CDAB !important;
+            border: 1.5px solid #bae6fd !important;
             border-radius: 14px !important;
-            padding: 1rem 0.95rem !important;
+            padding: 0.95rem 0.85rem !important;
             box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04) !important;
             width: 100% !important;
             box-sizing: border-box !important;
@@ -1789,7 +2017,7 @@ export function Shop({ user, setView } = {}) {
             display: flex !important;
             align-items: flex-start !important;
             justify-content: space-between !important;
-            gap: 0.75rem !important;
+            gap: 0.65rem !important;
             width: 100% !important;
             margin-bottom: 0.15rem !important;
           }
@@ -1809,7 +2037,7 @@ export function Shop({ user, setView } = {}) {
           }
 
           .sp-store-eyebrow {
-            font-size: 0.7rem !important;
+            font-size: 0.68rem !important;
             font-weight: 700 !important;
             letter-spacing: 0.05em !important;
             color: #74788A !important;
@@ -1821,7 +2049,7 @@ export function Shop({ user, setView } = {}) {
             font-size: 1.15rem !important;
             font-weight: 800 !important;
             color: #0C1F41 !important;
-            margin: 0 0 0.35rem 0 !important;
+            margin: 0 0 0.25rem 0 !important;
             line-height: 1.25 !important;
             word-break: break-word !important;
           }
@@ -1841,7 +2069,7 @@ export function Shop({ user, setView } = {}) {
           }
 
           .sp-edit-icon-btn {
-            color: #F66016 !important;
+            color: #0284c7 !important;
             padding: 4px !important;
             background: transparent !important;
             border: none !important;
@@ -1849,9 +2077,10 @@ export function Shop({ user, setView } = {}) {
             flex-shrink: 0 !important;
           }
 
-          .sp-store-left {
+          /* Mobile Logo & Buttons Row */
+          .sp-store-mobile-actions {
             display: flex !important;
-            align-items: flex-start !important;
+            align-items: center !important;
             gap: 0.85rem !important;
             width: 100% !important;
           }
@@ -1861,16 +2090,7 @@ export function Shop({ user, setView } = {}) {
             height: 54px !important;
             border-radius: 14px !important;
             flex-shrink: 0 !important;
-          }
-
-          .sp-avatar-wrap.has-image {
-            background: transparent !important;
-            box-shadow: none !important;
-            border: none !important;
-          }
-
-          .sp-avatar-wrap.has-image .sp-avatar-img {
-            border-radius: 14px !important;
+            overflow: hidden !important;
           }
 
           .sp-avatar-letter {
@@ -1889,18 +2109,69 @@ export function Shop({ user, setView } = {}) {
             height: 11px !important;
           }
 
-          .sp-store-info {
+          .sp-mobile-logo-btns-col {
             display: flex !important;
             flex-direction: column !important;
+            gap: 0.25rem !important;
             flex: 1 !important;
             min-width: 0 !important;
           }
 
+          .sp-logo-buttons-group {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 0.45rem !important;
+            width: 100% !important;
+          }
+
+          .sp-change-logo-btn,
+          .sp-remove-logo-btn {
+            flex: 1 !important;
+            min-width: 0 !important;
+            height: 38px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.35rem !important;
+            border-radius: 10px !important;
+            font-size: 0.82rem !important;
+            font-weight: 700 !important;
+            padding: 0 0.5rem !important;
+            white-space: nowrap !important;
+          }
+
+          .sp-change-logo-btn {
+            background: #ffffff !important;
+            color: #0284c7 !important;
+            border: 1.5px solid #bae6fd !important;
+          }
+
+          .sp-remove-logo-btn {
+            background: #ffffff !important;
+            color: #e11d48 !important;
+            border: 1.5px solid #fecdd3 !important;
+          }
+
+          .sp-logo-hint {
+            font-size: 0.7rem !important;
+            color: #8F93A5 !important;
+            text-align: left !important;
+            margin: 0 !important;
+          }
+
+          /* Mobile Store Subtext & Contact Pills */
+          .sp-store-mobile-details {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+            width: 100% !important;
+          }
+
           .sp-store-subtext {
-            font-size: 0.78rem !important;
+            font-size: 0.8rem !important;
             color: #74788A !important;
-            margin: 0 0 0.5rem 0 !important;
-            line-height: 1.35 !important;
+            margin: 0 !important;
+            line-height: 1.4 !important;
           }
 
           .sp-store-pills-row {
@@ -1914,13 +2185,13 @@ export function Shop({ user, setView } = {}) {
             display: flex !important;
             align-items: center !important;
             gap: 0.45rem !important;
-            background: #FFF0E5 !important;
-            border: 1px solid #FADCC3 !important;
+            background: #f0f9ff !important;
+            border: 1px solid #bae6fd !important;
             border-radius: 8px !important;
-            padding: 0.35rem 0.65rem !important;
+            padding: 0.4rem 0.65rem !important;
             font-size: 0.78rem !important;
             font-weight: 600 !important;
-            color: #F66016 !important;
+            color: #0284c7 !important;
             width: 100% !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
@@ -1929,36 +2200,12 @@ export function Shop({ user, setView } = {}) {
             max-width: 100% !important;
           }
 
-          .sp-store-right {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            width: 100% !important;
-            border-top: none !important;
-            padding-top: 0 !important;
-            margin-top: 0.25rem !important;
-          }
-
-          .sp-change-logo-btn {
-            width: 100% !important;
-            height: 38px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 0.45rem !important;
-            background: #ffffff !important;
-            color: #F66016 !important;
-            border: 1.5px solid #F7CDAB !important;
-            border-radius: 10px !important;
-            font-size: 0.84rem !important;
-            font-weight: 700 !important;
-          }
-
-          .sp-logo-hint {
-            font-size: 0.7rem !important;
-            color: #8F93A5 !important;
-            text-align: center !important;
-            margin-top: 0.35rem !important;
+          .sp-pill-text {
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            min-width: 0 !important;
+            flex: 1 !important;
           }
 
           /* Form & Card Flow */
@@ -2003,26 +2250,30 @@ export function Shop({ user, setView } = {}) {
 
           .sp-input-wrap,
           .sp-select-wrap {
-            height: 42px !important;
+            height: 44px !important;
             box-sizing: border-box !important;
+            width: 100% !important;
           }
 
           .sp-input {
             font-size: 0.88rem !important;
             padding: 0 2.2rem 0 2.3rem !important;
             height: 100% !important;
+            width: 100% !important;
           }
 
           .sp-select {
-            font-size: 0.88rem !important;
+            font-size: 0.86rem !important;
             padding: 0 2.1rem 0 2.3rem !important;
             height: 100% !important;
+            width: 100% !important;
           }
 
           .sp-textarea {
             font-size: 0.88rem !important;
-            padding: 0.45rem 2.2rem 0.45rem 2.3rem !important;
-            min-height: 64px !important;
+            padding: 0.6rem 2.6rem 0.6rem 2.85rem !important;
+            min-height: 68px !important;
+            width: 100% !important;
           }
 
           /* Live Receipt Preview Card */
@@ -2038,13 +2289,13 @@ export function Shop({ user, setView } = {}) {
           }
 
           .sp-receipt-wrapper {
-            background: #FDF4EB !important;
-            border: 1px solid #FADCC3 !important;
+            background: #f0f9ff !important;
+            border: 1px solid #bae6fd !important;
             border-radius: 12px !important;
             padding: 0.5rem 0.25rem !important;
             display: flex !important;
             justify-content: center !important;
-            overflow: hidden !important;
+            overflow-x: auto !important;
             width: 100% !important;
             box-sizing: border-box !important;
           }
@@ -2069,25 +2320,25 @@ export function Shop({ user, setView } = {}) {
 
           .sp-mobile-save-btn {
             width: 100% !important;
-            height: 44px !important;
+            height: 46px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             gap: 0.5rem !important;
-            background: #F66016 !important;
+            background: #0284c7 !important;
             color: #ffffff !important;
             border: none !important;
             border-radius: 10px !important;
-            font-size: 0.92rem !important;
+            font-size: 0.94rem !important;
             font-weight: 700 !important;
             cursor: pointer !important;
-            box-shadow: 0 2px 6px rgba(246, 96, 22, 0.28) !important;
-            transition: background-color 0.15s ease, transform 0.1s ease !important;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.28) !important;
+            transition: background-color 0.15s ease, transform 0.15s ease !important;
           }
 
           .sp-mobile-save-btn:active {
             transform: scale(0.99) !important;
-            background: #FA4406 !important;
+            background: #0369a1 !important;
           }
 
           .sp-mobile-save-btn:disabled {
@@ -2116,6 +2367,33 @@ export function Shop({ user, setView } = {}) {
             padding: 0.25rem 0.65rem !important;
             font-size: 0.78rem !important;
             font-weight: 700 !important;
+            text-align: center !important;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .shop-page {
+            padding: 0.5rem 0.35rem calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+
+          .sp-card,
+          .sp-store-details-card,
+          .sp-preview-card {
+            padding: 0.75rem 0.65rem !important;
+          }
+
+          .sp-store-mobile-actions {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+          }
+
+          .sp-mobile-logo-btns-col {
+            width: 100% !important;
+            align-items: center !important;
+          }
+
+          .sp-logo-hint {
             text-align: center !important;
           }
         }

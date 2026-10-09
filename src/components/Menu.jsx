@@ -19,15 +19,21 @@ import {
   SlidersHorizontal,
   Heart,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ArrowUpDown,
   LayoutGrid,
   Coffee,
   Croissant,
   Pizza,
   Soup,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Upload,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  Barcode as BarcodeIcon
 } from "lucide-react"
-import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, getCurrentUserKey, invalidateApiCache, DEFAULT_SHOP_MENU_ITEMS } from "../lib/utils"
+import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, DEFAULT_SHOP_MENU_ITEMS } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { Spinner } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
@@ -130,6 +136,31 @@ export function Menu({ setView, requireAuth, user }) {
   const defaultBusinessType = cachedShop?.business_type || "small_business"
   const [selectedBusinessType, setSelectedBusinessType] = useState(defaultBusinessType)
 
+  const isDefaultBarcodeActiveForBusinessType = (bType, catItem) => {
+    if (catItem) {
+      const bcode = String(catItem.barcode || "").toLowerCase()
+      const itemBType = String(catItem.business_type || "").toLowerCase()
+      if (bcode.startsWith("hotel-") || bcode.startsWith("sb-") || bcode.startsWith("cafe-") || itemBType.includes("hotel") || itemBType.includes("food") || itemBType.includes("small_business") || itemBType.includes("cafe")) {
+        return false
+      }
+      if (bcode.startsWith("kg-") || bcode.startsWith("kirana-") || bcode.startsWith("cg-") || bcode.startsWith("cloth-") || bcode.startsWith("garment-") || itemBType.includes("kirana") || itemBType.includes("clothing")) {
+        return true
+      }
+    }
+
+    const currentShop = getCachedData("/shop") || {}
+    const rawType = String(bType || selectedBusinessType || currentShop.business_type || user?.business_type || "").toLowerCase()
+    
+    if (rawType.includes("hotel") || rawType.includes("food") || rawType.includes("small_business") || rawType.includes("cafe")) {
+      return false
+    }
+    if (rawType.includes("kirana") || rawType.includes("grocery") || rawType.includes("cloth") || rawType.includes("garment")) {
+      return true
+    }
+
+    return false
+  }
+
   const getItemPlaceholderIcon = (category, sz = 22) => {
     const cat = (category || "").toLowerCase()
     const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment") || cat.includes("wear") || cat.includes("cloth") || cat.includes("garment") || cat.includes("shirt") || cat.includes("saree") || cat.includes("dress") || cat.includes("kids") || cat.includes("jacket")
@@ -147,6 +178,7 @@ export function Menu({ setView, requireAuth, user }) {
         setSelectedBusinessType(updatedShop.business_type)
         // Reset items to empty array & reload to ensure clean state
         setItems([])
+        clearStoredMenuItems(user)
         loadUserMenu(true)
         loadMasterCatalog(updatedShop.business_type)
       }
@@ -188,13 +220,17 @@ export function Menu({ setView, requireAuth, user }) {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [myMenuSort, setMyMenuSort] = useState("Latest")
   const [sortOpen, setSortOpen] = useState(false)
+  const [myMenuPage, setMyMenuPage] = useState(1)
+  const [myMenuPageSize, setMyMenuPageSize] = useState(12)
 
   // Edit personal item modal
   const [editingItem, setEditingItem] = useState(null)
+  const [editName, setEditName] = useState("")
   const [editPrice, setEditPrice] = useState("")
   const [editActive, setEditActive] = useState(true)
   const [editBarcodeActive, setEditBarcodeActive] = useState(true)
   const [isUpdatingPrice, setIsUpdatingPrice] = useState(false)
+  const [editFormError, setEditFormError] = useState("")
 
   // Delete item state
   const [deletingId, setDeletingId] = useState(null)
@@ -207,13 +243,15 @@ export function Menu({ setView, requireAuth, user }) {
   const [catalogSearch, setCatalogSearch] = useState("")
   const [catalogCategory, setCatalogCategory] = useState("all")
   const [catalogSort, setCatalogSort] = useState("Popular")
+  const [catalogPage, setCatalogPage] = useState(1)
+  const [catalogPageSize, setCatalogPageSize] = useState(12)
   const [filterOpen, setFilterOpen] = useState(false)
   const [favorites, setFavorites] = useState(() => new Set())
 
   // Add confirmation modal
   const [selectedCatalogItem, setSelectedCatalogItem] = useState(null)
   const [customPrice, setCustomPrice] = useState("")
-  const [addBarcodeActive, setAddBarcodeActive] = useState(true)
+  const [addBarcodeActive, setAddBarcodeActive] = useState(() => isDefaultBarcodeActiveForBusinessType(defaultBusinessType))
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false)
   const [addFormError, setAddFormError] = useState("")
 
@@ -226,13 +264,154 @@ export function Menu({ setView, requireAuth, user }) {
   const [customCat, setCustomCat] = useState("General")
   const [customItemPrice, setCustomItemPrice] = useState("")
   const [customBarcode, setCustomBarcode] = useState("")
-  const [customBarcodeActive, setCustomBarcodeActive] = useState(true)
+  const [customBarcodeActive, setCustomBarcodeActive] = useState(() => isDefaultBarcodeActiveForBusinessType(defaultBusinessType))
   const [customImageUrl, setCustomImageUrl] = useState("")
   const [customImagePreview, setCustomImagePreview] = useState("")
   const [customImageMode, setCustomImageMode] = useState("upload") // "upload" | "url"
   const [isCreatingCustom, setIsCreatingCustom] = useState(false)
   const [customFormError, setCustomFormError] = useState("")
   const customFileInputRef = useRef(null)
+
+  const handleOpenCustomModal = () => {
+    setCustomName("")
+    setCustomCat("General")
+    setCustomItemPrice("")
+    setCustomBarcode("")
+    setCustomBarcodeActive(isDefaultBarcodeActiveForBusinessType(selectedBusinessType))
+    setCustomImageUrl("")
+    setCustomImagePreview("")
+    setCustomFormError("")
+    setIsCustomModalOpen(true)
+  }
+
+  const handleCloseCustomModal = () => {
+    setIsCustomModalOpen(false)
+    setCustomName("")
+    setCustomCat("General")
+    setCustomItemPrice("")
+    setCustomBarcode("")
+    setCustomBarcodeActive(isDefaultBarcodeActiveForBusinessType(selectedBusinessType))
+    setCustomImageUrl("")
+    setCustomImagePreview("")
+    setCustomFormError("")
+  }
+
+  const handleCustomImageFileChange = (e) => {
+    const file = e.target?.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      setCustomFormError("Image file size must be less than 5MB.")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setCustomImagePreview(reader.result)
+      setCustomImageUrl(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveCustomImage = () => {
+    setCustomImageUrl("")
+    setCustomImagePreview("")
+    if (customFileInputRef.current) {
+      customFileInputRef.current.value = ""
+    }
+  }
+
+  const handleCustomItemPriceChange = (val) => {
+    setCustomItemPrice(val)
+    setCustomFormError("")
+  }
+
+  const handleCustomNameChange = (val) => {
+    setCustomName(val)
+    setCustomFormError("")
+  }
+
+  const handleSaveCustomItem = async (e) => {
+    e?.preventDefault()
+    if (isCreatingCustom) return
+
+    const trimmedName = customName.trim()
+    if (!trimmedName) {
+      setCustomFormError("Item name is required.")
+      return
+    }
+
+    const numPrice = parseFloat(customItemPrice)
+    if (customItemPrice === "" || isNaN(numPrice) || numPrice <= 0) {
+      setCustomFormError("Enter a valid price.")
+      return
+    }
+
+    const isDuplicate = items.some(
+      (it) => (it.name || "").trim().toLowerCase() === trimmedName.toLowerCase()
+    )
+    if (isDuplicate) {
+      setCustomFormError("A product with this name is already in your menu.")
+      return
+    }
+
+    const isCatalogDuplicate = catalogItems.some(
+      (it) => (it.name || "").trim().toLowerCase() === trimmedName.toLowerCase()
+    )
+    if (isCatalogDuplicate) {
+      setCustomFormError(`"${trimmedName}" already exists in the catalog. You can add it directly from the catalog.`)
+      return
+    }
+
+    setIsCreatingCustom(true)
+    setCustomFormError("")
+    try {
+      const finalImage = customImagePreview || customImageUrl || ""
+      const payload = {
+        name: trimmedName,
+        category: customCat.trim() || "General",
+        custom_price: numPrice,
+        price: numPrice,
+        image_url: finalImage,
+        barcode: customBarcode.trim() || undefined,
+        barcode_active: customBarcodeActive,
+        is_custom: true
+      }
+
+      const res = await call("/menu", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+
+      const newItem = {
+        id: res?.id || res?.menu_item_id || `custom_${Date.now()}`,
+        menu_item_id: res?.id || res?.menu_item_id || `custom_${Date.now()}`,
+        name: trimmedName,
+        category: customCat.trim() || "General",
+        price: numPrice,
+        custom_price: numPrice,
+        is_active: true,
+        image_url: finalImage,
+        barcode: customBarcode.trim() || res?.barcode || `BC${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+        barcode_active: customBarcodeActive
+      }
+
+      setItems((prev) => {
+        const next = [newItem, ...prev]
+        saveStoredMenuItems(next, user)
+        return next
+      })
+
+      invalidateApiCache("/menu")
+      toastSuccess(`Created custom product "${trimmedName}"`)
+      handleCloseCustomModal()
+    } catch (err) {
+      console.error("Error creating custom item:", err)
+      setCustomFormError(err?.message || "Unable to add the item. Please try again.")
+    } finally {
+      setIsCreatingCustom(false)
+    }
+  }
 
   // ==========================================
   // BODY SCROLL LOCK WHEN MODAL IS OPEN
@@ -299,6 +478,15 @@ export function Menu({ setView, requireAuth, user }) {
       toastError(errorMsg || "Couldn't recognize speech. Please try again.")
     }
   }, [errorMsg])
+
+  const handleVoiceSearchResult = (text) => {
+    const clean = String(text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim()
+    if (currentView === "my_menu") {
+      setSearch(clean)
+    } else {
+      setCatalogSearch(clean)
+    }
+  }
 
   // Fetch logged-in user's personal menu
   const loadUserMenu = async (showSpinner = false) => {
@@ -437,6 +625,19 @@ export function Menu({ setView, requireAuth, user }) {
     return res
   }, [items, search, selectedCategory, myMenuSort])
 
+  const totalMyMenuPages = useMemo(() => {
+    return Math.ceil(filteredUserItems.length / myMenuPageSize) || 1
+  }, [filteredUserItems.length, myMenuPageSize])
+
+  const paginatedUserItems = useMemo(() => {
+    const start = (myMenuPage - 1) * myMenuPageSize
+    return filteredUserItems.slice(start, start + myMenuPageSize)
+  }, [filteredUserItems, myMenuPage, myMenuPageSize])
+
+  useEffect(() => {
+    setMyMenuPage(1)
+  }, [search, selectedCategory, myMenuSort])
+
   // Filter & sort catalog items purely from authentic catalogItems
   const filteredCatalogItems = useMemo(() => {
     const q = catalogSearch.trim().toLowerCase()
@@ -460,6 +661,19 @@ export function Menu({ setView, requireAuth, user }) {
     return res
   }, [catalogItems, catalogSearch, catalogCategory, catalogSort, favorites])
 
+  const totalCatalogPages = useMemo(() => {
+    return Math.ceil(filteredCatalogItems.length / catalogPageSize) || 1
+  }, [filteredCatalogItems.length, catalogPageSize])
+
+  const paginatedCatalogItems = useMemo(() => {
+    const start = (catalogPage - 1) * catalogPageSize
+    return filteredCatalogItems.slice(start, start + catalogPageSize)
+  }, [filteredCatalogItems, catalogPage, catalogPageSize])
+
+  useEffect(() => {
+    setCatalogPage(1)
+  }, [catalogSearch, catalogCategory, catalogSort])
+
   const toggleFavorite = (id) => {
     setFavorites((prev) => {
       const next = new Set(prev)
@@ -471,12 +685,17 @@ export function Menu({ setView, requireAuth, user }) {
 
   const handleQuickAdd = async (catItem) => {
     const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
-    if (isAlreadyAdded) {
-      toastSuccess(`"${catItem.name}" is already in your menu`)
+    const hasSameName = items.some(
+      (it) => (it.name || "").trim().toLowerCase() === (catItem.name || "").trim().toLowerCase()
+    )
+    if (isAlreadyAdded || hasSameName) {
+      toastError(`"${catItem.name}" is already in your menu`)
       return
     }
 
     try {
+      const defaultBActive = isDefaultBarcodeActiveForBusinessType(selectedBusinessType)
+      const isBActive = catItem.barcode_active !== undefined ? Boolean(catItem.barcode_active) : defaultBActive
       const added = await call("/menu", {
         method: "POST",
         body: JSON.stringify({
@@ -484,9 +703,10 @@ export function Menu({ setView, requireAuth, user }) {
           name: catItem.name,
           category: catItem.category,
           custom_price: Number(catItem.price || 0),
-          image_url: catItem.image_url || ""
+          image_url: catItem.image_url || "",
+          barcode_active: isBActive
         })
-      }).catch(() => null)
+      })
 
       const newItem = {
         id: added?.id || `user_${Date.now()}`,
@@ -496,6 +716,7 @@ export function Menu({ setView, requireAuth, user }) {
         price: Number(catItem.price || 0),
         custom_price: Number(catItem.price || 0),
         is_active: true,
+        barcode_active: isBActive,
         image_url: catItem.image_url || ""
       }
 
@@ -507,21 +728,22 @@ export function Menu({ setView, requireAuth, user }) {
 
       toastSuccess(`Added "${catItem.name}" to My Menu!`)
     } catch (err) {
-      toastError("Failed to add item to menu.")
+      toastError(err?.message || "Failed to add item to menu.")
     }
   }
 
   const handleOpenAddModal = (catalogItem) => {
     setSelectedCatalogItem(catalogItem)
     setCustomPrice(catalogItem.price !== undefined ? String(catalogItem.price) : "")
-    setAddBarcodeActive(catalogItem.barcode_active !== false)
+    const defaultBActive = isDefaultBarcodeActiveForBusinessType(selectedBusinessType, catalogItem)
+    setAddBarcodeActive(defaultBActive)
     setAddFormError("")
   }
 
   const handleCloseAddModal = () => {
     setSelectedCatalogItem(null)
     setCustomPrice("")
-    setAddBarcodeActive(true)
+    setAddBarcodeActive(isDefaultBarcodeActiveForBusinessType(selectedBusinessType))
     setAddFormError("")
   }
 
@@ -535,6 +757,14 @@ export function Menu({ setView, requireAuth, user }) {
       return
     }
 
+    const hasSameName = items.some(
+      (it) => (it.name || "").trim().toLowerCase() === (selectedCatalogItem.name || "").trim().toLowerCase()
+    )
+    if (hasSameName) {
+      setAddFormError(`A product named "${selectedCatalogItem.name}" is already in your menu.`)
+      return
+    }
+
     setIsSubmittingAdd(true)
     try {
       const added = await call("/menu", {
@@ -544,9 +774,10 @@ export function Menu({ setView, requireAuth, user }) {
           name: selectedCatalogItem.name,
           category: selectedCatalogItem.category,
           custom_price: numPrice,
-          image_url: selectedCatalogItem.image_url || ""
+          image_url: selectedCatalogItem.image_url || "",
+          barcode_active: addBarcodeActive
         })
-      }).catch(() => null)
+      })
 
       const newItem = {
         id: added?.id || `user_${Date.now()}`,
@@ -556,6 +787,7 @@ export function Menu({ setView, requireAuth, user }) {
         price: numPrice,
         custom_price: numPrice,
         is_active: true,
+        barcode_active: addBarcodeActive,
         image_url: selectedCatalogItem.image_url || ""
       }
 
@@ -568,7 +800,7 @@ export function Menu({ setView, requireAuth, user }) {
       toastSuccess(`Added "${selectedCatalogItem.name}" to My Menu!`)
       handleCloseAddModal()
     } catch (err) {
-      toastError("Failed to add item to menu.")
+      setAddFormError(err?.message || "Failed to add item to menu.")
     } finally {
       setIsSubmittingAdd(false)
     }
@@ -576,32 +808,41 @@ export function Menu({ setView, requireAuth, user }) {
 
   const handleOpenEditModal = (userItem) => {
     setEditingItem(userItem)
-    setEditPrice(userItem.price !== undefined ? String(userItem.price) : "")
-    setEditActive(userItem.is_active !== undefined ? Boolean(userItem.is_active) : true)
-    setEditBarcodeActive(userItem.barcode_active !== false)
+    setEditName(userItem?.name || "")
+    setEditPrice(userItem?.price !== undefined ? String(userItem.price) : "")
+    setEditActive(userItem?.is_active !== undefined ? Boolean(userItem.is_active) : true)
+    const isBActive = userItem?.barcode_active !== false && userItem?.barcode_active !== 0 && userItem?.barcode_active !== "0" && userItem?.barcode_active !== "false"
+    setEditBarcodeActive(isBActive)
+    setEditFormError("")
   }
 
   const handleCloseEditModal = () => {
     setEditingItem(null)
+    setEditName("")
     setEditPrice("")
     setEditBarcodeActive(true)
+    setEditFormError("")
   }
 
   const handleSaveEditPrice = async (e) => {
     e?.preventDefault()
-    if (!editingItem) return
+    if (!editingItem || isUpdatingPrice) return
+
+    const trimmedName = (editingItem?.name || "").trim()
 
     const numPrice = parseFloat(editPrice)
-    if (editPrice === "" || isNaN(numPrice) || numPrice < 0) {
-      toastError("Please enter a valid price.")
+    if (editPrice === "" || isNaN(numPrice) || numPrice <= 0) {
+      setEditFormError("Enter a valid price.")
       return
     }
 
     setIsUpdatingPrice(true)
+    setEditFormError("")
     try {
       await call(`/menu/${editingItem.id}`, {
         method: "PUT",
         body: JSON.stringify({
+          name: trimmedName,
           custom_price: numPrice,
           is_active: editActive,
           barcode_active: editBarcodeActive
@@ -609,25 +850,61 @@ export function Menu({ setView, requireAuth, user }) {
       }).catch(() => null)
 
       setItems((prev) => {
-        const next = prev.map((it) => (it.id === editingItem.id ? { ...it, price: numPrice, custom_price: numPrice, is_active: editActive } : it))
+        const next = prev.map((it) => (it.id === editingItem.id ? { ...it, name: trimmedName, price: numPrice, custom_price: numPrice, is_active: editActive, barcode_active: editBarcodeActive } : it))
         saveStoredMenuItems(next, user)
         return next
       })
 
-      toastSuccess(`Updated "${editingItem.name}"`)
+      toastSuccess(`Updated "${trimmedName}"`)
       handleCloseEditModal()
     } catch (err) {
-      toastError("Unable to update selling price.")
+      setEditFormError("Unable to update item. Please try again.")
     } finally {
       setIsUpdatingPrice(false)
     }
   }
 
-  const handleRemoveFromUserMenu = async (userItem) => {
-    const itemName = userItem.name || "item"
-    if (!window.confirm(`Remove "${itemName}" from your menu?`)) {
+  const handleRemoveFromUserMenu = async (userItem, e) => {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+
+    if (!userItem || deletingId === userItem.id || (typeof Swal !== "undefined" && Swal.isVisible())) {
       return
     }
+
+    const itemName = userItem?.name || "item"
+
+    // Step 1: First SweetAlert2 confirmation
+    const firstResult = await Swal.fire({
+      title: "Remove menu item?",
+      text: `Remove "${itemName}" from your menu?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Remove",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true
+    })
+
+    if (!firstResult.isConfirmed) return
+
+    // Step 2: Second SweetAlert2 confirmation
+    const secondResult = await Swal.fire({
+      title: "Confirm to remove?",
+      text: "Are you sure you want to remove this menu item?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: true
+    })
+
+    if (!secondResult.isConfirmed) return
 
     setDeletingId(userItem.id)
     try {
@@ -687,63 +964,47 @@ export function Menu({ setView, requireAuth, user }) {
              IMAGE 2: Shop Menu List View
              ================================================================ */
           <div className="mob-shop-menu-view">
-            {/* Top Action Bar */}
+            {/* Top Action Bar: 3 buttons in a line */}
             <div className="mob-menu-top-header">
-              <div className="mob-menu-eyebrow-pill">
-                <Utensils size={13} />
-                <span>SHOP MENU</span>
-              </div>
-              <div className="mob-menu-top-actions">
-                <button
-                  type="button"
-                  className="mob-menu-add-item-btn"
-                  onClick={() => setCurrentView("add_items")}
-                >
-                  <Plus size={16} />
-                  <span>Add Item</span>
-                </button>
-                <button
-                  type="button"
-                  className={`mob-menu-voice-btn ${isListening ? "listening" : ""}`}
-                  onClick={handleToggleVoiceSearch}
-                >
-                  <Mic size={15} />
-                  <span>{isListening ? "Listening..." : "Add by Voice"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="mob-menu-search-bar">
-              <Search size={18} className="mob-search-icon" />
-              <input
-                type="text"
-                value={isListening && transcript ? transcript : search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search menu items (e.g. coffee, milk, bread...)"
-              />
               <button
                 type="button"
-                className={`mob-search-mic-btn ${isListening ? "listening" : ""}`}
+                className="mob-menu-btn mob-menu-add-btn"
+                onClick={() => {
+                  setCurrentView("add_items")
+                  setCatalogSearch("")
+                }}
+                title={t("menu.addItems", "Add Items")}
+              >
+                <Plus size={15} />
+                <span className="mob-btn-text-full">{t("menu.addItem", "Add Item")}</span>
+                <span className="mob-btn-text-short">{t("menu.add", "Add")}</span>
+              </button>
+
+              <button
+                type="button"
+                className="mob-menu-btn mob-menu-custom-btn"
+                onClick={handleOpenCustomModal}
+                title={t("menu.createCustom", "Create Custom Item")}
+              >
+                <Sparkles size={14} />
+                <span className="mob-btn-text-full">{t("menu.customItem", "Custom Item")}</span>
+                <span className="mob-btn-text-short">{t("menu.custom", "Custom")}</span>
+              </button>
+
+              <button
+                type="button"
+                className={`mob-menu-btn mob-menu-voice-btn ${isListening ? "listening" : ""}`}
                 onClick={handleToggleVoiceSearch}
                 title={isListening ? t("menu.clickToStop", "Click to stop listening") : t("menu.addByVoice", "Add item by speaking its name")}
                 style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
               >
-                {isListening ? (
-                  <>
-                    <span className="speech-pulse-dot" />
-                    <Volume2 size={16} className="speech-icon-anim" />
-                    <span>{t("menu.listening", "Listening...")}</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic size={17} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
-                  </>
-                )}
+                <Mic size={14} />
+                <span className="mob-btn-text-full">{isListening ? t("menu.listening", "Listening...") : t("menu.addByVoice", "Add by Voice")}</span>
+                <span className="mob-btn-text-short">{isListening ? t("menu.listening", "Listening...") : t("menu.voice", "Voice")}</span>
               </button>
             </div>
 
-          {/* Search Bar + Voice Input */}
+            {/* Search Bar + Voice Input */}
           <div className="menu-search-wrapper">
             <Search size={18} className="menu-search-icon" />
             <input
@@ -773,10 +1034,10 @@ export function Menu({ setView, requireAuth, user }) {
           </div>
 
           {/* Category Filter Pills */}
-          {activeCategories.length > 2 && (
+          {myMenuCategories.length > 1 && (
             <div className="menu-category-pills-row">
-              {activeCategories.map((cat) => {
-                const isActive = selectedCategory.toLowerCase() === cat.toLowerCase()
+              {myMenuCategories.map((cat) => {
+                const isActive = selectedCategory.toLowerCase() === cat.id.toLowerCase()
                 return (
                   <button
                     key={cat.id}
@@ -784,7 +1045,7 @@ export function Menu({ setView, requireAuth, user }) {
                     className={`mob-category-chip ${isActive ? "active" : ""}`}
                     onClick={() => setSelectedCategory(cat.id)}
                   >
-                    {cat === "all" ? (search.trim() ? t("menu.allCategories", "All Categories") : t("menu.allItems", "All Items")) : tDb(cat)}
+                    {cat.id === "all" ? (search.trim() ? t("menu.allCategories", "All Categories") : t("menu.allItems", "All Items")) : tDb(cat.label)}
                   </button>
                 )
               })}
@@ -863,57 +1124,105 @@ export function Menu({ setView, requireAuth, user }) {
                   )}
                 </div>
               ) : (
-                filteredUserItems.map((item) => {
-                  const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
-                  return (
-                    <div key={item.id} className="mob-menu-item-card">
-                      <MenuImageThumbnail
-                        src={item.image_url}
-                        alt={item.name}
-                        className="mob-item-thumb"
-                        wrapClassName="mob-item-thumb-wrap"
-                        iconSize={24}
-                      />
+                <>
+                  {paginatedUserItems.map((item) => {
+                    const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
+                    return (
+                      <div key={item.id} className="mob-menu-item-card">
+                        <MenuImageThumbnail
+                          src={item.image_url}
+                          alt={item.name}
+                          className="mob-item-thumb"
+                          wrapClassName="mob-item-thumb-wrap"
+                          iconSize={24}
+                        />
 
-                      <div className="mob-item-details">
-                        <h4 className="mob-item-name">{item.name}</h4>
-                        <span className={`mob-item-cat-badge ${getCategoryBadgeClass(item.category)}`}>
-                          {item.category || "General"}
-                        </span>
-                        <div className="mob-item-price-status">
-                          <span className="mob-item-price">{money(item.price)}</span>
-                          {isItemActive && (
-                            <span className="mob-item-active-status">
-                              <span className="mob-status-dot" /> Active
-                            </span>
-                          )}
+                        <div className="mob-item-details">
+                          <h4 className="mob-item-name">{item.name}</h4>
+                          <span className={`mob-item-cat-badge ${getCategoryBadgeClass(item.category)}`}>
+                            {item.category || "General"}
+                          </span>
+                          <div className="mob-item-price-status">
+                            <span className="mob-item-price">{money(item.price)}</span>
+                            {isItemActive && (
+                              <span className="mob-item-active-status">
+                                <span className="mob-status-dot" /> Active
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mob-item-actions">
+                          <button
+                            type="button"
+                            className="mob-item-edit-btn"
+                            onClick={() => handleOpenEditModal(item)}
+                            title="Edit selling price"
+                            aria-label="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="mob-item-delete-btn"
+                            onClick={(e) => handleRemoveFromUserMenu(item, e)}
+                            disabled={deletingId === item.id}
+                            title="Remove from My Menu"
+                            aria-label="Delete"
+                          >
+                            {deletingId === item.id ? <Spinner size="xs" /> : <Trash2 size={16} />}
+                          </button>
                         </div>
                       </div>
+                    )
+                  })}
 
-                      <div className="mob-item-actions">
+                  {totalMyMenuPages > 1 && (
+                    <div className="menu-pagination-bar">
+                      <div className="menu-pagination-info">
+                        Showing <strong>{formatNum((myMenuPage - 1) * myMenuPageSize + 1)}</strong>–<strong>{formatNum(Math.min(myMenuPage * myMenuPageSize, filteredUserItems.length))}</strong> of <strong>{formatNum(filteredUserItems.length)}</strong> items
+                      </div>
+                      <div className="menu-pagination-controls">
                         <button
                           type="button"
-                          className="mob-item-edit-btn"
-                          onClick={() => handleOpenEditModal(item)}
-                          title="Edit selling price"
-                          aria-label="Edit"
+                          className="menu-pagination-btn"
+                          disabled={myMenuPage <= 1}
+                          onClick={() => setMyMenuPage((p) => Math.max(1, p - 1))}
+                          title="Previous page"
                         >
-                          <Edit2 size={16} />
+                          <ChevronLeft size={16} /> Prev
                         </button>
+                        {Array.from({ length: totalMyMenuPages }, (_, i) => i + 1).map((pg) => {
+                          if (pg === 1 || pg === totalMyMenuPages || Math.abs(pg - myMenuPage) <= 1) {
+                            return (
+                              <button
+                                key={pg}
+                                type="button"
+                                className={`menu-pagination-page-btn ${pg === myMenuPage ? "active" : ""}`}
+                                onClick={() => setMyMenuPage(pg)}
+                              >
+                                {formatNum(pg)}
+                              </button>
+                            )
+                          }
+                          if ((pg === 2 && myMenuPage > 3) || (pg === totalMyMenuPages - 1 && myMenuPage < totalMyMenuPages - 2)) {
+                            return <span key={pg} className="menu-pagination-ellipsis">...</span>
+                          }
+                          return null
+                        })}
                         <button
                           type="button"
-                          className="mob-item-delete-btn"
-                          onClick={() => handleRemoveFromUserMenu(item)}
-                          disabled={deletingId === item.id}
-                          title="Remove from My Menu"
-                          aria-label="Delete"
+                          className="menu-pagination-btn"
+                          disabled={myMenuPage >= totalMyMenuPages}
+                          onClick={() => setMyMenuPage((p) => Math.min(totalMyMenuPages, p + 1))}
+                          title="Next page"
                         >
-                          {deletingId === item.id ? <Spinner size="xs" /> : <Trash2 size={16} />}
+                          Next <ChevronRight size={16} />
                         </button>
                       </div>
                     </div>
-                  )
-                })
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1050,7 +1359,7 @@ export function Menu({ setView, requireAuth, user }) {
                   <h3 className="menu-section-title">
                     Search Results
                     <span className="menu-items-count-badge">
-                      {filteredCatalogItemsForSearch.length} found
+                      {filteredCatalogItems.length} found
                     </span>
                   </h3>
                   <button
@@ -1063,8 +1372,9 @@ export function Menu({ setView, requireAuth, user }) {
                 </div>
 
                 <div className="menu-cards-grid">
-                  {filteredCatalogItemsForSearch.map((catItem) => {
+                  {filteredCatalogItems.map((catItem) => {
                     const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
+                    const isFav = favorites?.has?.(catItem.id)
                     return (
                       <div
                         key={catItem.id}
@@ -1082,10 +1392,15 @@ export function Menu({ setView, requireAuth, user }) {
                             />
                           ) : (
                             <div className="menu-card-image-placeholder">
-                              {getItemPlaceholderIcon(catItem.category, 22)}
+                              {getItemPlaceholderIcon(catItem.category, 26)}
                             </div>
                           )}
-                          <span className="menu-card-cat-badge">{catItem.category || "General"}</span>
+                          <span className="menu-card-overlay-cat">{catItem.category || "General"}</span>
+                          {catItem.barcode && (
+                            <span className="menu-card-barcode-badge">
+                              <BarcodeIcon size={10} /> {catItem.barcode}
+                            </span>
+                          )}
                         </div>
 
                         <div className="menu-card-details">
@@ -1095,47 +1410,28 @@ export function Menu({ setView, requireAuth, user }) {
                           <div className="menu-card-price-row">
                             <span className="catalog-card-base-price">{money(catItem.price)}</span>
                           </div>
-                        )}
-                        <button
-                          type="button"
-                          className={`mob-catalog-heart-btn ${isFav ? "favorited" : ""}`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            toggleFavorite(catItem.id)
-                          }}
-                          aria-label="Favorite"
-                        >
-                          <Heart
-                            size={15}
-                            fill={isFav ? "#EF4444" : "none"}
-                            color={isFav ? "#EF4444" : "#475569"}
-                          />
-                        </button>
-                      </div>
+                        </div>
 
-                      <h4 className="mob-catalog-item-name">{catItem.name}</h4>
-
-                      <div className="mob-catalog-card-bottom">
-                        <span className="mob-catalog-price">{money(catItem.price)}</span>
-                        <button
-                          type="button"
-                          className={`mob-catalog-add-btn ${isAlreadyAdded ? "added" : ""}`}
-                          onClick={() => handleQuickAdd(catItem)}
-                        >
+                        <div className="user-menu-card-actions">
                           {isAlreadyAdded ? (
-                            <>
-                              <Check size={13} style={{ strokeWidth: 2.5 }} />
-                              <span>Added</span>
-                            </>
+                            <span className="catalog-card-added-badge">
+                              <Check size={14} /> {t("menu.added", "Added")}
+                            </span>
                           ) : (
-                            <span>Add</span>
+                            <button
+                              type="button"
+                              className="catalog-card-add-btn"
+                              onClick={() => handleOpenAddModal(catItem)}
+                            >
+                              <Plus size={15} /> {t("menu.add", "Add")}
+                            </button>
                           )}
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1172,10 +1468,19 @@ export function Menu({ setView, requireAuth, user }) {
 
                 <button
                   type="button"
+                  className="menu-secondary-btn"
+                  onClick={handleOpenCustomModal}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+                >
+                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{t("menu.customItem", "Custom Item")}</span>
+                </button>
+
+                <button
+                  type="button"
                   className={`menu-secondary-btn ${isListening ? "listening" : ""}`}
                   onClick={handleToggleVoiceSearch}
                   title={isListening ? t("menu.clickToStop", "Click to stop listening") : t("menu.addByVoice", "Add item by speaking its name")}
-                  style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
+                  style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : { color: "#0284c7" }}
                 >
                   {isListening ? (
                     <>
@@ -1185,11 +1490,40 @@ export function Menu({ setView, requireAuth, user }) {
                     </>
                   ) : (
                     <>
-                      <Mic size={17} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
+                      <Mic size={17} style={{ color: "#0284c7" }} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
                     </>
                   )}
                 </button>
               </div>
+            </div>
+
+            {/* Desktop Menu Search Bar */}
+            <div className="menu-search-wrapper">
+              <Search size={18} className="menu-search-icon" />
+              <input
+                type="text"
+                className="menu-search-input"
+                placeholder={isListening ? t("menu.listeningSpeak", "Listening... Speak item name") : "Search or speak to find in My Menu..."}
+                value={isListening && transcript ? transcript : search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && !isListening && (
+                <button className="menu-search-clear-btn" onClick={() => setSearch("")} title={t("bills.clearSearch", "Clear search")}>
+                  <X size={15} />
+                </button>
+              )}
+              <button
+                type="button"
+                className={`menu-search-mic-btn ${isListening ? "listening" : ""}`}
+                onClick={handleToggleVoiceSearch}
+                title={isListening ? t("menu.clickToStop", "Listening... Click to stop") : t("menu.speakItemName", "Speak item name")}
+              >
+                {isListening ? (
+                  <Volume2 size={16} className="speech-icon-anim" />
+                ) : (
+                  <Mic size={18} style={{ color: "#0284c7" }} />
+                )}
+              </button>
             </div>
 
             {/* Empty State vs User Menu Cards */}
@@ -1232,7 +1566,7 @@ export function Menu({ setView, requireAuth, user }) {
                       </>
                     ) : (
                       <>
-                        <Mic size={17} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
+                        <Mic size={17} style={{ color: "#0284c7" }} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
                       </>
                     )}
                   </button>
@@ -1275,71 +1609,146 @@ export function Menu({ setView, requireAuth, user }) {
                   </h3>
                 </div>
 
-              <div className="menu-cards-grid">
-                {paginatedUserItems.map((item) => {
-                  const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
-                  return (
-                    <div key={item.id} className="user-menu-card">
-                      <div className="menu-card-image-box">
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            className="menu-card-image"
-                            onError={(e) => {
-                              e.target.style.display = "none"
-                            }}
-                          />
-                        ) : (
-                          <div className="menu-card-image-placeholder">
-                            {getItemPlaceholderIcon(item.category, 22)}
-                          </div>
-                        )}
-                        <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
-                        {isItemActive && (
-                          <span className="menu-card-status-pill">
-                            <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
-                          </span>
-                        )}
-                      </div>
+                {filteredUserItems.length === 0 && search.trim() ? (
+                  <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #cbd5e1", marginTop: "1rem" }}>
+                    <AlertCircle size={32} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
+                    <h4 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#0f172a", margin: "0 0 0.25rem" }}>
+                      No menu items found
+                    </h4>
+                    <p style={{ fontSize: "0.88rem", color: "#64748b", margin: "0 0 0.75rem" }}>
+                      No items in your menu match "{search}".
+                    </p>
+                    <button
+                      type="button"
+                      className="menu-secondary-btn"
+                      onClick={() => setSearch("")}
+                    >
+                      Clear Search
+                    </button>
+                  </div>
+                ) : (
 
-                          <div className="menu-card-details">
-                            <h4 className="menu-card-item-name" title={item.name}>
-                              {tDb(item.name)}
-                            </h4>
-                            <span className="menu-card-cat-badge">{tDb(item.category || "General")}</span>
-                            <div className="menu-card-price-row">
-                              <span className="menu-card-selling-price">{money(item.price)}</span>
-                              {isItemActive && (
-                                <span className="menu-card-status-pill">
-                                  <span className="menu-card-status-dot" /> {t("menu.active", "Active")}
-                                </span>
-                              )}
+              <>
+                <div className="menu-cards-grid">
+                  {paginatedUserItems.map((item) => {
+                    const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
+                    return (
+                      <div key={item.id} className="user-menu-card">
+                        <div className="menu-card-image-box">
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.name}
+                              className="menu-card-image"
+                              onError={(e) => {
+                                e.target.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <div className="menu-card-image-placeholder">
+                              {getItemPlaceholderIcon(item.category, 28)}
                             </div>
+                          )}
+                          <span className="menu-card-overlay-cat">{tDb(item.category || "General")}</span>
+                          <span className={`menu-card-status-pill ${isItemActive ? "active" : "inactive"}`}>
+                            <span className={`menu-card-status-dot ${isItemActive ? "active" : "inactive"}`} />
+                            {isItemActive ? t("menu.active", "Active") : t("menu.deactive", "Deactive")}
+                          </span>
+                        </div>
+
+                        <div className="menu-card-details">
+                          <h4 className="menu-card-item-name" title={item.name}>
+                            {tDb(item.name)}
+                          </h4>
+                          <div className="menu-card-price-row">
+                            <span className="menu-card-selling-price">{money(item.price)}</span>
                           </div>
                         </div>
 
                         <div className="user-menu-card-actions">
+                          {Boolean(item.barcode) && item.barcode_active !== false && item.barcode_active !== 0 && item.barcode_active !== "0" && item.barcode_active !== "false" && (
+                            <button
+                              type="button"
+                              className="menu-action-btn barcode-btn"
+                              onClick={() => setBarcodeModalItem(item)}
+                              title="View Barcode"
+                            >
+                              <span>Barcode</span>
+                            </button>
+                          )}
                           <button
-                            className="menu-action-icon-btn"
+                            type="button"
+                            className="menu-action-btn edit-btn"
                             onClick={() => handleOpenEditModal(item)}
                             title={t("menu.editPrice", "Edit selling price")}
                           >
-                            <Edit2 size={15} />
+                            <Edit2 size={13} />
+                            <span>{t("common.edit", "Edit")}</span>
                           </button>
                           <button
-                            className="menu-action-icon-btn delete-btn"
-                            onClick={() => handleRemoveFromUserMenu(item)}
+                            type="button"
+                            className="menu-action-btn delete-btn"
+                            onClick={(e) => handleRemoveFromUserMenu(item, e)}
                             disabled={deletingId === item.id}
                             title={t("menu.removeMenu", "Remove from My Menu")}
                           >
-                            <Trash2 size={15} />
+                            {deletingId === item.id ? <Spinner size="xs" /> : <Trash2 size={14} />}
                           </button>
                         </div>
                       </div>
                     )
                   })}
                 </div>
+
+                {totalMyMenuPages > 1 && (
+                  <div className="menu-pagination-bar">
+                    <div className="menu-pagination-info">
+                      Showing <strong>{formatNum((myMenuPage - 1) * myMenuPageSize + 1)}</strong>–<strong>{formatNum(Math.min(myMenuPage * myMenuPageSize, filteredUserItems.length))}</strong> of <strong>{formatNum(filteredUserItems.length)}</strong> items
+                    </div>
+                    <div className="menu-pagination-controls">
+                      <button
+                        type="button"
+                        className="menu-pagination-btn"
+                        disabled={myMenuPage <= 1}
+                        onClick={() => setMyMenuPage((p) => Math.max(1, p - 1))}
+                        title="Previous page"
+                      >
+                        <ChevronLeft size={16} /> Prev
+                      </button>
+
+                      {Array.from({ length: totalMyMenuPages }, (_, i) => i + 1).map((pg) => {
+                        if (pg === 1 || pg === totalMyMenuPages || Math.abs(pg - myMenuPage) <= 1) {
+                          return (
+                            <button
+                              key={pg}
+                              type="button"
+                              className={`menu-pagination-page-btn ${pg === myMenuPage ? "active" : ""}`}
+                              onClick={() => setMyMenuPage(pg)}
+                            >
+                              {formatNum(pg)}
+                            </button>
+                          )
+                        }
+                        if ((pg === 2 && myMenuPage > 3) || (pg === totalMyMenuPages - 1 && myMenuPage < totalMyMenuPages - 2)) {
+                          return <span key={pg} className="menu-pagination-ellipsis">...</span>
+                        }
+                        return null
+                      })}
+
+                      <button
+                        type="button"
+                        className="menu-pagination-btn"
+                        disabled={myMenuPage >= totalMyMenuPages}
+                        onClick={() => setMyMenuPage((p) => Math.min(totalMyMenuPages, p + 1))}
+                        title="Next page"
+                      >
+                        Next <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+              )}
               </>
             )}
           </>
@@ -1372,7 +1781,7 @@ export function Menu({ setView, requireAuth, user }) {
               onClick={handleOpenCustomModal}
               style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", fontSize: "0.85rem" }}
             >
-              <Plus size={16} /> <span>{t("menu.createCustom", "+ Create Custom Item")}</span>
+              <Plus size={16} /> <span>{t("menu.createCustom", "Create Custom Item")}</span>
             </button>
           </div>
 
@@ -1402,15 +1811,15 @@ export function Menu({ setView, requireAuth, user }) {
           {/* Category Filter Pills (Master Catalog) */}
           <div className="menu-category-pills-row">
             {catalogCategories.map((cat) => {
-              const isActive = catalogCategory.toLowerCase() === cat.toLowerCase()
+              const isActive = catalogCategory.toLowerCase() === cat.id.toLowerCase()
               return (
                 <button
-                  key={cat}
+                  key={cat.id}
                   type="button"
                   className={`menu-category-pill ${isActive ? "active" : ""}`}
-                  onClick={() => setCatalogCategory(cat)}
+                  onClick={() => setCatalogCategory(cat.id)}
                 >
-                  {cat === "all" ? t("menu.allCategories", "All Categories") : tDb(cat)}
+                  {cat.id === "all" ? t("menu.allCategories", "All Categories") : tDb(cat.label)}
                 </button>
               )
             })}
@@ -1466,12 +1875,12 @@ export function Menu({ setView, requireAuth, user }) {
                           />
                         ) : (
                           <div className="menu-card-image-placeholder">
-                            {getItemPlaceholderIcon(catItem.category, 22)}
+                            {getItemPlaceholderIcon(catItem.category, 26)}
                           </div>
                         )}
-                        <span className="menu-card-cat-badge">{tDb(catItem.category || "General")}</span>
+                        <span className="menu-card-overlay-cat">{tDb(catItem.category || "General")}</span>
                         {catItem.barcode && (
-                          <span style={{ position: "absolute", bottom: "6px", right: "6px", fontSize: "0.64rem", fontWeight: "700", background: "rgba(255,255,255,0.94)", color: "#334155", border: "1px solid #cbd5e1", padding: "1px 5px", borderRadius: "5px", display: "flex", alignItems: "center", gap: "3px", zIndex: 2, backdropFilter: "blur(4px)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                          <span className="menu-card-barcode-badge">
                             <BarcodeIcon size={10} /> {catItem.barcode}
                           </span>
                         )}
@@ -1619,15 +2028,14 @@ export function Menu({ setView, requireAuth, user }) {
                       }}
                     />
                   ) : (
-                    <div className="menu-card-image-placeholder" style={{ width: "60px", height: "60px" }}>
+                    <div className="menu-card-image-placeholder" style={{ width: "56px", height: "56px", borderRadius: "8px" }}>
                       {getItemPlaceholderIcon(selectedCatalogItem.category, 24)}
                     </div>
                   )}
                   <div className="menu-modal-preview-details">
                     <h4 className="menu-modal-preview-name">{tDb(selectedCatalogItem.name)}</h4>
-                    <span className="menu-card-cat-badge">{tDb(selectedCatalogItem.category)}</span>
-                    <div style={{ fontSize: "0.82rem", color: "#64748b", marginTop: "0.2rem" }}>
-                      {t("menu.catalogBasePrice", "Catalog base price:")} <strong>{money(selectedCatalogItem.price)}</strong>
+                    <div style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.15rem" }}>
+                      {t("menu.catalogBasePrice", "Catalog base price:")} <strong style={{ color: "#0C1F41" }}>{money(selectedCatalogItem.price)}</strong>
                     </div>
                   </div>
                 </div>
@@ -1780,12 +2188,21 @@ export function Menu({ setView, requireAuth, user }) {
                       min="0"
                       className="menu-modal-input"
                       value={editPrice}
-                      onChange={(e) => setEditPrice(e.target.value)}
+                      onChange={(e) => {
+                        setEditPrice(e.target.value)
+                        setEditFormError("")
+                      }}
                       required
                       autoFocus
                     />
                   </div>
                 </div>
+
+                {editFormError && (
+                  <div style={{ color: "#ef4444", fontSize: "0.78rem", marginTop: "0.4rem", fontWeight: "600" }}>
+                    {editFormError}
+                  </div>
+                )}
 
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.75rem" }}>
                   <input
@@ -1793,7 +2210,7 @@ export function Menu({ setView, requireAuth, user }) {
                     id="item-active-check"
                     checked={editActive}
                     onChange={(e) => setEditActive(e.target.checked)}
-                    style={{ width: "16px", height: "16px", accentColor: "#F66016" }}
+                    style={{ width: "16px", height: "16px", accentColor: "#0284c7" }}
                   />
                   <label htmlFor="item-active-check" style={{ fontSize: "0.85rem", color: "#334155", fontWeight: "600", cursor: "pointer" }}>
                     {t("menu.activeAvailable", "Active (Available for quick billing)")}
@@ -2089,7 +2506,7 @@ export function Menu({ setView, requireAuth, user }) {
                     className="menu-modal-input"
                     placeholder="e.g. Masala Dosa, Cotton Shirt, Special Chai"
                     value={customName}
-                    onChange={(e) => setCustomName(e.target.value)}
+                    onChange={(e) => handleCustomNameChange(e.target.value)}
                     required
                     autoFocus
                     style={{ height: "35px", fontSize: "0.85rem" }}
@@ -2099,14 +2516,24 @@ export function Menu({ setView, requireAuth, user }) {
                 {/* 3. Category */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <label className="menu-modal-label">{t("menu.category", "Category")}</label>
-                  <input
-                    type="text"
+                  <select
                     className="menu-modal-input"
-                    placeholder="e.g. Snacks, Beverages, Garments, Grocery"
                     value={customCat}
                     onChange={(e) => setCustomCat(e.target.value)}
-                    style={{ height: "35px", fontSize: "0.85rem" }}
-                  />
+                    style={{
+                      height: "35px",
+                      fontSize: "0.85rem",
+                      padding: "0 0.75rem",
+                      background: "#ffffff",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="Small Business / Cafe & Tea">Small Business / Cafe & Tea</option>
+                    <option value="Kirana / Grocery Shop">Kirana / Grocery Shop</option>
+                    <option value="Cloth & Garments Shop">Cloth & Garments Shop</option>
+                    <option value="Hotel or Food Restaurant">Hotel or Food Restaurant</option>
+                    <option value="General">General</option>
+                  </select>
                 </div>
 
                 {/* 4. Selling Price */}
@@ -2121,7 +2548,7 @@ export function Menu({ setView, requireAuth, user }) {
                       className="menu-modal-input"
                       placeholder="0.00"
                       value={customItemPrice}
-                      onChange={(e) => setCustomItemPrice(e.target.value)}
+                      onChange={(e) => handleCustomItemPriceChange(e.target.value)}
                       required
                       style={{ height: "35px", fontSize: "0.88rem", paddingLeft: "1.5rem" }}
                     />

@@ -11,7 +11,7 @@ export function printReceiptElement(elementId = "receipt-to-print", options = {}
       title: "Element Not Found",
       text: "Could not find receipt to print. Please try again.",
       icon: "error",
-      confirmButtonColor: "#F66016"
+      confirmButtonColor: "#0284c7"
     })
     return
   }
@@ -290,7 +290,7 @@ export async function saveReceiptAsPdf(elementId = "receipt-to-print", options =
       title: "Element Not Found",
       text: "Could not find receipt to export as PDF.",
       icon: "error",
-      confirmButtonColor: "#F66016"
+      confirmButtonColor: "#0284c7"
     })
     return
   }
@@ -397,7 +397,7 @@ export function promptPrintOrPdfChoice(elementId = "receipt-to-print", options =
     denyButtonText: "📄 Save as PDF",
     cancelButtonText: "Cancel",
     confirmButtonColor: "#10b981",
-    denyButtonColor: "#F66016",
+    denyButtonColor: "#0284c7",
     cancelButtonColor: "#64748b"
   }).then((result) => {
     if (result.isConfirmed) {

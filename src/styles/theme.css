@@ -5,21 +5,21 @@
 
 :root {
   /* --------------------------------------------------------------------------
-     1-4. Brand Colors
+     1-4. Brand Colors - Slipzo Primary Blue
      -------------------------------------------------------------------------- */
-  --slipzo-primary: #F66016;              /* 1. Slipzo Orange - Primary brand, main CTA */
-  --slipzo-primary-hover: #FA4406;        /* 2. Deep Orange - Button hover */
-  --slipzo-secondary: #FB821B;            /* 3. Bright Orange - Secondary CTA, highlights */
-  --slipzo-brand-light: #FC9B3E;          /* 4. Light Orange - Small accents */
+  --slipzo-primary: #0284c7;              /* 1. Slipzo Blue - Primary brand, main CTA */
+  --slipzo-primary-hover: #0369a1;        /* 2. Deep Blue - Button hover */
+  --slipzo-secondary: #0ea5e9;            /* 3. Bright Blue - Secondary CTA, highlights */
+  --slipzo-brand-light: #38bdf8;          /* 4. Light Blue - Small accents */
 
   /* --------------------------------------------------------------------------
      5-9. Backgrounds & Surfaces
      -------------------------------------------------------------------------- */
-  --slipzo-bg-main: #FFF2DE;              /* 5. Warm Cream - Main page background */
-  --slipzo-bg-soft: #FDF4EB;              /* 6. Soft Cream - Sections, badges */
-  --slipzo-bg-header: #FDFAF6;            /* 7. Warm White - Header/navigation */
+  --slipzo-bg-main: #f8fafc;              /* 5. Main page background */
+  --slipzo-bg-soft: #f0f9ff;              /* 6. Soft Blue - Sections, badges */
+  --slipzo-bg-header: #ffffff;            /* 7. White - Header/navigation */
   --slipzo-bg-card: #FFFFFF;              /* 8. White - Cards, panels */
-  --slipzo-bg-input: #F6F6F7;             /* 9. Soft Neutral - Inputs/search */
+  --slipzo-bg-input: #f8fafc;             /* 9. Soft Neutral - Inputs/search */
 
   /* --------------------------------------------------------------------------
      10-16. Typography
@@ -35,44 +35,44 @@
   /* --------------------------------------------------------------------------
      17-21. Borders & Brand Tints
      -------------------------------------------------------------------------- */
-  --slipzo-border-main: #F7CDAB;          /* 17. Peach Border - Cards/forms/dividers */
+  --slipzo-border-main: #bae6fd;          /* 17. Light Blue Border - Cards/forms/dividers */
   --slipzo-border-secondary: #D9DDE4;     /* 18. Neutral Border - Inputs/buttons */
-  --slipzo-border-light: #FADCC3;         /* 19. Soft Peach - Orange surfaces */
-  --slipzo-bg-brand-light: #FFF0E5;       /* 20. Orange Tint - Brand badges/cards */
-  --slipzo-bg-brand-pale: #FFE6D2;        /* 21. Orange Pale - Feature/status backgrounds */
+  --slipzo-border-light: #e0f2fe;         /* 19. Soft Blue Surface */
+  --slipzo-bg-brand-light: #f0f9ff;       /* 20. Blue Tint - Brand badges/cards */
+  --slipzo-bg-brand-pale: #e0f2fe;        /* 21. Blue Pale - Feature/status backgrounds */
 
   /* --------------------------------------------------------------------------
      22-29. Buttons & Interactive Controls
      -------------------------------------------------------------------------- */
-  --slipzo-btn-primary: #F66016;          /* 22. Slipzo Orange - Save, Print, Add */
-  --slipzo-btn-primary-hover: #FA4406;    /* 23. Deep Orange - Hover */
-  --slipzo-btn-secondary-bg: #FFF0E5;     /* 24. Orange Tint - Secondary actions */
-  --slipzo-btn-secondary-text: #F66016;   /* 25. Brand Orange - Secondary actions text */
-  --slipzo-btn-outline: #F66016;          /* 26. Orange Border - Outline actions */
-  --slipzo-search-border: #F7CDAB;        /* 27. Peach Border - Search fields */
-  --slipzo-search-focus: #F66016;         /* 28. Orange - Focus state */
-  --slipzo-search-focus-ring: rgba(246, 96, 22, 0.12); /* 29. Orange RGBA - Focus glow */
+  --slipzo-btn-primary: #0284c7;          /* 22. Slipzo Blue - Save, Print, Add */
+  --slipzo-btn-primary-hover: #0369a1;    /* 23. Deep Blue - Hover */
+  --slipzo-btn-secondary-bg: #f0f9ff;     /* 24. Blue Tint - Secondary actions */
+  --slipzo-btn-secondary-text: #0284c7;   /* Brand Blue - Secondary actions text */
+  --slipzo-btn-outline: #0284c7;          /* Blue Border - Outline actions */
+  --slipzo-search-border: #bae6fd;        /* Light Blue Border - Search fields */
+  --slipzo-search-focus: #0284c7;         /* Blue - Focus state */
+  --slipzo-search-focus-ring: rgba(2, 132, 199, 0.15); /* Blue RGBA - Focus glow */
 
   /* --------------------------------------------------------------------------
      30-36. Categories & Cards
      -------------------------------------------------------------------------- */
   --slipzo-cat-inactive: #FFFFFF;         /* 30. White - Category chips */
-  --slipzo-cat-border: #F7CDAB;           /* 31. Peach - Category chips */
-  --slipzo-cat-active: #F66016;           /* 32. Orange - Selected category */
+  --slipzo-cat-border: #bae6fd;           /* 31. Light Blue - Category chips */
+  --slipzo-cat-active: #0284c7;           /* 32. Blue - Selected category */
   --slipzo-cat-active-text: #FFFFFF;      /* 33. White - Selected category */
-  --slipzo-card-border: #F7CDAB;          /* 34. Peach - Product/menu cards */
-  --slipzo-card-hover-border: #D9DDE4;    /* 35. Warm Gray - Card hover */
-  --slipzo-card-hover-shadow: rgba(12, 31, 65, 0.08); /* 36. Navy Shadow - Card hover */
+  --slipzo-card-border: #bae6fd;          /* 34. Light Blue - Product/menu cards */
+  --slipzo-card-hover-border: #0284c7;    /* 35. Primary Blue - Card hover */
+  --slipzo-card-hover-shadow: rgba(2, 132, 199, 0.08); /* Blue Shadow - Card hover */
 
   /* --------------------------------------------------------------------------
      37-42. Actions & Commerce
      -------------------------------------------------------------------------- */
-  --slipzo-price: #F66016;                /* 37. Orange - Product price */
-  --slipzo-total: #F66016;                /* 38. Orange - Bill total */
-  --slipzo-save-bill: #F66016;            /* 39. Orange - Save action */
-  --slipzo-print-btn: #F66016;            /* 40. Orange - Print action */
-  --slipzo-add-product: #F66016;          /* 41. Orange - Add action */
-  --slipzo-edit-action: #F66016;          /* 42. Orange/Navy - Edit */
+  --slipzo-price: #0284c7;                /* 37. Blue - Product price */
+  --slipzo-total: #0284c7;                /* 38. Blue - Bill total */
+  --slipzo-save-bill: #0284c7;            /* 39. Blue - Save action */
+  --slipzo-print-btn: #0284c7;            /* 40. Blue - Print action */
+  --slipzo-add-product: #0284c7;          /* 41. Blue - Add action */
+  --slipzo-edit-action: #0284c7;          /* 42. Blue - Edit */
 
   /* --------------------------------------------------------------------------
      43-48. Danger & Error States
@@ -107,22 +107,22 @@
   /* --------------------------------------------------------------------------
      61-68. Admin Section
      -------------------------------------------------------------------------- */
-  --slipzo-admin-bg: #FFF2DE;             /* 61. Warm Cream - Admin login */
-  --slipzo-admin-glow: rgba(246, 96, 22, 0.10); /* 62. Orange Glow - Admin background */
-  --slipzo-admin-badge: #F66016;          /* 63. Orange - Admin badge */
-  --slipzo-admin-badge-bg: #FFF0E5;       /* 64. Orange Tint - Admin badge */
-  --slipzo-admin-input-focus: #F66016;    /* 65. Orange - Admin forms */
-  --slipzo-admin-th-bg: #FDF4EB;          /* 66. Warm Cream - Table header */
-  --slipzo-admin-th-border: #F7CDAB;      /* 67. Peach - Table */
+  --slipzo-admin-bg: #f8fafc;             /* 61. Admin background */
+  --slipzo-admin-glow: rgba(2, 132, 199, 0.10); /* 62. Blue Glow - Admin background */
+  --slipzo-admin-badge: #0284c7;          /* 63. Blue - Admin badge */
+  --slipzo-admin-badge-bg: #f0f9ff;       /* 64. Blue Tint - Admin badge */
+  --slipzo-admin-input-focus: #0284c7;    /* 65. Blue - Admin forms */
+  --slipzo-admin-th-bg: #f0f9ff;          /* 66. Table header */
+  --slipzo-admin-th-border: #bae6fd;      /* 67. Table border */
   --slipzo-admin-th-text: #0C1F41;        /* 68. Navy - Table text */
 
   /* --------------------------------------------------------------------------
      69-73. Tips & Selection
      -------------------------------------------------------------------------- */
-  --slipzo-tip-bg: #FFF0E5;               /* 69. Orange Tint - Tips/info */
-  --slipzo-tip-border: #F7CDAB;           /* 70. Peach - Tip card */
-  --slipzo-tip-icon: #F66016;             /* 71. Orange - Tip icon */
-  --slipzo-selection-bg: #FADCC3;         /* 72. Soft Peach - Text selection */
+  --slipzo-tip-bg: #f0f9ff;               /* 69. Blue Tint - Tips/info */
+  --slipzo-tip-border: #bae6fd;           /* 70. Light Blue - Tip card */
+  --slipzo-tip-icon: #0284c7;             /* 71. Blue - Tip icon */
+  --slipzo-selection-bg: #e0f2fe;         /* 72. Soft Blue - Text selection */
   --slipzo-selection-text: #0C1F41;       /* 73. Navy - Text selection */
 
   /* --------------------------------------------------------------------------
@@ -130,8 +130,8 @@
      -------------------------------------------------------------------------- */
   --slipzo-shadow-main: rgba(12, 31, 65, 0.06);     /* 74. Navy Shadow - Cards */
   --slipzo-shadow-soft: rgba(12, 31, 65, 0.035);    /* 75. Soft Navy Shadow - Inputs/cards */
-  --slipzo-shadow-brand: rgba(246, 96, 22, 0.22);   /* 76. Orange Shadow - Orange buttons */
-  --slipzo-shadow-brand-hover: rgba(246, 96, 22, 0.30); /* 77. Orange Shadow - Button hover */
+  --slipzo-shadow-brand: rgba(2, 132, 199, 0.22);   /* 76. Blue Shadow - Buttons */
+  --slipzo-shadow-brand-hover: rgba(2, 132, 199, 0.30); /* 77. Blue Shadow - Button hover */
 
   /* --------------------------------------------------------------------------
      78-81. Thermal Receipt (Strictly Unchanged)
@@ -146,13 +146,13 @@
      -------------------------------------------------------------------------- */
   --slipzo-h1: #0C1F41;                   /* 82. Navy - All page headings */
   --slipzo-subtitle: #74788A;             /* 83. Muted Slate - Page descriptions */
-  --slipzo-accent-icon: #F66016;          /* 84. Orange - General icons */
-  --slipzo-nav-active: #F66016;           /* 85. Orange - Active nav */
-  --slipzo-nav-hover-bg: #FFF0E5;         /* 86. Orange Tint - Nav hover */
-  --slipzo-badge-active: #F66016;         /* 87. Orange - Active badges */
-  --slipzo-badge-inactive-bg: #FDF4EB;    /* 88. Soft Cream - Inactive badges */
-  --slipzo-divider: #F7CDAB;              /* 89. Peach - Sections */
-  --slipzo-app-root: #FFF2DE;             /* 90. Warm Cream - Entire application */
+  --slipzo-accent-icon: #0284c7;          /* 84. Blue - General icons */
+  --slipzo-nav-active: #0284c7;           /* 85. Blue - Active nav */
+  --slipzo-nav-hover-bg: #f0f9ff;         /* 86. Blue Tint - Nav hover */
+  --slipzo-badge-active: #0284c7;         /* 87. Blue - Active badges */
+  --slipzo-badge-inactive-bg: #f8fafc;    /* 88. Soft Neutral - Inactive badges */
+  --slipzo-divider: #bae6fd;              /* 89. Light Blue - Sections */
+  --slipzo-app-root: #f8fafc;             /* 90. Soft Neutral - Entire application */
 }
 
 /* ==========================================================================
@@ -248,35 +248,97 @@ h1,
   box-shadow: 0 6px 20px var(--slipzo-card-hover-shadow) !important;
 }
 
-/* 9, 27, 28, 29. Inputs & Search Fields */
-input[type="text"],
-input[type="search"],
+/* 9, 27, 28, 29. Inputs & Form Fields */
+input[type="text"]:not([type="search"]):not(.search-input):not(.nb-search-input):not(.menu-search-input):not(.slipzo-search-input):not(.products-search-input):not(.products-search-input-field):not(.templates-search-input-field):not(.home-search-input):not(.tables-search-input):not(.tables-search-box input):not(.table-menu-search-input input),
 input[type="number"],
 input[type="email"],
 input[type="password"],
 input[type="tel"],
 select,
-textarea,
-.search-input,
-.nb-search-box input {
+textarea {
   background-color: var(--slipzo-bg-input) !important;
   border: 1px solid var(--slipzo-search-border) !important;
   color: var(--slipzo-text-main) !important;
 }
 
-input:focus,
+/* Standardized Search Inputs - Completely Transparent, No Borders or Gradients */
+input[type="search"],
+.search-input,
+.nb-search-input,
+.menu-search-input,
+.slipzo-search-input,
+.products-search-input,
+.products-search-input-field,
+.templates-search-input-field,
+.home-search-input,
+.tables-search-input,
+.tables-search-box input,
+.table-menu-search-input input {
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #0C1F41 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+input:not([type="search"]):not(.search-input):not(.nb-search-input):not(.menu-search-input):not(.slipzo-search-input):not(.products-search-input):not(.products-search-input-field):not(.templates-search-input-field):not(.home-search-input):not(.tables-search-input):not(.tables-search-box input):not(.table-menu-search-input input):focus,
 select:focus,
-textarea:focus,
-.search-input:focus,
-.nb-search-box input:focus {
+textarea:focus {
   border-color: var(--slipzo-search-focus) !important;
   outline: none !important;
   box-shadow: 0 0 0 3px var(--slipzo-search-focus-ring) !important;
 }
 
+input[type="search"]:focus,
+input[type="search"]:active,
+input[type="search"]:focus-visible,
+.search-input:focus,
+.search-input:active,
+.search-input:focus-visible,
+.nb-search-input:focus,
+.nb-search-input:active,
+.nb-search-input:focus-visible,
+.menu-search-input:focus,
+.menu-search-input:active,
+.menu-search-input:focus-visible,
+.slipzo-search-input:focus,
+.slipzo-search-input:active,
+.slipzo-search-input:focus-visible,
+.products-search-input:focus,
+.products-search-input:active,
+.products-search-input:focus-visible,
+.products-search-input-field:focus,
+.products-search-input-field:active,
+.products-search-input-field:focus-visible,
+.templates-search-input-field:focus,
+.templates-search-input-field:active,
+.templates-search-input-field:focus-visible,
+.home-search-input:focus,
+.home-search-input:active,
+.home-search-input:focus-visible,
+.tables-search-input:focus,
+.tables-search-input:active,
+.tables-search-input:focus-visible,
+.tables-search-box input:focus,
+.tables-search-box input:active,
+.tables-search-box input:focus-visible,
+.table-menu-search-input input:focus,
+.table-menu-search-input input:active,
+.table-menu-search-input input:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 input::placeholder,
-textarea::placeholder,
-.search-input::placeholder {
+textarea::placeholder {
   color: var(--slipzo-text-placeholder) !important;
 }
 

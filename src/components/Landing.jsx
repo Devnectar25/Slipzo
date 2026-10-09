@@ -74,7 +74,7 @@ export function Landing({ setView, setShowAuth, user }) {
       role: "Shop Owner, Delhi",
       stats: "500+ receipts generated",
       initials: "RK",
-      color: "#FB821B"
+      color: "#0284c7"
     },
     {
       id: 2,
@@ -84,7 +84,7 @@ export function Landing({ setView, setShowAuth, user }) {
       role: "Cafe Owner, Mumbai",
       stats: "1,200+ receipts generated",
       initials: "PS",
-      color: "#10b981"
+      color: "#0ea5e9"
     },
     {
       id: 3,
@@ -94,7 +94,7 @@ export function Landing({ setView, setShowAuth, user }) {
       role: "Boutique Owner, Ahmedabad",
       stats: "850+ receipts generated",
       initials: "AP",
-      color: "#FB821B"
+      color: "#0369a1"
     },
     {
       id: 4,
@@ -104,7 +104,7 @@ export function Landing({ setView, setShowAuth, user }) {
       role: "Electronics Store, Bengaluru",
       stats: "2,000+ receipts generated",
       initials: "VS",
-      color: "#f59e0b"
+      color: "#38bdf8"
     }
   ]
 
@@ -122,8 +122,8 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Minimal Bill",
       description: "Simple and clean design focused on clarity and readability",
       category: "Modern",
-      color: "#FB821B",
-      gradient: "linear-gradient(135deg, #FB821B 0%, #F66016 100%)",
+      color: "#0284c7",
+      gradient: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
       icon: <Layout size={24} />,
       features: ["Clean layout", "Large text", "QR ready", "Mobile friendly"],
       isDefault: true,
@@ -135,8 +135,8 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Classic Receipt",
       description: "Clean and professional receipt template with all essential details",
       category: "Standard",
-      color: "#F66016",
-      gradient: "linear-gradient(135deg, #FC9B3E 0%, #F66016 100%)",
+      color: "#0284c7",
+      gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
       icon: <FileText size={24} />,
       features: ["Shop logo", "Itemized list", "Tax calculation", "Payment details"],
       isDefault: false,
@@ -148,8 +148,8 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Shop Pro",
       description: "Professional template with enhanced branding options",
       category: "Business",
-      color: "#2563eb",
-      gradient: "linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)",
+      color: "#0284c7",
+      gradient: "linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)",
       icon: <Store size={24} />,
       features: ["Brand colors", "Item images", "Discount display", "Loyalty points"],
       isDefault: false,
@@ -161,8 +161,8 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Eco Print",
       description: "Space-efficient template ideal for thermal printers",
       category: "Efficient",
-      color: "#0d9488",
-      gradient: "linear-gradient(135deg, #14b8a6 0%, #0f766e 100%)",
+      color: "#0284c7",
+      gradient: "linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)",
       icon: <Printer size={24} />,
       features: ["Compact design", "Fast printing", "Less paper", "Minimal ink"],
       isDefault: false,
@@ -174,8 +174,8 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Modern Shop",
       description: "Contemporary design with modern typography and spacing",
       category: "Trendy",
-      color: "#FB821B",
-      gradient: "linear-gradient(135deg, #FB821B 0%, #FA4406 100%)",
+      color: "#0284c7",
+      gradient: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
       icon: <Type size={24} />,
       features: ["Modern fonts", "Clean spacing", "Color accent", "Social links"],
       isDefault: false,
@@ -187,8 +187,8 @@ export function Landing({ setView, setShowAuth, user }) {
       name: "Business Elite",
       description: "Premium template for high-end retail and professional services",
       category: "Premium",
-      color: "#F66016",
-      gradient: "linear-gradient(135deg, #FC9B3E 0%, #FA4406 100%)",
+      color: "#0284c7",
+      gradient: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
       icon: <Award size={24} />,
       features: ["Premium look", "Watermark", "Signature line", "Terms & conditions"],
       isDefault: false,
@@ -240,7 +240,7 @@ export function Landing({ setView, setShowAuth, user }) {
             text: "You've used all 2 free edits for this template. Please sign up to get unlimited access.",
             icon: "warning",
             confirmButtonText: "Sign Up Free",
-            confirmButtonColor: "#FB821B"
+            confirmButtonColor: "#0284c7"
           }).then(() => setShowAuth(true))
           return
         }
@@ -254,7 +254,7 @@ export function Landing({ setView, setShowAuth, user }) {
             text: "You've used all 10 free prints. Please sign up to get unlimited access.",
             icon: "warning",
             confirmButtonText: "Sign Up Free",
-            confirmButtonColor: "#FB821B"
+            confirmButtonColor: "#0284c7"
           }).then(() => setShowAuth(true))
           return
         }
@@ -286,13 +286,14 @@ export function Landing({ setView, setShowAuth, user }) {
     return (
       <div className="template-usage-badge" style={{
         fontSize: '0.6rem',
-        color: hasRemaining ? '#74788A' : '#ef4444',
+        color: hasRemaining ? '#0284c7' : '#ef4444',
         marginTop: '0.25rem',
         display: 'flex',
         gap: '0.5rem',
         alignItems: 'center',
         padding: '0.15rem 0.5rem',
-        background: hasRemaining ? '#FFF2DE' : '#FFE1E5',
+        background: hasRemaining ? '#f0f9ff' : '#FFE1E5',
+        border: hasRemaining ? '1px solid #bae6fd' : '1px solid #FFB8BD',
         borderRadius: '4px'
       }}>
         <span>✏️ {status.remainingEdits} edits left</span>
@@ -548,7 +549,7 @@ export function Landing({ setView, setShowAuth, user }) {
         </div>
         <div className="features-grid">
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: "#FFE6D2", color: "#FB821B" }}><Receipt size={28} /></div>
+            <div className="feature-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}><Receipt size={28} /></div>
             <h3>Instant Receipts</h3>
             <p>Create and print receipts in seconds with our simple editor. Perfect for busy counters.</p>
           </div>
@@ -558,17 +559,17 @@ export function Landing({ setView, setShowAuth, user }) {
             <p>Set up your shop once. Your name, address, and phone appear on every receipt automatically.</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: "#FFE6D2", color: "#FB821B" }}><Printer size={28} /></div>
+            <div className="feature-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}><Printer size={28} /></div>
             <h3>Any Printer</h3>
             <p>Works with thermal 58mm printers, standard A4, and everything in between.</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: "#FFF0C7", color: "#f59e0b" }}><Smartphone size={28} /></div>
+            <div className="feature-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}><Smartphone size={28} /></div>
             <h3>Mobile Friendly</h3>
             <p>Works perfectly on phones and tablets. Bill from anywhere in your shop.</p>
           </div>
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: "#FFE6D2", color: "#F66016" }}><Cloud size={28} /></div>
+            <div className="feature-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}><Cloud size={28} /></div>
             <h3>Cloud Backup</h3>
             <p>All your receipts are saved securely. Access your history anytime, anywhere.</p>
           </div>
@@ -676,11 +677,12 @@ export function Landing({ setView, setShowAuth, user }) {
                 {!user && (
                   <div className="modal-usage-info" style={{
                     padding: '0.5rem',
-                    background: '#FFF2DE',
+                    background: '#f0f9ff',
+                    border: '1px solid #bae6fd',
                     borderRadius: '8px',
                     marginBottom: '1rem',
                     fontSize: '0.8rem',
-                    color: '#74788A'
+                    color: '#0284c7'
                   }}>
                     {(() => {
                       const status = getTemplateUsageStatus(selectedTemplate.id)
@@ -719,7 +721,7 @@ export function Landing({ setView, setShowAuth, user }) {
                             text: "You've used all 2 free edits. Please sign up for unlimited access.",
                             icon: "warning",
                             confirmButtonText: "Sign Up Free",
-                            confirmButtonColor: "#FB821B"
+                            confirmButtonColor: "#0284c7"
                           }).then(() => setShowAuth(true))
                           return
                         }

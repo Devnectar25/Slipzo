@@ -17,6 +17,7 @@ import {
   Tag,
   Printer,
   Utensils,
+  ClipboardList,
   List,
   Globe,
   Home,
@@ -54,8 +55,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
     { id: "menu", label: t("nav.menu", "Menu"), icon: List, protected: true },
     { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
     { id: "products", label: t("nav.products", "Products"), icon: Package, protected: true },
-    { id: "history", label: t("nav.history", "Bill history"), icon: Store, protected: true },
-    { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#FFF0E5", badgeColor: "#F66016" },
+    { id: "history", label: t("nav.history", "History"), icon: History, protected: true },
+    { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
     { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings, protected: true },
     { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, protected: false }
   ]
@@ -200,34 +201,33 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         />
       )}
 
-      {/* ✅ SIDEBAR - Compact, zero internal scrolling, all categories visible */}
+      {/* ✅ SIDEBAR - Left side navigation bar with Slipzo logo at top left */}
       <aside
         className={isOpen ? "open" : ""}
         style={{
           position: 'fixed',
           top: 0,
-          right: 0,
+          left: 0,
           bottom: 0,
           height: '100vh',
           width: '280px',
-          background: '#FDFAF6',
-          borderLeft: '1px solid #F7CDAB',
+          background: '#ffffff',
+          borderRight: '1px solid #e2e8f0',
           padding: '0.85rem 1.15rem 0.65rem 1.15rem',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 999,
           transition: 'transform 0.3s ease',
-          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           overflow: 'hidden',
         }}
       >
         <div
           className="side-brand"
           onClick={() => setView("dashboard")}
-          style={{ cursor: 'pointer', paddingBottom: '0.35rem', marginBottom: '0.45rem', marginTop: 0 }}
+          style={{ cursor: 'pointer', paddingBottom: '0.35rem', marginBottom: '0.45rem', marginTop: 0, marginLeft: '-8px' }}
           title="Return to Home Dashboard"
         >
-          <img src="/logo.png" alt="Slipzo" className="side-logo" style={{ height: '30px', width: 'auto', objectFit: 'contain' }} />
+          <img src="/logo.png" alt="Slipzo" className="side-logo" style={{ height: '48px', width: 'auto', objectFit: 'contain', objectPosition: 'left center', marginLeft: '-26px' }} />
           <button
             className="side-close-btn"
             onClick={closeSidebar}
@@ -274,11 +274,11 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 gap: '0.7rem',
                 padding: '0.4rem 0.75rem',
                 border: 'none',
-                background: isActive ? '#f1f5f9' : 'transparent',
+                background: isActive ? '#e0f2fe' : 'transparent',
                 borderRadius: '8px',
                 fontSize: '0.84rem',
                 fontWeight: view === item.id ? '700' : '500',
-                color: view === item.id ? '#F66016' : '#5A6B82',
+                color: view === item.id ? '#0284c7' : '#5A6B82',
                 cursor: 'pointer',
                 transition: 'all 0.15s',
                 textAlign: 'left',
@@ -289,8 +289,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge && (
                 <span style={{
-                  background: item.badgeBg || '#FFF0E5',
-                  color: item.badgeColor || '#F66016',
+                  background: item.badgeBg || '#e0f2fe',
+                  color: item.badgeColor || '#0284c7',
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   padding: '0.1rem 0.45rem',
@@ -308,7 +308,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           className="side-bottom"
           style={{
             padding: '0.6rem 0 0 0',
-            borderTop: '1px solid #F7CDAB',
+            borderTop: '1px solid #bae6fd',
             marginTop: '0.5rem',
             marginBottom: 0,
             flexShrink: 0,
@@ -320,8 +320,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           <div 
             className="sidebar-quota-widget"
             style={{
-              background: '#FDF4EB',
-              border: '1px solid #F7CDAB',
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
               borderRadius: '10px',
               padding: '0.45rem 0.65rem',
               marginBottom: '0.55rem',
@@ -332,14 +332,14 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.3rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#F66016' : '#EF4444' }} /> {activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}
+                <Printer size={13} style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#EF4444' }} /> {activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}
               </span>
-              <span style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0ea5e9' : '#ef4444', fontWeight: 700 }}>
+              <span style={{ color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444', fontWeight: 700 }}>
                 {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 10).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
               </span>
             </div>
-            <div style={{ width: '100%', height: '5px', background: '#FADCC3', borderRadius: '9999px', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(100, Math.max(0, ((activePlan.printsRemaining || 0) / (activePlan.totalPrints || 10)) * 100))}%`, height: '100%', background: (activePlan.printsRemaining || 0) > 2 ? 'linear-gradient(90deg, #FB821B, #F66016)' : '#EF4444', transition: 'width 0.3s ease' }} />
+            <div style={{ width: '100%', height: '5px', background: '#bae6fd', borderRadius: '9999px', overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(100, Math.max(0, ((activePlan.printsRemaining || 0) / (activePlan.totalPrints || 10)) * 100))}%`, height: '100%', background: (activePlan.printsRemaining || 0) > 2 ? 'linear-gradient(90deg, #38bdf8, #0284c7)' : '#EF4444', transition: 'width 0.3s ease' }} />
             </div>
           </div>
 
@@ -355,7 +355,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: '#F66016',
+              background: '#0284c7',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
@@ -389,9 +389,9 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '0.35rem 0.6rem',
-              background: '#FDFAF6',
-              border: '1px solid #F7CDAB',
-              borderRadius: '9px',
+              background: '#f0f9ff',
+              border: '1px solid #bae6fd',
+              borderRadius: '9999px',
               marginBottom: '0.45rem',
               cursor: 'pointer',
               fontSize: '0.74rem',
@@ -400,10 +400,10 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             title="Profile language settings"
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600, color: '#0C1F41' }}>
-              <Globe size={13} style={{ color: '#F66016' }} />
+              <Globe size={13} style={{ color: '#0284c7' }} />
               <span>{currentLangObj.flag} {currentLangObj.nativeName}</span>
             </span>
-            <span style={{ fontSize: '0.66rem', color: '#F66016', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.66rem', color: '#0284c7', fontWeight: 700 }}>
               {t("common.edit", "Change")}
             </span>
           </div>
@@ -440,18 +440,19 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
       </aside>
 
       {/* Main Content */}
-      <div className={`main ${!desktopSidebarOpen ? 'desktop-expanded' : ''}`} style={{ flex: 1, minHeight: '100vh', boxSizing: 'border-box' }}>
-        {/* Static Header with Slipzo Logo and Menu Icon */}
+      <div className={`main ${!desktopSidebarOpen ? 'desktop-expanded' : ''}`} style={{ flex: 1, minWidth: 0, maxWidth: '100%', minHeight: '100vh', boxSizing: 'border-box' }}>
+        {/* Static Header with Logo on Left and Menu / Prints Badge on Right */}
         <header className="shell-static-header">
           <div
             className="shell-header-brand"
             onClick={() => setView("dashboard")}
             title="Slipzo Dashboard"
+            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
           >
-            <img src="/logo.png" alt="Slipzo" className="shell-header-logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="Slipzo" className="shell-header-logo" style={{ height: '36px', width: 'auto', objectFit: 'contain', objectPosition: 'left center' }} />
           </div>
 
-          <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginLeft: 'auto' }}>
+          <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginLeft: 'auto' }}>
             <div 
               className="header-prints-badge"
               onClick={() => setView("pricing")}
@@ -460,18 +461,19 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                padding: '0.35rem 0.75rem',
+                padding: '0.35rem 0.65rem',
                 borderRadius: '9999px',
                 background: (activePlan.printsRemaining || 0) > 2 ? '#f0fdf4' : '#fef2f2',
                 border: `1px solid ${(activePlan.printsRemaining || 0) > 2 ? '#bbf7d0' : '#fecaca'}`,
                 color: (activePlan.printsRemaining || 0) > 2 ? '#166534' : '#991b1b',
-                fontSize: '0.75rem',
+                fontSize: '0.74rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                whiteSpace: 'nowrap'
               }}
             >
-              <Printer size={14} />
+              <Printer size={13} />
               <span>{formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} {activePlan.isFreeTier ? t("header.free", "free") + ' ' : ''}{(activePlan.printsRemaining || 0) === 1 ? t("header.print", "print") : t("header.printsLeft", "prints left")}</span>
             </div>
 
@@ -542,25 +544,21 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           gap: 0.65rem !important;
           cursor: pointer !important;
           user-select: none !important;
+          margin-left: 0 !important;
+          margin-right: auto !important;
         }
 
         .shell-header-logo {
-          height: 30px !important;
+          height: 36px !important;
           width: auto !important;
           object-fit: contain !important;
-        }
-
-        .shell-header-name {
-          font-size: 1.25rem !important;
-          font-weight: 800 !important;
-          color: #0C1F41 !important;
-          letter-spacing: -0.02em !important;
+          object-position: left center !important;
         }
 
         .shell-header-right {
           display: flex !important;
           align-items: center !important;
-          gap: 0.75rem !important;
+          gap: 0.65rem !important;
           margin-left: auto !important;
         }
 
@@ -571,7 +569,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           width: 38px !important;
           height: 38px !important;
           background: #F6F6F7 !important;
-          border: 1px solid #F7CDAB !important;
+          border: 1px solid #bae6fd !important;
           border-radius: 10px !important;
           color: #0C1F41 !important;
           cursor: pointer !important;
@@ -579,9 +577,9 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         }
 
         .shell-menu-btn:hover {
-          background: #FFF0E5 !important;
-          border-color: #F7CDAB !important;
-          color: #F66016 !important;
+          background: #e0f2fe !important;
+          border-color: #bae6fd !important;
+          color: #0284c7 !important;
         }
 
         .shell-menu-btn:active {
@@ -638,8 +636,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             right: auto !important;
             left: 0 !important;
             border-left: none !important;
-            border-right: 1px solid #F7CDAB !important;
-            background: #FDFAF6 !important;
+            border-right: 1px solid #bae6fd !important;
+            background: #f8fafc !important;
             transition: transform 0.3s ease !important;
           }
 
@@ -708,9 +706,9 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           .app-shell aside {
             left: auto !important;
             right: 0 !important;
-            border-left: 1px solid #F7CDAB !important;
+            border-left: 1px solid #bae6fd !important;
             border-right: none !important;
-            background: #FDFAF6 !important;
+            background: #f8fafc !important;
             transform: translateX(100%) !important;
             transition: transform 0.3s ease !important;
             z-index: 999 !important;
@@ -773,7 +771,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             padding-bottom: 0 !important;
             padding-top: 0.55rem !important;
             margin-top: 0.45rem !important;
-            border-top: 1px solid #F7CDAB !important;
+            border-top: 1px solid #bae6fd !important;
           }
 
           /* Mobile Bottom Navigation - Matching Figma Reference */
@@ -782,8 +780,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(253, 250, 246, 0.96);
-            border-top: 1px solid #F7CDAB;
+            background: rgba(248, 250, 252, 0.96);
+            border-top: 1px solid #bae6fd;
             display: flex !important;
             justify-content: space-around;
             align-items: center;
@@ -838,20 +836,20 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           }
 
           .mobile-nav-btn.active {
-            color: #F66016;
+            color: #0284c7;
           }
 
           .mobile-nav-btn.active .mobile-nav-icon-wrap {
-            background: #FFF0E5;
+            background: #e0f2fe;
           }
 
           .mobile-nav-btn.active svg {
-            color: #F66016 !important;
+            color: #0284c7 !important;
             stroke-width: 2.3;
           }
 
           .mobile-nav-btn.active span {
-            color: #F66016 !important;
+            color: #0284c7 !important;
             font-weight: 700;
           }
 

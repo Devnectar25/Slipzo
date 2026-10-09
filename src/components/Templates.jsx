@@ -10,6 +10,7 @@ import { CardSkeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
 import { RealisticReceiptView } from "./RealisticReceiptView"
+import { VoiceInputButton } from "./common/VoiceInputButton"
 
 export const BUILTIN_TEMPLATES = [
   {
@@ -26,11 +27,29 @@ export const BUILTIN_TEMPLATES = [
     btnClass: "template-btn-blue",
     description: "Clean and professional receipt template with itemized table, clear rates, and totals.",
     features: [
-      "Shop logo header",
-      "Itemized list with quantity",
-      "Receipt summary & totals",
-      "Payment mode badge"
+      "Shop header & contact",
+      "Itemized table (Qty, Rate, Total)",
+      "Payment mode & barcode",
+      "Custom footer note"
     ],
+    previewData: {
+      shopName: "CLASSIC MART & GROCERY",
+      address: "Shop 14, Main Market, Connaught Place, New Delhi",
+      phone: "+91 11 2341 5678",
+      gst: "",
+      invoiceNo: "CM-2026-8821",
+      date: "09 Mar 2026, 01:15 PM",
+      items: [
+        { name: "Basmati Rice 1kg", qty: 2, rate: 120, total: 240 },
+        { name: "Refined Sunflower Oil 1L", qty: 1, rate: 195, total: 195 }
+      ],
+      subtotal: 435,
+      tax: 0,
+      discount: 0,
+      total: 435,
+      payment: "Cash",
+      footer: "Thank you for shopping with us! Please come again."
+    },
     is_builtin: true,
     is_default: true
   },
@@ -41,12 +60,12 @@ export const BUILTIN_TEMPLATES = [
     category: "Minimal",
     badge: "MOST POPULAR",
     hasCrown: true,
-    badgeClass: "badge-popular-cyan",
+    badgeClass: "badge-standard-blue",
     width: "58mm",
     paperSize: "58mm Thermal",
-    topBarColor: "#0ea5e9",
+    topBarColor: "#0284c7",
     accentColor: "#0284c7",
-    btnClass: "template-btn-cyan",
+    btnClass: "template-btn-blue",
     description: "Streamlined layout engineered to reduce paper roll consumption while maintaining clarity.",
     features: [
       "Compact receipt layout",
@@ -54,6 +73,24 @@ export const BUILTIN_TEMPLATES = [
       "Zero-waste spacing",
       "Thermal optimized"
     ],
+    previewData: {
+      shopName: "MINIMAL CAFE & BAKERY",
+      address: "MG Road, Indiranagar, Bengaluru",
+      phone: "+91 98765 43210",
+      gst: "",
+      invoiceNo: "MC-INV-102",
+      date: "09 Mar 2026, 02:45 PM",
+      items: [
+        { name: "Espresso Single Shot", qty: 1, rate: 120, total: 120 },
+        { name: "Butter Croissant", qty: 1, rate: 100, total: 100 }
+      ],
+      subtotal: 220,
+      tax: 0,
+      discount: 0,
+      total: 220,
+      payment: "UPI / PhonePe",
+      footer: "Thank you for visiting! Please come again."
+    },
     is_builtin: true
   },
   {
@@ -62,19 +99,37 @@ export const BUILTIN_TEMPLATES = [
     name: "Shop Pro",
     category: "Business",
     badge: "RETAIL CHOICE",
-    badgeClass: "badge-retail-purple",
+    badgeClass: "badge-standard-blue",
     width: "80mm",
     paperSize: "80mm POS",
-    topBarColor: "#4f46e5",
-    accentColor: "#4f46e5",
-    btnClass: "template-btn-purple",
-    description: "Professional high-volume retail template with loyalty points display, item discounts, and payment QR code.",
+    topBarColor: "#0284c7",
+    accentColor: "#0284c7",
+    btnClass: "template-btn-blue",
+    description: "Professional high-volume retail POS receipt with clean column headers, item discounts, and net totals.",
     features: [
-      "Brand accent header",
-      "Discount highlight tags",
-      "Loyalty rewards counter",
-      "Dynamic UPI QR code"
+      "Retail store header",
+      "Itemized table with quantity",
+      "Net total calculation",
+      "Editable footer note"
     ],
+    previewData: {
+      shopName: "URBAN FASHION PRO",
+      address: "Level 2, Phoenix Marketcity, Mumbai",
+      phone: "+91 22 6789 0011",
+      gst: "",
+      invoiceNo: "UFP-INV-4401",
+      date: "09 Mar 2026, 04:30 PM",
+      items: [
+        { name: "Pure Linen Casual Shirt", qty: 1, rate: 1499, total: 1499 },
+        { name: "Slim Fit Chino Trousers", qty: 1, rate: 1899, total: 1899 }
+      ],
+      subtotal: 3398,
+      tax: 0,
+      discount: 300,
+      total: 3098,
+      payment: "Credit / Debit Card",
+      footer: "Thank you for shopping with us! Please come again."
+    },
     is_builtin: true
   },
   {
@@ -83,19 +138,37 @@ export const BUILTIN_TEMPLATES = [
     name: "Eco Print",
     category: "Thermal",
     badge: "PAPER SAVER",
-    badgeClass: "badge-eco-green",
+    badgeClass: "badge-standard-blue",
     width: "58mm",
     paperSize: "58mm Ultra Compact",
-    topBarColor: "#059669",
-    accentColor: "#059669",
-    btnClass: "template-btn-green",
+    topBarColor: "#0284c7",
+    accentColor: "#0284c7",
+    btnClass: "template-btn-blue",
     description: "Ultra-compact monospace thermal bill layout engineered specifically to maximize speed and save paper.",
     features: [
-      "Fast thermal printing",
+      "58mm compact layout",
       "Monospace font alignment",
-      "High-density item lines",
-      "Less paper usage"
+      "High density item lines",
+      "Paper saving spacing"
     ],
+    previewData: {
+      shopName: "KRISHNA JUICE & SHAKES",
+      address: "Near Metro Station Gate 2, Hyderabad",
+      phone: "+91 40 5544 3322",
+      gst: "",
+      invoiceNo: "KJ-7734",
+      date: "09 Mar 2026, 11:30 AM",
+      items: [
+        { name: "Fresh Pomegranate Juice", qty: 2, rate: 80, total: 160 },
+        { name: "Special Fruit Salad Bowl", qty: 1, rate: 120, total: 120 }
+      ],
+      subtotal: 280,
+      tax: 0,
+      discount: 0,
+      total: 280,
+      payment: "UPI QR",
+      footer: "Save paper, save trees! Thank you."
+    },
     is_builtin: true
   },
   {
@@ -104,19 +177,37 @@ export const BUILTIN_TEMPLATES = [
     name: "Modern Shop",
     category: "Modern",
     badge: "TRENDY",
-    badgeClass: "badge-trendy-orange",
+    badgeClass: "badge-standard-blue",
     width: "58mm",
     paperSize: "58mm Thermal",
-    topBarColor: "#ea580c",
-    accentColor: "#ea580c",
-    btnClass: "template-btn-orange",
+    topBarColor: "#0284c7",
+    accentColor: "#0284c7",
+    btnClass: "template-btn-blue",
     description: "Contemporary aesthetic for boutiques, cafes, and salons with pill badges, stylish spacing, and Instagram-style layout.",
     features: [
       "Modern typography",
-      "Category pill badges",
-      "Social media footer",
-      "Clean spacing"
+      "Clean item list with rates",
+      "Clear amount due card",
+      "Custom footer note"
     ],
+    previewData: {
+      shopName: "LUMINA BEAUTY & SPA",
+      address: "3rd Block, Koramangala, Bengaluru",
+      phone: "+91 80 9988 7766",
+      gst: "",
+      invoiceNo: "LUM-2026-55",
+      date: "09 Mar 2026, 05:15 PM",
+      items: [
+        { name: "Organic Rose Water Toner 100ml", qty: 1, rate: 450, total: 450 },
+        { name: "Hydrating Facial Serum 50ml", qty: 1, rate: 890, total: 890 }
+      ],
+      subtotal: 1340,
+      tax: 0,
+      discount: 0,
+      total: 1340,
+      payment: "UPI / Card",
+      footer: "Thank you for your visit! Please come again."
+    },
     is_builtin: true
   },
   {
@@ -125,19 +216,37 @@ export const BUILTIN_TEMPLATES = [
     name: "Business Elite",
     category: "Business",
     badge: "PREMIUM",
-    badgeClass: "badge-premium-indigo",
+    badgeClass: "badge-standard-blue",
     width: "80mm",
     paperSize: "80mm Standard / A4",
-    topBarColor: "#6366f1",
-    accentColor: "#4f46e5",
-    btnClass: "template-btn-indigo",
+    topBarColor: "#0284c7",
+    accentColor: "#0284c7",
+    btnClass: "template-btn-blue",
     description: "Formal business invoice template designed for retail and services with clear totals, signatory, and terms.",
     features: [
-      "Formal invoice header",
+      "Formal Invoice header",
+      "Seller contact details",
       "Itemized table with rates",
-      "Authorized signatory box",
-      "Terms & conditions"
+      "Clear amount due & totals"
     ],
+    previewData: {
+      shopName: "TECHNO COMPUTERS & PERIPHERALS",
+      address: "Plot 88, Electronic City Phase 1, Bengaluru",
+      phone: "+91 80 4123 9900",
+      gst: "",
+      invoiceNo: "TC-INV-2026-904",
+      date: "09 Mar 2026, 03:00 PM",
+      items: [
+        { name: "Wireless Ergonomic Mouse", qty: 1, rate: 850, total: 850 },
+        { name: "Mechanical RGB Keyboard", qty: 1, rate: 2400, total: 2400 }
+      ],
+      subtotal: 3250,
+      tax: 0,
+      discount: 0,
+      total: 3250,
+      payment: "Bank / Online",
+      footer: "Thank you for your business. Terms & conditions apply."
+    },
     is_builtin: true
   }
 ]
@@ -348,7 +457,7 @@ export function Templates({ setView, user }) {
             onChange={(e) => setSearch(e.target.value)}
             className="templates-search-input-field"
           />
-          {search && (
+          {search ? (
             <button className="templates-search-clear-btn" onClick={() => setSearch("")}>
               <X size={15} />
             </button>
@@ -420,79 +529,66 @@ export function Templates({ setView, user }) {
 
               return (
                 <div
-                  className="template-card-item"
+                  className="template-showcase-card"
                   key={template.id}
-                  style={{ "--card-accent-color": topBarColor }}
+                  style={{
+                    "--card-gradient": topBarColor,
+                    "--accent-color": accentColor
+                  }}
                 >
-                  <div className="template-card-top-accent-bar" style={{ backgroundColor: topBarColor }} />
-
-                  {/* Top Badges Row */}
-                  <div className="template-card-badge-row">
-                    <div className="template-left-badges">
-                      <span className={`template-category-badge ${badgeClass}`}>
+                  <div className="card-top-bar" />
+                  <div className="template-card-top">
+                    <div className="template-badge-row">
+                      <span className="template-badge" style={{ background: topBarColor, color: "#ffffff" }}>
                         {template.hasCrown && <Crown size={11} className="badge-crown-icon" />}
                         {tDb(template.badge || "STANDARD")}
                       </span>
                       {template.is_default && (
-                        <span className="template-default-badge">
+                        <span className="template-default-badge" style={{ marginLeft: "4px" }}>
                           Default
                         </span>
                       )}
+                      <span className="template-paper-tag" style={{ marginLeft: "auto" }}>
+                        <Printer size={12} /> {template.paperSize || `${template.width || "58mm"} Thermal`}
+                      </span>
                     </div>
-
-                    <div className="template-right-paper-badge">
-                      <Printer size={12} />
-                      <span>{template.paperSize || `${template.width || "58mm"} Thermal`}</span>
-                    </div>
+                    <h3>{tDb(template.name)}</h3>
+                    <p className="template-desc">{tDb(template.description || "Clean and professional receipt template.")}</p>
                   </div>
 
-                  {/* Title & Description */}
-                  <h3 className="template-card-title">{tDb(template.name)}</h3>
-                  <p className="template-card-desc">
-                    {tDb(template.description || "Clean and professional receipt template.")}
-                  </p>
+                  {/* Receipt Preview Box */}
+                  <div className="template-receipt-preview" onClick={() => setPreviewTemplate(template)}>
+                    <MiniReceiptPreview template={template} />
+                  </div>
 
-                  {/* Inner Split: Features on Left, Miniature Receipt on Right */}
-                  <div className="template-card-inner-split">
-                    <div className="template-features-column">
-                      {features.slice(0, 4).map((feat, idx) => (
-                        <div className="template-feature-row" key={idx}>
-                          <Check size={14} style={{ color: topBarColor }} className="feat-check-icon" />
-                          <span>{tDb(feat)}</span>
-                        </div>
-                      ))}
-                    </div>
+                  {/* Features Box */}
+                  <div className="template-features-box">
+                    {features.map((feat, idx) => (
+                      <div className="template-feat-item" key={idx}>
+                        <Check size={16} style={{ color: topBarColor, flexShrink: 0 }} />
+                        <span>{tDb(feat)}</span>
+                      </div>
+                    ))}
+                  </div>
 
-                    <div 
-                      className="template-mini-receipt-column"
+                  {/* Card Footer Actions */}
+                  <div className="template-card-actions">
+                    <button
+                      className="template-preview-btn"
                       onClick={() => setPreviewTemplate(template)}
-                      title="Click to zoom realistic receipt"
                     >
-                      <MiniReceiptPreview template={template} />
-                    </div>
-                  </div>
-
-                  {/* Card Action Buttons at Bottom */}
-                  <div className="template-card-actions-bottom">
+                      <Eye size={14} /> {t("templates.preview", "Preview")}
+                    </button>
                     <button
                       data-testid={`use-template-${template.id}-button`}
-                      className={`template-use-action-btn ${btnClass}`}
+                      className="template-use-btn"
+                      style={{ background: topBarColor }}
                       onClick={() => {
                         sessionStorage.setItem("slipzo-template", template.templateId || template.id)
                         setView("bills")
                       }}
                     >
-                      <span>{t("templates.useTemplate", "Use template")}</span>
-                      <ArrowRight size={14} />
-                    </button>
-
-                    <button
-                      className="template-preview-action-btn"
-                      onClick={() => setPreviewTemplate(template)}
-                      title={t("templates.preview", "Preview Receipt")}
-                    >
-                      <Eye size={15} />
-                      <span className="preview-btn-text">{t("templates.preview", "Preview")}</span>
+                      {t("templates.useTemplate", "Use Template")} <ArrowRight size={14} />
                     </button>
                   </div>
                 </div>

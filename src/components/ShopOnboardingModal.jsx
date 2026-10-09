@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react"
-import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle } from "lucide-react"
+import { useState, useEffect, useMemo, useRef } from "react"
+import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle, Upload } from "lucide-react"
 import { call, findTemplateMatch, setCachedData } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -27,6 +27,9 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
 export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   const [name, setName] = useState("")
   const [businessType, setBusinessType] = useState("small_business")
+  const [logoUrl, setLogoUrl] = useState("")
+  const [logoError, setLogoError] = useState("")
+  const logoInputRef = useRef(null)
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
   const [prefix, setPrefix] = useState("SLP")
@@ -59,6 +62,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         if (data) {
           if (data.name && !data.name.endsWith("'s Shop")) setName(data.name)
           if (data.business_type) setBusinessType(data.business_type)
+          if (data.logo_url) setLogoUrl(data.logo_url)
           if (data.phone) setPhone(data.phone)
           if (data.address) setAddress(data.address)
           if (data.invoice_prefix) setPrefix(data.invoice_prefix)
@@ -161,6 +165,58 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
     setErrors((prev) => ({ ...prev, [field]: err }))
   }
 
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setLogoError("")
+
+    // Validate File Size (Max 2 MB = 2 * 1024 * 1024 bytes)
+    if (file.size > 2 * 1024 * 1024) {
+      setLogoError("Logo size must be 2 MB or less.")
+      if (logoInputRef.current) logoInputRef.current.value = ""
+      return
+    }
+
+    // Validate File MIME type / Extension (PNG, JPG, WEBP)
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
+    const fileNameLower = file.name.toLowerCase()
+    const isValidExtension = /\.(png|jpe?g|webp)$/i.test(fileNameLower)
+
+    if (!allowedTypes.includes(file.type) || !isValidExtension) {
+      setLogoError("Please upload a PNG, JPG, or WEBP image.")
+      if (logoInputRef.current) logoInputRef.current.value = ""
+      return
+    }
+
+    // Read file and validate image loading via Image() object
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const dataUrl = event.target.result
+      const img = new Image()
+      img.onload = () => {
+        setLogoUrl(dataUrl)
+        setLogoError("")
+      }
+      img.onerror = () => {
+        setLogoError("Unable to use this image. Please select a valid image.")
+        if (logoInputRef.current) logoInputRef.current.value = ""
+      }
+      img.src = dataUrl
+    }
+    reader.onerror = () => {
+      setLogoError("Unable to use this image. Please select a valid image.")
+      if (logoInputRef.current) logoInputRef.current.value = ""
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveLogo = () => {
+    setLogoUrl("")
+    setLogoError("")
+    if (logoInputRef.current) logoInputRef.current.value = ""
+  }
+
   const handleSubmit = async (e) => {
     e?.preventDefault()
 
@@ -198,7 +254,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           invoice_prefix: prefix.trim().toUpperCase(),
           invoice_sequence: Number(sequence),
           invoice_format: format,
-          default_template_id: defaultTemplateId
+          default_template_id: defaultTemplateId,
+          logo_url: logoUrl || ""
         })
       })
 
@@ -214,7 +271,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         invoice_prefix: prefix.trim().toUpperCase(),
         invoice_sequence: Number(sequence),
         invoice_format: format,
-        default_template_id: defaultTemplateId
+        default_template_id: defaultTemplateId,
+        logo_url: logoUrl || ""
       }
 
       setCachedData("/shop", fullShop)
@@ -266,6 +324,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         shopName: (name || "Your Shop Name").trim(),
         address: (address || "Shop address will appear here").trim(),
         phone: (phone || "+91 00000 00000").trim(),
+        logo_url: logoUrl || "",
+        logo: logoUrl || "",
         gst: "",
         invoiceNo: liveInvoiceNo,
         date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
@@ -281,7 +341,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         footer: matched.footer || "Thank you for shopping with us! Please come again."
       }
     }
-  }, [templates, defaultTemplateId, name, address, phone, liveInvoiceNo, previewTotalPaid])
+  }, [templates, defaultTemplateId, name, address, phone, liveInvoiceNo, previewTotalPaid, logoUrl])
 
   if (!isOpen) return null
 
@@ -426,6 +486,138 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Shop Logo (Optional) */}
+            <div className="onboarding-field" style={{ marginBottom: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                <label className="onboarding-label" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <Upload size={14} className="field-icon" />
+                  <span>Shop Logo</span>
+                </label>
+                <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 600, background: "#f1f5f9", padding: "0.15rem 0.45rem", borderRadius: "4px" }}>
+                  Optional
+                </span>
+              </div>
+
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png, image/jpeg, image/webp"
+                onChange={handleLogoChange}
+                style={{ display: "none" }}
+              />
+
+              {logoUrl ? (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  padding: "0.6rem 0.75rem",
+                  borderRadius: "10px",
+                  border: "1.5px solid #e2e8f0",
+                  background: "#ffffff"
+                }}>
+                  <div style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "#f8fafc",
+                    flexShrink: 0
+                  }}>
+                    <img
+                      src={logoUrl}
+                      alt="Shop Logo Preview"
+                      style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#1e293b" }}>Logo Preview</div>
+                    <div style={{ fontSize: "0.68rem", color: "#64748b" }}>PNG, JPG or WEBP • Max 2 MB</div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "0.35rem" }}>
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      style={{
+                        padding: "0.35rem 0.65rem",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        borderRadius: "6px",
+                        border: "1px solid #0284c7",
+                        color: "#0284c7",
+                        background: "#f0f9ff",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem"
+                      }}
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      style={{
+                        padding: "0.35rem 0.65rem",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        color: "#ef4444",
+                        background: "#ffffff",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.25rem"
+                      }}
+                    >
+                      <X size={12} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.5rem",
+                      padding: "0.65rem 1rem",
+                      borderRadius: "10px",
+                      border: "1.5px dashed #0284c7",
+                      background: "#f0f9ff",
+                      color: "#0284c7",
+                      fontWeight: 600,
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease"
+                    }}
+                  >
+                    <Upload size={16} /> Upload Logo
+                  </button>
+                  <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "0.3rem", textAlign: "left" }}>
+                    PNG, JPG or WEBP • Max 2 MB
+                  </div>
+                </div>
+              )}
+
+              {logoError && (
+                <span className="error-text" style={{ marginTop: "0.3rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                  <AlertCircle size={12} /> {logoError}
+                </span>
+              )}
             </div>
 
             {/* Phone Number */}
@@ -705,7 +897,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           bottom: 0 !important;
           z-index: 30 !important;
           background: #ffffff !important;
-          border-top: 1px solid #F7CDAB !important;
+          border-top: 1px solid #bae6fd !important;
           box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.05) !important;
         }
 
@@ -713,7 +905,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 0.35rem;
-          background: #FDF4EB;
+          background: #f0f9ff;
           padding: 0.3rem;
           border-radius: 10px;
           border: 1px solid #D9DDE4;
@@ -739,7 +931,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
         .tax-btn.active {
           background: #ffffff;
-          color: #F66016;
+          color: #0284c7;
           box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.1);
           font-weight: 700;
         }

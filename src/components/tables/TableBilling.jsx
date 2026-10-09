@@ -23,7 +23,9 @@ import {
   call,
   money,
   getCachedData,
-  findTemplateMatch
+  findTemplateMatch,
+  getItemRate,
+  getStoredMenuItems
 } from "../../lib/utils"
 import { BUILTIN_TEMPLATES } from "../Templates"
 import { TableResetModal } from "./TableResetModal"
@@ -82,7 +84,7 @@ export function TableBilling({
     }
     return list.map((it) => {
       const qty = Number(it.quantity !== undefined ? it.quantity : (it.qty !== undefined ? it.qty : 1)) || 1
-      const rate = Number(it.rate !== undefined ? it.rate : (it.price !== undefined ? it.price : (it.custom_price !== undefined ? it.custom_price : 0))) || 0
+      const rate = getItemRate(it)
       return {
         id: it.id || (Date.now() + Math.floor(Math.random() * 1000)),
         name: (it.name || "").trim(),
@@ -120,19 +122,18 @@ export function TableBilling({
     let isMounted = true
     const loadMenu = async () => {
       try {
-        let data = await call("/menu?business_type=hotel_food")
-        // If user menu is empty, fallback to master hotel catalog so hotel products are immediately available
-        if (Array.isArray(data) && data.length === 0) {
-          const catalog = await call("/menu/catalog?business_type=hotel_food")
-          if (Array.isArray(catalog) && catalog.length > 0) {
-            data = catalog
-          }
-        }
+        const data = await call("/menu").catch(() => null)
         if (isMounted && Array.isArray(data)) {
           setUserMenuItems(data)
+        } else if (isMounted) {
+          // Fallback to local storage if API fails
+          const local = getStoredMenuItems(user)
+          if (local.length > 0) setUserMenuItems(local)
         }
       } catch (err) {
-        console.warn("Failed to load restaurant menu:", err)
+        console.warn("Failed to load menu, using offline storage:", err)
+        const local = getStoredMenuItems(user)
+        if (local.length > 0) setUserMenuItems(local)
       } finally {
         if (isMounted) setLoadingMenu(false)
       }
@@ -159,13 +160,13 @@ export function TableBilling({
     }, 0)
   }, [items])
 
-  // Sync back to parent table state whenever items change
+  // Sync items/total to parent for in-session display only (no status change, no backend write)
   useEffect(() => {
     if (onUpdateTableState) {
       onUpdateTableState(table.id || table.table_number, {
         current_items: items,
-        total_amount: total,
-        status: items.length > 0 ? "OCCUPIED" : "AVAILABLE"
+        total_amount: total
+        // status intentionally omitted — only Save/Reset/Print change it
       })
     }
   }, [items, total])
@@ -219,7 +220,7 @@ export function TableBilling({
     }
 
     const cleanName = (menuItem.name || "").trim()
-    const rate = Number(menuItem.custom_price !== undefined ? menuItem.custom_price : (menuItem.price !== undefined ? menuItem.price : 0))
+    const rate = getItemRate(menuItem)
     const itemImage = resolveItemImage(menuItem)
 
     setItems((prev) => {
@@ -270,7 +271,7 @@ export function TableBilling({
     if (!rawBarcode) return false
     const barcode = String(rawBarcode).trim()
     const match = userMenuItems.find(
-      (it) => (it.barcode || "").trim().toLowerCase() === barcode.toLowerCase()
+      (it) => (it.barcode || "").trim().toLowerCase() === barcode.toLowerCase() && it.barcode_active !== false && it.barcode_active !== 0 && it.barcode_active !== "0" && it.barcode_active !== "false"
     )
     if (match) {
       handleAddItem(match)
@@ -344,14 +345,30 @@ export function TableBilling({
         tax_mode: 0,
         tax_amount: 0,
         total: total,
-        payment_mode: paymentMode
+        payment_mode: paymentMode,
+        is_saved: true
       }
 
-      // 1. Create and save bill in database
-      const savedBill = await call("/bills", {
-        method: "POST",
-        body: JSON.stringify(billData)
-      })
+      // 1. Create or update bill in database
+      let savedBill = null
+      if (table.editing_bill_id) {
+        try {
+          savedBill = await call(`/bills/${table.editing_bill_id}`, {
+            method: "PUT",
+            body: JSON.stringify(billData)
+          })
+        } catch (_) {
+          savedBill = await call("/bills", {
+            method: "POST",
+            body: JSON.stringify(billData)
+          })
+        }
+      } else {
+        savedBill = await call("/bills", {
+          method: "POST",
+          body: JSON.stringify(billData)
+        })
+      }
 
       // 2. Dispatch event so Home page (Dashboard) and other components update immediately
       window.dispatchEvent(new CustomEvent("slipzo_bill_saved", { detail: savedBill }))
@@ -363,14 +380,27 @@ export function TableBilling({
         status: "OCCUPIED"
       }
 
-      if (onUpdateTableState) {
-        onUpdateTableState(table.id || table.table_number, tableUpdates)
+      const tableIdOrNum = table.id || table.table_number
+
+      // Update backend and wait for confirmation
+      let updatedTable = null
+      try {
+        updatedTable = await call(`/restaurant/tables/${tableIdOrNum}`, {
+          method: "PUT",
+          body: JSON.stringify(tableUpdates)
+        })
+      } catch (e) {
+        console.warn("Backend table update warning:", e)
       }
 
-      await call(`/restaurant/tables/${table.id || table.table_number}`, {
-        method: "PUT",
-        body: JSON.stringify(tableUpdates)
-      }).catch((e) => console.warn("Backend table update warning:", e))
+      // Sync state with OCCUPIED status
+      if (onUpdateTableState) {
+        onUpdateTableState(tableIdOrNum, {
+          ...tableUpdates,
+          ...(updatedTable || {}),
+          status: "OCCUPIED"
+        })
+      }
 
       toastSuccess(t("tables.orderSavedSuccess", `Bill saved for ${table.name || `Table ${table.table_number}`}!`))
       onBack()
@@ -422,7 +452,15 @@ export function TableBilling({
         tax_mode: 0,
         tax_amount: 0,
         total: total,
-        payment_mode: paymentMode
+        payment_mode: paymentMode,
+        is_saved: false
+      }
+
+      if (table.editing_bill_id) {
+        await call(`/bills/${table.editing_bill_id}`, {
+          method: "PUT",
+          body: JSON.stringify(billData)
+        }).catch(() => {})
       }
 
       const savedBill = await call("/bills", {
@@ -430,7 +468,11 @@ export function TableBilling({
         body: JSON.stringify(billData)
       })
 
-      window.dispatchEvent(new CustomEvent("slipzo_bill_saved", { detail: savedBill }))
+      // If this table had an active saved bill in saved_bills, mark as printed in backend so it's removed from Home screen
+      const tableLabel = table.name || `Table ${table.table_number}`
+      call(`/bills/print-table/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => {})
+
+      window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: { ...savedBill, table_number: tableLabel } }))
 
       // Clear table and route directly to reprint
       setItems([])
@@ -438,7 +480,9 @@ export function TableBilling({
         onUpdateTableState(table.id || table.table_number, {
           current_items: [],
           total_amount: 0,
-          status: "AVAILABLE"
+          status: "AVAILABLE",
+          editing_bill_id: null,
+          editing_bill_number: null
         })
       }
       await call(`/restaurant/tables/reset/${table.id || table.table_number}`, {
@@ -463,7 +507,7 @@ export function TableBilling({
     <div className="table-billing-workspace fade-in">
       {/* Top Header */}
       <div className="table-billing-header">
-        <div style={{ display: "flex", alignItems: "center", gap: "0.85rem" }}>
+        <div className="table-billing-header-left">
           <button type="button" className="table-billing-back-btn" onClick={onBack}>
             <ArrowLeft size={16} />
             <span>{t("tables.backToTables", "Tables")}</span>
@@ -477,10 +521,15 @@ export function TableBilling({
               <span className="status-dot" />
               {isOccupied ? t("tables.occupied", "Occupied") : t("tables.available", "Available")}
             </span>
+            {table.editing_bill_number && (
+              <span style={{ fontSize: "0.72rem", fontWeight: "700", padding: "2px 8px", borderRadius: "6px", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", marginLeft: "6px" }}>
+                ✏️ Editing Bill #{table.editing_bill_number}
+              </span>
+            )}
           </div>
         </div>
 
-        <div style={{ fontSize: "0.82rem", color: "#64748b", fontWeight: "600" }}>
+        <div className="table-billing-header-summary">
           {totalItemsCount} {totalItemsCount === 1 ? t("history.item", "item") : t("history.items", "items")} • {money(total)}
         </div>
       </div>
@@ -490,9 +539,9 @@ export function TableBilling({
         {/* LEFT COLUMN: Menu Items */}
         <div className="nb-left-col">
           {/* Search & Inputs */}
-          <div className="table-menu-search-row" style={{ marginBottom: "0.85rem" }}>
+          <div className="table-menu-search-row">
             <div className="table-menu-search-input">
-              <Search size={16} color="#64748b" />
+              <Search size={16} color="#64748b" className="table-search-icon" />
               <input
                 type="text"
                 placeholder={t("menu.searchPlaceholder", "Search items or speak to add (e.g. Tea, Coffee, Pizza...)")}
@@ -503,27 +552,26 @@ export function TableBilling({
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                  className="table-search-clear-btn"
+                  title={t("bills.clearSearch", "Clear search")}
                 >
                   <X size={14} />
                 </button>
               )}
+              <VoiceInputButton
+                onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
+                placeholder={t("menu.voiceSearch", "Speak to search item")}
+              />
             </div>
-
-            <VoiceInputButton
-              onTranscript={(text) => setSearch(text)}
-              placeholder={t("menu.voiceSearch", "Speak to search item")}
-            />
 
             <button
               type="button"
-              className="icon-button"
+              className="table-scan-barcode-btn"
               onClick={() => setIsCameraScannerOpen(true)}
-              title="Scan Barcode"
-              style={{ padding: "0.55rem 0.75rem", borderRadius: "10px", background: "#f0f9ff", color: "#0284c7", border: "1.5px solid #bae6fd", display: "inline-flex", alignItems: "center", gap: "0.35rem", fontWeight: "700", fontSize: "0.82rem" }}
+              title={t("bills.scanBarcodeTooltip", "Scan barcode with Camera or USB/BT Scanner")}
             >
               <BarcodeIcon size={18} />
-              <span className="hide-mobile">Scan Barcode</span>
+              <span className="table-scan-btn-text">{t("bills.scanBarcode", "Scan Barcode")}</span>
             </button>
           </div>
 
@@ -575,7 +623,7 @@ export function TableBilling({
                   const cleanName = (item.name || "").trim()
                   const added = addedItemMap.get(cleanName.toLowerCase())
                   const currentQty = added ? Number(added.quantity || 0) : 0
-                  const price = Number(item.custom_price !== undefined ? item.custom_price : (item.price !== undefined ? item.price : 0))
+                  const price = getItemRate(item)
                   const itemImg = resolveItemImage(item)
 
                   return (

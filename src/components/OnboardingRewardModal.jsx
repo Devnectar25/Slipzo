@@ -73,7 +73,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
         {/* Top Celebration Banner Accent */}
         <div
           style={{
-            background: "linear-gradient(135deg, #FB821B 0%, #F66016 50%, #FC9B3E 100%)",
+            background: "linear-gradient(135deg, #38bdf8 0%, #0284c7 50%, #0369a1 100%)",
             height: "8px",
             width: "100%"
           }}
@@ -86,13 +86,13 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
               width: "76px",
               height: "76px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #FFF0E5 0%, #FFE6D2 100%)",
-              border: "2px solid #F7CDAB",
+              background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+              border: "2px solid #bae6fd",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 1.25rem",
-              boxShadow: "0 8px 20px -4px rgba(246, 96, 22, 0.25)",
+              boxShadow: "0 8px 20px -4px rgba(2, 132, 199, 0.25)",
               fontSize: "2.4rem",
               userSelect: "none"
             }}
@@ -123,14 +123,14 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
             }}
           >
             Welcome to Slipzo! You've successfully completed your shop setup and menu items.
-            We've credited <strong style={{ color: "#F66016" }}>10 free prints</strong> to your account so you can start creating bills right away.
+            We've credited <strong style={{ color: "#0284c7" }}>10 free prints</strong> to your account so you can start creating bills right away.
           </p>
 
           {/* Reward Feature Highlight Box */}
           <div
             style={{
-              background: "#FFF2DE",
-              border: "1px solid #F7CDAB",
+              background: "#f0f9ff",
+              border: "1px solid #bae6fd",
               borderRadius: "14px",
               padding: "1rem 1.1rem",
               marginBottom: "1.5rem",
@@ -154,7 +154,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
                     width: "28px",
                     height: "28px",
                     borderRadius: "8px",
-                    background: "#F66016",
+                    background: "#0284c7",
                     color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
@@ -217,7 +217,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
               justifyContent: "center",
               gap: "0.6rem",
               cursor: "pointer",
-              boxShadow: "0 10px 20px -5px rgba(246, 96, 22, 0.35)",
+              boxShadow: "0 10px 20px -5px rgba(2, 132, 199, 0.35)",
               transition: "transform 0.15s ease, box-shadow 0.15s ease"
             }}
           >
@@ -243,8 +243,8 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
           }
           .reward-get-started-btn:hover {
             transform: translateY(-1px);
-            box-shadow: 0 12px 24px -5px rgba(246, 96, 22, 0.45) !important;
-          }
+            box-shadow: 0 12px 24px -5px rgba(2, 132, 199, 0.45) !important;
+          }  }
           .reward-get-started-btn:active {
             transform: translateY(1px);
           }

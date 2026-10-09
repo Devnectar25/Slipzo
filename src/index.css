@@ -1,29 +1,30 @@
 @import "./styles/theme.css";
+@import "./components/common/SearchBar.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 37 100% 93.7%; /* #FFF2DE Warm Cream */
+    --background: 210 40% 98%; /* #f8fafc Soft Light Background */
     --foreground: 218 69% 15%; /* #0C1F41 Slipzo Navy */
     --card: 0 0% 100%; /* #FFFFFF White */
     --card-foreground: 218 69% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 218 69% 15%;
-    --primary: 20 93% 52%; /* #F66016 Slipzo Orange */
+    --primary: 199 98% 39%; /* #0284c7 Slipzo Blue */
     --primary-foreground: 0 0% 100%;
-    --secondary: 24 100% 95%; /* #FFF0E5 Orange Tint */
-    --secondary-foreground: 20 93% 52%;
-    --muted: 33 50% 95%; /* #FDF4EB Soft Cream */
+    --secondary: 204 100% 97%; /* #f0f9ff Blue Tint */
+    --secondary-foreground: 199 98% 39%;
+    --muted: 204 100% 97%; /* #f0f9ff Soft Blue */
     --muted-foreground: 231 9% 50%; /* #74788A Muted Slate */
-    --accent: 24 100% 95%;
-    --accent-foreground: 20 93% 52%;
+    --accent: 204 100% 97%;
+    --accent-foreground: 199 98% 39%;
     --destructive: 354 100% 94%; /* #FFE1E5 Danger Tint */
     --destructive-foreground: 0 84% 60%; /* #EF4444 Red */
-    --border: 26 82% 82%; /* #F7CDAB Peach Border */
+    --border: 199 95% 86%; /* #bae6fd Light Blue Border */
     --input: 240 3% 97%; /* #F6F6F7 Soft Neutral */
-    --ring: 20 93% 52%;
+    --ring: 199 98% 39%;
     --radius: 0.5rem;
   }
 }
@@ -46,10 +47,10 @@ body,
 #root {
   min-height: 100%;
   margin: 0;
-  background-color: #FFF2DE;
+  background-color: #f8fafc;
 }
 
 ::selection {
-  background: #FADCC3;
+  background: #bae6fd;
   color: #0C1F41;
 }

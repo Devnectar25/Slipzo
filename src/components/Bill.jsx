@@ -28,11 +28,13 @@ import {
   FileText,
   Save,
   Lightbulb,
+  Pencil,
   Barcode as BarcodeIcon
 } from "lucide-react"
 import {
   call,
   money,
+  getItemRate,
   findTemplateMatch,
   canPrintFree,
   getRemainingFreePrints,
@@ -153,6 +155,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [saved, setSaved] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  const [editingBillId, setEditingBillId] = useState(null)
+  const [editingBillNumber, setEditingBillNumber] = useState(null)
 
   // Invoice Number
   const [customBillNumber, setCustomBillNumber] = useState(() => {
@@ -165,6 +169,45 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
     return ""
   })
+
+  // Load saved bill for editing if set in sessionStorage
+  useEffect(() => {
+    const editBillStr = sessionStorage.getItem("slipzo_edit_bill")
+    if (editBillStr) {
+      try {
+        const editBill = JSON.parse(editBillStr)
+        sessionStorage.removeItem("slipzo_edit_bill")
+        if (editBill && editBill.id) {
+          setEditingBillId(editBill.id)
+          setEditingBillNumber(editBill.number || "")
+          if (editBill.number) setCustomBillNumber(editBill.number)
+          if (editBill.payment_mode) setPayment(editBill.payment_mode)
+          if (editBill.discount !== undefined) setDiscount(String(editBill.discount))
+          if (editBill.tax_rate !== undefined) setTax(String(editBill.tax_rate))
+          if (editBill.template_id) setSelectedId(editBill.template_id)
+
+          let rawItems = editBill.items
+          if (typeof rawItems === "string") {
+            try { rawItems = JSON.parse(rawItems) } catch (_) {}
+          }
+          if (Array.isArray(rawItems) && rawItems.length > 0) {
+            setItems(rawItems.map((it, idx) => ({
+              id: it.id || (Date.now() + idx),
+              name: it.name || "",
+              barcode: it.barcode || null,
+              rate: Number(it.rate) || 0,
+              quantity: Number(it.quantity) || 1,
+              category: it.category || "General",
+              image_url: it.image_url || ""
+            })))
+          }
+          toastSuccess(`Loaded saved bill #${editBill.number} for editing`)
+        }
+      } catch (e) {
+        console.warn("Failed to parse edit bill:", e)
+      }
+    }
+  }, [])
 
   // In-Page Flow Step: "bill" (Steps 1, 2, 3) | "success" (Step 4)
   const [flowStep, setFlowStep] = useState("bill")
@@ -248,33 +291,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           })
         }
 
-        // If user menu has no clothing items, fallback to clothing catalog
-        if (validMenu.length === 0 && shopData?.business_type) {
-          const catalog = await call(`/menu/catalog?business_type=${shopData.business_type}`).catch(() => [])
-          if (Array.isArray(catalog) && catalog.length > 0) {
-            validMenu = catalog
-          }
-        }
-
-        let userList = validMenu
-        if (!userList || userList.length === 0) {
-          const stored = getStoredMenuItems(user)
-          if (Array.isArray(stored) && stored.length > 0) {
-            if (isClothingShop) {
-              userList = stored.filter(it => {
-                const itCat = (it.category || "").toLowerCase()
-                return itCat.includes("wear") || itCat.includes("cloth") || itCat.includes("garment") || itCat.includes("shirt") || itCat.includes("jean") || itCat.includes("saree")
-              })
-            } else {
-              userList = stored
-            }
-          }
-        }
-
-        setUserMenuItems(Array.isArray(userList) ? userList : [])
-        if (Array.isArray(userList) && userList.length > 0) {
-          saveStoredMenuItems(userList, user)
-        }
+        const userList = Array.isArray(validMenu) ? validMenu : []
+        setUserMenuItems(userList)
+        saveStoredMenuItems(userList, user)
 
         // Live Invoice Number
         const inv = generateClientBillNumber(
@@ -458,7 +477,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
 
     const cleanName = (menuItem.name || "").trim()
-    const rate = Number(menuItem.custom_price !== undefined ? menuItem.custom_price : (menuItem.price !== undefined ? menuItem.price : 0))
+    const rate = getItemRate(menuItem)
 
     let wasExisting = false
     let updatedQty = 1
@@ -736,7 +755,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           name: item.name.trim(),
           barcode: item.barcode || null,
           quantity: Number(item.quantity) || 1,
-          rate: Number(item.rate) || 0
+          rate: getItemRate(item)
         })),
         subtotal: subtotal,
         discount: discountAmount,
@@ -745,14 +764,25 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         tax_amount: 0,
         total: total,
         payment_mode: payment,
-        number: customBillNumber || ""
+        number: customBillNumber || "",
+        is_saved: true
       }
 
-      // Save bill to backend - Deducts 0 print credits!
-      const bill = await call("/bills", {
-        method: "POST",
-        body: JSON.stringify(billData)
-      })
+      // Save bill to backend (update if editing, create if new) - Deducts 0 print credits!
+      let bill
+      if (editingBillId) {
+        bill = await call(`/bills/${editingBillId}`, {
+          method: "PUT",
+          body: JSON.stringify(billData)
+        })
+        toastSuccess(`Bill #${bill?.number || customBillNumber} updated successfully!`)
+      } else {
+        bill = await call("/bills", {
+          method: "POST",
+          body: JSON.stringify(billData)
+        })
+        toastSuccess(`Bill #${bill?.number || customBillNumber} saved successfully!`)
+      }
 
       setSaved(bill)
       window.dispatchEvent(new CustomEvent("slipzo_bill_saved", { detail: bill }))
@@ -760,7 +790,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         setCustomBillNumber(bill.number)
       }
 
-      toastSuccess(`Bill #${bill?.number || customBillNumber} saved successfully!`)
       setFlowStep("success")
     } catch (err) {
       console.error("Failed to save bill:", err)
@@ -810,7 +839,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           name: item.name.trim(),
           barcode: item.barcode || null,
           quantity: Number(item.quantity) || 1,
-          rate: Number(item.rate) || 0
+          rate: getItemRate(item)
         })),
         subtotal: subtotal,
         discount: discountAmount,
@@ -819,19 +848,33 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         tax_amount: 0,
         total: total,
         payment_mode: payment,
-        number: customBillNumber || ""
+        number: customBillNumber || "",
+        is_saved: false
       }
 
-      const bill = await call("/bills", {
-        method: "POST",
-        body: JSON.stringify(billData)
-      })
+      let bill
+      if (editingBillId) {
+        await call(`/bills/${editingBillId}`, {
+          method: "PUT",
+          body: JSON.stringify(billData)
+        })
+        await call(`/bills/${editingBillId}/print`, {
+          method: "POST"
+        })
+        bill = { ...billData, id: editingBillId }
+      } else {
+        bill = await call("/bills", {
+          method: "POST",
+          body: JSON.stringify(billData)
+        })
+      }
 
       setSaved(bill)
-      window.dispatchEvent(new CustomEvent("slipzo_bill_saved", { detail: bill }))
       if (bill?.number) {
         setCustomBillNumber(bill.number)
       }
+
+      window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
 
       // DIRECTLY navigate to existing final print preview without showing any intermediate page!
       setSelectedBillId?.(bill.id)
@@ -868,7 +911,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           text: "You have used all available prints in your plan. Please view pricing plans to add print credits.",
           icon: "warning",
           confirmButtonText: "View Pricing Plans",
-          confirmButtonColor: "#F66016"
+          confirmButtonColor: "#0284c7"
         }).then(() => {
           setView("pricing")
         })
@@ -1043,7 +1086,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
           {/* Optional Bill Details Drawer */}
           {showPreviewDrawer && (
-            <div style={{ marginTop: "1.5rem", textAlign: "left", background: "#FFF2DE", padding: "1rem", borderRadius: "12px", border: "1px solid #F7CDAB" }}>
+            <div style={{ marginTop: "1.5rem", textAlign: "left", background: "#f0f9ff", padding: "1rem", borderRadius: "12px", border: "1px solid #bae6fd" }}>
               <div style={{ fontWeight: "700", fontSize: "0.88rem", marginBottom: "0.5rem" }}>
                 Bill Summary
               </div>
@@ -1064,6 +1107,50 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         </div>
       ) : (
         <>
+          {/* Editing Saved Bill Banner */}
+          {editingBillId && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              background: "#eff6ff",
+              border: "1.5px solid #bfdbfe",
+              borderRadius: "12px",
+              padding: "10px 16px",
+              marginBottom: "1rem",
+              boxShadow: "0 2px 6px rgba(37, 99, 235, 0.06)"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#1d4ed8", fontWeight: "700", fontSize: "0.9rem" }}>
+                <Pencil size={16} />
+                <span>Editing Saved Bill #{editingBillNumber || customBillNumber}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingBillId(null)
+                  setEditingBillNumber(null)
+                  setItems([])
+                  toastSuccess("Switched to new bill mode")
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  background: "#ffffff",
+                  border: "1px solid #bfdbfe",
+                  color: "#1d4ed8",
+                  padding: "4px 10px",
+                  borderRadius: "8px",
+                  fontSize: "0.8rem",
+                  fontWeight: "600",
+                  cursor: "pointer"
+                }}
+              >
+                <X size={13} /> Cancel / New Bill
+              </button>
+            </div>
+          )}
+
           {/* Step 1: Search Bar with Voice Recognition */}
           <div className="nb-search-bar">
             <Search size={18} className="nb-search-icon" />
@@ -1245,14 +1332,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                 <h4 className="nb-item-name" title={menuItem.name}>{tDb(menuItem.name)}</h4>
                                 <span className="nb-item-category">{tDb(menuItem.category || "General")}</span>
                                 <div className="nb-item-price nb-item-price-desktop">
-                                  {money(menuItem.price !== undefined ? menuItem.price : menuItem.custom_price || 0)}
+                                  {money(getItemRate(menuItem))}
                                 </div>
                               </div>
                             </div>
 
                             <div className="nb-item-actions-wrapper">
                               <div className="nb-item-price nb-item-price-mobile">
-                                {money(menuItem.price !== undefined ? menuItem.price : menuItem.custom_price || 0)}
+                                {money(getItemRate(menuItem))}
                               </div>
 
                               {addedItem ? (
@@ -1377,14 +1464,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                 )}
 
                 {/* Direct Print Bill button + Save Bill Button */}
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
                   <button
                     type="button"
                     className="nb-save-bill-btn"
                     onClick={handlePrintBill}
                     disabled={isSaving || items.length === 0}
                     style={{
-                      flex: 1,
+                      flex: "1 1 120px",
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -1393,8 +1480,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       color: "#ffffff",
                       border: "none",
                       borderRadius: "10px",
-                      padding: "0.75rem 1rem",
-                      fontSize: "0.9rem",
+                      padding: "0.75rem 0.75rem",
+                      fontSize: "0.88rem",
                       fontWeight: "700",
                       cursor: (isSaving || items.length === 0) ? "not-allowed" : "pointer",
                       opacity: (isSaving || items.length === 0) ? 0.6 : 1,
@@ -1411,10 +1498,12 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                     onClick={handleSaveBill}
                     disabled={isSaving || items.length === 0}
                     style={{
-                      flex: 1,
+                      flex: "1 1 120px",
                       background: "#f1f5f9",
                       color: "#334155",
-                      border: "1px solid #cbd5e1"
+                      border: "1px solid #cbd5e1",
+                      padding: "0.75rem 0.75rem",
+                      fontSize: "0.88rem"
                     }}
                   >
                     <Save size={18} />

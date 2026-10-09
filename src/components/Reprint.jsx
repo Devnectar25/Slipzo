@@ -209,6 +209,12 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
         })
 
+        // If this was a saved bill, mark as printed so it removes from Home screen recent bills
+        if (actualBillId) {
+          call(`/bills/${actualBillId}/print`, { method: "POST" }).catch(() => {})
+          window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: { id: actualBillId, billId: actualBillId } }))
+        }
+
         success(t("bills.printedSuccess", "Printed successfully!"))
 
         if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
@@ -219,6 +225,10 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         printReceiptElement("receipt-to-print", {
           pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
         })
+        if (actualBillId) {
+          call(`/bills/${actualBillId}/print`, { method: "POST" }).catch(() => {})
+          window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: { id: actualBillId, billId: actualBillId } }))
+        }
         success(t("bills.printedSuccess", "Printed successfully!"))
       }
     } catch (err) {

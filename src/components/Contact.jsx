@@ -171,7 +171,7 @@ export function Contact({ setView, setShowAuth, user }) {
     {
       id: "office",
       icon: <MapPin size={22} color="#ffffff" />,
-      iconBg: "#f59e0b",
+      iconBg: "#0284c7",
       badge: t("contact.headquarters", "Headquarters"),
       badgeClass: "badge-office",
       title: t("contact.officeTitle", "Our Office Location"),
@@ -179,7 +179,7 @@ export function Contact({ setView, setShowAuth, user }) {
       actionText: t("contact.mapsAction", "Open in Maps"),
       actionLink: "https://maps.google.com/?q=Indiranagar+Bengaluru",
       btnClass: "channel-btn-office",
-      chevronColor: "#f59e0b"
+      chevronColor: "#0284c7"
     }
   ]
 

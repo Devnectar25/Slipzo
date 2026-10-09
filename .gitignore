@@ -34,13 +34,23 @@ tests/
 seed/
 temp/
 tmp/
+*.tmp
+*.temp
 coverage/
 .eslintcache
+*_dump.json
+*_audit*.json
+*-report.md
+*_report.md
+image-report.md
 
 # Temporary, debug, migration-helper & seed scripts
 scripts/
 src/scripts/
 src/scripts/*
+*.mjs
+uploader.js
+uploader.mjs
 check_barcodes.js
 check_clothing_images.js
 inspect_schema_menu_items.js

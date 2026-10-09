@@ -27,49 +27,49 @@ export function Product({ setView, setShowAuth }) {
   const coreFeatures = [
     {
       icon: <Zap size={24} />,
-      color: "#FB821B",
+      color: "#0284c7",
       title: "Sub-10s Rapid Billing",
       description: "Designed specifically for peak rush hours. Add items, apply discounts, select payment mode, and generate receipts with zero lag."
     },
     {
       icon: <Printer size={24} />,
-      color: "#FB821B",
+      color: "#0284c7",
       title: "Universal Thermal Printer Support",
       description: "Plug-and-play compatibility with 58mm thermal rolls, 80mm POS receipt printers, Bluetooth handheld devices, and standard A4 laser printers."
     },
     {
       icon: <Store size={24} />,
-      color: "#f59e0b",
+      color: "#0284c7",
       title: "Branded Receipts & Logo",
       description: "Reinforce customer trust by showcasing your shop logo, GSTIN, custom terms & conditions, address, and personalized thank-you messages."
     },
     {
       icon: <BarChart3 size={24} />,
-      color: "#10b981",
+      color: "#0284c7",
       title: "Daily Sales & Analytics",
       description: "Track your revenue, total receipts printed, best-selling items, and digital vs cash collections with real-time visual summaries."
     },
     {
       icon: <Users size={24} />,
-      color: "#6366f1",
+      color: "#0284c7",
       title: "Customer Directory & History",
       description: "Keep records of your regular shoppers, their contact details, purchase frequency, and outstanding balances."
     },
     {
       icon: <RefreshCw size={24} />,
-      color: "#ec4899",
+      color: "#0284c7",
       title: "Instant Search & Reprints",
       description: "Customer lost their receipt? Easily look up past transactions by date, customer, or invoice number and reprint in one click."
     },
     {
       icon: <Cloud size={24} />,
-      color: "#14b8a6",
+      color: "#0284c7",
       title: "Secure Cloud Sync",
       description: "All bills, customer details, and templates are encrypted and automatically backed up to the cloud. Never lose shop data."
     },
     {
       icon: <CreditCard size={24} />,
-      color: "#f43f5e",
+      color: "#0284c7",
       title: "Dynamic UPI QR Payments",
       description: "Print dynamic or static UPI QR codes right on the thermal receipt for instant customer scans via PhonePe, GPay, or Paytm."
     }

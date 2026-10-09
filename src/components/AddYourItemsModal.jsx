@@ -589,7 +589,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           <div className={`add-menu-catalog-col ${mobileTab === "selected" ? "mobile-hidden" : ""}`}>
             {/* Search Bar */}
             <div className="add-menu-search-bar">
-              <Search size={18} color="#F66016" className="search-lead-icon" />
+              <Search size={18} color="#0284c7" className="search-lead-icon" />
               <input
                 type="text"
                 placeholder={isClothShop ? "Search items (e.g. Shirt, Jeans, Saree, Kurti...)" : "Search items (e.g. Tea, Coffee, Pizza, Burger...)"}
@@ -657,6 +657,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                           <img
                             src={product.image_url}
                             alt={product.name}
+                            loading="lazy"
                             className="product-thumbnail"
                             onError={(e) => {
                               e.target.style.display = "none"
@@ -726,7 +727,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             {/* Tip Card */}
             <div className="add-menu-tip-card">
               <div className="tip-header">
-                <Lightbulb size={16} color="#F66016" />
+                <Lightbulb size={16} color="#0284c7" />
                 <span className="tip-title">Tip</span>
               </div>
               <p className="tip-content">
@@ -771,6 +772,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                         <img
                           src={item.image_url}
                           alt={item.name}
+                          loading="lazy"
                           className="selected-item-thumb"
                           onError={(e) => {
                             e.target.style.display = "none"
@@ -1046,7 +1048,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             display: flex;
             flex-direction: column;
             box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.28);
-            border: 1px solid #FDF4EB;
+            border: 1px solid #bae6fd;
             overflow: hidden;
             box-sizing: border-box;
           }
@@ -1071,11 +1073,11 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: #FFE6D2;
+            background: #e0f2fe;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #F66016;
+            color: #0284c7;
             flex-shrink: 0;
           }
 
@@ -1110,7 +1112,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           .add-menu-close-btn:hover {
             color: #0C1F41;
-            background: #FDF4EB;
+            background: #f0f9ff;
           }
 
           /* Main Body (2 Columns) */
@@ -1136,12 +1138,12 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             position: relative;
             display: flex;
             align-items: center;
-            border: 1.5px solid #F66016;
+            border: 1.5px solid #0284c7;
             border-radius: 12px;
             background: #ffffff;
             padding: 0 12px;
             height: 44px;
-            box-shadow: 0 0 0 3px rgba(246, 96, 22, 0.08);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
             gap: 8px;
           }
 
@@ -1184,7 +1186,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           .cat-chip-btn {
             background: #ffffff;
-            border: 1px solid #F7CDAB;
+            border: 1px solid #bae6fd;
             color: #0C1F41;
             font-weight: 500;
             border-radius: 999px;
@@ -1200,7 +1202,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           .cat-chip-btn:hover {
             border-color: #D9DDE4;
-            background: #FFF2DE;
+            background: #f0f9ff;
           }
 
           .cat-chip-btn.active {
@@ -1238,20 +1240,20 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             align-items: center;
             justify-content: space-between;
             padding: 8px 12px;
-            border: 1px solid #FDF4EB;
+            border: 1px solid #bae6fd;
             border-radius: 12px;
             background: #ffffff;
             transition: all 0.15s ease;
           }
 
           .add-menu-product-row:hover {
-            border-color: #F7CDAB;
-            background: #FFF2DE;
+            border-color: #0284c7;
+            background: #f0f9ff;
           }
 
           .add-menu-product-row.item-selected {
-            background: #FFF0E5;
-            border-color: #FADCC3;
+            background: #e0f2fe;
+            border-color: #0284c7;
           }
 
           .product-row-left {
@@ -1266,7 +1268,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             height: 48px;
             border-radius: 10px;
             object-fit: cover;
-            background: #FDF4EB;
+            background: #f0f9ff;
             flex-shrink: 0;
           }
 
@@ -1381,8 +1383,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           /* Tip Card */
           .add-menu-tip-card {
-            background: #FFF0E5;
-            border: 1px solid #FADCC3;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
             border-radius: 14px;
             padding: 12px 14px;
             margin-bottom: 1rem;
@@ -1399,12 +1401,12 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           .tip-title {
             font-size: 0.82rem;
             font-weight: 700;
-            color: #FA4406;
+            color: #0284c7;
           }
 
           .tip-content {
             font-size: 0.78rem;
-            color: #F66016;
+            color: #0284c7;
             margin: 4px 0 0 0;
             line-height: 1.4;
           }
@@ -1426,7 +1428,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           .clear-all-btn {
             font-size: 0.8rem;
-            color: #F66016;
+            color: #0284c7;
             font-weight: 600;
             background: none;
             border: none;
@@ -1476,7 +1478,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .selected-item-card {
-            border: 1px solid #F7CDAB;
+            border: 1px solid #bae6fd;
             border-radius: 12px;
             padding: 8px 10px;
             background: #ffffff;
@@ -1503,7 +1505,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             height: 40px;
             border-radius: 8px;
             object-fit: cover;
-            background: #FFF2DE;
+            background: #f0f9ff;
             flex-shrink: 0;
           }
 
@@ -1558,9 +1560,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .selected-edit-btn:hover {
-            background: #FDF4EB;
-            border-color: #8F93A5;
-            color: #0C1F41;
+            background: #f0f9ff;
+            border-color: #0284c7;
+            color: #0284c7;
           }
 
           /* Inline Edit Form in Selected Items */
@@ -1583,7 +1585,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             font-weight: 700;
             color: #0C1F41;
             background: #ffffff;
-            border: 1.5px solid #0080ff;
+            border: 1.5px solid #0284c7;
             border-radius: 6px;
             padding: 2px 6px;
             outline: none;
@@ -1610,7 +1612,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .selected-cancel-btn:hover {
-            background: #FDF4EB;
+            background: #f0f9ff;
             color: #0C1F41;
           }
 
@@ -1618,7 +1620,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             padding: 2px 9px;
             border-radius: 4px;
             border: none;
-            background: #0080ff;
+            background: #0284c7;
             color: #ffffff;
             font-size: 0.72rem;
             font-weight: 700;
@@ -1627,7 +1629,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .selected-save-btn:hover {
-            background: #0066cc;
+            background: #0369a1;
           }
 
           .selected-edit-error {
@@ -1659,7 +1661,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             width: 100%;
             max-width: 380px;
             box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.28);
-            border: 1px solid #F7CDAB;
+            border: 1px solid #bae6fd;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -1671,7 +1673,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid #FDF4EB;
+            border-bottom: 1px solid #bae6fd;
             background: #ffffff;
           }
 
@@ -1698,7 +1700,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           .set-price-close-btn:hover {
             color: #0C1F41;
-            background: #FDF4EB;
+            background: #f0f9ff;
           }
 
           .set-price-body {
@@ -1714,8 +1716,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             align-items: center;
             gap: 12px;
             padding: 8px 10px;
-            background: #FFF2DE;
-            border: 1px solid #FDF4EB;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
             border-radius: 12px;
           }
 
@@ -1724,7 +1726,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             height: 46px;
             border-radius: 10px;
             object-fit: cover;
-            background: #FDF4EB;
+            background: #f0f9ff;
             flex-shrink: 0;
           }
 
@@ -1754,7 +1756,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             align-items: center;
             justify-content: space-between;
             padding: 8px 12px;
-            background: #FFF2DE;
+            background: #f0f9ff;
             border-radius: 10px;
             border: 1px dashed #D9DDE4;
           }
@@ -1819,8 +1821,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           .set-price-footer {
             padding: 0.85rem 1.25rem;
-            background: #FFF2DE;
-            border-top: 1px solid #FDF4EB;
+            background: #f0f9ff;
+            border-top: 1px solid #bae6fd;
             display: flex;
             align-items: center;
             justify-content: flex-end;
@@ -1841,7 +1843,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .set-price-cancel-btn:hover {
-            background: #FDF4EB;
+            background: #f0f9ff;
             color: #0C1F41;
           }
 
@@ -1849,17 +1851,17 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             padding: 8px 20px;
             border-radius: 8px;
             border: none;
-            background: #0080ff;
+            background: #0284c7;
             color: #ffffff;
             font-size: 0.84rem;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 128, 255, 0.25);
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
             transition: all 0.15s ease;
           }
 
           .set-price-confirm-btn:hover {
-            background: #0066cc;
+            background: #0369a1;
           }
 
           .item-trash-btn {
@@ -1892,8 +1894,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .add-menu-skip-btn {
-            background: #FFF2DE;
-            border: 1px solid #F7CDAB;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
             color: #0C1F41;
             font-weight: 600;
             font-size: 0.86rem;
@@ -1904,12 +1906,12 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .add-menu-skip-btn:hover {
-            background: #FDF4EB;
-            border-color: #D9DDE4;
+            background: #e0f2fe;
+            border-color: #0284c7;
           }
 
           .add-menu-continue-btn {
-            background: #0080ff;
+            background: #0284c7;
             color: #ffffff;
             font-weight: 600;
             font-size: 0.86rem;
@@ -1920,12 +1922,12 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 4px 12px rgba(0, 128, 255, 0.25);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
             transition: all 0.15s ease;
           }
 
           .add-menu-continue-btn:hover {
-            background: #0066cc;
+            background: #0369a1;
           }
 
           .add-menu-continue-btn:disabled,
