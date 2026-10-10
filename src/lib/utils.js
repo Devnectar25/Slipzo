@@ -127,8 +127,16 @@ export const getCachedData = (path) => {
 }
 
 export const setCachedData = (path, data) => {
-  if (!path || !data) return
+  if (!path) return
   const cleanPath = path.startsWith('/') ? path : `/${path}`
+  if (data === null || data === undefined) {
+    memoryCache.delete(cleanPath)
+    try {
+      sessionStorage.removeItem(`slipzo_cache_${cleanPath}`)
+      localStorage.removeItem(`slipzo_cache_${cleanPath}`)
+    } catch (e) {}
+    return
+  }
   const cacheItem = { data, timestamp: Date.now() }
   memoryCache.set(cleanPath, cacheItem)
   try {
@@ -136,6 +144,16 @@ export const setCachedData = (path, data) => {
   } catch (e) {}
   try {
     localStorage.setItem(`slipzo_cache_${cleanPath}`, JSON.stringify(cacheItem))
+  } catch (e) {}
+}
+
+export const removeCachedData = (path) => {
+  if (!path) return
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  memoryCache.delete(cleanPath)
+  try {
+    sessionStorage.removeItem(`slipzo_cache_${cleanPath}`)
+    localStorage.removeItem(`slipzo_cache_${cleanPath}`)
   } catch (e) {}
 }
 
@@ -887,4 +905,118 @@ export const saveStoredTables = (user, tables) => {
   try {
     localStorage.setItem(`slipzo_tables_${userKey}`, JSON.stringify(tables))
   } catch (e) {}
+}
+
+export const clearStoredTables = (user) => {
+  const userKey = getCurrentUserKey(user)
+  try {
+    localStorage.removeItem(`slipzo_tables_${userKey}`)
+    localStorage.removeItem("slipzo_tables")
+  } catch (e) {}
+}
+
+export const createDefaultTables = (count = 10) => {
+  const safeCount = Math.max(1, Math.min(Number(count) || 10, 200))
+  return Array.from({ length: safeCount }, (_, i) => ({
+    id: `table-${i + 1}`,
+    table_number: i + 1,
+    name: `Table ${i + 1}`,
+    status: "AVAILABLE",
+    current_items: [],
+    total_amount: 0
+  }))
+}
+
+export const resetStoredTables = (user, count = 10) => {
+  const userKey = getCurrentUserKey(user)
+  const defaultTables = createDefaultTables(count)
+  try {
+    localStorage.setItem(`slipzo_tables_${userKey}`, JSON.stringify(defaultTables))
+  } catch (e) {}
+  return defaultTables
+}
+
+export const isTableMatch = (t, identifier) => {
+  if (!t || identifier === undefined || identifier === null) return false
+  if (String(t.id) === String(identifier)) return true
+  if (String(t.table_number) === String(identifier)) return true
+
+  const extractNum = (val) => {
+    if (val === undefined || val === null) return null
+    if (!isNaN(Number(val))) return Number(val)
+    const m = String(val).trim().match(/^table[-_\s]?(\d+)$/i)
+    return m ? Number(m[1]) : null
+  }
+
+  const idNum = extractNum(identifier)
+  const tNum = extractNum(t.table_number)
+  if (idNum !== null && tNum !== null && idNum === tNum) return true
+
+  const tIdNum = extractNum(t.id)
+  if (idNum !== null && tIdNum !== null && idNum === tIdNum) return true
+
+  return false
+}
+
+export const resetSingleStoredTable = (user, tableIdentifier) => {
+  if (!tableIdentifier) return []
+  const stored = getStoredTables(user)
+  if (!Array.isArray(stored)) return []
+  const updated = stored.map((t) => {
+    if (isTableMatch(t, tableIdentifier)) {
+      return {
+        ...t,
+        status: "AVAILABLE",
+        current_items: [],
+        total_amount: 0,
+        editing_bill_id: null,
+        editing_bill_number: null
+      }
+    }
+    return t
+  })
+  saveStoredTables(user, updated)
+  return updated
+}
+
+export const getTableDisplayName = (tableOrName, t, formatNum) => {
+  if (!tableOrName && tableOrName !== 0) return ""
+
+  let rawName = ""
+  if (typeof tableOrName === "object" && tableOrName !== null) {
+    rawName = tableOrName.name || (tableOrName.table_number !== undefined && tableOrName.table_number !== null ? `Table ${tableOrName.table_number}` : "")
+  } else {
+    rawName = String(tableOrName).trim()
+    if (!isNaN(Number(rawName)) && Number(rawName) > 0) {
+      rawName = `Table ${rawName}`
+    }
+  }
+
+  if (!rawName) return ""
+
+  const tablePrefix = typeof t === "function" ? t("tables.table", "Table") : "Table"
+
+  // Check if it matches "Table <number>", "table <number>", "टेबल <number>", "table-<number>", etc.
+  const match = rawName.match(/^(?:table|टेबल)[-_\s]*(\d+)$/i)
+  if (match) {
+    const num = match[1]
+    const formattedNum = typeof formatNum === "function" ? formatNum(num) : num
+    return `${tablePrefix} ${formattedNum}`
+  }
+
+  // If table is an object with table_number
+  if (typeof tableOrName === "object" && tableOrName !== null && tableOrName.table_number !== undefined && tableOrName.table_number !== null) {
+    const formattedNum = typeof formatNum === "function" ? formatNum(tableOrName.table_number) : tableOrName.table_number
+    return `${tablePrefix} ${formattedNum}`
+  }
+
+  // If it starts with "Table " or "table " with a suffix
+  const prefixMatch = rawName.match(/^table[-_\s]+(.+)$/i)
+  if (prefixMatch) {
+    const suffix = prefixMatch[1]
+    const formattedSuffix = /^\d+$/.test(suffix) && typeof formatNum === "function" ? formatNum(suffix) : suffix
+    return `${tablePrefix} ${formattedSuffix}`
+  }
+
+  return rawName
 }

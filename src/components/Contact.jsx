@@ -52,17 +52,17 @@ export function Contact({ setView, setShowAuth, user }) {
     let isValid = true
 
     if (!form.name.trim()) {
-      errors.name = "Your name is required"
+      errors.name = t("contact.errorNameRequired", "Your name is required")
       isValid = false
     }
 
     if (!form.email.trim()) {
-      errors.email = "Email address is required"
+      errors.email = t("contact.errorEmailRequired", "Email address is required")
       isValid = false
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(form.email.trim())) {
-        errors.email = "Please enter a valid email address (e.g. rahul@example.com)"
+        errors.email = t("contact.errorEmailInvalid", "Please enter a valid email address (e.g. rahul@example.com)")
         isValid = false
       }
     }
@@ -72,13 +72,13 @@ export function Contact({ setView, setShowAuth, user }) {
       const phoneDigits = trimmedPhone.replace(/\D/g, '')
       const isValid10Digit = phoneDigits.length === 10 || (phoneDigits.length === 12 && phoneDigits.startsWith('91'))
       if (!isValid10Digit) {
-        errors.phone = "Please enter a valid 10-digit mobile number"
+        errors.phone = t("contact.errorPhoneInvalid", "Please enter a valid 10-digit mobile number")
         isValid = false
       }
     }
 
     if (!form.message.trim()) {
-      errors.message = "Message is required"
+      errors.message = t("contact.errorMessageRequired", "Message is required")
       isValid = false
     }
 
@@ -107,7 +107,7 @@ export function Contact({ setView, setShowAuth, user }) {
         body: JSON.stringify(form)
       })
       setSubmitted(true)
-      const successMsg = "🎉 Your message has been saved! Slipzen support will contact you shortly."
+      const successMsg = t("contact.submitSuccessToast", "🎉 Your message has been saved! Slipzen support will contact you shortly.")
       if (toast?.success) {
         toast.success(successMsg)
       } else {
@@ -117,7 +117,7 @@ export function Contact({ setView, setShowAuth, user }) {
       setFieldErrors({ name: "", email: "", phone: "", message: "" })
     } catch (err) {
       console.error("Failed to submit contact form:", err)
-      const errMsg = err.message || "Failed to submit message. Please try again."
+      const errMsg = err.message || t("contact.submitErrorToast", "Failed to submit message. Please try again.")
       if (toast?.error) {
         toast.error(errMsg)
       } else {
@@ -222,9 +222,9 @@ export function Contact({ setView, setShowAuth, user }) {
           <div className="contact-hero-left">
             <span className="contact-eyebrow">{t("contact.eyebrow", "CONTACT US")}</span>
             <h1 className="contact-hero-heading">
-              We're Here to Help<br />
-              Your Shop Run<br />
-              <span className="contact-hero-accent">Smoothly</span>
+              {t("contact.heroPart1", "We're Here to Help")}<br />
+              {t("contact.heroPart2", "Your Shop Run")}<br />
+              <span className="contact-hero-accent">{t("contact.heroAccent", "Smoothly")}</span>
             </h1>
             <p className="contact-hero-subtext">
               {t("contact.subtitle", "Have a question about receipt templates, thermal printer compatibility, pricing plans, or custom requirements? Get in touch with our team. We're always happy to help!")}
@@ -267,7 +267,7 @@ export function Contact({ setView, setShowAuth, user }) {
             <div className="contact-hero-art-wrapper">
               <img 
                 src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/contact_support_agent.jpg" 
-                alt="Slipzen Support Specialist" 
+                alt={t("contact.agentImgAlt", "Slipzen Support Specialist")} 
                 className="contact-hero-agent-img"
               />
             </div>
@@ -407,7 +407,7 @@ export function Contact({ setView, setShowAuth, user }) {
                     <input
                       id="contact-name"
                       type="text"
-                      placeholder="Kuldeep"
+                      placeholder={t("contact.namePlaceholder", "Kuldeep")}
                       value={form.name}
                       onChange={(e) => handleChange("name", e.target.value)}
                       className={fieldErrors.name ? "input-has-error" : ""}
@@ -423,7 +423,7 @@ export function Contact({ setView, setShowAuth, user }) {
                     <input
                       id="contact-email"
                       type="email"
-                      placeholder="admin@gmail.com"
+                      placeholder={t("contact.emailPlaceholder", "admin@gmail.com")}
                       value={form.email}
                       onChange={(e) => handleChange("email", e.target.value)}
                       className={fieldErrors.email ? "input-has-error" : ""}
@@ -441,7 +441,7 @@ export function Contact({ setView, setShowAuth, user }) {
                     <input
                       id="contact-phone"
                       type="tel"
-                      placeholder="+91 98765 43210"
+                      placeholder={t("contact.phonePlaceholder", "+91 98765 43210")}
                       value={form.phone}
                       onChange={(e) => handleChange("phone", e.target.value)}
                       className={fieldErrors.phone ? "input-has-error" : ""}
@@ -558,7 +558,7 @@ export function Contact({ setView, setShowAuth, user }) {
           <div className="cta-banner-center">
             <img 
               src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/contact_cta_printer.jpg" 
-              alt="Thermal Receipt Printer" 
+              alt={t("contact.ctaPrinterAlt", "Thermal Receipt Printer")} 
               className="cta-printer-img"
             />
           </div>
@@ -568,10 +568,10 @@ export function Contact({ setView, setShowAuth, user }) {
               type="button"
               className="cta-start-billing-btn" 
               onClick={() => {
-                if (typeof setShowAuth === "function") {
-                  setShowAuth(true)
-                } else if (typeof setView === "function") {
+                if (typeof setView === "function") {
                   setView("bills")
+                } else if (typeof setShowAuth === "function") {
+                  setShowAuth(true)
                 }
               }}
             >

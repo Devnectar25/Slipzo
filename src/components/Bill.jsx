@@ -921,9 +921,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
 
     try {
-      const templateWidth = activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm")
+      const templateWidth = activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.receipt_width === "55mm" ? "55mm" : (shop?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm")))
       printReceiptElement("receipt-to-print", {
-        pageWidth: templateWidth === "58mm" ? "58mm" : "80mm"
+        pageWidth: templateWidth || "80mm"
       })
       toastSuccess("Printed successfully!")
     } catch (err) {
@@ -1595,10 +1595,11 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           RECEIPT PRINT DOM CONTAINER (#receipt-to-print)
           Uses the single source of truth: RealisticReceiptView!
           ==================================================================== */}
-      <div style={{ position: "absolute", left: "-9999px", top: "-9999px", opacity: 0, pointerEvents: "none" }}>
+      <div className="receipt-print-wrapper" style={{ position: "absolute", left: "-9999px", top: "-9999px", opacity: 0, pointerEvents: "none" }}>
         <div
           id="receipt-to-print"
-          className={`receipt-preview-content format-${templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "a4" : "80mm")}`}
+          data-receipt-print-area="true"
+          className={`receipt-preview-content receipt-print-area format-${templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "a4" : "80mm")}`}
           style={{
             background: "#ffffff",
             width: templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "100%" : "80mm"),

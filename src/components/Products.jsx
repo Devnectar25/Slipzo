@@ -853,7 +853,7 @@ export function Products({ setView, requireAuth, user }) {
                     className="product-card product-card-hover"
                     style={{ overflow: 'hidden', padding: 0 }}
                   >
-                  <div style={{ position: 'relative' }}>
+                  <div className="product-mobile-img-box">
                     {/* Product Image */}
                     {product.image ? (
                       <img

@@ -3,10 +3,14 @@ import {
   ArrowRight, Printer, Star, CheckCircle, FileText, Layout, Store, 
   Award, Type, Eye, Check, Sparkles, SlidersHorizontal, QrCode, Shield, Zap, X
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 
 export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
+  const { t } = useTranslation()
+  const { tDb } = useDbTranslation()
   const [activeCategory, setActiveCategory] = useState("all")
   const [previewTemplate, setPreviewTemplate] = useState(null)
 
@@ -236,6 +240,18 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
 
   const categories = ["all", "Standard", "Minimal", "Business", "Thermal", "Modern"]
 
+  const getCategoryLabel = (cat) => {
+    switch (cat.toLowerCase()) {
+      case "all": return t("templates.catAll", "All Templates")
+      case "standard": return t("templates.catStandard", "Standard")
+      case "minimal": return t("templates.catMinimal", "Minimal")
+      case "business": return t("templates.catBusiness", "Business")
+      case "thermal": return t("templates.catThermal", "Thermal")
+      case "modern": return t("templates.catModern", "Modern")
+      default: return cat
+    }
+  }
+
   const filteredTemplates = activeCategory === "all" 
     ? templates 
     : templates.filter(t => t.category.toLowerCase() === activeCategory.toLowerCase())
@@ -254,18 +270,17 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       {/* Header */}
       <section className="templates-header">
         <div className="templates-header-content">
-          <p className="eyebrow">SLIPZO TEMPLATES</p>
-          <h1>Professional Receipt Templates<br />for Every Type of Shop</h1>
+          <p className="eyebrow">{t("templates.eyebrow", "SLIPZO TEMPLATES")}</p>
+          <h1>{t("templates.heroTitle", "Professional Receipt Templates for Every Type of Shop")}</h1>
           <p className="header-description">
-            Tailored for 58mm & 80mm thermal receipt printers, mobile Bluetooth devices, and standard bills.
-            Pick a template, add your logo and shop details, and print in seconds.
+            {t("templates.heroSub", "Tailored for 58mm & 80mm thermal receipt printers, mobile Bluetooth devices, and standard bills. Pick a template, add your logo and shop details, and print in seconds.")}
           </p>
           <div className="templates-header-actions">
             <button className="cta-button primary large" onClick={() => (user ? setView("bills") : setShowAuth(true))}>
-              Start billing free <ArrowRight size={18} />
+              {t("templates.startBillingFree", "Start billing free")} <ArrowRight size={18} />
             </button>
             <button className="cta-button secondary" onClick={() => setView("pricing")}>
-              View pricing plans
+              {t("templates.viewPricingPlans", "View pricing plans")}
             </button>
           </div>
         </div>
@@ -281,7 +296,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
                 className={`category-tab ${activeCategory === cat ? "active" : ""}`}
                 onClick={() => setActiveCategory(cat)}
               >
-                {cat === "all" ? "All Templates" : cat}
+                {getCategoryLabel(cat)}
               </button>
             ))}
           </div>
@@ -304,14 +319,14 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
               <div className="template-card-top">
                 <div className="template-badge-row">
                   <span className="template-badge" style={{ background: template.gradient, color: "#ffffff" }}>
-                    {template.badge}
+                    {tDb(template.badge)}
                   </span>
                   <span className="template-paper-tag">
                     <Printer size={12} /> {template.paperSize}
                   </span>
                 </div>
-                <h3>{template.name}</h3>
-                <p className="template-desc">{template.description}</p>
+                <h3>{tDb(template.name)}</h3>
+                <p className="template-desc">{tDb(template.description)}</p>
               </div>
 
               {/* Receipt Preview Box */}
@@ -324,7 +339,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
                 {template.features.map((feat, idx) => (
                   <div className="template-feat-item" key={idx}>
                     <Check size={16} style={{ color: template.accentColor || "#0ea5e9", flexShrink: 0 }} />
-                    <span>{feat}</span>
+                    <span>{tDb(feat)}</span>
                   </div>
                 ))}
               </div>
@@ -335,14 +350,14 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
                   className="template-preview-btn"
                   onClick={() => setPreviewTemplate(template)}
                 >
-                  <Eye size={14} /> Preview
+                  <Eye size={14} /> {t("templates.preview", "Preview")}
                 </button>
                 <button
                   className="template-use-btn"
                   style={{ background: template.gradient }}
                   onClick={() => handleUseTemplate(template)}
                 >
-                  Use Template <ArrowRight size={14} />
+                  {t("templates.useTemplate", "Use Template")} <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -354,9 +369,9 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       <section className="templates-specs-section">
         <div className="specs-container">
           <div className="specs-header">
-            <p className="eyebrow">BUILT FOR REAL SHOPS</p>
-            <h2>Why shop owners love Slipzen templates</h2>
-            <p>Engineered to print fast, save paper, and impress customers on every checkout.</p>
+            <p className="eyebrow">{t("templates.builtForShops", "BUILT FOR REAL SHOPS")}</p>
+            <h2>{t("templates.whyLoveTemplates", "Why shop owners love Slipzen templates")}</h2>
+            <p>{t("templates.whyLoveSub", "Engineered to print fast, save paper, and impress customers on every checkout.")}</p>
           </div>
 
           <div className="specs-grid">
@@ -398,11 +413,11 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       {/* CTA Section */}
       <section className="templates-cta-section">
         <div className="templates-cta-content">
-          <h2>Ready to upgrade your billing experience?</h2>
-          <p>Join thousands of shops printing clean, branded receipts with Slipzen today.</p>
+          <h2>{t("templates.upgradeBillingTitle", "Ready to upgrade your billing experience?")}</h2>
+          <p>{t("templates.upgradeBillingSub", "Join thousands of shops printing clean, branded receipts with Slipzen today.")}</p>
           <div className="templates-cta-buttons">
             <button className="cta-button primary large" onClick={() => (user ? setView("bills") : setShowAuth(true))}>
-              Create your first receipt free <ArrowRight size={18} />
+              {t("templates.createFirstReceipt", "Create your first receipt free")} <ArrowRight size={18} />
             </button>
           </div>
         </div>
@@ -423,7 +438,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
           <div className="template-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="template-modal-header">
               <div>
-                <h3>{previewTemplate.name}</h3>
+                <h3>{tDb(previewTemplate.name)}</h3>
                 <span className="modal-paper-tag"><Printer size={12} /> {previewTemplate.paperSize}</span>
               </div>
               <button className="modal-close-btn" onClick={() => setPreviewTemplate(null)} aria-label="Close preview">
@@ -437,13 +452,13 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
 
             <div className="template-modal-footer">
               <button className="cta-button secondary" onClick={() => setPreviewTemplate(null)}>
-                Close Preview
+                {t("templates.closePreview", "Close Preview")}
               </button>
               <button className="cta-button primary" onClick={() => {
                 setPreviewTemplate(null)
                 handleUseTemplate(previewTemplate)
               }}>
-                Use this template <ArrowRight size={16} />
+                {t("templates.useThisTemplate", "Use this template")} <ArrowRight size={16} />
               </button>
             </div>
           </div>

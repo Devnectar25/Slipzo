@@ -20,7 +20,7 @@ import {
   Check,
   Clock
 } from "lucide-react"
-import { call, money, getCachedData } from "../lib/utils"
+import { call, money, getCachedData, getTableDisplayName } from "../lib/utils"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
@@ -443,7 +443,7 @@ export function History({ setView, setSelectedBillId, user }) {
                               )}
                               {bill.table_number && (
                                 <span className="history-sub-meta">
-                                  <Utensils size={10} /> {bill.table_number}
+                                  <Utensils size={10} /> {getTableDisplayName(bill.table_number, t, formatNum)}
                                 </span>
                               )}
                             </div>

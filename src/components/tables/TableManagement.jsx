@@ -19,7 +19,10 @@ import {
   getCachedData,
   setCachedData,
   getStoredTables,
-  saveStoredTables
+  saveStoredTables,
+  clearStoredTables,
+  createDefaultTables,
+  getTableDisplayName
 } from "../../lib/utils"
 import { TableCard } from "./TableCard"
 import { TableBilling } from "./TableBilling"
@@ -46,14 +49,7 @@ export function TableManagement({
     const stored = getStoredTables(user)
     if (Array.isArray(stored) && stored.length > 0) return stored
     const count = Number(shop?.table_count || 10)
-    return Array.from({ length: count }, (_, i) => ({
-      id: `table-${i + 1}`,
-      table_number: i + 1,
-      name: `Table ${i + 1}`,
-      status: "AVAILABLE",
-      current_items: [],
-      total_amount: 0
-    }))
+    return createDefaultTables(count)
   })
 
   const [selectedTable, setSelectedTable] = useState(null)
@@ -110,21 +106,27 @@ export function TableManagement({
       const data = await call("/restaurant/tables", bypassCache ? { noCache: true } : {})
       if (Array.isArray(data) && data.length > 0) {
         setTables((prev) => {
+          if (bypassCache) {
+            saveStoredTables(user, data)
+            return data
+          }
+
           const merged = data.map((remote) => {
             const local = prev.find((p) => isTableMatch(p, remote.id) || isTableMatch(p, remote.table_number))
             if (!local) return remote
 
-            const localOcc = isTableOccupied(local)
             const remoteOcc = isTableOccupied(remote)
 
-            // If locally marked OCCUPIED, preserve OCCUPIED so remote latency doesn't revert state
-            if (localOcc && !remoteOcc) {
+            // If remote is not occupied (AVAILABLE with 0 items), remote is authoritative
+            if (!remoteOcc) {
               return {
-                ...remote,
                 ...local,
-                status: "OCCUPIED",
-                current_items: local.current_items,
-                total_amount: local.total_amount
+                ...remote,
+                status: "AVAILABLE",
+                current_items: [],
+                total_amount: 0,
+                editing_bill_id: null,
+                editing_bill_number: null
               }
             }
 
@@ -149,11 +151,62 @@ export function TableManagement({
     loadTables()
 
     const handleShopUpdate = (e) => {
-      if (e?.detail) setShop(e.detail)
+      if (e?.detail) {
+        const newShop = e.detail
+        // If business category changed, reset all local tables to clean state
+        if (shop?.business_type && newShop?.business_type && shop.business_type !== newShop.business_type) {
+          const freshList = createDefaultTables(newShop?.table_count || 10)
+          setTables(freshList)
+          setSelectedTable(null)
+          clearStoredTables(user)
+          saveStoredTables(user, freshList)
+          loadTables(true)
+        }
+        setShop(newShop)
+      }
     }
+
+    const handleTablesReset = (e) => {
+      const freshList = e?.detail?.tables || createDefaultTables(e?.detail?.table_count || shop?.table_count || 10)
+      setTables(freshList)
+      setSelectedTable(null)
+      saveStoredTables(user, freshList)
+      loadTables(true)
+    }
+
+    const handleBillPrinted = (e) => {
+      const tableLabel = e?.detail?.table_number || e?.detail?.table || e?.detail?.bill?.table_number
+      if (tableLabel) {
+        setTables((prev) => {
+          const updated = prev.map((t) => {
+            if (isTableMatch(t, tableLabel)) {
+              return {
+                ...t,
+                status: "AVAILABLE",
+                current_items: [],
+                total_amount: 0,
+                editing_bill_id: null,
+                editing_bill_number: null
+              }
+            }
+            return t
+          })
+          saveStoredTables(user, updated)
+          return updated
+        })
+        loadTables(true)
+      }
+    }
+
     window.addEventListener("slipzo_shop_updated", handleShopUpdate)
-    return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
-  }, [user])
+    window.addEventListener("slipzo_tables_reset", handleTablesReset)
+    window.addEventListener("slipzo_bill_printed", handleBillPrinted)
+    return () => {
+      window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
+      window.removeEventListener("slipzo_tables_reset", handleTablesReset)
+      window.removeEventListener("slipzo_bill_printed", handleBillPrinted)
+    }
+  }, [user, shop?.business_type])
 
   // Automatically open table for editing if navigated from Bill History
   useEffect(() => {
@@ -242,7 +295,8 @@ export function TableManagement({
       if (q) {
         const matchesName = (t.name || "").toLowerCase().includes(q)
         const matchesNum = String(t.table_number).includes(q)
-        return matchesName || matchesNum
+        const displayName = getTableDisplayName(t, t, formatNum).toLowerCase()
+        return matchesName || matchesNum || displayName.includes(q)
       }
 
       return true

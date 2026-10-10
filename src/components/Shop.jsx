@@ -34,7 +34,7 @@ import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import { VoiceInputButton } from "./common/VoiceInputButton"
-import { ChangeCategoryModal, BUSINESS_CATEGORIES } from "./common/ChangeCategoryModal"
+import { ChangeCategoryModal, BUSINESS_CATEGORIES, getBusinessCategories } from "./common/ChangeCategoryModal"
 import { ManageTablesModal } from "./tables/ManageTablesModal"
 import { Skeleton, ButtonLoader } from "./common/Skeleton"
 
@@ -159,8 +159,9 @@ export function Shop({ user, setView } = {}) {
   }
 
   const currentCategoryObj = useMemo(() => {
-    return BUSINESS_CATEGORIES.find(c => c.id === (shop.business_type || "small_business")) || BUSINESS_CATEGORIES[0]
-  }, [shop.business_type])
+    const list = getBusinessCategories(t)
+    return list.find(c => c.id === (shop.business_type || "small_business")) || list[0]
+  }, [shop.business_type, t, i18n?.language])
 
   const { success, error: toastError, warning: toastWarning } = useToast()
 
@@ -589,17 +590,17 @@ export function Shop({ user, setView } = {}) {
                 className="sp-change-logo-btn"
                 onClick={() => logoInputRef.current?.click()}
               >
-                <Camera size={14} /> {tDb("Change Logo")}
+                <Camera size={14} /> {t("profile.changeLogo", "Change Logo")}
               </button>
               <button
                 type="button"
                 className="sp-remove-logo-btn"
                 onClick={() => setIsRemoveLogoModalOpen(true)}
               >
-                <Trash2 size={14} /> {tDb("Remove Logo")}
+                <Trash2 size={14} /> {t("profile.removeLogo", "Remove Logo")}
               </button>
             </div>
-            <span className="sp-logo-hint">{tDb("Recommended size: 512 × 512")}</span>
+            <span className="sp-logo-hint">{t("profile.logoHint", "Recommended size: 512 × 512")}</span>
           </div>
         </div>
 
@@ -673,17 +674,17 @@ export function Shop({ user, setView } = {}) {
                 className="sp-change-logo-btn"
                 onClick={() => logoInputRef.current?.click()}
               >
-                <Camera size={14} /> {tDb("Change Logo")}
+                <Camera size={14} /> {t("profile.changeLogo", "Change Logo")}
               </button>
               <button
                 type="button"
                 className="sp-remove-logo-btn"
                 onClick={() => setIsRemoveLogoModalOpen(true)}
               >
-                <Trash2 size={14} /> {tDb("Remove Logo")}
+                <Trash2 size={14} /> {t("profile.removeLogo", "Remove Logo")}
               </button>
             </div>
-            <span className="sp-logo-hint">{tDb("Recommended size: 512 × 512")}</span>
+            <span className="sp-logo-hint">{t("profile.logoHint", "Recommended size: 512 × 512")}</span>
           </div>
         </div>
 
@@ -737,10 +738,10 @@ export function Shop({ user, setView } = {}) {
               </div>
               <div style={{ flex: 1 }}>
                 <h3 style={{ fontSize: "1.05rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.3rem" }}>
-                  {tDb("Remove shop logo?")}
+                  {t("profile.removeLogoTitle", "Remove shop logo?")}
                 </h3>
                 <p style={{ fontSize: "0.82rem", color: "#64748b", margin: 0, lineHeight: 1.45 }}>
-                  {tDb("Are you sure you want to remove your shop logo? It will no longer appear on your receipts.")}
+                  {t("profile.removeLogoDesc", "Are you sure you want to remove your shop logo? It will no longer appear on your receipts.")}
                 </p>
               </div>
             </div>
@@ -762,7 +763,7 @@ export function Shop({ user, setView } = {}) {
                   minWidth: "80px",
                 }}
               >
-                {tDb("Cancel")}
+                {t("common.cancel", "Cancel")}
               </button>
               <button
                 type="button"
@@ -783,7 +784,7 @@ export function Shop({ user, setView } = {}) {
                 }}
               >
                 <Trash2 size={14} />
-                {tDb("Remove Logo")}
+                {t("profile.removeLogo", "Remove Logo")}
               </button>
             </div>
           </div>
@@ -832,7 +833,7 @@ export function Shop({ user, setView } = {}) {
                         {currentCategoryObj.label}
                       </span>
                       <span style={{ fontSize: "0.7rem", background: "#0284c7", color: "#ffffff", padding: "2px 8px", borderRadius: "10px", fontWeight: "700" }}>
-                        Active Category
+                        {t("profile.activeCategory", "Active Category")}
                       </span>
                     </div>
                     <div style={{ fontSize: "0.78rem", color: "#64748b", marginTop: "3px" }}>
@@ -1048,7 +1049,7 @@ export function Shop({ user, setView } = {}) {
                 >
                   {templates.map((tItem) => (
                     <option key={tItem.id} value={tItem.id}>
-                      {tItem.name} ({tItem.width || "58mm"})
+                      {tDb(tItem.name)} ({tItem.width || "58mm"})
                     </option>
                   ))}
                 </select>
@@ -1057,9 +1058,61 @@ export function Shop({ user, setView } = {}) {
               <span className="sp-helper-text">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</span>
             </div>
           </div>
+        </div>
 
+        {/* RIGHT COLUMN: Live Receipt Preview, App Settings */}
+        <div className="sp-right-col">
+          {/* Card 1: Live Receipt Preview */}
+          <div className="sp-preview-card">
+            <div className="sp-preview-header">
+              <div className="sp-live-badge">
+                <span className="sp-pulse-dot" /> {t("profile.livePreview", "Live Preview")}
+              </div>
+            </div>
+
+            <div className="sp-receipt-wrapper">
+              <RealisticReceiptView template={selectedTemplate} />
+            </div>
+          </div>
+
+          {/* Card 2: App Settings */}
+          <div className="sp-card" id="app-settings-section">
+            <div className="sp-card-header">
+              <div className="sp-icon-box blue">
+                <Settings size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">{t("profile.appSettings", "App Settings")}</h3>
+                <p className="sp-card-subtitle">{t("profile.appPreferences", "Language & App Preferences")}</p>
+              </div>
+            </div>
+
+            <div className="sp-field-group">
+              <label className="sp-label">{t("profile.languageTitle", "App Language")}</label>
+              <div className="sp-select-wrap">
+                <Globe size={16} className="sp-input-icon" />
+                <select
+                  value={currentLang}
+                  onChange={(e) => handleLanguageSelect(e.target.value)}
+                  className="sp-select"
+                >
+                  {SUPPORTED_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.flag} {l.nativeName} ({l.label})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="sp-select-arrow" />
+              </div>
+              <span className="sp-helper-text">{t("profile.chooseLang", "Choose your preferred application language")}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM FULL-WIDTH ROW: Invoice Sequencing (Left) & Staff & Sub-Users (Right) */}
+        <div className="sp-bottom-grid">
           {/* Card 3: Invoice Sequencing */}
-          <div className="sp-card">
+          <div className="sp-card sp-sequencing-card">
             <div className="sp-card-header">
               <div className="sp-icon-box purple">
                 <Hash size={18} />
@@ -1165,10 +1218,29 @@ export function Shop({ user, setView } = {}) {
                 <ChevronDown size={15} className="sp-select-arrow" />
               </div>
             </div>
+
+            <div style={{
+              marginTop: "0.85rem",
+              padding: "0.65rem 0.95rem",
+              borderRadius: "10px",
+              background: "#f0f9ff",
+              border: "1px solid #bae6fd",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "0.5rem"
+            }}>
+              <span style={{ fontSize: "0.78rem", color: "#0369a1", fontWeight: 600 }}>
+                {t("profile.sampleInvoiceNumber", "Preview Next Bill No.")}:
+              </span>
+              <span style={{ fontSize: "0.88rem", fontWeight: 800, color: "#0284c7", fontFamily: "monospace", letterSpacing: "0.5px" }}>
+                {liveInvoicePreview}
+              </span>
+            </div>
           </div>
 
           {/* Card 4: Staff & Sub-Users (Printer Access Sharing) */}
-          <div className="sp-card">
+          <div className="sp-card sp-subusers-card">
             <div className="sp-card-header">
               <div className="sp-icon-box blue">
                 <Users size={18} />
@@ -1236,7 +1308,7 @@ export function Shop({ user, setView } = {}) {
             </div>
 
             {/* Active Worker Email List */}
-            <div style={{ marginTop: "1rem" }}>
+            <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", flex: 1 }}>
               <label className="sp-label" style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
                 <ShieldCheck size={14} color="#0284c7" />
                 <span>{t("profile.authorizedWorkersList", "Authorized Workers")} ({Array.isArray(shop.staff_emails) ? shop.staff_emails.length : 0})</span>
@@ -1244,19 +1316,25 @@ export function Shop({ user, setView } = {}) {
 
               {(!Array.isArray(shop.staff_emails) || shop.staff_emails.length === 0) ? (
                 <div style={{
-                  padding: "1rem",
+                  padding: "0.95rem 1rem",
                   borderRadius: "10px",
                   background: "#f8fafc",
                   border: "1.5px dashed #cbd5e1",
                   textAlign: "center",
                   fontSize: "0.82rem",
-                  color: "#64748b"
+                  color: "#64748b",
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: "75px"
                 }}>
-                  <Printer size={20} color="#94a3b8" style={{ display: "block", margin: "0 auto 0.4rem" }} />
+                  <Printer size={20} color="#94a3b8" style={{ display: "block", margin: "0 auto 0.35rem" }} />
                   {t("profile.noWorkersYet", "No worker emails added yet. Add an email above to share printer & billing access.")}
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "175px", overflowY: "auto", flex: 1 }}>
                   {shop.staff_emails.map((email) => (
                     <div
                       key={email}
@@ -1264,7 +1342,7 @@ export function Shop({ user, setView } = {}) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        padding: "0.65rem 0.85rem",
+                        padding: "0.6rem 0.85rem",
                         background: "#f0f9ff",
                         border: "1px solid #bae6fd",
                         borderRadius: "10px",
@@ -1272,10 +1350,10 @@ export function Shop({ user, setView } = {}) {
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0, overflow: "hidden" }}>
-                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <Mail size={14} />
+                        <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Mail size={13} />
                         </div>
-                        <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#0369a1", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: "0.84rem", fontWeight: "600", color: "#0369a1", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           {email}
                         </span>
                       </div>
@@ -1312,86 +1390,37 @@ export function Shop({ user, setView } = {}) {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Live Receipt Preview, App Settings, Save Button */}
-        <div className="sp-right-col">
-          {/* Card 1: Live Receipt Preview */}
-          <div className="sp-preview-card">
-            <div className="sp-preview-header">
-              <div className="sp-live-badge">
-                <span className="sp-pulse-dot" /> {t("profile.livePreview", "Live Preview")}
-              </div>
-            </div>
-
-            <div className="sp-receipt-wrapper">
-              <RealisticReceiptView template={selectedTemplate} />
-            </div>
-          </div>
-
-          {/* Card 2: App Settings */}
-          <div className="sp-card" id="app-settings-section">
-            <div className="sp-card-header">
-              <div className="sp-icon-box blue">
-                <Settings size={18} />
-              </div>
-              <div className="sp-card-titles">
-                <h3 className="sp-card-title">{t("profile.appSettings", "App Settings")}</h3>
-                <p className="sp-card-subtitle">{t("profile.appPreferences", "Language & App Preferences")}</p>
-              </div>
-            </div>
-
-            <div className="sp-field-group">
-              <label className="sp-label">{t("profile.languageTitle", "App Language")}</label>
-              <div className="sp-select-wrap">
-                <Globe size={16} className="sp-input-icon" />
-                <select
-                  value={currentLang}
-                  onChange={(e) => handleLanguageSelect(e.target.value)}
-                  className="sp-select"
-                >
-                  {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.flag} {l.nativeName} ({l.label})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={15} className="sp-select-arrow" />
-              </div>
-              <span className="sp-helper-text">{t("profile.chooseLang", "Choose your preferred application language")}</span>
-            </div>
-          </div>
-
-          {/* Mobile-Only Bottom Save Settings Button */}
-          <div className="sp-mobile-save-section mobile-only">
-            <button
-              data-testid="save-shop-button-mobile"
-              className="sp-mobile-save-btn"
-              type="button"
-              onClick={saveShop}
-              disabled={loading}
-              title={t("profile.saveSettings", "Save Settings")}
-            >
-              {loading ? (
-                <ButtonLoader text={t("profile.savingSettings", "Saving...")} />
-              ) : (
-                <>
-                  <Save size={16} />
-                  <span>{t("profile.saveSettings", "Save Settings")}</span>
-                </>
-              )}
-            </button>
-
-            {hasUnsaved && !saved && (
-              <span className="sp-unsaved-hint bottom">
-                <span className="sp-unsaved-dot" /> {t("profile.unsavedChanges", "You have unsaved changes")}
-              </span>
+        {/* Mobile-Only Bottom Save Settings Button */}
+        <div className="sp-mobile-save-section mobile-only" style={{ gridColumn: "1 / -1", width: "100%" }}>
+          <button
+            data-testid="save-shop-button-mobile"
+            className="sp-mobile-save-btn"
+            type="button"
+            onClick={saveShop}
+            disabled={loading}
+            title={t("profile.saveSettings", "Save Settings")}
+          >
+            {loading ? (
+              <ButtonLoader text={t("profile.savingSettings", "Saving...")} />
+            ) : (
+              <>
+                <Save size={16} />
+                <span>{t("profile.saveSettings", "Save Settings")}</span>
+              </>
             )}
+          </button>
 
-            {saved && (
-              <div data-testid="shop-saved-message-mobile" className="sp-saved-badge bottom">
-                <Check size={13} strokeWidth={3} /> {t("profile.settingsSaved", "Settings Saved!")}
-              </div>
-            )}
-          </div>
+          {hasUnsaved && !saved && (
+            <span className="sp-unsaved-hint bottom">
+              <span className="sp-unsaved-dot" /> {t("profile.unsavedChanges", "You have unsaved changes")}
+            </span>
+          )}
+
+          {saved && (
+            <div data-testid="shop-saved-message-mobile" className="sp-saved-badge bottom">
+              <Check size={13} strokeWidth={3} /> {t("profile.settingsSaved", "Settings Saved!")}
+            </div>
+          )}
         </div>
       </form>      <style>{`
         /* ============================================================
@@ -1711,6 +1740,24 @@ export function Shop({ user, setView } = {}) {
           flex-direction: column;
           gap: 1.15rem;
           min-width: 0;
+        }
+
+        /* Bottom Full-Width 2-Column Row (Invoice Sequencing & Staff / Printer Sharing) */
+        .sp-bottom-grid {
+          grid-column: 1 / -1;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+          align-items: stretch;
+          width: 100%;
+        }
+
+        .sp-sequencing-card,
+        .sp-subusers-card {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          box-sizing: border-box;
         }
 
         /* Reusable Card Style */
@@ -2144,6 +2191,13 @@ export function Shop({ user, setView } = {}) {
           .sp-right-col {
             width: 100% !important;
           }
+
+          .sp-bottom-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 1.15rem !important;
+            width: 100% !important;
+          }
         }
 
         @media (max-width: 640px) {
@@ -2421,6 +2475,13 @@ export function Shop({ user, setView } = {}) {
 
           .sp-left-col,
           .sp-right-col {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.85rem !important;
+            width: 100% !important;
+          }
+
+          .sp-bottom-grid {
             display: flex !important;
             flex-direction: column !important;
             gap: 0.85rem !important;

@@ -55,7 +55,9 @@ export function RealisticReceiptView({ template }) {
 
   const items = Array.isArray(data.items) ? data.items : []
   const totalUnits = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0)
-  const tableNumber = data.tableNumber || data.table_number || data.table || data.tableName || ""
+  const rawTableNumber = data.tableNumber || data.table_number || data.table || data.tableName || ""
+  const cleanTableNum = String(rawTableNumber).replace(/^(?:table|टेबल)[-_\s]*/i, "")
+  const tableNumber = rawTableNumber ? (/^\d+$/.test(cleanTableNum) ? formatNum(cleanTableNum) : rawTableNumber) : ""
 
   // =========================================================================
   // 1. MINIMAL CLEAN BILL (58mm Minimalist)

@@ -1,40 +1,53 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { X, Check, Store, AlertCircle, Info } from "lucide-react"
-import { call, getCachedData, setCachedData, clearStoredMenuItems } from "../../lib/utils"
+import { 
+  call, 
+  getCachedData, 
+  setCachedData, 
+  removeCachedData, 
+  invalidateApiCache, 
+  clearStoredMenuItems, 
+  clearStoredTables, 
+  resetStoredTables, 
+  createDefaultTables 
+} from "../../lib/utils"
 import { useToast } from "./Toast"
 import { useTranslation } from "react-i18next"
 import { TableSetupModal } from "../tables/TableSetupModal"
 
-export const BUSINESS_CATEGORIES = [
+export const getBusinessCategories = (t) => [
   { 
     id: "small_business", 
-    label: "Small Business / Cafe & Tea", 
+    label: t ? t("profile.catSmallBusiness", "Small Business / Cafe & Tea") : "Small Business / Cafe & Tea", 
     icon: "☕", 
-    desc: "Chai tapri, coffee shop, bakery, snacks, juices & quick bites" 
+    desc: t ? t("profile.catSmallBusinessDesc", "Chai tapri, coffee shop, bakery, snacks, juices & quick bites") : "Chai tapri, coffee shop, bakery, snacks, juices & quick bites" 
   },
   { 
     id: "kirana_grocery", 
-    label: "Kirana / Grocery Shop", 
+    label: t ? t("profile.catKiranaGrocery", "Kirana / Grocery Shop") : "Kirana / Grocery Shop", 
     icon: "🛒", 
-    desc: "Daily grocery, atta, rice, pulses, spices, packaged food & FMCG" 
+    desc: t ? t("profile.catKiranaGroceryDesc", "Daily grocery, atta, rice, pulses, spices, packaged food & FMCG") : "Daily grocery, atta, rice, pulses, spices, packaged food & FMCG" 
   },
   { 
     id: "clothing_garments", 
-    label: "Cloth & Garments Shop", 
+    label: t ? t("profile.catClothingGarments", "Cloth & Garments Shop") : "Cloth & Garments Shop", 
     icon: "👗", 
-    desc: "Apparel, shirts, jeans, sarees, kids wear & readymade garments" 
+    desc: t ? t("profile.catClothingGarmentsDesc", "Apparel, shirts, jeans, sarees, kids wear & readymade garments") : "Apparel, shirts, jeans, sarees, kids wear & readymade garments" 
   },
   { 
     id: "hotel_food", 
-    label: "Hotel or Food Restaurant", 
+    label: t ? t("profile.catHotelFood", "Hotel or Food Restaurant") : "Hotel or Food Restaurant", 
     icon: "🍽️", 
-    desc: "Dine-in restaurant, thalis, Chinese, starters & hotel meals" 
+    desc: t ? t("profile.catHotelFoodDesc", "Dine-in restaurant, thalis, Chinese, starters & hotel meals") : "Dine-in restaurant, thalis, Chinese, starters & hotel meals" 
   }
 ]
 
+export const BUSINESS_CATEGORIES = getBusinessCategories(null)
+
 export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_business", onCategoryChanged, user, setView }) {
   const { t } = useTranslation()
+  const categories = getBusinessCategories(t)
   const { success: toastSuccess, error: toastError } = useToast()
   const [selectedCat, setSelectedCat] = useState(currentCategory)
   const [isSaving, setIsSaving] = useState(false)
@@ -84,12 +97,36 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
       setCachedData("/menu", [])
       clearStoredMenuItems(user)
 
-      // Dispatch global events to inform Menu and Bill screens immediately
+      // Also reset tables both remotely and locally whenever business category changes
+      try {
+        await call("/restaurant/tables/reset-all", { method: "POST" })
+      } catch (tableResetErr) {
+        console.warn("Backend tables reset call warning:", tableResetErr)
+      }
+
+      // Invalidate API caches for restaurant tables
+      removeCachedData("/restaurant/tables")
+      removeCachedData("/tables")
+      invalidateApiCache("restaurant")
+      invalidateApiCache("tables")
+
+      // Clear local stored tables and reset to fresh available empty tables
+      clearStoredTables(user)
+      const freshTables = resetStoredTables(user, updatedShop?.table_count || 10)
+
+      // Clear any pending table edit session data
+      try {
+        sessionStorage.removeItem("slipzo_edit_table")
+        sessionStorage.removeItem("slipzo_edit_bill")
+      } catch (_) {}
+
+      // Dispatch global events to inform Menu, Bill, and Table screens immediately
       window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { items: [] } }))
+      window.dispatchEvent(new CustomEvent("slipzo_tables_reset", { detail: { tables: freshTables, table_count: updatedShop?.table_count || 10 } }))
       window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: updatedShop }))
 
-      const catObj = BUSINESS_CATEGORIES.find(c => c.id === selectedCat)
-      toastSuccess(t("profile.categoryUpdated", `Shop category switched to "${catObj?.label || selectedCat}"`))
+      const catObj = categories.find(c => c.id === selectedCat)
+      toastSuccess(t("profile.categoryUpdated", { category: catObj?.label || selectedCat, defaultValue: `Shop category switched to "${catObj?.label || selectedCat}"` }))
       
       if (onCategoryChanged) {
         onCategoryChanged(selectedCat, updatedShop)
@@ -204,7 +241,7 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            {BUSINESS_CATEGORIES.map((cat) => {
+            {categories.map((cat) => {
               const isSelected = selectedCat === cat.id
               const isCurrent = currentCategory === cat.id
 
@@ -238,7 +275,7 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
                       </span>
                       {isCurrent && (
                         <span style={{ fontSize: "0.68rem", background: "#e0f2fe", color: "#0284c7", padding: "2px 8px", borderRadius: "10px", fontWeight: "700", whiteSpace: "nowrap" }}>
-                          Active Category
+                          {t("profile.activeCategory", "Active Category")}
                         </span>
                       )}
                     </div>
