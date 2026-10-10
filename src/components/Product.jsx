@@ -109,7 +109,7 @@ export function Product({ setView, setShowAuth }) {
     {
       icon: <Zap size={32} />,
       name: "Developer API & Webhooks",
-      description: "Connect Slipzo with your custom inventory software, CRM, or eCommerce store.",
+      description: "Connect Slipzen with your custom inventory software, CRM, or eCommerce store.",
       devices: ["REST API", "Webhooks", "JSON Payloads", "OAuth 2.0"]
     }
   ]
@@ -137,10 +137,10 @@ export function Product({ setView, setShowAuth }) {
       {/* Product Hero */}
       <section className="product-hero">
         <div className="product-hero-content">
-          <p className="eyebrow">SLIPZO PRODUCT</p>
+          <p className="eyebrow">SLIPZEN PRODUCT</p>
           <h1>The All-in-One Billing Platform<br />Built for Retail & Small Shops</h1>
           <p className="header-description">
-            Slipzo brings enterprise-grade thermal billing, custom receipt templates, sales tracking,
+            Slipzen brings enterprise-grade thermal billing, custom receipt templates, sales tracking,
             and universal printer compatibility into an intuitive tool any shopkeeper can master.
           </p>
           <div className="product-hero-actions">
@@ -206,7 +206,7 @@ export function Product({ setView, setShowAuth }) {
           <div className="section-header">
             <p className="eyebrow">ECOSYSTEM & HARDWARE</p>
             <h2>Works with your existing printer & devices</h2>
-            <p>No expensive proprietary hardware needed. Slipzo works with standard thermal printers out of the box.</p>
+            <p>No expensive proprietary hardware needed. Slipzen works with standard thermal printers out of the box.</p>
           </div>
           <div className="product-integrations-grid">
             {integrations.map((item, index) => (
@@ -230,7 +230,7 @@ export function Product({ setView, setShowAuth }) {
         <section className="product-workflow-section" id="how-it-works-section">
           <div className="section-header">
             <p className="eyebrow">SIMPLE 3-STEP SETUP</p>
-            <h2>How Slipzo simplifies your billing counter</h2>
+            <h2>How Slipzen simplifies your billing counter</h2>
             <p>Go from zero to printing professional receipts in less than two minutes.</p>
           </div>
           <div className="workflow-grid">

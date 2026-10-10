@@ -133,17 +133,19 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
   }
 
   return (
-    <div className="auth-overlay" onClick={onCancel}>
+    <div className="auth-overlay" onClick={onCancel ? onCancel : undefined}>
       <div className="auth-modal-box" onClick={(e) => e.stopPropagation()}>
-        <button className="auth-close" onClick={onCancel} aria-label="Close authentication">
-          <X size={18} />
-        </button>
+        {onCancel && (
+          <button className="auth-close" onClick={onCancel} aria-label="Close authentication">
+            <X size={18} />
+          </button>
+        )}
         
         <section className="auth-art">
           <div className="auth-logo-wrapper">
             <img 
-              src="/logo.png" 
-              alt="Slipzo" 
+              src="/logo-white.png" 
+              alt="Slipzen" 
               className="auth-logo"
             />
           </div>
@@ -171,12 +173,12 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
             <div className="mobile-brand">
               <img 
                 src="/logo.png" 
-                alt="Slipzo" 
+                alt="Slipzen" 
                 className="mobile-auth-logo"
               />
             </div>
             <p className="eyebrow">{isRegister ? "CREATE ACCOUNT" : "WELCOME BACK"}</p>
-            <h2>{isRegister ? "Create your account" : "Sign in to Slipzo"}</h2>
+            <h2>{isRegister ? "Create your account" : "Sign in to Slipzen"}</h2>
             <p className="subtle">
               {isRegister
                 ? "Set up your digital receipt desk in a minute."
@@ -283,14 +285,14 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               type="submit"
               disabled={loading}
             >
-              {loading ? "Please wait..." : isRegister ? "Create account" : "Enter Slipzo"}
+              {loading ? "Please wait..." : isRegister ? "Create account" : "Enter Slipzen"}
               <ArrowRight size={17} />
             </button>
           </form>
 
 
           <p className="switch">
-            {isRegister ? "Already have an account?" : "New to Slipzo?"}
+            {isRegister ? "Already have an account?" : "New to Slipzen?"}
             <button
               data-testid="auth-toggle-button"
               onClick={() => {
@@ -304,9 +306,30 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
             </button>
           </p>
           
-          <button className="back-to-site" onClick={onCancel}>
-            ← Back to site
-          </button>
+          {onCancel ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '1rem' }}>
+              <button type="button" className="back-to-site" onClick={onCancel} style={{ margin: 0 }}>
+                ← Back
+              </button>
+              <button 
+                type="button" 
+                className="back-to-site" 
+                onClick={() => { window.location.href = "/admin/login" }}
+                style={{ fontSize: '0.72rem', opacity: 0.8, margin: 0 }}
+              >
+                Admin Portal →
+              </button>
+            </div>
+          ) : (
+            <button 
+              type="button" 
+              className="back-to-site" 
+              onClick={() => { window.location.href = "/admin/login" }}
+              style={{ fontSize: '0.72rem', opacity: 0.8 }}
+            >
+              Admin Portal →
+            </button>
+          )}
         </section>
       </div>
 
@@ -606,7 +629,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         .auth-overlay {
           position: fixed !important;
           inset: 0 !important;
-          background: rgba(15, 23, 42, 0.68) !important;
+          background: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 100%) !important;
           backdrop-filter: blur(6px) !important;
           -webkit-backdrop-filter: blur(6px) !important;
           z-index: 9999 !important;
@@ -622,16 +645,16 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
 
         .auth-modal-box {
           background: #ffffff !important;
-          border-radius: 20px !important;
+          border-radius: 18px !important;
           width: 100% !important;
-          max-width: 800px !important;
+          max-width: 730px !important;
           box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
           overflow: hidden !important;
           display: grid !important;
-          grid-template-columns: 0.95fr 1.05fr !important;
+          grid-template-columns: 0.9fr 1.1fr !important;
           position: relative !important;
           height: auto !important;
-          max-height: min(90vh, 660px) !important;
+          max-height: min(90vh, 600px) !important;
           margin: auto !important;
           box-sizing: border-box !important;
         }
@@ -668,10 +691,11 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           background: linear-gradient(145deg, #111c2e 0%, #1c283d 100%) !important;
           border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
           color: #ffffff !important;
-          padding: clamp(1.4rem, 2.8vw, 1.8rem) clamp(1.25rem, 2.5vw, 1.65rem) !important;
+          padding: 1.4rem 1.6rem !important;
           display: flex !important;
           flex-direction: column !important;
-          justify-content: space-between !important;
+          justify-content: center !important;
+          gap: 1.15rem !important;
           position: relative !important;
           overflow: hidden !important;
           box-sizing: border-box !important;
@@ -690,7 +714,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         }
 
         .auth-logo-wrapper {
-          margin-bottom: 0.65rem !important;
+          margin-bottom: 0 !important;
           position: relative;
           z-index: 1;
           background: transparent !important;
@@ -725,7 +749,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         }
 
         .auth-art h1 {
-          font-size: clamp(1.35rem, 2.6vw, 1.6rem) !important;
+          font-size: clamp(1.35rem, 2.6vw, 1.55rem) !important;
           font-weight: 800 !important;
           line-height: 1.25 !important;
           margin: 0 0 0.35rem 0 !important;
@@ -745,7 +769,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           font-size: 0.82rem !important;
           max-width: 300px !important;
           line-height: 1.45 !important;
-          margin-bottom: 0.75rem !important;
+          margin-bottom: 0 !important;
           position: relative;
           z-index: 1;
         }
@@ -757,14 +781,14 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           background: rgba(255, 255, 255, 0.06) !important;
           border: 1px solid rgba(255, 255, 255, 0.12) !important;
           box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
-          padding: 0.4rem 0.75rem !important;
+          padding: 0.35rem 0.75rem !important;
           border-radius: 9px !important;
           color: #94a3b8 !important;
           font-size: 0.75rem !important;
           width: fit-content !important;
           position: relative;
           z-index: 1;
-          margin-top: auto !important;
+          margin-top: 0 !important;
         }
 
         .auth-art .receipt-stamp svg {
@@ -780,14 +804,14 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         /* Right Form Side Styling */
         .auth-form {
           background: #ffffff !important;
-          padding: clamp(1.35rem, 2.8vw, 1.75rem) clamp(1.25rem, 2.5vw, 1.65rem) clamp(1.15rem, 2.5vw, 1.45rem) !important;
+          padding: 1.25rem 1.65rem 1rem 1.65rem !important;
           display: flex !important;
           flex-direction: column !important;
           justify-content: center !important;
           width: 100% !important;
           box-sizing: border-box !important;
           overflow-y: auto !important;
-          max-height: min(90vh, 660px) !important;
+          max-height: min(90vh, 600px) !important;
           scrollbar-width: thin !important;
           scrollbar-color: #cbd5e1 transparent !important;
         }
@@ -805,53 +829,53 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         }
 
         .auth-header-block {
-          margin-bottom: 0.65rem !important;
+          margin-bottom: 0.45rem !important;
           text-align: center !important;
         }
 
         .auth-form .eyebrow {
-          font-size: 0.68rem !important;
+          font-size: 0.65rem !important;
           letter-spacing: 2px !important;
           text-transform: uppercase !important;
           color: #64748b !important;
-          margin-bottom: 0.15rem !important;
+          margin-bottom: 0.1rem !important;
           text-align: center !important;
           font-weight: 700 !important;
         }
 
         .auth-form h2 {
-          font-size: clamp(1.2rem, 2.4vw, 1.35rem) !important;
+          font-size: 1.25rem !important;
           font-weight: 800 !important;
-          margin: 0 0 0.15rem 0 !important;
+          margin: 0 0 0.1rem 0 !important;
           color: #0f172a !important;
           text-align: center !important;
-          line-height: 1.25 !important;
+          line-height: 1.2 !important;
         }
 
         .auth-form .subtle {
           color: #64748b !important;
-          font-size: 0.8rem !important;
-          margin-bottom: 0.65rem !important;
+          font-size: 0.78rem !important;
+          margin-bottom: 0.45rem !important;
           text-align: center !important;
-          line-height: 1.35 !important;
+          line-height: 1.3 !important;
         }
 
         .auth-form form {
           display: flex !important;
           flex-direction: column !important;
-          gap: 0.5rem !important;
+          gap: 0.38rem !important;
           width: 100% !important;
         }
 
         .auth-form label {
-          font-size: 0.68rem !important;
+          font-size: 0.65rem !important;
           font-weight: 700 !important;
           color: #475569 !important;
           letter-spacing: 0.5px !important;
           text-transform: uppercase !important;
           display: flex !important;
           flex-direction: column !important;
-          gap: 0.2rem !important;
+          gap: 0.15rem !important;
           margin-bottom: 0 !important;
           text-align: left !important;
         }
@@ -859,11 +883,11 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         .auth-form input {
           display: block !important;
           width: 100% !important;
-          height: 38px !important;
-          padding: 0.45rem 0.75rem !important;
+          height: 35px !important;
+          padding: 0.38rem 0.7rem !important;
           border: 1.5px solid #cbd5e1 !important;
           border-radius: 8px !important;
-          font-size: 0.875rem !important;
+          font-size: 0.86rem !important;
           color: #0f172a !important;
           background: #f8fafc !important;
           box-sizing: border-box !important;
@@ -881,9 +905,9 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           background: #0f172a !important;
           color: #ffffff !important;
           border: none !important;
-          min-height: 40px !important;
-          height: auto !important;
-          padding: 0.55rem 1rem !important;
+          min-height: 38px !important;
+          height: 38px !important;
+          padding: 0.45rem 1rem !important;
           border-radius: 8px !important;
           font-weight: 700 !important;
           font-size: 0.88rem !important;
@@ -893,7 +917,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           gap: 0.4rem !important;
           cursor: pointer !important;
           transition: all 0.2s ease !important;
-          margin-top: 0.3rem !important;
+          margin-top: 0.25rem !important;
           width: 100% !important;
           box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2) !important;
         }
@@ -905,9 +929,9 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
 
         .auth-form .switch {
           text-align: center !important;
-          font-size: 0.8rem !important;
+          font-size: 0.78rem !important;
           color: #64748b !important;
-          margin-top: 0.5rem !important;
+          margin-top: 0.35rem !important;
           margin-bottom: 0 !important;
           display: flex !important;
           align-items: center !important;
@@ -937,11 +961,11 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           border: 1px solid #e2e8f0 !important;
           border-radius: 20px !important;
           color: #64748b !important;
-          font-size: 0.76rem !important;
+          font-size: 0.74rem !important;
           font-weight: 600 !important;
           cursor: pointer !important;
-          margin: 0.45rem auto 0 auto !important;
-          padding: 0.3rem 0.85rem !important;
+          margin: 0.3rem auto 0 auto !important;
+          padding: 0.22rem 0.8rem !important;
           display: inline-flex !important;
           align-items: center !important;
           justify-content: center !important;

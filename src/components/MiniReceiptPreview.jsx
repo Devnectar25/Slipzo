@@ -20,7 +20,7 @@ export function MiniReceiptPreview({ template }) {
       <div className="mini-receipt mini-receipt-classic-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
         <div className="mini-shop-header-exact" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", marginBottom: "4px" }}>
           <div style={{ border: "1.5px solid #0284c7", color: "#0284c7", width: "18px", height: "18px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "10px" }}>S</div>
-          <span style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a", marginTop: "1px" }}>CLASSIC MART</span>
+          <span style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a", marginTop: "1px" }}>{tDb("CLASSIC MART")}</span>
           <span style={{ fontSize: "9px", color: "#64748b" }}>Connaught Place, New Delhi</span>
           <span style={{ fontSize: "8px", color: "#94a3b8" }}>GSTIN: 07AAAAA0000A1Z5</span>
         </div>
@@ -68,7 +68,7 @@ export function MiniReceiptPreview({ template }) {
       <div className="mini-receipt mini-receipt-minimal-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "left", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
         <div className="mini-shop-header-exact" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1px", marginBottom: "6px" }}>
           <div style={{ background: "#0ea5e9", color: "#ffffff", width: "18px", height: "18px", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "10px" }}>S</div>
-          <span style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a", marginTop: "1px" }}>MINIMAL CAFE</span>
+          <span style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a", marginTop: "1px" }}>{tDb("MINIMAL CAFE")}</span>
           <span style={{ fontSize: "9px", color: "#94a3b8" }}>MG Road, Bengaluru</span>
         </div>
         <div style={{ borderTop: "1px dashed #e2e8f0", margin: "4px 0" }} />
@@ -104,7 +104,7 @@ export function MiniReceiptPreview({ template }) {
     return (
       <div className="mini-receipt mini-receipt-pro-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
         <div style={{ background: "#2563eb", color: "#ffffff", padding: "4px 6px", borderRadius: "4px", display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "6px" }}>
-          <span style={{ fontWeight: 800, fontSize: "10px", letterSpacing: "0.5px" }}>URBAN FASHION PRO</span>
+          <span style={{ fontWeight: 800, fontSize: "10px", letterSpacing: "0.5px" }}>{tDb("URBAN FASHION PRO")}</span>
           <span style={{ fontSize: "7.5px", opacity: 0.85, letterSpacing: "0.5px" }}>RETAIL POS RECEIPT</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#64748b", fontWeight: 600, marginBottom: "4px" }}>
@@ -144,7 +144,7 @@ export function MiniReceiptPreview({ template }) {
   if (isEco) {
     return (
       <div className="mini-receipt mini-receipt-eco-exact" style={{ background: "#f0fdf4", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "left", fontFamily: "monospace", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-        <div style={{ textAlign: "center", fontWeight: 800, fontSize: "10px", color: "#166534", marginBottom: "3px" }}>*** KRISHNA JUICE ***</div>
+        <div style={{ textAlign: "center", fontWeight: 800, fontSize: "10px", color: "#166534", marginBottom: "3px" }}>*** {tDb("KRISHNA JUICE")} ***</div>
         <div style={{ textAlign: "center", fontSize: "8px", color: "#15803d" }}>OTLB 7734 | 09-MAR | 11:30AM</div>
         <div style={{ borderTop: "1px dashed #bbf7d0", margin: "4px 0" }} />
         <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "9px" }}>
@@ -173,7 +173,7 @@ export function MiniReceiptPreview({ template }) {
     return (
       <div className="mini-receipt mini-receipt-modern-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "left", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
         <div style={{ textAlign: "center", marginBottom: "4px" }}>
-          <div style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a" }}>Lumina Boutique & Spa</div>
+          <div style={{ fontWeight: 800, fontSize: "11px", color: "#0f172a" }}>{tDb("Lumina Boutique & Spa")}</div>
           <div style={{ fontSize: "8px", color: "#94a3b8" }}>Koramangala, Bengaluru</div>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "8.5px", color: "#94a3b8", marginBottom: "4px" }}>
@@ -206,7 +206,7 @@ export function MiniReceiptPreview({ template }) {
     return (
       <div className="mini-receipt mini-receipt-elite-exact" style={{ background: "#ffffff", padding: "10px 14px", borderRadius: "10px", width: "210px", margin: "0 auto", boxSizing: "border-box", textAlign: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
         <div style={{ fontSize: "8px", fontWeight: 800, color: "#2563eb", letterSpacing: "1px", marginBottom: "1px" }}>TAX INVOICE</div>
-        <div style={{ fontWeight: 800, fontSize: "10px", color: "#0f172a" }}>Techno Corp</div>
+        <div style={{ fontWeight: 800, fontSize: "10px", color: "#0f172a" }}>{tDb("Techno Corp")}</div>
         <div style={{ fontSize: "8px", color: "#94a3b8", marginBottom: "4px" }}>Electronic City, Bengaluru</div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "8.5px", color: "#64748b", fontWeight: 600, borderTop: "1px solid #f1f5f9", paddingTop: "3px" }}>
           <span>INV: #TC-904</span>

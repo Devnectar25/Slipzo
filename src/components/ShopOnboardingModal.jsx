@@ -284,7 +284,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         detail: fullShop
       }))
 
-      success("🎉 Shop profile saved! Welcome to Slipzo.")
+      success("🎉 Shop profile saved! Welcome to Slipzen.")
       if (onComplete) {
         onComplete()
       } else {
@@ -367,7 +367,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
             <div className="onboarding-sparkle-pill">
               <Sparkles size={16} /> Quick Setup
             </div>
-            <h2>Welcome to Slipzo! Let's set up your Shop</h2>
+            <h2>Welcome to Slipzen! Let's set up your Shop</h2>
             <p>
               Your shop name, address, and contact number will appear at the top of every receipt you print.
             </p>

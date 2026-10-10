@@ -42,6 +42,7 @@
     "history": "इतिहास",
     "pricing": "मूल्य निर्धारण",
     "shopProfile": "दुकान प्रोफ़ाइल",
+    "guide": "उपयोगकर्ता गाइड",
     "contact": "संपर्क करें",
     "signOut": "साइन आउट",
     "plans": "प्लान्स",
@@ -50,7 +51,8 @@
   "sidebar": {
     "freePrints": "मुफ़्त प्रिंट",
     "subscription": "सदस्यता",
-    "printsLeft": "शेष"
+    "printsLeft": "शेष",
+    "help": "मदद"
   },
   "header": {
     "printsLeft": "प्रिंट शेष",
@@ -485,6 +487,8 @@
     "eyebrow": "आपकी रसीदें",
     "title": "बिल इतिहास।",
     "subtitle": "प्रत्येक सहेजी गई रसीद, खोजने और फिर से प्रिंट करने के लिए तैयार।",
+    "savedBills": "सहेजे गए बिल",
+    "printBills": "प्रिंट बिल",
     "savedReceipt": "सहेजी गई रसीद",
     "searchPlaceholder": "रसीद नंबर या ग्राहक से खोजें...",
     "filterPayment": "भुगतान का प्रकार",
@@ -544,7 +548,7 @@
     "privacyPolicy": "गोपनीयता नीति",
     "termsOfService": "सेवा की शर्तें",
     "tagline": "छोटे व्यवसायों के लिए आसान डिजिटल बिलिंग और रसीदें.",
-    "rights": "© 2026 slipzo.com. सर्वाधिकार सुरक्षित.",
+    "rights": "© 2026 Slipzen. सर्वाधिकार सुरक्षित.",
     "forBusinesses": "व्यवसायों के लिए",
     "changelog": "परिवर्तन सूची",
     "support": "सहायता",

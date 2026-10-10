@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { X, Check, Store, AlertCircle, Info } from "lucide-react"
 import { call, getCachedData, setCachedData, clearStoredMenuItems } from "../../lib/utils"
 import { useToast } from "./Toast"
@@ -52,7 +53,7 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]) // intentionally omit currentCategory — we only want to reset when the modal opens, not when the category prop changes mid-flow (e.g. during hotel_food save)
+  }, [isOpen])
 
   if (!isOpen && !showTableSetup) return null
 
@@ -128,35 +129,75 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
     )
   }
 
-  return (
-    <div className="menu-modal-backdrop" onClick={onClose} style={{ zIndex: 9999 }}>
+  const modalContent = (
+    <div 
+      className="category-modal-backdrop" 
+      onClick={onClose} 
+      style={{ 
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
+        background: "rgba(15, 23, 42, 0.65)",
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        zIndex: 999999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
+        boxSizing: "border-box",
+        animation: "fadeIn 0.15s ease",
+        overscrollBehavior: "contain"
+      }}
+    >
       <div 
-        className="menu-modal-card" 
+        className="menu-modal-card category-change-modal-card" 
         onClick={(e) => e.stopPropagation()} 
-        style={{ maxWidth: "560px", width: "95%" }}
+        style={{
+          maxWidth: "540px",
+          width: "95%",
+          maxHeight: "85vh",
+          display: "flex",
+          flexDirection: "column",
+          background: "#ffffff",
+          borderRadius: "20px",
+          boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.35)",
+          border: "1.5px solid #bae6fd",
+          overflow: "hidden",
+          animation: "scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)"
+        }}
       >
-        <div className="menu-modal-header">
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#f0f9ff", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Store size={18} />
+        <div className="menu-modal-header" style={{ padding: "1.15rem 1.25rem", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#ffffff", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "#f0f9ff", border: "1.5px solid #bae6fd", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Store size={20} />
             </div>
             <div>
-              <h3 className="menu-modal-title" style={{ fontSize: "1.1rem" }}>
+              <h3 className="menu-modal-title" style={{ fontSize: "1.1rem", fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.25 }}>
                 {t("profile.changeShopCategory", "Change Shop Category")}
               </h3>
-              <p style={{ fontSize: "0.78rem", color: "#64748b", margin: 0 }}>
+              <p style={{ fontSize: "0.78rem", color: "#64748b", margin: "2px 0 0 0", lineHeight: 1.3 }}>
                 {t("profile.changeShopCategoryDesc", "Select your new business type to switch your product catalog")}
               </p>
             </div>
           </div>
-          <button className="menu-modal-close-btn" onClick={onClose} disabled={isSaving}>
+          <button 
+            className="menu-modal-close-btn" 
+            onClick={onClose} 
+            disabled={isSaving}
+            style={{ background: "#f1f5f9", border: "none", width: "32px", height: "32px", borderRadius: "50%", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}
+          >
             <X size={18} />
           </button>
         </div>
 
-        <div className="menu-modal-body" style={{ padding: "1.25rem" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", background: "#fffbeb", border: "1px solid #fef3c7", padding: "0.65rem 0.85rem", borderRadius: "10px", marginBottom: "1rem", color: "#92400e", fontSize: "0.8rem", lineHeight: "1.35" }}>
-            <Info size={16} style={{ flexShrink: 0, marginTop: "2px", color: "#d97706" }} />
+        <div className="menu-modal-body" style={{ padding: "1.15rem 1.25rem", overflowY: "auto", flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.65rem", background: "#fffbeb", border: "1px solid #fef3c7", padding: "0.75rem 0.9rem", borderRadius: "12px", marginBottom: "1.1rem", color: "#92400e", fontSize: "0.82rem", lineHeight: "1.4" }}>
+            <Info size={17} style={{ flexShrink: 0, marginTop: "1px", color: "#d97706" }} />
             <span>
               {t("profile.categoryChangeWarning", "Switching category will clear your previous personal menu items so you can start fresh with products tailored to your new business.")}
             </span>
@@ -176,36 +217,38 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
                     display: "flex",
                     alignItems: "center",
                     gap: "0.85rem",
-                    padding: "0.85rem 1rem",
-                    borderRadius: "12px",
+                    padding: "0.9rem 1.1rem",
+                    borderRadius: "14px",
                     border: isSelected ? "2px solid #0284c7" : "1.5px solid #e2e8f0",
                     background: isSelected ? "#f0f9ff" : "#ffffff",
-                    boxShadow: isSelected ? "0 4px 12px rgba(2, 132, 199, 0.12)" : "none",
+                    boxShadow: isSelected ? "0 4px 12px rgba(2, 132, 199, 0.12)" : "0 1px 3px rgba(0,0,0,0.02)",
                     cursor: "pointer",
                     textAlign: "left",
                     transition: "all 0.15s ease",
-                    position: "relative"
+                    position: "relative",
+                    width: "100%",
+                    boxSizing: "border-box"
                   }}
                 >
-                  <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{cat.icon}</span>
+                  <span style={{ fontSize: "1.75rem", lineHeight: 1, flexShrink: 0 }}>{cat.icon}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                      <span style={{ fontSize: "0.92rem", fontWeight: "700", color: isSelected ? "#0369a1" : "#1e293b" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "0.95rem", fontWeight: "700", color: isSelected ? "#0369a1" : "#0f172a" }}>
                         {cat.label}
                       </span>
                       {isCurrent && (
-                        <span style={{ fontSize: "0.68rem", background: "#e2e8f0", color: "#475569", padding: "1px 6px", borderRadius: "10px", fontWeight: "700" }}>
-                          Current
+                        <span style={{ fontSize: "0.68rem", background: "#e0f2fe", color: "#0284c7", padding: "2px 8px", borderRadius: "10px", fontWeight: "700", whiteSpace: "nowrap" }}>
+                          Active Category
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: "0.74rem", color: "#64748b", marginTop: "2px" }}>
+                    <div style={{ fontSize: "0.78rem", color: "#64748b", marginTop: "3px", lineHeight: 1.4 }}>
                       {cat.desc}
                     </div>
                   </div>
                   {isSelected && (
-                    <div style={{ width: "22px", height: "22px", borderRadius: "50%", background: "#0284c7", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <Check size={13} strokeWidth={3} />
+                    <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#0284c7", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Check size={14} strokeWidth={3} />
                     </div>
                   )}
                 </button>
@@ -214,19 +257,29 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
           </div>
 
           {errorMsg && (
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#ef4444", fontSize: "0.84rem", marginTop: "1rem", background: "#fef2f2", padding: "0.6rem 0.8rem", borderRadius: "8px", border: "1px solid #fecaca" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#ef4444", fontSize: "0.84rem", marginTop: "1rem", background: "#fef2f2", padding: "0.65rem 0.85rem", borderRadius: "10px", border: "1px solid #fecaca" }}>
               <AlertCircle size={16} />
               <span>{errorMsg}</span>
             </div>
           )}
         </div>
 
-        <div className="menu-modal-footer" style={{ padding: "0.9rem 1.25rem", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
+        <div className="menu-modal-footer" style={{ padding: "0.9rem 1.25rem", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.75rem", flexShrink: 0 }}>
           <button
             type="button"
             className="menu-secondary-btn"
             onClick={onClose}
             disabled={isSaving}
+            style={{
+              padding: "0.65rem 1.25rem",
+              borderRadius: "10px",
+              fontSize: "0.86rem",
+              fontWeight: 600,
+              border: "1.5px solid #cbd5e1",
+              background: "#ffffff",
+              color: "#334155",
+              cursor: "pointer"
+            }}
           >
             {t("common.cancel", "Cancel")}
           </button>
@@ -235,6 +288,17 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
             className="menu-primary-btn"
             onClick={handleConfirmChange}
             disabled={isSaving}
+            style={{
+              padding: "0.65rem 1.35rem",
+              borderRadius: "10px",
+              fontSize: "0.86rem",
+              fontWeight: 700,
+              border: "none",
+              background: "#0284c7",
+              color: "#ffffff",
+              cursor: "pointer",
+              boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)"
+            }}
           >
             {isSaving ? t("common.saving", "Saving...") : t("profile.confirmChange", "Switch Category")}
           </button>
@@ -242,4 +306,10 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
       </div>
     </div>
   )
+
+  if (typeof document !== "undefined") {
+    return createPortal(modalContent, document.body)
+  }
+
+  return modalContent
 }

@@ -33,7 +33,7 @@ import {
   Image as ImageIcon,
   Barcode as BarcodeIcon
 } from "lucide-react"
-import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, DEFAULT_SHOP_MENU_ITEMS } from "../lib/utils"
+import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { Spinner } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
@@ -272,6 +272,26 @@ export function Menu({ setView, requireAuth, user }) {
   const [customFormError, setCustomFormError] = useState("")
   const customFileInputRef = useRef(null)
 
+  useEffect(() => {
+    const handleBack = (e) => {
+      if (isCustomModalOpen || selectedCatalogItem || editingItem || barcodeModalItem) {
+        e.preventDefault()
+        setIsCustomModalOpen(false)
+        setSelectedCatalogItem(null)
+        setEditingItem(null)
+        setBarcodeModalItem(null)
+        return
+      }
+      if (currentView === "add_items") {
+        e.preventDefault()
+        setCurrentView("my_menu")
+        return
+      }
+    }
+    window.addEventListener("slipzo_handle_back_button", handleBack)
+    return () => window.removeEventListener("slipzo_handle_back_button", handleBack)
+  }, [isCustomModalOpen, selectedCatalogItem, editingItem, barcodeModalItem, currentView])
+
   const handleOpenCustomModal = () => {
     setCustomName("")
     setCustomCat("General")
@@ -492,33 +512,56 @@ export function Menu({ setView, requireAuth, user }) {
   const loadUserMenu = async (showSpinner = false) => {
     try {
       if (showSpinner) setLoading(true)
-      const data = await call("/menu").catch(() => null)
-      const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment")
-      const filterForCloth = (arr) => {
-        if (!Array.isArray(arr) || !isCloth) return Array.isArray(arr) ? arr : []
-        return arr.filter(it => {
-          const itCat = (it.category || "").toLowerCase()
-          return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
-        })
+      const cachedShop = getCachedData("/shop")
+      const currentBType = (cachedShop?.business_type || selectedBusinessType || "small_business").toLowerCase()
+      const data = await call(`/menu?business_type=${encodeURIComponent(currentBType)}`).catch(() => null)
+
+      const isCloth = currentBType.includes("clothing") || currentBType.includes("garment")
+      const isKirana = currentBType.includes("kirana") || currentBType.includes("grocery")
+
+      const filterForCategory = (arr) => {
+        if (!Array.isArray(arr)) return []
+        if (isCloth) {
+          return arr.filter(it => {
+            const itCat = (it.category || "").toLowerCase()
+            return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
+          })
+        }
+        if (isKirana) {
+          return arr.filter(it => {
+            const name = (it.name || "").toLowerCase()
+            const itCat = (it.category || "").toLowerCase()
+            const isCafeOnly = (itCat.includes("bakery") || itCat.includes("snack")) && (name.includes("croissant") || name.includes("cappuccino") || name.includes("club sandwich") || name.includes("muffin"))
+            return !isCafeOnly
+          })
+        }
+        return arr
       }
+
       if (Array.isArray(data)) {
-        const cleanData = filterForCloth(data)
+        const cleanData = filterForCategory(data)
         setItems(cleanData)
         saveStoredMenuItems(cleanData, user)
       } else {
         const local = getStoredMenuItems(user)
-        const cleanLocal = filterForCloth(local)
-        if (cleanLocal.length > 0) setItems(cleanLocal)
+        const cleanLocal = filterForCategory(local)
+        setItems(cleanLocal)
       }
     } catch (err) {
       console.warn("Failed to load user menu, using offline storage:", err)
-      const isCloth = (selectedBusinessType || "").toLowerCase().includes("clothing") || (selectedBusinessType || "").toLowerCase().includes("garment")
+      const cachedShop = getCachedData("/shop")
+      const currentBType = (cachedShop?.business_type || selectedBusinessType || "small_business").toLowerCase()
+      const isCloth = currentBType.includes("clothing") || currentBType.includes("garment")
+      const isKirana = currentBType.includes("kirana") || currentBType.includes("grocery")
       const local = getStoredMenuItems(user)
-      const cleanLocal = isCloth ? local.filter(it => {
+      const cleanLocal = local.filter(it => {
         const itCat = (it.category || "").toLowerCase()
-        return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
-      }) : local
-      if (cleanLocal.length > 0) setItems(cleanLocal)
+        const name = (it.name || "").toLowerCase()
+        if (isCloth) return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
+        if (isKirana) return !((itCat.includes("bakery") || itCat.includes("snack")) && (name.includes("croissant") || name.includes("cappuccino") || name.includes("club sandwich") || name.includes("muffin")))
+        return true
+      })
+      setItems(cleanLocal)
     } finally {
       if (showSpinner) setLoading(false)
     }
@@ -528,15 +571,19 @@ export function Menu({ setView, requireAuth, user }) {
   const loadMasterCatalog = async (bType = selectedBusinessType) => {
     try {
       setCatalogLoading(true)
-      const data = await call("/menu/catalog").catch(() => null)
+      const cachedShop = getCachedData("/shop")
+      const currentBType = (bType || cachedShop?.business_type || "small_business").toLowerCase()
+      const data = await call(`/menu/catalog?business_type=${encodeURIComponent(currentBType)}`).catch(() => null)
       if (Array.isArray(data) && data.length > 0) {
         setCatalogItems(data)
       } else {
-        setCatalogItems(FALLBACK_MASTER_CATALOG)
+        setCatalogItems(getFallbackCatalogForCategory(currentBType))
       }
     } catch (err) {
       console.warn("Could not load master catalog from API, using fallback:", err)
-      setCatalogItems(FALLBACK_MASTER_CATALOG)
+      const cachedShop = getCachedData("/shop")
+      const currentBType = (bType || cachedShop?.business_type || "small_business").toLowerCase()
+      setCatalogItems(getFallbackCatalogForCategory(currentBType))
     } finally {
       setCatalogLoading(false)
     }
@@ -984,11 +1031,11 @@ export function Menu({ setView, requireAuth, user }) {
                 type="button"
                 className="mob-menu-btn mob-menu-custom-btn"
                 onClick={handleOpenCustomModal}
-                title={t("menu.createCustom", "Create Custom Item")}
+                title={tDb("Create Custom Item")}
               >
                 <Sparkles size={14} />
-                <span className="mob-btn-text-full">{t("menu.customItem", "Custom Item")}</span>
-                <span className="mob-btn-text-short">{t("menu.custom", "Custom")}</span>
+                <span className="mob-btn-text-full">{tDb("Custom Item")}</span>
+                <span className="mob-btn-text-short">{tDb("Custom Item")}</span>
               </button>
 
               <button
@@ -1359,20 +1406,22 @@ export function Menu({ setView, requireAuth, user }) {
                   <h3 className="menu-section-title">
                     Search Results
                     <span className="menu-items-count-badge">
-                      {filteredCatalogItems.length} found
+                      {formatNum(filteredCatalogItems.length)} {t("menu.found", "found")}
                     </span>
                   </h3>
-                  <button
-                    className="menu-secondary-btn"
-                    style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
-                    onClick={() => setSearch("")}
-                  >
-                    Clear Search
-                  </button>
+                  {catalogSearch && (
+                    <button
+                      className="menu-secondary-btn"
+                      style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                      onClick={() => setCatalogSearch("")}
+                    >
+                      Clear Search
+                    </button>
+                  )}
                 </div>
 
                 <div className="menu-cards-grid">
-                  {filteredCatalogItems.map((catItem) => {
+                  {paginatedCatalogItems.map((catItem) => {
                     const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
                     const isFav = favorites?.has?.(catItem.id)
                     return (
@@ -1395,7 +1444,7 @@ export function Menu({ setView, requireAuth, user }) {
                               {getItemPlaceholderIcon(catItem.category, 26)}
                             </div>
                           )}
-                          <span className="menu-card-overlay-cat">{catItem.category || "General"}</span>
+                          <span className="menu-card-overlay-cat">{tDb(catItem.category || "General")}</span>
                           {catItem.barcode && (
                             <span className="menu-card-barcode-badge">
                               <BarcodeIcon size={10} /> {catItem.barcode}
@@ -1405,7 +1454,7 @@ export function Menu({ setView, requireAuth, user }) {
 
                         <div className="menu-card-details">
                           <h4 className="menu-card-item-name" title={catItem.name}>
-                            {catItem.name}
+                            {tDb(catItem.name)}
                           </h4>
                           <div className="menu-card-price-row">
                             <span className="catalog-card-base-price">{money(catItem.price)}</span>
@@ -1431,6 +1480,52 @@ export function Menu({ setView, requireAuth, user }) {
                     )
                   })}
                 </div>
+
+                {totalCatalogPages > 1 && (
+                  <div className="menu-pagination-bar" style={{ marginTop: "1rem" }}>
+                    <div className="menu-pagination-info">
+                      Showing <strong>{formatNum((catalogPage - 1) * catalogPageSize + 1)}</strong>–<strong>{formatNum(Math.min(catalogPage * catalogPageSize, filteredCatalogItems.length))}</strong> of <strong>{formatNum(filteredCatalogItems.length)}</strong> items
+                    </div>
+                    <div className="menu-pagination-controls">
+                      <button
+                        type="button"
+                        className="menu-pagination-btn"
+                        disabled={catalogPage <= 1}
+                        onClick={() => setCatalogPage((p) => Math.max(1, p - 1))}
+                        title="Previous page"
+                      >
+                        <ChevronLeft size={16} /> Prev
+                      </button>
+                      {Array.from({ length: totalCatalogPages }, (_, i) => i + 1).map((pg) => {
+                        if (pg === 1 || pg === totalCatalogPages || Math.abs(pg - catalogPage) <= 1) {
+                          return (
+                            <button
+                              key={pg}
+                              type="button"
+                              className={`menu-pagination-page-btn ${pg === catalogPage ? "active" : ""}`}
+                              onClick={() => setCatalogPage(pg)}
+                            >
+                              {formatNum(pg)}
+                            </button>
+                          )
+                        }
+                        if ((pg === 2 && catalogPage > 3) || (pg === totalCatalogPages - 1 && catalogPage < totalCatalogPages - 2)) {
+                          return <span key={pg} className="menu-pagination-ellipsis">...</span>
+                        }
+                        return null
+                      })}
+                      <button
+                        type="button"
+                        className="menu-pagination-btn"
+                        disabled={catalogPage >= totalCatalogPages}
+                        onClick={() => setCatalogPage((p) => Math.min(totalCatalogPages, p + 1))}
+                        title="Next page"
+                      >
+                        Next <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -1447,7 +1542,7 @@ export function Menu({ setView, requireAuth, user }) {
             <div className="menu-header-bar">
               <div className="menu-header-titles">
                 <span className="menu-eyebrow">
-                  <Utensils size={13} /> {t("menu.eyebrow", "Slipzo Menu")}
+                  <Utensils size={13} /> {t("menu.eyebrow", "Slipzen Menu")}
                 </span>
                 <h1 className="menu-main-title">{t("menu.title", "Menu")}</h1>
                 <p className="menu-sub-title">
@@ -1472,7 +1567,7 @@ export function Menu({ setView, requireAuth, user }) {
                   onClick={handleOpenCustomModal}
                   style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
                 >
-                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{t("menu.customItem", "Custom Item")}</span>
+                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{tDb("Custom Item")}</span>
                 </button>
 
                 <button
@@ -1753,7 +1848,6 @@ export function Menu({ setView, requireAuth, user }) {
             )}
           </>
         )}
-      </div>
 
       {/* ====================================================================
           STATE B: ADD ITEMS FLOW (Catalog Search & Selection)
@@ -1781,7 +1875,7 @@ export function Menu({ setView, requireAuth, user }) {
               onClick={handleOpenCustomModal}
               style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", fontSize: "0.85rem" }}
             >
-              <Plus size={16} /> <span>{t("menu.createCustom", "Create Custom Item")}</span>
+              <Plus size={16} /> <span>{tDb("Create Custom Item")}</span>
             </button>
           </div>
 
@@ -2001,6 +2095,7 @@ export function Menu({ setView, requireAuth, user }) {
           )}
         </>
       )}
+      </div>
 
       {/* ====================================================================
           SHARED MODAL: ADD TO MY MENU CONFIRMATION
@@ -2305,7 +2400,7 @@ export function Menu({ setView, requireAuth, user }) {
         <div className="menu-modal-backdrop" onClick={handleCloseCustomModal}>
           <div className="menu-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "440px" }}>
             <div className="menu-modal-header">
-              <h3 className="menu-modal-title">{t("menu.createCustomTitle", "Create Custom Product")}</h3>
+              <h3 className="menu-modal-title">{tDb("Create Custom Product")}</h3>
               <button className="menu-modal-close-btn" onClick={handleCloseCustomModal}>
                 <X size={18} />
               </button>
@@ -2318,7 +2413,7 @@ export function Menu({ setView, requireAuth, user }) {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
                     <label className="menu-modal-label" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.76rem" }}>
                       <ImageIcon size={13} style={{ color: "#0284c7" }} />
-                      <span>{t("menu.productImage", "Product Image (Optional)")}</span>
+                      <span>{tDb("Product Image (Optional)")}</span>
                     </label>
                     <div style={{ display: "flex", gap: "2px", background: "#f1f5f9", padding: "2px", borderRadius: "5px" }}>
                       <button
@@ -2336,7 +2431,7 @@ export function Menu({ setView, requireAuth, user }) {
                           boxShadow: customImageMode === "upload" ? "0 1px 2px rgba(0,0,0,0.08)" : "none"
                         }}
                       >
-                        Upload
+                        {tDb("Upload")}
                       </button>
                       <button
                         type="button"
@@ -2353,7 +2448,7 @@ export function Menu({ setView, requireAuth, user }) {
                           boxShadow: customImageMode === "url" ? "0 1px 2px rgba(0,0,0,0.08)" : "none"
                         }}
                       >
-                        Link
+                        {tDb("Link")}
                       </button>
                     </div>
                   </div>
@@ -2398,10 +2493,10 @@ export function Menu({ setView, requireAuth, user }) {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: "0.74rem", fontWeight: "700", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {customName ? `${customName} Photo` : "Photo Ready"}
+                              {customName ? `${customName} ${tDb("Photo")}` : tDb("Photo Ready")}
                             </div>
                             <div style={{ fontSize: "0.66rem", color: "#16a34a", fontWeight: "600" }}>
-                              ✓ Attached
+                              ✓ {tDb("Attached")}
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: "0.3rem" }}>
@@ -2411,14 +2506,14 @@ export function Menu({ setView, requireAuth, user }) {
                               className="menu-secondary-btn"
                               style={{ padding: "0.15rem 0.45rem", fontSize: "0.68rem", height: "24px" }}
                             >
-                              Change
+                              {tDb("Change")}
                             </button>
                             <button
                               type="button"
                               onClick={handleRemoveCustomImage}
                               className="menu-delete-btn"
                               style={{ padding: "0.15rem 0.35rem", height: "24px" }}
-                              title="Remove image"
+                              title={tDb("Remove image")}
                             >
                               <Trash2 size={12} />
                             </button>
@@ -2449,10 +2544,10 @@ export function Menu({ setView, requireAuth, user }) {
                           </div>
                           <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem" }}>
                             <span style={{ fontSize: "0.76rem", fontWeight: "700", color: "#0f172a" }}>
-                              Click to upload product image
+                              {tDb("Click to upload product image")}
                             </span>
                             <span style={{ fontSize: "0.65rem", color: "#64748b" }}>
-                              (PNG, JPG, WebP max 5MB)
+                              {tDb("(PNG, JPG, WebP max 5MB)")}
                             </span>
                           </div>
                         </div>
@@ -2500,11 +2595,11 @@ export function Menu({ setView, requireAuth, user }) {
 
                 {/* 2. Product Name */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
-                  <label className="menu-modal-label">{t("menu.productName", "Product Name *")}</label>
+                  <label className="menu-modal-label">{tDb("Product Name *")}</label>
                   <input
                     type="text"
                     className="menu-modal-input"
-                    placeholder="e.g. Masala Dosa, Cotton Shirt, Special Chai"
+                    placeholder={tDb("e.g. Masala Dosa, Cotton Shirt, Special Chai")}
                     value={customName}
                     onChange={(e) => handleCustomNameChange(e.target.value)}
                     required
@@ -2515,7 +2610,7 @@ export function Menu({ setView, requireAuth, user }) {
 
                 {/* 3. Category */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
-                  <label className="menu-modal-label">{t("menu.category", "Category")}</label>
+                  <label className="menu-modal-label">{tDb("Category")}</label>
                   <select
                     className="menu-modal-input"
                     value={customCat}
@@ -2528,17 +2623,17 @@ export function Menu({ setView, requireAuth, user }) {
                       cursor: "pointer"
                     }}
                   >
-                    <option value="Small Business / Cafe & Tea">Small Business / Cafe & Tea</option>
-                    <option value="Kirana / Grocery Shop">Kirana / Grocery Shop</option>
-                    <option value="Cloth & Garments Shop">Cloth & Garments Shop</option>
-                    <option value="Hotel or Food Restaurant">Hotel or Food Restaurant</option>
-                    <option value="General">General</option>
+                    <option value="Small Business / Cafe & Tea">{tDb("Small Business / Cafe & Tea")}</option>
+                    <option value="Kirana / Grocery Shop">{tDb("Kirana / Grocery Shop")}</option>
+                    <option value="Cloth & Garments Shop">{tDb("Cloth & Garments Shop")}</option>
+                    <option value="Hotel or Food Restaurant">{tDb("Hotel or Food Restaurant")}</option>
+                    <option value="General">{tDb("General")}</option>
                   </select>
                 </div>
 
                 {/* 4. Selling Price */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
-                  <label className="menu-modal-label">{t("menu.sellingPrice", "Selling Price (₹) *")}</label>
+                  <label className="menu-modal-label">{tDb("Selling Price (₹) *")}</label>
                   <div className="menu-modal-price-input-box">
                     <span className="menu-modal-currency-symbol" style={{ left: "9px", fontSize: "0.9rem" }}>₹</span>
                     <input
@@ -2557,11 +2652,11 @@ export function Menu({ setView, requireAuth, user }) {
 
                 {/* 5. Barcode / SKU */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
-                  <label className="menu-modal-label">{t("menu.customBarcode", "Barcode / SKU (Optional)")}</label>
+                  <label className="menu-modal-label">{tDb("Barcode / SKU (Optional)")}</label>
                   <input
                     type="text"
                     className="menu-modal-input"
-                    placeholder="Leave blank to auto-generate"
+                    placeholder={tDb("Leave blank to auto-generate")}
                     value={customBarcode}
                     onChange={(e) => setCustomBarcode(e.target.value)}
                     style={{ height: "35px", fontSize: "0.85rem" }}
@@ -2570,7 +2665,7 @@ export function Menu({ setView, requireAuth, user }) {
 
                 {/* 6. Barcode Status */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
-                  <label className="menu-modal-label">{t("menu.barcodeStatus", "Barcode Status")}</label>
+                  <label className="menu-modal-label">{tDb("Barcode Status")}</label>
                   <div style={{ display: "flex", gap: "0.4rem", height: "34px" }}>
                     <button
                       type="button"
@@ -2591,7 +2686,7 @@ export function Menu({ setView, requireAuth, user }) {
                         gap: "0.3rem"
                       }}
                     >
-                      <Check size={13} /> Active (Scan Ready)
+                      <Check size={13} /> {tDb("Active (Scan Ready)")}
                     </button>
                     <button
                       type="button"
@@ -2612,14 +2707,14 @@ export function Menu({ setView, requireAuth, user }) {
                         gap: "0.3rem"
                       }}
                     >
-                      <X size={13} /> Deactive (Manual Only)
+                      <X size={13} /> {tDb("Deactive (Manual Only)")}
                     </button>
                   </div>
                 </div>
 
                 {customFormError && (
                   <div style={{ color: "#ef4444", fontSize: "0.76rem", marginTop: "0.15rem" }}>
-                    {customFormError}
+                    {tDb(customFormError)}
                   </div>
                 )}
               </div>
@@ -2632,7 +2727,7 @@ export function Menu({ setView, requireAuth, user }) {
                   disabled={isCreatingCustom}
                   style={{ height: "35px", padding: "0 0.9rem", fontSize: "0.82rem" }}
                 >
-                  {t("common.cancel", "Cancel")}
+                  {tDb("Cancel")}
                 </button>
                 <button
                   type="submit"
@@ -2640,7 +2735,7 @@ export function Menu({ setView, requireAuth, user }) {
                   disabled={isCreatingCustom}
                   style={{ height: "35px", padding: "0 1rem", fontSize: "0.82rem" }}
                 >
-                  {isCreatingCustom ? t("common.creating", "Creating...") : t("menu.createItem", "Create Product")}
+                  {isCreatingCustom ? tDb("Creating...") : tDb("Create Product")}
                 </button>
               </div>
             </form>

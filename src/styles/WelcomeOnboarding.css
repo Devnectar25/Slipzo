@@ -1,0 +1,784 @@
+/* ==========================================================================
+   SLIPZEN WELCOME ONBOARDING SCREEN
+   Spacious, modern, and beautiful UI with showcase frame and rich visuals
+   ========================================================================== */
+
+.welcome-screen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #0f172a;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.welcome-container {
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: env(safe-area-inset-top, 20px) 24px max(env(safe-area-inset-bottom, 28px), 36px);
+  position: relative;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Top Story Progress Bars & Brand Logo
+   -------------------------------------------------------------------------- */
+.welcome-top-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  padding-top: 4px;
+  z-index: 10;
+}
+
+.welcome-progress-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.welcome-progress-segment {
+  flex: 1;
+  height: 4.5px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.welcome-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: #0f172a;
+  border-radius: 999px;
+  width: 0%;
+  transition: width 0.05s linear;
+}
+
+.welcome-progress-segment.completed .welcome-progress-fill {
+  width: 100% !important;
+}
+
+/* Top brand logo */
+.welcome-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.welcome-brand-logo {
+  height: 42px;
+  width: auto;
+  max-width: 175px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+/* --------------------------------------------------------------------------
+   Center Slide Stage
+   -------------------------------------------------------------------------- */
+.welcome-slider-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  padding: 10px 0;
+}
+
+.welcome-slide {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin: auto 0;
+  animation: welcomeFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes welcomeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Elevated Showcase Stage Frame
+   -------------------------------------------------------------------------- */
+.welcome-showcase-frame {
+  width: 100%;
+  max-width: 370px;
+  min-height: 240px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 22px;
+  box-shadow: 0 14px 34px -10px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  margin-bottom: 22px;
+  box-sizing: border-box;
+}
+
+/* Invisible tap zones for navigating slides */
+.welcome-tap-prev,
+.welcome-tap-next {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 25%;
+  z-index: 25;
+  cursor: pointer;
+}
+
+.welcome-tap-prev { left: 0; }
+.welcome-tap-next { right: 0; }
+
+/* --------------------------------------------------------------------------
+   SLIDE 1: Thermal Bill Receipt & Instant Print
+   -------------------------------------------------------------------------- */
+.showcase-receipt-card {
+  width: 100%;
+  max-width: 280px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.02);
+  padding: 14px 16px 14px;
+  position: relative;
+  text-align: left;
+}
+
+.receipt-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed #cbd5e1;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.receipt-brand-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+}
+
+.receipt-inv-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+}
+
+.receipt-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.receipt-item-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.receipt-item-qty {
+  color: #64748b;
+  margin-right: 4px;
+  font-weight: 700;
+}
+
+.receipt-totals-box {
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 7px;
+}
+
+.receipt-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.receipt-total-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.receipt-total-value {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.receipt-float-tag-left {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+.receipt-float-tag-bottom {
+  position: absolute;
+  bottom: -10px;
+  left: 10px;
+  background: #059669;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 3.5px 9px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   SLIDE 2: Barcode Scanner & Real-Time Stock
+   -------------------------------------------------------------------------- */
+.showcase-inventory-grid {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.barcode-scanner-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+}
+
+.barcode-laser-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444, 0 0 4px #ef4444;
+  animation: laserScan 2s ease-in-out infinite alternate;
+}
+
+@keyframes laserScan {
+  0% { left: 10%; }
+  100% { left: 90%; }
+}
+
+.barcode-bars-svg {
+  height: 22px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  margin-bottom: 5px;
+}
+
+.barcode-detected-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.barcode-item-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.barcode-item-price {
+  font-weight: 800;
+  color: #059669;
+}
+
+.inventory-items-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stock-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  text-align: left;
+}
+
+.stock-card-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.stock-card-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.stock-card-badge.green {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.stock-card-badge.amber {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+/* --------------------------------------------------------------------------
+   SLIDE 3: Restaurant Floor & Kitchen Order Tickets (KOT)
+   -------------------------------------------------------------------------- */
+.showcase-restaurant-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.restaurant-tables-matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.table-matrix-chip {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 4px;
+  text-align: center;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.03);
+}
+
+.table-matrix-chip.occupied {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.table-matrix-chip.billing {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.table-chip-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.table-chip-status {
+  font-size: 9px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.table-matrix-chip.occupied .table-chip-status { color: #059669; }
+.table-matrix-chip.billing .table-chip-status { color: #d97706; }
+.table-matrix-chip.available .table-chip-status { color: #94a3b8; }
+
+.kot-ticket-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+  text-align: left;
+}
+
+.kot-header-row {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px dashed #cbd5e1;
+  padding-bottom: 5px;
+  margin-bottom: 6px;
+}
+
+.kot-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+  color: #334155;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+
+.kot-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   SLIDE 4: Business Analytics & Revenue
+   -------------------------------------------------------------------------- */
+.showcase-analytics-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.analytics-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.analytics-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.analytics-big-number {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.4px;
+}
+
+.analytics-growth-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2.5px 7px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.analytics-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.analytics-split-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+
+.analytics-split-box.upi { border-left: 3px solid #6366f1; }
+.analytics-split-box.cash { border-left: 3px solid #10b981; }
+
+.analytics-split-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.analytics-split-value {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-top: 1px;
+}
+
+.analytics-chart-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 30px;
+  padding-top: 2px;
+}
+
+.analytics-chart-bar {
+  flex: 1;
+  background: #e2e8f0;
+  border-radius: 3px 3px 0 0;
+}
+
+.analytics-chart-bar.highlight {
+  background: #059669;
+}
+
+/* --------------------------------------------------------------------------
+   SLIDE 5: Multi-Device Ecosystem (Fixed No-Overlap Grid)
+   -------------------------------------------------------------------------- */
+.showcase-devices-grid {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.devices-top-row,
+.devices-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+.device-card-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.device-card-item.offline-badge {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #059669;
+}
+
+.devices-center-bridge {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Typography Section (Pill Chip, Headline, Description)
+   -------------------------------------------------------------------------- */
+.welcome-copy-block {
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.welcome-category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.welcome-category-pill.emerald {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.welcome-category-pill.amber {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.welcome-category-pill.rose {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+}
+
+.welcome-category-pill.indigo {
+  background: #eef2ff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
+}
+
+.welcome-headline {
+  font-size: 24px;
+  line-height: 1.24;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.4px;
+}
+
+.welcome-description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0;
+  max-width: 350px;
+  font-weight: 400;
+}
+
+/* --------------------------------------------------------------------------
+   Bottom Action Buttons
+   -------------------------------------------------------------------------- */
+.welcome-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding-top: 10px;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  z-index: 10;
+}
+
+.welcome-btn {
+  flex: 1;
+  height: 52px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.welcome-btn:active {
+  transform: scale(0.975);
+}
+
+.welcome-btn-login {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.28);
+}
+
+.welcome-btn-login:hover {
+  background: #1e293b;
+  transform: translateY(-1.5px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.35);
+}
+
+.welcome-btn-signup {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.welcome-btn-signup:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1.5px);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 380px) {
+  .welcome-container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .welcome-headline {
+    font-size: 21px;
+  }
+
+  .welcome-description {
+    font-size: 13px;
+  }
+
+  .welcome-btn {
+    height: 48px;
+    font-size: 13px;
+  }
+
+  .welcome-showcase-frame {
+    min-height: 220px;
+    padding: 12px;
+  }
+}

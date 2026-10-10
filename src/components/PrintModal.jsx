@@ -90,33 +90,39 @@ export function PrintModal({
 
   useEffect(() => {
     if (isOpen && elementId) {
-      const el = document.getElementById(elementId)
-      if (el) {
-        const clone = el.cloneNode(true)
-        if (!showShopDetails) {
-          const addr = clone.querySelector(".receipt-shop-address")
-          const phone = clone.querySelectorAll(".receipt-shop-phone")
-          if (addr) addr.remove()
-          phone.forEach(p => p.remove())
+      const captureHTML = () => {
+        const el = document.getElementById(elementId) || document.querySelector(".receipt-preview-content")
+        if (el) {
+          const clone = el.cloneNode(true)
+          if (!showShopDetails) {
+            const addr = clone.querySelector(".receipt-shop-address")
+            const phone = clone.querySelectorAll(".receipt-shop-phone")
+            if (addr) addr.remove()
+            phone.forEach(p => p.remove())
+          }
+          if (!showCustomer) {
+            const cust = clone.querySelector(".receipt-customer-line")
+            if (cust) cust.remove()
+          }
+          if (!showTax) {
+            clone.querySelectorAll(".receipt-total-row").forEach(row => {
+              if (row.textContent.toLowerCase().includes("tax") || row.textContent.toLowerCase().includes("gst")) {
+                row.remove()
+              }
+            })
+          }
+          if (!showFooter) {
+            const footer = clone.querySelector(".receipt-footer")
+            if (footer) footer.remove()
+          }
+          clone.removeAttribute("id")
+          setRealReceiptHTML(clone.innerHTML)
         }
-        if (!showCustomer) {
-          const cust = clone.querySelector(".receipt-customer-line")
-          if (cust) cust.remove()
-        }
-        if (!showTax) {
-          clone.querySelectorAll(".receipt-total-row").forEach(row => {
-            if (row.textContent.toLowerCase().includes("tax") || row.textContent.toLowerCase().includes("gst")) {
-              row.remove()
-            }
-          })
-        }
-        if (!showFooter) {
-          const footer = clone.querySelector(".receipt-footer")
-          if (footer) footer.remove()
-        }
-        clone.removeAttribute("id")
-        setRealReceiptHTML(clone.innerHTML)
       }
+
+      captureHTML()
+      const timer = setTimeout(captureHTML, 150)
+      return () => clearTimeout(timer)
     }
   }, [isOpen, elementId, showShopDetails, showCustomer, showTax, showFooter])
 
@@ -366,7 +372,7 @@ export function PrintModal({
     <div className="modal-backdrop print-modal-backdrop fade-in" onClick={onClose}>
       <div className="modal-card print-modal-card print-modal-card--stacked" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header (Print Now & X buttons removed) */}
-        <div className="print-modal-header">
+        <div className="print-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="print-header-left">
             <div className="print-icon-pill">
               <Printer size={18} />
@@ -376,6 +382,27 @@ export function PrintModal({
               <p>Configure paper width, text size, and thermal density</p>
             </div>
           </div>
+          <button 
+            type="button" 
+            className="modal-close-btn" 
+            onClick={onClose} 
+            aria-label="Close setup modal" 
+            style={{ 
+              background: '#f1f5f9', 
+              border: 'none', 
+              borderRadius: '50%', 
+              width: '34px', 
+              height: '34px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              cursor: 'pointer',
+              color: '#64748b',
+              flexShrink: 0
+            }}
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Modal Body: Stacked layout — Controls on top, Preview below */}

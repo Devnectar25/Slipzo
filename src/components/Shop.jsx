@@ -19,18 +19,24 @@ import {
   Utensils,
   ArrowRight,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Users,
+  UserPlus,
+  Mail,
+  Printer,
+  ShieldCheck
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
 import { call, getCachedData, setCachedData, getActivePlanDetails, findTemplateMatch, isHotelRestaurant } from "../lib/utils"
-import { ButtonLoader, Skeleton } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { ChangeCategoryModal, BUSINESS_CATEGORIES } from "./common/ChangeCategoryModal"
 import { ManageTablesModal } from "./tables/ManageTablesModal"
+import { ButtonLoader } from "./common/Skeleton"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -51,6 +57,7 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
 
 export function Shop({ user, setView } = {}) {
   const { t, i18n } = useTranslation()
+  const { tDb } = useDbTranslation()
   const currentLang = i18n.language || "en"
 
   const userKey = user?.email || user?.id
@@ -75,6 +82,14 @@ export function Shop({ user, setView } = {}) {
   const [templates, setTemplates] = useState(() => BUILTIN_TEMPLATES)
   const [shop, setShop] = useState(() => {
     const data = getCachedData("/shop")
+    let parsedStaff = []
+    if (data?.staff_emails) {
+      try {
+        parsedStaff = typeof data.staff_emails === "string" ? JSON.parse(data.staff_emails) : data.staff_emails
+      } catch (e) {
+        parsedStaff = String(data.staff_emails).split(",").map(s => s.trim()).filter(Boolean)
+      }
+    }
     return {
       name: data?.name || "",
       address: data?.address || "",
@@ -87,9 +102,13 @@ export function Shop({ user, setView } = {}) {
       show_tax: data?.show_tax !== undefined ? data.show_tax : 0,
       tax_rate: data?.tax_rate !== undefined ? data.tax_rate : 0,
       logo_url: data?.logo_url || "",
-      business_type: data?.business_type || "small_business"
+      business_type: data?.business_type || "small_business",
+      staff_emails: Array.isArray(parsedStaff) ? parsedStaff : []
     }
   })
+
+  const [newWorkerEmail, setNewWorkerEmail] = useState("")
+  const [workerEmailError, setWorkerEmailError] = useState("")
 
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
@@ -100,6 +119,36 @@ export function Shop({ user, setView } = {}) {
   const [isManageTablesModalOpen, setIsManageTablesModalOpen] = useState(false)
   const [isRemoveLogoModalOpen, setIsRemoveLogoModalOpen] = useState(false)
   const edited = useRef(false)
+
+  const handleAddWorkerEmail = () => {
+    const email = newWorkerEmail.trim().toLowerCase()
+    if (!email) {
+      setWorkerEmailError(t("profile.emailRequired", "Please enter a worker email address."))
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setWorkerEmailError(t("profile.emailInvalid", "Please enter a valid email address."))
+      return
+    }
+    const currentStaff = Array.isArray(shop.staff_emails) ? shop.staff_emails : []
+    if (currentStaff.includes(email)) {
+      setWorkerEmailError(t("profile.emailExists", "This email has already been added."))
+      return
+    }
+    const updatedStaff = [...currentStaff, email]
+    handleChange("staff_emails", updatedStaff)
+    setNewWorkerEmail("")
+    setWorkerEmailError("")
+    if (success) success(t("profile.workerEmailAdded", "Worker email added! Click 'Save Settings' to apply."))
+  }
+
+  const handleRemoveWorkerEmail = (emailToRemove) => {
+    const currentStaff = Array.isArray(shop.staff_emails) ? shop.staff_emails : []
+    const updatedStaff = currentStaff.filter(email => email !== emailToRemove)
+    handleChange("staff_emails", updatedStaff)
+    if (success) success(t("profile.workerEmailRemoved", "Worker email revoked."))
+  }
 
   const handleConfirmRemoveLogo = () => {
     setIsRemoveLogoModalOpen(false)
@@ -210,6 +259,15 @@ export function Shop({ user, setView } = {}) {
           const matchedDefault = findTemplateMatch(tplList, data.default_template_id)
           const resolvedDefaultTplId = matchedDefault ? matchedDefault.id : (data.default_template_id || tplList[0]?.id || "")
 
+          let parsedStaff = []
+          if (data.staff_emails) {
+            try {
+              parsedStaff = typeof data.staff_emails === "string" ? JSON.parse(data.staff_emails) : data.staff_emails
+            } catch (e) {
+              parsedStaff = String(data.staff_emails).split(",").map(s => s.trim()).filter(Boolean)
+            }
+          }
+
           const loadedShop = {
             name: data.name || "",
             address: data.address || "",
@@ -222,7 +280,8 @@ export function Shop({ user, setView } = {}) {
             show_tax: data.show_tax !== undefined ? data.show_tax : 0,
             tax_rate: data.tax_rate !== undefined ? data.tax_rate : 0,
             logo_url: data.logo_url || "",
-            business_type: data.business_type || "small_business"
+            business_type: data.business_type || "small_business",
+            staff_emails: Array.isArray(parsedStaff) ? parsedStaff : []
           }
           setShop(loadedShop)
         }
@@ -498,7 +557,7 @@ export function Shop({ user, setView } = {}) {
           </div>
           <div className="sp-store-header-text">
             <span className="sp-store-eyebrow">{t("profile.storeIdentity", "STORE DETAILS")}</span>
-            <h2 className="sp-store-name">{shop.name || "Hydrabadi Biryani , Chopda"}</h2>
+            <h2 className="sp-store-name">{tDb(shop.name || "Hydrabadi Biryani , Chopda")}</h2>
             <span className="sp-verified-badge">
               <Check size={12} strokeWidth={3} /> {t("profile.verifiedStore", "Verified Store")}
             </span>
@@ -530,17 +589,17 @@ export function Shop({ user, setView } = {}) {
                 className="sp-change-logo-btn"
                 onClick={() => logoInputRef.current?.click()}
               >
-                <Camera size={14} /> {t("profile.changeLogo", "Change Logo")}
+                <Camera size={14} /> {tDb("Change Logo")}
               </button>
               <button
                 type="button"
                 className="sp-remove-logo-btn"
                 onClick={() => setIsRemoveLogoModalOpen(true)}
               >
-                <Trash2 size={14} /> {t("profile.removeLogo", "Remove Logo")}
+                <Trash2 size={14} /> {tDb("Remove Logo")}
               </button>
             </div>
-            <span className="sp-logo-hint">{t("profile.recommendedSize", "Recommended size: 512 × 512")}</span>
+            <span className="sp-logo-hint">{tDb("Recommended size: 512 × 512")}</span>
           </div>
         </div>
 
@@ -577,7 +636,7 @@ export function Shop({ user, setView } = {}) {
             <div className="sp-store-info">
               <span className="sp-store-eyebrow">{t("profile.storeIdentity", "STORE DETAILS")}</span>
               <div className="sp-store-name-row">
-                <h2 className="sp-store-name">{shop.name || "Hydrabadi Biryani , Chopda"}</h2>
+                <h2 className="sp-store-name">{tDb(shop.name || "Hydrabadi Biryani , Chopda")}</h2>
                 <button
                   type="button"
                   className="sp-edit-icon-btn"
@@ -614,17 +673,17 @@ export function Shop({ user, setView } = {}) {
                 className="sp-change-logo-btn"
                 onClick={() => logoInputRef.current?.click()}
               >
-                <Camera size={14} /> {t("profile.changeLogo", "Change Logo")}
+                <Camera size={14} /> {tDb("Change Logo")}
               </button>
               <button
                 type="button"
                 className="sp-remove-logo-btn"
                 onClick={() => setIsRemoveLogoModalOpen(true)}
               >
-                <Trash2 size={14} /> {t("profile.removeLogo", "Remove Logo")}
+                <Trash2 size={14} /> {tDb("Remove Logo")}
               </button>
             </div>
-            <span className="sp-logo-hint">{t("profile.recommendedSize", "Recommended size: 512 × 512")}</span>
+            <span className="sp-logo-hint">{tDb("Recommended size: 512 × 512")}</span>
           </div>
         </div>
 
@@ -678,10 +737,10 @@ export function Shop({ user, setView } = {}) {
               </div>
               <div style={{ flex: 1 }}>
                 <h3 style={{ fontSize: "1.05rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.3rem" }}>
-                  {t("profile.removeLogoTitle", "Remove shop logo?")}
+                  {tDb("Remove shop logo?")}
                 </h3>
                 <p style={{ fontSize: "0.82rem", color: "#64748b", margin: 0, lineHeight: 1.45 }}>
-                  {t("profile.removeLogoDesc", "Are you sure you want to remove your shop logo? It will no longer appear on your receipts.")}
+                  {tDb("Are you sure you want to remove your shop logo? It will no longer appear on your receipts.")}
                 </p>
               </div>
             </div>
@@ -703,7 +762,7 @@ export function Shop({ user, setView } = {}) {
                   minWidth: "80px",
                 }}
               >
-                {t("common.cancel", "Cancel")}
+                {tDb("Cancel")}
               </button>
               <button
                 type="button"
@@ -724,7 +783,7 @@ export function Shop({ user, setView } = {}) {
                 }}
               >
                 <Trash2 size={14} />
-                {t("profile.removeLogoBtn", "Remove Logo")}
+                {tDb("Remove Logo")}
               </button>
             </div>
           </div>
@@ -855,7 +914,7 @@ export function Shop({ user, setView } = {}) {
               )}
 
               <span className="sp-helper-text" style={{ marginTop: "0.4rem" }}>
-                {t("profile.categoryHelper", "Slipzo automatically tailors your product catalog recommendations to your selected category.")}
+                {t("profile.categoryHelper", "Slipzen automatically tailors your product catalog recommendations to your selected category.")}
               </span>
             </div>
 
@@ -1105,6 +1164,150 @@ export function Shop({ user, setView } = {}) {
                 </select>
                 <ChevronDown size={15} className="sp-select-arrow" />
               </div>
+            </div>
+          </div>
+
+          {/* Card 4: Staff & Sub-Users (Printer Access Sharing) */}
+          <div className="sp-card">
+            <div className="sp-card-header">
+              <div className="sp-icon-box blue">
+                <Users size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">{t("profile.subusersTitle", "Staff & Sub-Users (Printer Sharing)")}</h3>
+                <p className="sp-card-subtitle">{t("profile.subusersSub", "Share receipt printing and billing access with worker email IDs")}</p>
+              </div>
+            </div>
+
+            <div className="sp-field-group full-width">
+              <label className="sp-label">{t("profile.addWorkerLabel", "Worker / Staff Email Address")}</label>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "stretch" }}>
+                <div className={`sp-input-wrap ${workerEmailError ? "error" : ""}`} style={{ flex: 1, minWidth: "220px" }}>
+                  <Mail size={16} className="sp-input-icon" />
+                  <input
+                    type="email"
+                    placeholder={t("profile.workerEmailPlaceholder", "e.g. worker@myrestaurant.com")}
+                    value={newWorkerEmail}
+                    onChange={(e) => {
+                      setNewWorkerEmail(e.target.value)
+                      if (workerEmailError) setWorkerEmailError("")
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleAddWorkerEmail()
+                      }
+                    }}
+                    className="sp-input"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddWorkerEmail}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    padding: "0.6rem 1.1rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                    borderRadius: "10px",
+                    background: "#0284c7",
+                    color: "#ffffff",
+                    border: "none",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    boxShadow: "0 2px 4px rgba(2, 132, 199, 0.2)"
+                  }}
+                >
+                  <UserPlus size={15} />
+                  <span>{t("profile.addWorkerBtn", "+ Add Access")}</span>
+                </button>
+              </div>
+              {workerEmailError ? (
+                <span className="sp-field-error" style={{ marginTop: "0.35rem" }}>
+                  <AlertCircle size={12} /> {workerEmailError}
+                </span>
+              ) : (
+                <span className="sp-helper-text" style={{ marginTop: "0.35rem" }}>
+                  {t("profile.workerEmailHelper", "Workers logging in with this email can access bill printing for your shop.")}
+                </span>
+              )}
+            </div>
+
+            {/* Active Worker Email List */}
+            <div style={{ marginTop: "1rem" }}>
+              <label className="sp-label" style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <ShieldCheck size={14} color="#0284c7" />
+                <span>{t("profile.authorizedWorkersList", "Authorized Workers")} ({Array.isArray(shop.staff_emails) ? shop.staff_emails.length : 0})</span>
+              </label>
+
+              {(!Array.isArray(shop.staff_emails) || shop.staff_emails.length === 0) ? (
+                <div style={{
+                  padding: "1rem",
+                  borderRadius: "10px",
+                  background: "#f8fafc",
+                  border: "1.5px dashed #cbd5e1",
+                  textAlign: "center",
+                  fontSize: "0.82rem",
+                  color: "#64748b"
+                }}>
+                  <Printer size={20} color="#94a3b8" style={{ display: "block", margin: "0 auto 0.4rem" }} />
+                  {t("profile.noWorkersYet", "No worker emails added yet. Add an email above to share printer & billing access.")}
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {shop.staff_emails.map((email) => (
+                    <div
+                      key={email}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "0.65rem 0.85rem",
+                        background: "#f0f9ff",
+                        border: "1px solid #bae6fd",
+                        borderRadius: "10px",
+                        gap: "0.5rem"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0, overflow: "hidden" }}>
+                        <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Mail size={14} />
+                        </div>
+                        <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#0369a1", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                          {email}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveWorkerEmail(email)}
+                        title={t("profile.revokeAccess", "Revoke Access")}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#ef4444",
+                          cursor: "pointer",
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          fontSize: "0.78rem",
+                          fontWeight: "700",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.25rem",
+                          transition: "background-color 0.15s"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "#fee2e2"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <Trash2 size={13} />
+                        <span>{t("profile.revoke", "Revoke")}</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

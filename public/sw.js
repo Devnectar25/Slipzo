@@ -1,5 +1,5 @@
-// Slipzo PWA Service Worker
-const CACHE_NAME = 'slipzo-cache-v1';
+// Slipzen PWA Service Worker
+const CACHE_NAME = 'slipzen-cache-v1';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',

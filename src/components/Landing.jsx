@@ -69,7 +69,7 @@ export function Landing({ setView, setShowAuth, user }) {
     {
       id: 1,
       rating: "4.9",
-      quote: "Slipzo changed how I bill. No more messy notebooks or complex POS systems. Just clean, professional receipts every time. My customers love the digital look!",
+      quote: "Slipzen changed how I bill. No more messy notebooks or complex POS systems. Just clean, professional receipts every time. My customers love the digital look!",
       author: "Ramesh Kumar",
       role: "Shop Owner, Delhi",
       stats: "500+ receipts generated",
@@ -79,7 +79,7 @@ export function Landing({ setView, setShowAuth, user }) {
     {
       id: 2,
       rating: "5.0",
-      quote: "As a small cafe owner, I needed something fast and reliable. Slipzo allows me to print WhatsApp and thermal receipts in under 10 seconds!",
+      quote: "As a small cafe owner, I needed something fast and reliable. Slipzen allows me to print WhatsApp and thermal receipts in under 10 seconds!",
       author: "Priya Sharma",
       role: "Cafe Owner, Mumbai",
       stats: "1,200+ receipts generated",
@@ -324,7 +324,7 @@ export function Landing({ setView, setShowAuth, user }) {
               <span className="gradient-text">feel effortless</span>
             </h1>
             <p className="hero-description">
-              Slipzo helps you create professional receipts in seconds.
+              Slipzen helps you create professional receipts in seconds.
               No complex setup. Just add items and print.
             </p>
             <div className="hero-actions">
@@ -345,7 +345,7 @@ export function Landing({ setView, setShowAuth, user }) {
             <div className="hero-stats">
               <div className="stat-item">
                 <span className="stat-number">10k+</span>
-                <span className="stat-label">Shops using Slipzo</span>
+                <span className="stat-label">Shops using Slipzen</span>
               </div>
               <div className="stat-divider"></div>
               <div className="stat-item">
@@ -540,7 +540,7 @@ export function Landing({ setView, setShowAuth, user }) {
         <div className="section-header">
           <div className="header-badge">
             <Zap size={16} />
-            <span>Why Slipzo</span>
+            <span>Why Slipzen</span>
           </div>
           <h2>Everything you need to bill</h2>
           <p className="section-description">
@@ -590,7 +590,7 @@ export function Landing({ setView, setShowAuth, user }) {
           </div>
           <h2>Our Customer Feedback</h2>
           <p className="section-description">
-            See how thousands of shop owners use Slipzo to transform their daily billing.
+            See how thousands of shop owners use Slipzen to transform their daily billing.
           </p>
         </div>
 
@@ -638,7 +638,7 @@ export function Landing({ setView, setShowAuth, user }) {
             <span>Start for free</span>
           </div>
           <h2>Ready to simplify your billing?</h2>
-          <p>Join thousands of small shops using Slipzo to create professional receipts.</p>
+          <p>Join thousands of small shops using Slipzen to create professional receipts.</p>
           <button className="cta-button primary large" onClick={handleGetStarted}>
             Get Started Free <ArrowRight size={18} />
           </button>

@@ -953,6 +953,20 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   animation: scaleUp 0.18s ease;
 }
 
+.category-change-modal-card {
+  max-width: 560px !important;
+  width: 95% !important;
+}
+
+@media (max-width: 640px) {
+  .category-change-modal-card {
+    max-width: 96% !important;
+    width: 96% !important;
+    margin: 0 auto;
+    border-radius: 16px !important;
+  }
+}
+
 .menu-modal-header {
   display: flex;
   justify-content: space-between;

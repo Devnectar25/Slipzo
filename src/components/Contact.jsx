@@ -107,7 +107,7 @@ export function Contact({ setView, setShowAuth, user }) {
         body: JSON.stringify(form)
       })
       setSubmitted(true)
-      const successMsg = "🎉 Your message has been saved! Slipzo support will contact you shortly."
+      const successMsg = "🎉 Your message has been saved! Slipzen support will contact you shortly."
       if (toast?.success) {
         toast.success(successMsg)
       } else {
@@ -150,8 +150,8 @@ export function Contact({ setView, setShowAuth, user }) {
       badgeClass: "badge-email",
       title: t("contact.emailTitle", "Email Support"),
       description: t("contact.emailDesc", "Send us your queries and receive a comprehensive reply within 24 hours."),
-      actionText: "support@slipzo.com",
-      actionLink: "mailto:support@slipzo.com",
+      actionText: "support@slipzen.com",
+      actionLink: "mailto:support@slipzen.com",
       btnClass: "channel-btn-email",
       chevronColor: "#0284c7"
     },
@@ -175,7 +175,7 @@ export function Contact({ setView, setShowAuth, user }) {
       badge: t("contact.headquarters", "Headquarters"),
       badgeClass: "badge-office",
       title: t("contact.officeTitle", "Our Office Location"),
-      description: t("contact.officeDesc", "Slipzo Technologies, Indiranagar, Bengaluru, Karnataka, India."),
+      description: t("contact.officeDesc", "Slipzen Technologies, Indiranagar, Bengaluru, Karnataka, India."),
       actionText: t("contact.mapsAction", "Open in Maps"),
       actionLink: "https://maps.google.com/?q=Indiranagar+Bengaluru",
       btnClass: "channel-btn-office",
@@ -196,7 +196,7 @@ export function Contact({ setView, setShowAuth, user }) {
       icon: <Printer size={18} color="#0284c7" />,
       iconBg: "#e0f2fe",
       q: t("contact.faq2Q", "Do you help with thermal printer setup and drivers?"),
-      a: t("contact.faq2A", "Yes! If you have a thermal printer (USB, Bluetooth, or Network ESC/POS) and need assistance configuring it with Slipzo, our technical team can guide you step-by-step or connect via screen share.")
+      a: t("contact.faq2A", "Yes! If you have a thermal printer (USB, Bluetooth, or Network ESC/POS) and need assistance configuring it with Slipzen, our technical team can guide you step-by-step or connect via screen share.")
     },
     {
       id: 2,
@@ -209,8 +209,8 @@ export function Contact({ setView, setShowAuth, user }) {
       id: 3,
       icon: <Smartphone size={18} color="#0284c7" />,
       iconBg: "#e0f2fe",
-      q: t("contact.faq4Q", "Does Slipzo work on mobile phones and tablets?"),
-      a: t("contact.faq4A", "Yes. Slipzo is 100% web-based and responsive. You can open it on your Android or iPhone and connect to Bluetooth thermal printers directly.")
+      q: t("contact.faq4Q", "Does Slipzen work on mobile phones and tablets?"),
+      a: t("contact.faq4A", "Yes. Slipzen is 100% web-based and responsive. You can open it on your Android or iPhone and connect to Bluetooth thermal printers directly.")
     }
   ]
 
@@ -267,7 +267,7 @@ export function Contact({ setView, setShowAuth, user }) {
             <div className="contact-hero-art-wrapper">
               <img 
                 src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/contact_support_agent.jpg" 
-                alt="Slipzo Support Specialist" 
+                alt="Slipzen Support Specialist" 
                 className="contact-hero-agent-img"
               />
             </div>
@@ -511,7 +511,7 @@ export function Contact({ setView, setShowAuth, user }) {
           <span className="faq-eyebrow-text">{t("contact.faqEyebrow", "COMMON QUESTIONS")}</span>
           <h2 className="faq-main-title">{t("contact.faqTitle", "Frequently Asked Questions")}</h2>
           <p className="faq-main-subtext">
-            {t("contact.faqSubtitle", "Quick answers to common questions about getting in touch and using Slipzo.")}
+            {t("contact.faqSubtitle", "Quick answers to common questions about getting in touch and using Slipzen.")}
           </p>
         </div>
 

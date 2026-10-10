@@ -468,12 +468,12 @@ export function Products({ setView, requireAuth, user }) {
         key: razorpayKey,
         amount: totalAmount * 100, // Amount in paise
         currency: "INR",
-        name: "Slipzo Receipts & POS Store",
+        name: "Slipzen Receipts & POS Store",
         description: `${buyProduct.name} (Qty: ${buyQty})`,
         image: "/logo.png",
         prefill: {
           name: buyerName.trim(),
-          email: user?.email || "customer@slipzo.in",
+          email: user?.email || "customer@slipzen.in",
           contact: buyerPhone.trim()
         },
         notes: {
@@ -680,6 +680,7 @@ export function Products({ setView, requireAuth, user }) {
                               src={product.image}
                               alt={product.name}
                               loading="lazy"
+                              style={{ width: "100%", height: "100%", objectFit: "contain", padding: "4px" }}
                             />
                           </div>
                         ) : (
@@ -743,10 +744,10 @@ export function Products({ setView, requireAuth, user }) {
                 Hardware & POS Supplies
               </span>
               <h2>
-                Tested & Certified for Slipzo
+                Tested & Certified for Slipzen
               </h2>
               <p>
-                All thermal receipt printers and paper rolls sold on Slipzo are pre-tested for plug-and-play speed with our thermal engine.
+                All thermal receipt printers and paper rolls sold on Slipzen are pre-tested for plug-and-play speed with our thermal engine.
               </p>
             </div>
 
@@ -850,6 +851,7 @@ export function Products({ setView, requireAuth, user }) {
                   <div
                     key={product.id}
                     className="product-card product-card-hover"
+                    style={{ overflow: 'hidden', padding: 0 }}
                   >
                   <div style={{ position: 'relative' }}>
                     {/* Product Image */}
