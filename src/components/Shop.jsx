@@ -36,7 +36,7 @@ import { RealisticReceiptView } from "./RealisticReceiptView"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { ChangeCategoryModal, BUSINESS_CATEGORIES } from "./common/ChangeCategoryModal"
 import { ManageTablesModal } from "./tables/ManageTablesModal"
-import { ButtonLoader } from "./common/Skeleton"
+import { Skeleton, ButtonLoader } from "./common/Skeleton"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
