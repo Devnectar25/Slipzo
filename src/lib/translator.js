@@ -47,6 +47,46 @@ const pendingRequests = new Set();
  * Curated offline-first high-speed translation dictionary
  */
 export const DICTIONARY = {
+  // Custom Item UI & Modal Translations
+  "Custom Item": { mr: "कस्टम वस्तू", hi: "कस्टम आइटम" },
+  "Create Custom Item": { mr: "कस्टम वस्तू तयार करा", hi: "कस्टम आइटम बनाएं" },
+  "Create Custom Product": { mr: "कस्टम उत्पादन तयार करा", hi: "कस्टम उत्पाद बनाएं" },
+  "Product Image (Optional)": { mr: "वस्तूचे छायाचित्र (पर्यायी)", hi: "उत्पाद की फोटो (वैकल्पिक)" },
+  "Upload": { mr: "अपलोड", hi: "अपलोड" },
+  "Link": { mr: "लिंक", hi: "लिंक" },
+  "Click to upload product image": { mr: "वस्तूचे छायाचित्र अपलोड करण्यासाठी क्लिक करा", hi: "उत्पाद की फोटो अपलोड करने के लिए क्लिक करें" },
+  "(PNG, JPG, WebP max 5MB)": { mr: "(PNG, JPG, WebP कमाल ५MB)", hi: "(PNG, JPG, WebP अधिकतम 5MB)" },
+  "Product Name *": { mr: "वस्तूचे नाव *", hi: "उत्पाद का नाम *" },
+  "e.g. Masala Dosa, Cotton Shirt, Special Chai": { mr: "उदा: मसाला डोसा, कॉटन शर्ट, स्पेशल चहा", hi: "जैसे: मसाला डोसा, कॉटन शर्ट, स्पेशल चाय" },
+  "Selling Price (₹) *": { mr: "विक्री किंमत (₹) *", hi: "बिक्री मूल्य (₹) *" },
+  "Barcode / SKU (Optional)": { mr: "बारकोड / एसकेयू (पर्यायी)", hi: "बारकोड / एसकेयू (वैकल्पिक)" },
+  "Leave blank to auto-generate": { mr: "आपोआप तयार करण्यासाठी रिकामे सोडा", hi: "स्वचालित रूप से बनाने के लिए खाली छोड़ें" },
+  "Barcode Status": { mr: "बारकोड स्थिती", hi: "बारकोड स्थिति" },
+  "Active (Scan Ready)": { mr: "सक्रिय (स्कॅनसाठी तयार)", hi: "सक्रिय (स्कैन के लिए तैयार)" },
+  "Deactive (Manual Only)": { mr: "निष्क्रिय (फक्त मॅन्युअल)", hi: "निष्क्रिय (केवल मैनुअल)" },
+  "Create Product": { mr: "वस्तू तयार करा", hi: "उत्पाद बनाएं" },
+  "Creating...": { mr: "तयार होत आहे...", hi: "बनाया जा रहा है..." },
+  "Attached": { mr: "जोडलेले", hi: "संलग्न" },
+  "Photo Ready": { mr: "फोटो तयार", hi: "फोटो तैयार" },
+  "Photo": { mr: "फोटो", hi: "फोटो" },
+  "Change": { mr: "बदला", hi: "बदलें" },
+  "Remove image": { mr: "छायाचित्र हटवा", hi: "फोटो हटाएं" },
+  "General": { mr: "सामान्य", hi: "सामान्य" },
+  "Small Business / Cafe & Tea": { mr: "लहान व्यवसाय / कॅफे आणि चहा", hi: "छोटा व्यवसाय / कैफे और चाय" },
+  "Kirana / Grocery Shop": { mr: "किराणा / ग्रॉसरी दुकान", hi: "किराना / ग्रॉसरी दुकान" },
+  "Cloth & Garments Shop": { mr: "कापड आणि कपड्यांचे दुकान", hi: "कपड़ा और वस्त्र दुकान" },
+  "Hotel or Food Restaurant": { mr: "हॉटेल किंवा रेस्टॉरंट", hi: "होटल या रेस्टोरेंट" },
+  "Item name is required.": { mr: "वस्तूचे नाव आवश्यक आहे.", hi: "उत्पाद का नाम आवश्यक है।" },
+  "Enter a valid price.": { mr: "वैध किंमत प्रविष्ट करा.", hi: "वैध मूल्य दर्ज करें।" },
+  "A product with this name is already in your menu.": { mr: "या नावाचे उत्पादन आधीपासूनच तुमच्या मेनूमध्ये आहे.", hi: "इस नाम का उत्पाद पहले से ही आपके मेनू में है।" },
+  "Unable to add the item. Please try again.": { mr: "वस्तू जोडता आली नाही. कृपया पुन्हा प्रयत्न करा.", hi: "उत्पाद जोड़ने में असमर्थ। कृपया पुनः प्रयास करें।" },
+  "Cancel": { mr: "रद्द करा", hi: "रद्द करें" },
+  "Remove Logo": { mr: "लोगो काढा", hi: "लोगो हटाएं" },
+  "Change Logo": { mr: "लोगो बदला", hi: "लोगो बदलें" },
+  "Recommended size: 512 × 512": { mr: "शिफारस केलेला आकार: 512 × 512", hi: "अनुशंसित आकार: 512 × 512" },
+  "Remove shop logo?": { mr: "दुकान लोगो काढायचा?", hi: "दुकान का लोगो हटाएं?" },
+  "Are you sure you want to remove your shop logo? It will no longer appear on your receipts.": { mr: "तुम्हाला नक्की दुकानाची लोगो हटवायची आहे का? ती पावतीवर पुन्हा दिसणार नाही.", hi: "क्या आप वाकई दुकान का लोगो हटाना चाहते हैं? यह रसीद पर फिर नहीं दिखेगा।" },
+
   // Food & Menu Master Catalog (all items from database)
   "Masala Chai": { mr: "मसाला चहा", hi: "मसाला चाय" },
   "Filter Coffee": { mr: "फिल्टर कॉफी", hi: "फ़िल्टर कॉफ़ी" },
@@ -307,7 +347,81 @@ export const DICTIONARY = {
   "Online": { mr: "ऑनलाइन", hi: "ऑनलाइन" },
   "online": { mr: "ऑनलाइन", hi: "ऑनलाइन" },
   "Cash on Delivery": { mr: "कॅश ऑन डिलिव्हरी", hi: "कैश ऑन डिलीवरी" },
-  "Cash on Delivery (COD)": { mr: "कॅश ऑन डिलिव्हरी (सीओडी)", hi: "कैश ऑन डिलीवरी (सीओडी)" }
+  "Cash on Delivery (COD)": { mr: "कॅश ऑन डिलिव्हरी (सीओडी)", hi: "कैश ऑन डिलीवरी (सीओडी)" },
+
+  // Shop Names
+  "CLASSIC MART": { mr: "क्लासिक मार्ट", hi: "क्लासिक मार्ट" },
+  "CLASSIC MART & GROCERY": { mr: "क्लासिक मार्ट आणि किराणा", hi: "क्लासिक मार्ट और किराना" },
+  "MINIMAL CAFE": { mr: "मिनिमल कॅफे", hi: "मिनिमल कैफे" },
+  "MINIMAL CAFE & BAKERY": { mr: "मिनिमल कॅफे आणि बेकरी", hi: "मिनिमल कैफे और बेकरी" },
+  "URBAN FASHION PRO": { mr: "अर्बन फॅशन प्रो", hi: "अर्बन फैशन प्रो" },
+  "KRISHNA JUICE": { mr: "कृष्णा ज्यूस", hi: "कृष्णा जूस" },
+  "KRISHNA JUICE & SHAKES": { mr: "कृष्णा ज्यूस आणि शेक्स", hi: "कृष्णा जूस और शेक्स" },
+  "LUMINA BEAUTY & SPA": { mr: "लुमिना ब्यूटी आणि स्पा", hi: "लुमिना ब्यूटी और स्पा" },
+  "Lumina Boutique & Spa": { mr: "लुमिना बुटीक आणि स्पा", hi: "लुमिना बुटीक और स्पा" },
+  "TECHNO COMPUTERS & PERIPHERALS": { mr: "टेक्नो कॉम्प्युटर्स आणि पेरीफेरेल्स", hi: "टेक्नो कंप्यूटर्स और पेरीफेरेल्स" },
+  "Techno Corp": { mr: "टेक्नो कॉर्प", hi: "टेक्नो कॉर्प" },
+  "HYDRABADI BIRYANI , CHOPDA": { mr: "हैद्राबादी बिर्याणी, चोपडा", hi: "हैदराबादी बिरयानी, चोपड़ा" },
+  "Hydrabadi Biryani , Chopda": { mr: "हैद्राबादी बिर्याणी, चोपडा", hi: "हैदराबादी बिरयानी, चोपड़ा" },
+  "Slipzo Mart": { mr: "स्लिपझो मार्ट", hi: "स्लिपज़ो मार्ट" },
+  "NEHA'S SHOP": { mr: "नेहाचे दुकान", hi: "नेहा की दुकान" },
+
+  // User Guide Topics & Headings
+  "SLIPZEN HELP CENTER & GUIDE": { mr: "स्लिपझेन मदत केंद्र आणि मार्गदर्शक", hi: "स्लिपज़ेन सहायता केंद्र और गाइड" },
+  "Slipzen User Guide & Help Center": { mr: "स्लिपझेन वापरकर्ता मार्गदर्शक आणि मदत केंद्र", hi: "स्लिपज़ेन उपयोगकर्ता गाइड और सहायता केंद्र" },
+  "4-Step Quick Launch Checklist": { mr: "४-टप्प्यांची जलद सुरुवात चेकलिस्ट", hi: "४-चरणीय त्वरित लॉन्च चेकलिस्ट" },
+  "Get fully operational in under 3 minutes": { mr: "३ मिनिटांपेक्षा कमी वेळात पूर्णपणे कार्यरत व्हा", hi: "३ मिनट से भी कम समय में पूरी तरह चालू हों" },
+  "Set Up Shop Profile": { mr: "दुकान प्रोफाइल सेट करा", hi: "दुकान प्रोफ़ाइल सेट करें" },
+  "Configure your business name, address, GSTIN, phone, and upload your shop logo.": {
+    mr: "तुमच्या दुकानाचे नाव, पत्ता, जीएसटी क्रमांक, फोन कॉन्फिगर करा आणि दुकान लोगो अपलोड करा.",
+    hi: "अपना व्यवसाय नाम, पता, जीएसटी नंबर, फोन कॉन्फ़िगर करें और अपना दुकान लोगो अपलोड करें।"
+  },
+  "Configure Shop": { mr: "दुकान कॉन्फिगर करा", hi: "दुकान कॉन्फ़िगर करें" },
+  "Add Products & Inventory": { mr: "उत्पादने आणि इन्व्हेंटरी जोडा", hi: "उत्पाद और इन्वेंट्री जोड़ें" },
+  "Add your items with prices, stock levels, and barcodes, or bulk import via CSV.": {
+    mr: "किंमत, स्टॉक पातळी आणि बारकोडसह वस्तू जोडा किंवा सीएसव्हीद्वारे एकत्र आयात करा.",
+    hi: "कीमतों, स्टॉक स्तरों और बारकोड के साथ अपने आइटम जोड़ें, या सीएसवी के माध्यम से थोक आयात करें।"
+  },
+  "Manage Items": { mr: "वस्तू व्यवस्थापित करा", hi: "आइटम प्रबंधित करें" },
+  "Select Receipt Template": { mr: "पावती टेम्प्लेट निवडा", hi: "रसीद टेम्पलेट चुनें" },
+  "Choose between 58mm, 80mm thermal formats or full A4/A5 tax invoice layouts.": {
+    mr: "५८मिमी, ८०मिमी थर्मल फॉरमॅट किंवा पूर्ण ए४/ए५ कर बीजक लेआउट निवडा.",
+    hi: "58मिमी, 80मिमी थर्मल प्रारूपों या पूर्ण ए4/ए5 टैक्स इनवॉइस लेआउट में से चुनें।"
+  },
+  "View Templates": { mr: "टेम्प्लेट्स पहा", hi: "टेम्पलेट्स देखें" },
+  "Create Your First Bill": { mr: "तुमचे पहिले बिल तयार करा", hi: "अपना पहला बिल बनाएं" },
+  "Search items, apply discounts, choose payment method (Cash/UPI), and print in 1-click.": {
+    mr: "वस्तू शोधा, सवलत लागू करा, पेमेंट पद्धत (रोख/यूपीआय) निवडा आणि १-क्लिकमध्ये प्रिंट करा.",
+    hi: "आइटम खोजें, छूट लागू करें, भुगतान विधि (नकद/यूपीआई) चुनें, और 1-क्लिक में प्रिंट करें।"
+  },
+  "New Bill Desk": { mr: "नवीन बिल डेस्क", hi: "नया बिल डेस्क" },
+  "Billing & Invoices": { mr: "बिलिंग आणि पावत्या", hi: "बिलिंग और चालान" },
+  "Products & Barcodes": { mr: "उत्पादने आणि बारकोड", hi: "उत्पाद और बारकोड" },
+  "Dine-In Tables & KOT": { mr: "डाइन-इन टेबल्स आणि केओटी", hi: "डाइन-इन टेबल्स और केओटी" },
+  "Thermal Printers": { mr: "थर्मल प्रिंटर्स", hi: "थर्मल प्रिंटर" },
+  "Bill Templates": { mr: "बिल टेम्प्लेट्स", hi: "बिल टेम्पलेट्स" },
+  "Reports & Udhar": { mr: "अहवाल आणि उधारी", hi: "रिपोर्ट और उधार" },
+  "Frequently Asked Questions": { mr: "सतत विचारले जाणारे प्रश्न (FAQ)", hi: "अक्सर पूछे जाने वाले प्रश्न (FAQ)" },
+  "Need more assistance or custom setup?": { mr: "अधिक मदत किंवा सानुकूल सेटअप हवा आहे?", hi: "अधिक सहायता या कस्टम सेटअप की आवश्यकता है?" },
+  "Our dedicated support team is here to help you configure printers, barcodes, and floor layouts.": {
+    mr: "आमची टीम प्रिंटर, बारकोड आणि फ्लोर लेआउट कॉन्फिगर करण्यात मदत करण्यास तयार आहे.",
+    hi: "हमारी समर्पित सहायता टीम प्रिंटर, बारकोड और फ़्लोर लेआउट कॉन्फ़िगर करने में आपकी मदद के लिए उपलब्ध है।"
+  },
+  "Contact Support": { mr: "सपोर्ट टीमशी संपर्क साधा", hi: "सपोर्ट टीम से संपर्क करें" },
+
+  // User Guide Banner & Products
+  "Product": { mr: "उत्पादने", hi: "उत्पाद" },
+  "Products": { mr: "उत्पादने", hi: "उत्पाद" },
+  "Add to inventory": { mr: "इन्व्हेंटरीचा साठा", hi: "इन्वेंट्री में जोड़ें" },
+  "Slipzen User Guide & Quick Setup": { mr: "स्लिपझेन वापरकर्ता मार्गदर्शक आणि त्वरित सेटअप", hi: "स्लिपज़ेन उपयोगकर्ता गाइड और त्वरित सेटअप" },
+  "Step-by-step instructions for thermal printers, barcode inventory, dine-in tables & billing.": {
+    mr: "थर्मल प्रिंटर, बारकोड इन्व्हेंटरी, डाइन-इन टेबल आणि बिलिंगसाठी टप्प्याटप्प्याने मार्गदर्शक.",
+    hi: "थर्मल प्रिंटर, बारकोड इन्वेंट्री, डाइन-इन टेबल और बिलिंग के लिए चरण-दर-चरण निर्देश।"
+  },
+  "Open Guide": { mr: "मार्गदर्शक उघडा", hi: "गाइड खोलें" },
+  "Help": { mr: "मदत", hi: "मदद" },
+  "Saved Bills": { mr: "जतन केलेली बिले", hi: "सहेजे गए बिल" },
+  "Print Bills": { mr: "प्रिंट बिले", hi: "प्रिंट बिल" }
 };
 
 /**

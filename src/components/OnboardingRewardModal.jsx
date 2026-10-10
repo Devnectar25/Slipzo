@@ -122,7 +122,7 @@ export function OnboardingRewardModal({ isOpen, onClose, onGetStarted }) {
               margin: "0 0 1.5rem 0"
             }}
           >
-            Welcome to Slipzo! You've successfully completed your shop setup and menu items.
+            Welcome to Slipzen! You've successfully completed your shop setup and menu items.
             We've credited <strong style={{ color: "#0284c7" }}>10 free prints</strong> to your account so you can start creating bills right away.
           </p>
 

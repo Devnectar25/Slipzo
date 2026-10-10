@@ -15,6 +15,8 @@ dist-ssr/
 *.aab
 *.local
 Slipzo.apk
+.vite/
+.cache/
 
 # Environment and local configurations
 .env
@@ -22,6 +24,13 @@ Slipzo.apk
 !.env.example
 .env.local
 .env.*.local
+local.properties
+android/local.properties
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
 
 # Temporary / Test files & assets
 public/products/
@@ -84,10 +93,16 @@ src/scripts/verify_menu_system.js
 .idea/
 .DS_Store
 Thumbs.db
+desktop.ini
+ehthumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.bak
+*.old
+*.orig
+
 
 

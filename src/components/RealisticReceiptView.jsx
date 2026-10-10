@@ -73,7 +73,7 @@ export function RealisticReceiptView({ template }) {
               <div className="minimal-dot-logo">{(data.shopName || "S").trim().charAt(0).toUpperCase()}</div>
             )}
             <h2 className="receipt-shop-name" style={{ fontSize: "1.25rem", fontWeight: 900, letterSpacing: "-0.3px", margin: "0.2rem 0 0", color: "#0f172a", lineHeight: 1.2 }}>
-              {data.shopName}
+              {tDb(data.shopName)}
             </h2>
             <p style={{ color: "#1e293b", fontSize: "0.82rem", fontWeight: 600, margin: "0.2rem 0 0", lineHeight: 1.3 }}>
               {[formatNum(data.phone), tDb(data.address)].filter(Boolean).join(" · ")}
@@ -161,7 +161,7 @@ export function RealisticReceiptView({ template }) {
               </div>
             )}
             <h2 className="receipt-shop-name" style={{ fontSize: "1.25rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.5px", margin: "0.2rem 0 0.1rem", color: "#0f172a", lineHeight: 1.2 }}>
-              {data.shopName}
+              {tDb(data.shopName)}
             </h2>
             <p style={{ fontSize: "0.82rem", color: "#1e293b", fontWeight: 600, margin: "0.1rem 0" }}>{tDb(data.address)}</p>
             <p style={{ fontSize: "0.82rem", color: "#1e293b", fontWeight: 600, margin: "0.1rem 0" }}>{lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}</p>
@@ -254,7 +254,7 @@ export function RealisticReceiptView({ template }) {
         <div className="receipt-content" style={{ padding: "0.75rem 0.65rem" }}>
           {/* Header Banner */}
           <div className="pro-store-ribbon" style={{ background: "#2563eb", color: "#ffffff", padding: "0.45rem 0.6rem", borderRadius: "6px", textAlign: "center", marginBottom: "0.4rem" }}>
-            <h2 style={{ fontSize: "1.2rem", fontWeight: 900, margin: 0, letterSpacing: "0.3px", lineHeight: 1.2 }}>{data.shopName}</h2>
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 900, margin: 0, letterSpacing: "0.3px", lineHeight: 1.2 }}>{tDb(data.shopName)}</h2>
             <p style={{ fontSize: "0.72rem", fontWeight: 700, margin: "0.1rem 0 0", opacity: 0.95 }}>{lbl("RETAIL POS RECEIPT", "किरकोळ विक्री पावती", "खुदरा बिक्री रसीद")}</p>
           </div>
 
@@ -343,7 +343,7 @@ export function RealisticReceiptView({ template }) {
           {/* Monospace Header */}
           <div className="eco-header-box" style={{ textAlign: "center", borderBottom: "1.5px dashed #0d9488", paddingBottom: "0.4rem", marginBottom: "0.4rem" }}>
             <h2 style={{ fontSize: "1.05rem", fontWeight: 900, letterSpacing: "0.5px", margin: 0, color: "#0f172a" }}>
-              *** {data.shopName.toUpperCase()} ***
+              *** {tDb(data.shopName).toUpperCase()} ***
             </h2>
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1e293b", marginTop: "0.15rem" }}>
               <div>{tDb(data.address)}</div>
@@ -434,7 +434,7 @@ export function RealisticReceiptView({ template }) {
           {/* Clean Header */}
           <div className="receipt-shop" style={{ textAlign: "center", border: "none", paddingBottom: "0.4rem" }}>
             <h2 className="receipt-shop-name" style={{ fontSize: "1.2rem", fontWeight: 900, color: "#0f172a", margin: "0 0 0.1rem", lineHeight: 1.2 }}>
-              {data.shopName}
+              {tDb(data.shopName)}
             </h2>
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1e293b", margin: "0.1rem 0" }}>
               {tDb(data.address)}
@@ -524,7 +524,7 @@ export function RealisticReceiptView({ template }) {
             <div style={{ fontSize: "0.7rem", fontWeight: 900, color: "#0284c7", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "0.1rem" }}>
               {lbl("Supplier / Seller", "विक्रेता / पुरवठादार", "विक्रेता / आपूर्तिकर्ता")}
             </div>
-            <h4 style={{ fontSize: "0.9rem", fontWeight: 900, color: "#0f172a", margin: "0 0 0.1rem" }}>{data.shopName}</h4>
+            <h4 style={{ fontSize: "0.9rem", fontWeight: 900, color: "#0f172a", margin: "0 0 0.1rem" }}>{tDb(data.shopName)}</h4>
             <p style={{ color: "#1e293b", margin: "0.05rem 0", fontSize: "0.78rem", fontWeight: 600 }}>{tDb(data.address)}</p>
             <p style={{ color: "#1e293b", margin: "0.05rem 0", fontSize: "0.78rem", fontWeight: 600 }}>{lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}</p>
           </div>
@@ -612,7 +612,7 @@ export function RealisticReceiptView({ template }) {
     <div className="realistic-thermal-receipt">
       <div className="receipt-paper-top" />
       <div className="receipt-content" style={{ padding: "0.75rem 0.65rem" }}>
-        <h2 style={{ textAlign: "center", fontSize: "1.15rem", fontWeight: 900, color: "#0f172a" }}>{data.shopName}</h2>
+        <h2 style={{ textAlign: "center", fontSize: "1.15rem", fontWeight: 900, color: "#0f172a" }}>{tDb(data.shopName)}</h2>
         <p style={{ textAlign: "center", fontSize: "0.8rem", fontWeight: 600, color: "#1e293b" }}>{tDb(data.address)}</p>
         {tableNumber && (
           <p style={{ textAlign: "center", fontSize: "0.82rem", fontWeight: 700, color: "#0f172a", margin: "0.15rem 0" }}>

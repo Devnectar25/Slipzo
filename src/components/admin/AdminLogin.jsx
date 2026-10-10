@@ -3,7 +3,7 @@ import { ShieldCheck, Lock, Mail, KeyRound, Eye, EyeOff, ArrowRight, AlertTriang
 import { call } from "../../lib/utils"
 import "../../styles/Admin.css"
 
-export function AdminLogin({ onLoginSuccess }) {
+export function AdminLogin({ onLoginSuccess, onCancel }) {
   const [email, setEmail] = useState("admin@slipzo.com")
   const [password, setPassword] = useState("")
   const [securityCode, setSecurityCode] = useState("")
@@ -56,9 +56,9 @@ export function AdminLogin({ onLoginSuccess }) {
             <ShieldCheck size={14} /> Admin Gateway
           </div>
           <div>
-            <img src="/logo.png" alt="Slipzo" className="admin-login-logo" />
+            <img src="/logo.png" alt="Slipzen" className="admin-login-logo" />
           </div>
-          <h1 className="admin-login-title">Slipzo Admin Panel</h1>
+          <h1 className="admin-login-title">Slipzen Admin Panel</h1>
           <p className="admin-login-subtitle">Sign in to manage system & user operations</p>
         </div>
 
@@ -140,6 +140,39 @@ export function AdminLogin({ onLoginSuccess }) {
               </>
             )}
           </button>
+
+          {onCancel && (
+            <button
+              type="button"
+              className="admin-btn-back"
+              onClick={onCancel}
+              style={{
+                width: "100%",
+                marginTop: "10px",
+                background: "transparent",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                color: "#94a3b8",
+                padding: "10px 14px",
+                borderRadius: "10px",
+                fontSize: "0.88rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#ffffff"
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.4)"
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#94a3b8"
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)"
+                e.currentTarget.style.background = "transparent"
+              }}
+            >
+              ← Back to Dashboard
+            </button>
+          )}
         </form>
 
         <div className="admin-hint-box">

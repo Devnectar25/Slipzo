@@ -61,17 +61,33 @@ export function History({ setView, setSelectedBillId, user }) {
 
   const { success: toastSuccess, error: toastError } = useToast()
 
+  const dateLocale = lang === "mr" ? "mr-IN" : lang === "hi" ? "hi-IN" : "en-IN"
+
+  const formatDateLocale = (dateVal) => {
+    if (!dateVal) return ""
+    const d = new Date(dateVal)
+    if (isNaN(d.getTime())) return String(dateVal)
+    return d.toLocaleDateString(dateLocale, { day: "2-digit", month: "short", year: "numeric" })
+  }
+
+  const formatTimeLocale = (dateVal) => {
+    if (!dateVal) return ""
+    const d = new Date(dateVal)
+    if (isNaN(d.getTime())) return String(dateVal)
+    return d.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit", hour12: true })
+  }
+
   const fallbackHistoryBills = [
-    { id: "1", number: "SLP-20260918-1001", dateFormatted: "18 Sept 2026", timeFormatted: "02:56 PM", payment_mode: "Cash", itemsCount: 2, total: 0 },
-    { id: "2", number: "SLP-20260917-1002", dateFormatted: "17 Sept 2026", timeFormatted: "11:20 AM", payment_mode: "Card", itemsCount: 5, total: 560 },
-    { id: "3", number: "SLP-20260916-1003", dateFormatted: "16 Sept 2026", timeFormatted: "06:45 PM", payment_mode: "UPI", itemsCount: 3, total: 320 },
-    { id: "4", number: "SLP-20260915-1004", dateFormatted: "15 Sept 2026", timeFormatted: "01:10 PM", payment_mode: "Cash", itemsCount: 1, total: 120 },
-    { id: "5", number: "SLP-20260914-1005", dateFormatted: "14 Sept 2026", timeFormatted: "09:30 AM", payment_mode: "Card", itemsCount: 4, total: 890 },
-    { id: "6", number: "SLP-20260913-1006", dateFormatted: "13 Sept 2026", timeFormatted: "04:15 PM", payment_mode: "Cash", itemsCount: 6, total: 430 },
-    { id: "7", number: "SLP-20260912-1007", dateFormatted: "12 Sept 2026", timeFormatted: "12:05 PM", payment_mode: "UPI", itemsCount: 2, total: 275 },
-    { id: "8", number: "SLP-20260911-1008", dateFormatted: "11 Sept 2026", timeFormatted: "07:40 PM", payment_mode: "Card", itemsCount: 8, total: 1150 },
-    { id: "9", number: "SLP-20260910-1009", dateFormatted: "10 Sept 2026", timeFormatted: "03:25 PM", payment_mode: "Cash", itemsCount: 3, total: 690 },
-    { id: "10", number: "SLP-20260009-1010", dateFormatted: "09 Sept 2026", timeFormatted: "10:10 AM", payment_mode: "UPI", itemsCount: 7, total: 980 }
+    { id: "1", number: "SLP-20260918-1001", created_at: "2026-09-18T14:56:00Z", payment_mode: "Cash", itemsCount: 2, total: 0 },
+    { id: "2", number: "SLP-20260917-1002", created_at: "2026-09-17T11:20:00Z", payment_mode: "Card", itemsCount: 5, total: 560 },
+    { id: "3", number: "SLP-20260916-1003", created_at: "2026-09-16T18:45:00Z", payment_mode: "UPI", itemsCount: 3, total: 320 },
+    { id: "4", number: "SLP-20260915-1004", created_at: "2026-09-15T13:10:00Z", payment_mode: "Cash", itemsCount: 1, total: 120 },
+    { id: "5", number: "SLP-20260914-1005", created_at: "2026-09-14T09:30:00Z", payment_mode: "Card", itemsCount: 4, total: 890 },
+    { id: "6", number: "SLP-20260913-1006", created_at: "2026-09-13T16:15:00Z", payment_mode: "Cash", itemsCount: 6, total: 430 },
+    { id: "7", number: "SLP-20260912-1007", created_at: "2026-09-12T12:05:00Z", payment_mode: "UPI", itemsCount: 2, total: 275 },
+    { id: "8", number: "SLP-20260911-1008", created_at: "2026-09-11T19:40:00Z", payment_mode: "Card", itemsCount: 8, total: 1150 },
+    { id: "9", number: "SLP-20260910-1009", created_at: "2026-09-10T15:25:00Z", payment_mode: "Cash", itemsCount: 3, total: 690 },
+    { id: "10", number: "SLP-20260009-1010", created_at: "2026-09-09T10:10:00Z", payment_mode: "UPI", itemsCount: 7, total: 980 }
   ]
 
   const loadBills = async () => {
@@ -224,12 +240,9 @@ export function History({ setView, setSelectedBillId, user }) {
   const endRecord = Math.min(page * limit, effectiveTotalRecords)
 
   const displayedBills = bills.length > 0 ? bills.map((b, idx) => {
-    const d = b.created_at ? new Date(b.created_at) : null
-    const day = d ? String(d.getDate()).padStart(2, "0") : "18"
-    const month = d ? d.toLocaleDateString("en-US", { month: "short" }) : "Sept"
-    const year = d ? d.getFullYear() : "2026"
-    const dateFormatted = d ? `${day} ${month} ${year}` : "18 Sept 2026"
-    const timeFormatted = d ? d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "02:56 PM"
+    const rawDate = b.created_at || b.date
+    const dateFormatted = rawDate ? formatDateLocale(rawDate) : (b.dateFormatted ? b.dateFormatted : formatDateLocale("2026-09-18T14:56:00Z"))
+    const timeFormatted = rawDate ? formatTimeLocale(rawDate) : (b.timeFormatted ? b.timeFormatted : formatTimeLocale("2026-09-18T14:56:00Z"))
     
     const itemsCount = Array.isArray(b.items)
       ? b.items.length
@@ -308,7 +321,7 @@ export function History({ setView, setSelectedBillId, user }) {
             }}
           >
             <Bookmark size={15} />
-            <span className="history-tab-text">{t("history.savedBills", "Saved Bills")}</span>
+            <span className="history-tab-text">{t("history.savedBills", tDb("Saved Bills"))}</span>
             <span className="history-tab-badge">{formatNum(savedCount)}</span>
           </button>
 
@@ -326,7 +339,7 @@ export function History({ setView, setSelectedBillId, user }) {
             }}
           >
             <Printer size={15} />
-            <span className="history-tab-text">{t("history.printBills", "Print Bills")}</span>
+            <span className="history-tab-text">{t("history.printBills", tDb("Print Bills"))}</span>
             <span className="history-tab-badge">{formatNum(printedCount)}</span>
           </button>
         </div>
@@ -395,9 +408,9 @@ export function History({ setView, setSelectedBillId, user }) {
           <>
             <div className="history-list">
               {filteredBills.map((bill) => {
-                const d = bill.created_at ? new Date(bill.created_at) : null
-                const dateStr = bill.dateFormatted || (d ? d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "18 Sept 2026")
-                const timeStr = bill.timeFormatted || (d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "02:56 PM")
+                const rawDate = bill.created_at || bill.rawBill?.created_at
+                const dateStr = rawDate ? formatDateLocale(rawDate) : (bill.dateFormatted || "18 Sept 2026")
+                const timeStr = rawDate ? formatTimeLocale(rawDate) : (bill.timeFormatted || "02:56 PM")
 
                 const itemsCount = typeof bill.itemsCount === "number" ? bill.itemsCount : (
                   Array.isArray(bill.items)

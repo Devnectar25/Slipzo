@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react"
-import { Home, LayoutTemplate, Sparkles, Tag, Mail, LogIn, Zap, ArrowRight, Menu, X, ShieldCheck, FileText, Globe } from "lucide-react"
+import { App as CapApp } from "@capacitor/app"
 import { Auth } from "./components/Auth"
+import { WelcomeOnboarding } from "./components/WelcomeOnboarding"
 import { Shell } from "./components/Shell"
 import { Dashboard } from "./components/Dashboard"
 import { Templates } from "./components/Templates"
@@ -9,11 +10,9 @@ import { History } from "./components/History"
 import { Shop } from "./components/Shop"
 import { Products } from "./components/Products"
 import { Reprint } from "./components/Reprint"
-import { Landing } from "./components/Landing"
-import { PublicTemplates } from "./components/PublicTemplates"
 import { Pricing } from "./components/Pricing"
-import { Product } from "./components/Product"
 import { Contact } from "./components/Contact"
+import { UserGuide } from "./components/UserGuide"
 import { ShopOnboardingModal } from "./components/ShopOnboardingModal"
 import { Menu as ShopMenu } from "./components/Menu"
 import { AddYourItemsModal } from "./components/AddYourItemsModal"
@@ -26,7 +25,6 @@ import { ToastProvider, useToast } from "./components/common/Toast"
 import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData } from "./lib/utils"
 import { AdminLogin } from "./components/admin/AdminLogin"
 import { AdminDashboard } from "./components/admin/AdminDashboard"
-import { useTranslation } from "react-i18next"
 import "./styles/App.css"
 import "./styles/print.css"
 
@@ -41,8 +39,10 @@ export default function App() {
 }
 
 const pathToView = (pathname) => {
-  if (!pathname) return null
+  if (!pathname) return "dashboard"
   const clean = pathname.toLowerCase().trim()
+  if (clean === "/admin/dashboard") return "admin_dashboard"
+  if (clean === "/admin" || clean === "/admin/login" || clean === "/subadmin") return "admin_login"
   if (clean === "/products") return "products"
   if (clean === "/new-bill" || clean === "/bills") return "bills"
   if (clean === "/tables" || clean === "/table-management" || clean === "/restaurant-tables") return "tables"
@@ -52,10 +52,10 @@ const pathToView = (pathname) => {
   if (clean === "/bill-history" || clean === "/history") return "history"
   if (clean === "/shop-profile" || clean === "/shop") return "shop"
   if (clean === "/contact") return "contact"
-  if (clean === "/product") return "product"
+  if (clean === "/guide" || clean === "/user-guide" || clean === "/help") return "guide"
   if (clean === "/reprint") return "reprint"
-  if (clean === "/overview" || clean === "/dashboard") return "dashboard"
-  return null
+  if (clean === "/overview" || clean === "/dashboard" || clean === "/") return "dashboard"
+  return "dashboard"
 }
 
 const viewToPath = (viewName) => {
@@ -70,10 +70,12 @@ const viewToPath = (viewName) => {
     case "history": return "/bill-history"
     case "shop": return "/shop-profile"
     case "contact": return "/contact"
-    case "product": return "/product"
+    case "guide": return "/user-guide"
     case "reprint": return "/reprint"
-    case "landing": return "/"
-    default: return null
+    case "admin_login":
+    case "admin": return "/admin"
+    case "admin_dashboard": return "/admin/dashboard"
+    default: return "/"
   }
 }
 
@@ -84,11 +86,27 @@ function AppContent() {
       const initialView = pathToView(window.location.pathname)
       if (initialView) return initialView
     }
-    return "landing"
+    return "dashboard"
   })
   const [checking, setChecking] = useState(true)
-  const [showAuth, setShowAuth] = useState(false)
-  const [isRegister, setIsRegister] = useState(false)
+  const [showAuth, setShowAuth] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname.toLowerCase()
+      if (p === "/login" || p === "/signin" || p === "/signup" || p === "/register") {
+        return true
+      }
+    }
+    return false
+  })
+  const [isRegister, setIsRegister] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = window.location.pathname.toLowerCase()
+      if (p === "/signup" || p === "/register") {
+        return true
+      }
+    }
+    return false
+  })
   const [showShopOnboarding, setShowShopOnboarding] = useState(false)
   const [adminUser, setAdminUser] = useState(null)
   const [adminToken, setAdminToken] = useState(null)
@@ -162,12 +180,24 @@ function AppContent() {
     }
   }
 
+  const navigationHistoryRef = useRef([])
+  const currentViewRef = useRef(view)
+
+  useEffect(() => {
+    currentViewRef.current = view
+  }, [view])
+
   const setView = (newView) => {
-    setViewState(newView)
+    setViewState((prevView) => {
+      if (prevView && prevView !== newView) {
+        navigationHistoryRef.current.push(prevView)
+      }
+      return newView
+    })
     if (typeof window !== "undefined") {
       const targetPath = viewToPath(newView)
       if (targetPath && window.location.pathname !== targetPath) {
-        window.history.pushState({}, "", targetPath + window.location.search)
+        window.history.pushState({ view: newView }, "", targetPath + window.location.search)
       }
     }
   }
@@ -301,25 +331,13 @@ function AppContent() {
         console.log('❌ Invalid user data returned:', userData)
         localStorage.removeItem("slipzo_user_info")
         setUser(null)
-        const currentUrlView = pathToView(window.location.pathname)
-        const publicPages = ["landing", "templates", "product", "pricing", "contact", "bills"]
-        if (currentUrlView && publicPages.includes(currentUrlView)) {
-          setView(currentUrlView)
-        } else {
-          setView("landing")
-        }
+        setView("dashboard")
       }
     } catch (err) {
       console.log('❌ Not authenticated:', err.message)
       localStorage.removeItem("slipzo_user_info")
       setUser(null)
-      const currentUrlView = pathToView(window.location.pathname)
-      const publicPages = ["landing", "templates", "product", "pricing", "contact", "bills"]
-      if (currentUrlView && publicPages.includes(currentUrlView)) {
-        setView(currentUrlView)
-      } else {
-        setView("landing")
-      }
+      setView("dashboard")
     } finally {
       setChecking(false)
     }
@@ -349,6 +367,9 @@ function AppContent() {
       if (!p.startsWith("/admin")) {
         const matched = pathToView(p)
         if (matched) {
+          if (navigationHistoryRef.current.length > 0) {
+            navigationHistoryRef.current.pop()
+          }
           setViewState(matched)
         }
       }
@@ -388,6 +409,102 @@ function AppContent() {
     }
   }, [])
 
+  const modalStatesRef = useRef({
+    showAuth,
+    showShopOnboarding,
+    showAddItemsModal,
+    showRewardModal,
+    showFreeRewardExpiredModal
+  })
+
+  useEffect(() => {
+    modalStatesRef.current = {
+      showAuth,
+      showShopOnboarding,
+      showAddItemsModal,
+      showRewardModal,
+      showFreeRewardExpiredModal
+    }
+  }, [showAuth, showShopOnboarding, showAddItemsModal, showRewardModal, showFreeRewardExpiredModal])
+
+  useEffect(() => {
+    let removeListenerFunc = null
+
+    const setupCapacitorBackButton = async () => {
+      try {
+        const listener = await CapApp.addListener('backButton', () => {
+          const {
+            showAuth: authOpen,
+            showShopOnboarding: shopOnboardingOpen,
+            showAddItemsModal: addItemsOpen,
+            showRewardModal: rewardOpen,
+            showFreeRewardExpiredModal: expiryOpen
+          } = modalStatesRef.current
+
+          // 1. Close top-level App modals if open
+          if (authOpen) {
+            setShowAuth(false)
+            return
+          }
+          if (rewardOpen) {
+            setShowRewardModal(false)
+            return
+          }
+          if (expiryOpen) {
+            setShowFreeRewardExpiredModal(false)
+            return
+          }
+          if (addItemsOpen) {
+            setShowAddItemsModal(false)
+            return
+          }
+          if (shopOnboardingOpen) {
+            setShowShopOnboarding(false)
+            return
+          }
+
+          // 2. Dispatch custom event so active child views/modals can handle the back press first
+          const customBackEvent = new CustomEvent("slipzo_handle_back_button", { cancelable: true })
+          const defaultPrevented = !window.dispatchEvent(customBackEvent)
+          if (defaultPrevented) return
+
+          // 3. Redirect to last visited page from history stack if available
+          if (navigationHistoryRef.current.length > 0) {
+            const previousView = navigationHistoryRef.current.pop()
+            const targetPath = viewToPath(previousView)
+            if (targetPath) {
+              window.history.replaceState({ view: previousView }, "", targetPath)
+            }
+            setViewState(previousView)
+            return
+          }
+
+          // 4. If current view is not dashboard/overview, redirect back to dashboard
+          if (currentViewRef.current !== "dashboard") {
+            const targetPath = viewToPath("dashboard")
+            if (targetPath) {
+              window.history.replaceState({ view: "dashboard" }, "", targetPath)
+            }
+            setViewState("dashboard")
+            return
+          }
+
+          // 5. If already on dashboard with no history left, minimize/exit the app
+          CapApp.minimizeApp().catch(() => CapApp.exitApp())
+        })
+        removeListenerFunc = () => listener.remove()
+      } catch (err) {
+        // Ignored on web browser where native Capacitor App plugin is not active
+      }
+    }
+
+    setupCapacitorBackButton()
+
+    return () => {
+      if (removeListenerFunc) removeListenerFunc()
+    }
+  }, [])
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
     if (view === "customers") {
@@ -410,10 +527,11 @@ function AppContent() {
       } catch (e) {}
 
       setUser(null)
+      setShowAuth(false)
       setShowShopOnboarding(false)
       setShowAddItemsModal(false)
       setShowRewardModal(false)
-      setView("landing")
+      setView("dashboard")
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
       }
@@ -488,11 +606,11 @@ function AppContent() {
           <div className="brand-loader-logo-wrapper">
             <div className="brand-loader-ring-glow"></div>
             <div className="brand-loader-ring-spinner"></div>
-            <img src="/logo.png" alt="Slipzo" className="brand-loader-logo" />
+            <img src="/logo-white.png" alt="Slipzen" className="brand-loader-logo" />
           </div>
           <div className="brand-loader-text-group">
             <div className="brand-loader-brand">
-              <span className="brand-title">Slipzo</span>
+              <span className="brand-title">Slipzen</span>
               <span className="brand-dot">•</span>
             </div>
             <p className="brand-loader-subtext">Quick & Smart Billing System</p>
@@ -506,38 +624,42 @@ function AppContent() {
   }
 
   if (view === "admin_login" || view === "admin") {
-    return <AdminLogin onLoginSuccess={handleAdminLoginSuccess} />
+    if (adminUser && adminToken) {
+      return <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
+    }
+    return <AdminLogin onLoginSuccess={handleAdminLoginSuccess} onCancel={() => setView("dashboard")} />
   }
 
   if (view === "admin_dashboard") {
     return <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
   }
 
-  // Public pages (accessible without login)
-  const publicPages = ["landing", "templates", "product", "pricing", "contact", "bills"]
-
   if (!user) {
-    const activePublicView = publicPages.includes(view) ? view : "landing"
-    return (
-      <ErrorBoundary onGoHome={() => setView("landing")}>
-        <PublicLayout
-          view={activePublicView}
-          setView={setView}
-          setShowAuth={setShowAuth}
-          handleOpenAuth={handleOpenAuth}
-          user={user}
-          requireAuth={requireAuth}
-        />
-        {showAuth && (
+    if (showAuth) {
+      return (
+        <ErrorBoundary onGoHome={() => setView("dashboard")}>
           <Auth 
             onLogin={handleLogin} 
-            onCancel={() => {
-              setShowAuth(false)
-              setIsRegister(false)
-            }} 
+            onCancel={() => setShowAuth(false)}
             initialRegister={isRegister}
           />
-        )}
+          <PwaInstallPrompt />
+        </ErrorBoundary>
+      )
+    }
+
+    return (
+      <ErrorBoundary onGoHome={() => setView("dashboard")}>
+        <WelcomeOnboarding
+          onLogin={() => {
+            setIsRegister(false)
+            setShowAuth(true)
+          }}
+          onSignUp={() => {
+            setIsRegister(true)
+            setShowAuth(true)
+          }}
+        />
         <PwaInstallPrompt />
       </ErrorBoundary>
     )
@@ -581,6 +703,7 @@ function AppContent() {
         {view === "shop" && <Shop requireAuth={requireAuth} user={user} setView={setView} />}
         {view === "pricing" && <Pricing setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "contact" && <Contact setView={setView} setShowAuth={setShowAuth} user={user} />}
+        {view === "guide" && <UserGuide setView={setView} user={user} />}
         {view === "reprint" && (
           <Reprint
             billId={selectedBillId}
@@ -627,265 +750,5 @@ function AppContent() {
     />
     <PwaInstallPrompt />
   </>
-  )
-}
-
-// Public Layout Component
-function PublicLayout({ view, setView, setShowAuth, handleOpenAuth, user, requireAuth }) {
-  const { t } = useTranslation()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  // Prevent body scrolling when mobile menu is open
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden"
-      document.documentElement.style.overflow = "hidden"
-      document.body.style.touchAction = "none"
-      document.documentElement.style.touchAction = "none"
-    } else {
-      document.body.style.overflow = ""
-      document.documentElement.style.overflow = ""
-      document.body.style.touchAction = ""
-      document.documentElement.style.touchAction = ""
-    }
-    return () => {
-      document.body.style.overflow = ""
-      document.documentElement.style.overflow = ""
-      document.body.style.touchAction = ""
-      document.documentElement.style.touchAction = ""
-    }
-  }, [mobileMenuOpen])
-
-  const navItems = [
-    { id: "landing", label: t("nav.home", "Home"), icon: Home },
-    { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
-    { id: "product", label: t("footer.product", "Product"), icon: Sparkles },
-    { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag },
-    { id: "contact", label: t("nav.contact", "Contact"), icon: Mail }
-  ]
-
-  const renderPage = () => {
-    switch (view) {
-      case "landing":
-        return <Landing setView={setView} setShowAuth={setShowAuth} user={user} />
-      case "templates":
-        return <PublicTemplates setView={setView} setShowAuth={setShowAuth} user={user} requireAuth={requireAuth} />
-      case "product":
-        return <Product setView={setView} setShowAuth={setShowAuth} />
-      case "pricing":
-        return <Pricing setView={setView} setShowAuth={setShowAuth} />
-      case "contact":
-        return <Contact setView={setView} setShowAuth={setShowAuth} />
-      case "bills":
-        return <Bill setView={setView} user={user} requireAuth={requireAuth} />
-      default:
-        return <Landing setView={setView} setShowAuth={setShowAuth} user={user} />
-    }
-  }
-
-  return (
-    <div className="public-layout">
-      {mobileMenuOpen && (
-        <div 
-          className="mobile-menu-backdrop" 
-          onClick={() => setMobileMenuOpen(false)}
-          onTouchMove={(e) => e.preventDefault()}
-        />
-      )}
-      <nav className="public-nav">
-        <div className="nav-container">
-          <div className="nav-brand" onClick={() => setView(user ? "dashboard" : "landing")}>
-            <img
-              src="/logo.png"
-              alt="Slipzo"
-              className="public-nav-logo"
-            />
-          </div>
-
-          <button
-            className="mobile-menu-btn"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle navigation menu"
-          >
-            {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
-          </button>
-
-          <div 
-            className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}
-            onTouchMove={(e) => e.preventDefault()}
-          >
-            <div className="mobile-menu-header">
-              <span className="mobile-menu-title">{t("nav.menu", "Menu")}</span>
-              <button 
-                className="mobile-menu-close" 
-                onClick={() => setMobileMenuOpen(false)}
-                aria-label="Close menu"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {navItems.map(item => {
-              const IconComp = item.icon
-              return (
-                <button
-                  key={item.id}
-                  className={`nav-link ${view === item.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setView(item.id)
-                    setMobileMenuOpen(false)
-                  }}
-                >
-                  <IconComp size={18} className="nav-item-icon" />
-                  <span>{item.label}</span>
-                </button>
-              )
-            })}
-
-            {!user && (
-              <div className="mobile-menu-actions">
-                <button
-                  className="mobile-login-btn"
-                  onClick={() => {
-                    if (handleOpenAuth) {
-                      handleOpenAuth(false)
-                    } else {
-                      setShowAuth(true)
-                    }
-                    setMobileMenuOpen(false)
-                  }}
-                >
-                  <LogIn size={16} /> {t("common.logIn", "Log In")}
-                </button>
-                <button
-                  className="mobile-get-started-btn"
-                  onClick={() => {
-                    if (handleOpenAuth) {
-                      handleOpenAuth(true)
-                    } else {
-                      setShowAuth(true)
-                    }
-                    setMobileMenuOpen(false)
-                  }}
-                >
-                  <Zap size={16} /> {t("common.signUp", "Sign Up")}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="nav-actions">
-            {user ? (
-              <button
-                className="nav-button primary"
-                onClick={() => setView("dashboard")}
-              >
-                {t("nav.overview", "Dashboard")} <ArrowRight size={16} />
-              </button>
-            ) : (
-              <>
-                <button
-                  className="nav-button secondary"
-                  onClick={() => handleOpenAuth ? handleOpenAuth(false) : setShowAuth(true)}
-                >
-                  <LogIn size={16} /> {t("common.logIn", "Log in")}
-                </button>
-                <button
-                  className="nav-button primary"
-                  onClick={() => handleOpenAuth ? handleOpenAuth(true) : setShowAuth(true)}
-                >
-                  <Zap size={16} /> {t("common.getStarted", "Get Started")}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      <main className="public-main">
-        {renderPage()}
-      </main>
-
-      {!isNativeApp && (
-        <footer className="public-footer">
-          <div className="footer-container">
-            <div className="footer-grid">
-              <div
-                className="footer-brand"
-                onClick={() => setView(user ? "dashboard" : "landing")}
-                style={{ cursor: 'pointer' }}
-                title="Return to Home"
-              >
-                <div className="footer-logo-box">
-                  <img
-                    src="/logo.png"
-                    alt="Slipzo"
-                    className="footer-logo"
-                  />
-                </div>
-                <p className="footer-tagline">{t("footer.tagline", "Effortless digital billing & receipts for small businesses.")}</p>
-                
-                <div className="footer-social-icons">
-                  <a href="https://devnectar.in" target="_blank" rel="noreferrer" title="Website"><Globe size={16} /></a>
-                  <a href="mailto:support@slipzo.in" title="Email Us"><Mail size={16} /></a>
-                  <button onClick={() => setView("product")} title="Features"><Sparkles size={16} /></button>
-                  <button onClick={() => setView("templates")} title="Templates"><LayoutTemplate size={16} /></button>
-                </div>
-              </div>
-
-              <div className="footer-links-group">
-                <div className="footer-links">
-                  <h4>{t("footer.product", "Product")}</h4>
-                  <button onClick={() => setView("product")}>
-                    <Sparkles size={13} /> {t("footer.features", "Features")}
-                  </button>
-                  <button onClick={() => setView("templates")}>
-                    <LayoutTemplate size={13} /> {t("footer.templates", "Templates")}
-                  </button>
-                  <button onClick={() => setView("pricing")}>
-                    <Tag size={13} /> {t("footer.pricing", "Pricing")}
-                  </button>
-                </div>
-                <div className="footer-links">
-                  <h4>{t("footer.company", "Company")}</h4>
-                  <button onClick={() => setView("contact")}>
-                    <Mail size={13} /> {t("footer.contactUs", "Contact Us")}
-                  </button>
-                  <button onClick={() => setView("landing")}>
-                    <Home size={13} /> {t("footer.about", "About")}
-                  </button>
-                  <button onClick={() => { setView("admin_login"); window.history.pushState({}, "", "/admin/login"); }}>
-                    <ShieldCheck size={13} /> {t("footer.adminPortal", "Admin Portal")}
-                  </button>
-                </div>
-                <div className="footer-links">
-                  <h4>{t("footer.legal", "Legal")}</h4>
-                  <button onClick={() => setView("contact")}>
-                    <ShieldCheck size={13} /> {t("footer.privacyPolicy", "Privacy Policy")}
-                  </button>
-                  <button onClick={() => setView("contact")}>
-                    <FileText size={13} /> {t("footer.termsOfService", "Terms of Service")}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="footer-bottom">
-              <p>{t("footer.rights", "© 2026 slipzo.com. All rights reserved.")}</p>
-              <a
-                href="https://devnectar.in"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="devnectar-block"
-                title="Visit devNectar.in"
-              >
-                <span className="devnectar-label">Crafted by</span>
-                <span className="devnectar-text">devNectar</span>
-              </a>
-            </div>
-          </div>
-        </footer>
-      )}
-    </div>
   )
 }

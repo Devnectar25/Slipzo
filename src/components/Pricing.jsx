@@ -78,7 +78,7 @@ export function Pricing({ setView, setShowAuth, user }) {
       key: razorpayKey,
       amount: amountInRupees * 100, // Amount in paise
       currency: "INR",
-      name: "Slipzo Print Credits",
+      name: "Slipzen Print Credits",
       description: `${planName} (${printCount.toLocaleString()} prints)`,
       image: "/logo.png",
       prefill: {
@@ -109,7 +109,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               prints_count: printCount,
               payment_id: response.razorpay_payment_id || `PAY_${Date.now()}`,
               payment_status: 'completed',
-              user_name: user?.name || 'Slipzo Member',
+              user_name: user?.name || 'Slipzen Member',
               user_email: user?.email || ''
             })
           })
@@ -345,7 +345,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div className="pricing-hero-art-wrapper">
               <img 
                 src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/pricing_hero_printer.jpg" 
-                alt="Slipzo POS Thermal Printer" 
+                alt="Slipzen POS Thermal Printer" 
                 className="pricing-hero-printer-img" 
               />
             </div>
@@ -682,13 +682,13 @@ export function Pricing({ setView, setShowAuth, user }) {
           <div className="cta-left-art">
             <img 
               src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/templates_hero_illustration.jpg" 
-              alt="Slipzo Receipt Billing" 
+              alt="Slipzen Receipt Billing" 
               className="cta-receipt-art-img" 
             />
           </div>
 
           <div className="cta-center-content">
-            <h2 className="cta-heading">{t("pricing.ctaHeading", "Start billing with Slipzo today")}</h2>
+            <h2 className="cta-heading">{t("pricing.ctaHeading", "Start billing with Slipzen today")}</h2>
             <p className="cta-subtext">{t("pricing.ctaSub", "Join thousands of retail shop owners across India. Quick 1-minute setup.")}</p>
             <button 
               className="cta-get-started-btn" 

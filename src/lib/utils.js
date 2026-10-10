@@ -423,6 +423,139 @@ export const DEFAULT_SHOP_MENU_ITEMS = [
   }
 ]
 
+export const DEFAULT_KIRANA_MENU_ITEMS = [
+  {
+    id: "kirana_001_aashirvaad-superior-mp-atta-5kg",
+    name: "Aashirvaad Superior MP Atta (5kg)",
+    category: "Atta & Flour",
+    price: 245.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/aashirvaad-superior-mp-atta-5kg.jpg?v=kirana_1",
+    is_veg: true,
+    barcode: "8901058852317",
+    is_active: true
+  },
+  {
+    id: "kirana_006_india-gate-basmati-rice-5kg",
+    name: "India Gate Basmati Rice Feast Rozzana (5kg)",
+    category: "Rice",
+    price: 420.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/india-gate-basmati-rice-5kg.jpg?v=kirana_6",
+    is_veg: true,
+    barcode: "8901194200021",
+    is_active: true
+  },
+  {
+    id: "kirana_012_tata-sampann-toor-dal-1kg",
+    name: "Tata Sampann Unpolished Toor Dal (1kg)",
+    category: "Dal & Pulses",
+    price: 185.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/tata-sampann-toor-dal-1kg.jpg?v=kirana_12",
+    is_veg: true,
+    barcode: "8901058001128",
+    is_active: true
+  },
+  {
+    id: "kirana_019_fortune-sunflower-oil-1l",
+    name: "Fortune Sunlite Refined Sunflower Oil (1L)",
+    category: "Oil & Ghee",
+    price: 145.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/fortune-sunflower-oil-1l.jpg?v=kirana_19",
+    is_veg: true,
+    barcode: "8906007280014",
+    is_active: true
+  },
+  {
+    id: "kirana_025_mdh-deggi-mirch-100g",
+    name: "MDH Deggi Mirch Powder (100g)",
+    category: "Spices & Masala",
+    price: 82.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/mdh-deggi-mirch-100g.jpg?v=kirana_25",
+    is_veg: true,
+    barcode: "8901648000122",
+    is_active: true
+  },
+  {
+    id: "kirana_033_tata-salt-iodized-1kg",
+    name: "Tata Salt Vacuum Evaporated Iodized Salt (1kg)",
+    category: "Salt & Sugar",
+    price: 28.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/tata-salt-iodized-1kg.jpg?v=kirana_33",
+    is_veg: true,
+    barcode: "8901058000107",
+    is_active: true
+  },
+  {
+    id: "kirana_037_parle-g-glucose-biscuits-250g",
+    name: "Parle-G Original Glucose Biscuits (250g)",
+    category: "Biscuits & Cookies",
+    price: 25.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/parle-g-glucose-biscuits-250g.jpg?v=kirana_37",
+    is_veg: true,
+    barcode: "8901030000019",
+    is_active: true
+  },
+  {
+    id: "kirana_052_tata-tea-premium-500g",
+    name: "Tata Tea Premium Leaf Tea (500g)",
+    category: "Tea & Coffee",
+    price: 240.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/tata-tea-premium-500g.jpg?v=kirana_52",
+    is_veg: true,
+    barcode: "8901058002019",
+    is_active: true
+  },
+  {
+    id: "kirana_073_maggi-2-minute-masala-noodles-4pack",
+    name: "Maggi 2-Minute Masala Noodles (Pack of 4)",
+    category: "Instant Food",
+    price: 56.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/maggi-2-minute-masala-noodles-4pack.jpg?v=kirana_73",
+    is_veg: true,
+    barcode: "8901058850023",
+    is_active: true
+  },
+  {
+    id: "kirana_095_vim-dishwash-bar-lemon-300g",
+    name: "Vim Dishwash Bar with Lemon (300g)",
+    category: "Cleaning & Household",
+    price: 35.00,
+    image_url: "https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/menu-item-images/items/vim-dishwash-bar-lemon-300g.jpg?v=kirana_95",
+    is_veg: true,
+    barcode: "8901030029010",
+    is_active: true
+  }
+]
+
+export const DEFAULT_CLOTHING_MENU_ITEMS = [
+  { id: "cloth_001", name: "Men's Cotton Casual Shirt", category: "Men's Wear", price: 699.00, is_active: true },
+  { id: "cloth_002", name: "Men's Denim Jeans", category: "Men's Wear", price: 1199.00, is_active: true },
+  { id: "cloth_003", name: "Women's Designer Saree", category: "Women's Wear", price: 1499.00, is_active: true },
+  { id: "cloth_004", name: "Women's Kurti Set", category: "Women's Wear", price: 899.00, is_active: true },
+  { id: "cloth_005", name: "Kids T-Shirt & Shorts Combo", category: "Kids Wear", price: 499.00, is_active: true }
+]
+
+export const DEFAULT_HOTEL_MENU_ITEMS = [
+  { id: "hotel_001", name: "Special Veg Thali", category: "Thali & Meals", price: 160.00, is_active: true },
+  { id: "hotel_002", name: "Paneer Butter Masala", category: "Main Course", price: 220.00, is_active: true },
+  { id: "hotel_003", name: "Butter Naan", category: "Breads", price: 40.00, is_active: true },
+  { id: "hotel_004", name: "Chicken Biryani", category: "Biryani & Rice", price: 240.00, is_active: true },
+  { id: "hotel_005", name: "Gulab Jamun (2 pcs)", category: "Desserts", price: 60.00, is_active: true }
+]
+
+export const getFallbackCatalogForCategory = (businessType) => {
+  const type = String(businessType || "").toLowerCase()
+  if (type.includes("kirana") || type.includes("grocery")) {
+    return DEFAULT_KIRANA_MENU_ITEMS
+  }
+  if (type.includes("clothing") || type.includes("garment")) {
+    return DEFAULT_CLOTHING_MENU_ITEMS
+  }
+  if (type.includes("hotel") || type.includes("restaurant") || type.includes("food")) {
+    return DEFAULT_HOTEL_MENU_ITEMS
+  }
+  return DEFAULT_SHOP_MENU_ITEMS
+}
+
 export const getStoredMenuItems = (user) => {
   const key = getCurrentUserKey(user)
   try {

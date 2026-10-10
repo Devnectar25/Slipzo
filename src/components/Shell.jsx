@@ -21,14 +21,17 @@ import {
   List,
   Globe,
   Home,
-  ChevronDown
+  ChevronDown,
+  BookOpen
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
 import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, getCachedData } from "../lib/utils"
 
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const { t, i18n } = useTranslation()
+  const { tDb } = useDbTranslation()
   const currentLang = i18n.language || "en"
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0]
   const [langOpen, setLangOpen] = useState(false)
@@ -58,6 +61,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
     { id: "history", label: t("nav.history", "History"), icon: History, protected: true },
     { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
     { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings, protected: true },
+    { id: "guide", label: t("nav.guide", "User Guide"), icon: BookOpen, protected: false, badge: t("sidebar.help", tDb("Help")), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
     { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, protected: false }
   ]
 
@@ -201,7 +205,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
         />
       )}
 
-      {/* ✅ SIDEBAR - Left side navigation bar with Slipzo logo at top left */}
+      {/* ✅ SIDEBAR - Left side navigation bar with Slipzen logo at top left */}
       <aside
         className={isOpen ? "open" : ""}
         style={{
@@ -219,6 +223,16 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           zIndex: 999,
           transition: 'transform 0.3s ease',
           overflow: 'hidden',
+          overscrollBehavior: 'contain',
+          overscrollBehaviorY: 'contain',
+        }}
+        onWheel={(e) => {
+          const el = e.currentTarget
+          const isScrollable = el.scrollHeight > el.clientHeight
+          if (!isScrollable) {
+            e.preventDefault()
+          }
+          e.stopPropagation()
         }}
       >
         <div
@@ -227,7 +241,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           style={{ cursor: 'pointer', paddingBottom: '0.35rem', marginBottom: '0.45rem', marginTop: 0, marginLeft: '-8px' }}
           title="Return to Home Dashboard"
         >
-          <img src="/logo.png" alt="Slipzo" className="side-logo" style={{ height: '48px', width: 'auto', objectFit: 'contain', objectPosition: 'left center', marginLeft: '-26px' }} />
+          <img src="/logo.png" alt="Slipzen" className="side-logo" style={{ height: '38px', width: 'auto', objectFit: 'contain', objectPosition: 'left center', marginLeft: '14px' }} />
           <button
             className="side-close-btn"
             onClick={closeSidebar}
@@ -251,6 +265,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             flex: 1,
             minHeight: 0,
             overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            overscrollBehaviorY: 'contain',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             display: 'flex',
@@ -258,6 +274,20 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             gap: '0.2rem',
             marginBottom: '0.25rem',
             paddingRight: '0px',
+          }}
+          onWheel={(e) => {
+            const el = e.currentTarget
+            const isScrollable = el.scrollHeight > el.clientHeight
+            if (isScrollable) {
+              const isAtTop = el.scrollTop <= 0 && e.deltaY < 0
+              const isAtBottom = Math.abs(el.scrollHeight - el.clientHeight - el.scrollTop) <= 1 && e.deltaY > 0
+              if (isAtTop || isAtBottom) {
+                e.preventDefault()
+              }
+            } else {
+              e.preventDefault()
+            }
+            e.stopPropagation()
           }}
         >
           {navItems.map((item) => {
@@ -446,10 +476,10 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           <div
             className="shell-header-brand"
             onClick={() => setView("dashboard")}
-            title="Slipzo Dashboard"
+            title="Slipzen Dashboard"
             style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
           >
-            <img src="/logo.png" alt="Slipzo" className="shell-header-logo" style={{ height: '36px', width: 'auto', objectFit: 'contain', objectPosition: 'left center' }} />
+            <img src="/logo.png" alt="Slipzen" className="shell-header-logo" style={{ height: '36px', width: 'auto', objectFit: 'contain', objectPosition: 'left center' }} />
           </div>
 
           <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginLeft: 'auto' }}>
@@ -639,6 +669,13 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             border-right: 1px solid #bae6fd !important;
             background: #f8fafc !important;
             transition: transform 0.3s ease !important;
+            overscroll-behavior: contain !important;
+            overscroll-behavior-y: contain !important;
+          }
+
+          .app-shell aside nav {
+            overscroll-behavior: contain !important;
+            overscroll-behavior-y: contain !important;
           }
 
           .app-shell.desktop-collapsed aside {

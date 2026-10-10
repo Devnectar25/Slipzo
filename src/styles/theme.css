@@ -201,7 +201,8 @@ h1,
 .resources-header h1,
 .support-header h1,
 .contact-bottom-cta h1,
-.contact-bottom-cta h2 {
+.contact-bottom-cta h2,
+.guide-hero h1 {
   color: #FFFFFF !important;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5) !important;
 }

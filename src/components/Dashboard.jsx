@@ -14,7 +14,9 @@ import {
   ArrowRight,
   X,
   Utensils,
-  Pencil
+  Pencil,
+  BookOpen,
+  ShieldCheck
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
@@ -248,13 +250,6 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
       targetView: isHotel ? "tables" : "bills"
     },
     {
-      id: "new-product",
-      title: t("home.newProduct", "New Product"),
-      subtitle: t("home.addToInventory", "Add to inventory"),
-      icon: Package,
-      targetView: "products"
-    },
-    {
       id: "add-item",
       title: t("home.addItem", "Add Item"),
       subtitle: t("home.quickAddItem", "Quick add item"),
@@ -262,18 +257,25 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
       targetView: "menu"
     },
     {
-      id: "templates",
-      title: t("home.templates", "Templates"),
-      subtitle: t("home.useReadyFormats", "Use ready formats"),
-      icon: LayoutTemplate,
-      targetView: "templates"
-    },
-    {
       id: "shop-profile",
       title: t("home.shopProfile", "Shop Profile"),
       subtitle: t("home.manageYourShop", "Manage your shop"),
       icon: Store,
       targetView: "shop"
+    },
+    {
+      id: "products",
+      title: t("home.products", tDb("Products")),
+      subtitle: t("home.addToInventory", tDb("Add to inventory")),
+      icon: Package,
+      targetView: "products"
+    },
+    {
+      id: "templates",
+      title: t("home.templates", "Templates"),
+      subtitle: t("home.useReadyFormats", "Use ready formats"),
+      icon: LayoutTemplate,
+      targetView: "templates"
     },
     {
       id: "pricing",
@@ -937,6 +939,43 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
             </div>
           )
         })}
+      </div>
+
+      {/* 2.5 USER GUIDE HELP BANNER */}
+      <div 
+        className="home-guide-banner"
+        onClick={() => setView("guide")}
+        style={{
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+          border: '1px solid #bae6fd',
+          borderRadius: '14px',
+          padding: '12px 18px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.08)',
+          transition: 'all 0.2s ease'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <BookOpen size={18} />
+          </div>
+          <div>
+            <h4 style={{ margin: '0 0 2px 0', fontSize: '0.9rem', fontWeight: 700, color: '#0369a1' }}>
+              {t("guide.bannerTitle", tDb("Slipzen User Guide & Quick Setup"))}
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#0284c7' }}>
+              {t("guide.bannerSubtitle", tDb("Step-by-step instructions for thermal printers, barcode inventory, dine-in tables & billing."))}
+            </p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', fontWeight: 700, color: '#0284c7', whiteSpace: 'nowrap' }}>
+          <span>{t("guide.openGuide", tDb("Open Guide"))}</span>
+          <ArrowRight size={14} />
+        </div>
       </div>
 
       {/* 3. RECENT BILLS SECTION */}

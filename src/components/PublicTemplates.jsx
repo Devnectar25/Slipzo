@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { 
   ArrowRight, Printer, Star, CheckCircle, FileText, Layout, Store, 
-  Award, Type, Eye, Check, Sparkles, SlidersHorizontal, QrCode, Shield, Zap
+  Award, Type, Eye, Check, Sparkles, SlidersHorizontal, QrCode, Shield, Zap, X
 } from "lucide-react"
 import { MiniReceiptPreview } from "./MiniReceiptPreview"
 import { RealisticReceiptView } from "./RealisticReceiptView"
@@ -355,7 +355,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
         <div className="specs-container">
           <div className="specs-header">
             <p className="eyebrow">BUILT FOR REAL SHOPS</p>
-            <h2>Why shop owners love Slipzo templates</h2>
+            <h2>Why shop owners love Slipzen templates</h2>
             <p>Engineered to print fast, save paper, and impress customers on every checkout.</p>
           </div>
 
@@ -399,7 +399,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       <section className="templates-cta-section">
         <div className="templates-cta-content">
           <h2>Ready to upgrade your billing experience?</h2>
-          <p>Join thousands of shops printing clean, branded receipts with Slipzo today.</p>
+          <p>Join thousands of shops printing clean, branded receipts with Slipzen today.</p>
           <div className="templates-cta-buttons">
             <button className="cta-button primary large" onClick={() => (user ? setView("bills") : setShowAuth(true))}>
               Create your first receipt free <ArrowRight size={18} />
@@ -426,7 +426,9 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
                 <h3>{previewTemplate.name}</h3>
                 <span className="modal-paper-tag"><Printer size={12} /> {previewTemplate.paperSize}</span>
               </div>
-              <button className="modal-close-btn" onClick={() => setPreviewTemplate(null)}>✕</button>
+              <button className="modal-close-btn" onClick={() => setPreviewTemplate(null)} aria-label="Close preview">
+                <X size={18} />
+              </button>
             </div>
 
             <div className="template-modal-receipt-wrapper">

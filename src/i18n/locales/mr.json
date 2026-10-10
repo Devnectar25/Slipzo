@@ -42,6 +42,7 @@
     "history": "इतिहास",
     "pricing": "किंमत योजना",
     "shopProfile": "दुकान प्रोफाइल",
+    "guide": "वापरकर्ता मार्गदर्शक",
     "contact": "आमच्याशी संपर्क",
     "signOut": "साइन आउट",
     "plans": "प्लॅन्स",
@@ -50,7 +51,8 @@
   "sidebar": {
     "freePrints": "मोफत प्रिंट्स",
     "subscription": "सदस्यता",
-    "printsLeft": "शिल्लक"
+    "printsLeft": "शिल्लक",
+    "help": "मदत"
   },
   "header": {
     "printsLeft": "प्रिंट्स शिल्लक",
@@ -485,6 +487,8 @@
     "eyebrow": "तुमच्या पावत्या",
     "title": "बिल इतिहास.",
     "subtitle": "प्रत्येक जतन केलेले बिल, शोधण्यासाठी आणि पुन्हा प्रिंट करण्यासाठी तयार.",
+    "savedBills": "जतन केलेली बिले",
+    "printBills": "प्रिंट बिले",
     "savedReceipt": "जतन केलेली पावती",
     "searchPlaceholder": "पावती क्रमांक किंवा ग्राहकाने शोधा...",
     "filterPayment": "पेमेंट पद्धत",
@@ -544,7 +548,7 @@
     "privacyPolicy": "गोपनीयता धोरण",
     "termsOfService": "सेवा अटी",
     "tagline": "लहान व्यवसायांसाठी सुलभ डिजिटल बिलिंग आणि पावत्या.",
-    "rights": "© २०२६ slipzo.com. सर्व हक्क राखीव.",
+    "rights": "© २०२६ Slipzen. सर्व हक्क राखीव.",
     "forBusinesses": "व्यवसायांसाठी",
     "changelog": "बदल नोंदी",
     "support": "सपोर्ट",

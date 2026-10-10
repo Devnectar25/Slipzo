@@ -848,7 +848,7 @@ export function AdminDashboard({ admin, onLogout }) {
       {/* Admin Sidebar */}
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
-          <img src="/logo.png" alt="Slipzo Admin" className="admin-sidebar-logo" />
+          <img src="/logo.png" alt="Slipzen Admin" className="admin-sidebar-logo" />
           <div style={{ marginTop: "0.5rem" }}>
             <span className="admin-tag admin-tag-blue">
               <ShieldCheck size={12} /> Super Admin
