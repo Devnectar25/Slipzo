@@ -29,7 +29,7 @@ export function TableResetModal({ isOpen, onClose, onConfirm, tableName = "Table
 
         <div className="table-modal-body">
           <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.88rem", color: "#334155", lineHeight: "1.4" }}>
-            {t("tables.resetModalDesc", `Are you sure you want to remove all currently added items from ${tableName}?`)}
+            {t("tables.resetModalDesc", { tableName, defaultValue: `Are you sure you want to remove all currently added items from ${tableName}?` })}
           </p>
           <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "0.65rem 0.85rem", fontSize: "0.78rem", color: "#64748b" }}>
             ℹ️ {t("tables.resetModalNote", "This only clears the active unsaved cart for this table. No bills from Bill History will be deleted.")}

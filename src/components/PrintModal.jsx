@@ -27,10 +27,12 @@ export function PrintModal({
         if (parsed.pageWidth) {
           if (parsed.pageWidth === "55mm") return "55mm"
           if (parsed.pageWidth === "80mm") return "80mm"
+          if (parsed.pageWidth === "a4") return "a4"
         }
       } catch (_) { }
     }
     if (defaultWidth === "55mm") return "55mm"
+    if (defaultWidth === "a4") return "a4"
     return "80mm"
   })
 
@@ -76,10 +78,12 @@ export function PrintModal({
   // Update width if defaultWidth prop changes or when modal opens
   useEffect(() => {
     if (defaultWidth) {
-      const sanitized = (defaultWidth === "55mm") ? "55mm" : "80mm"
+      const sanitized = (defaultWidth === "55mm") ? "55mm" : (defaultWidth === "a4" ? "a4" : "80mm")
       setPageWidth(sanitized)
       if (sanitized === "55mm") {
         setFontSize(13.5)
+      } else if (sanitized === "a4") {
+        setFontSize(14.5)
       } else if (sanitized === "80mm") {
         setFontSize(15.5)
       }
@@ -355,7 +359,7 @@ export function PrintModal({
     setShowFooter(true)
   }
 
-  const previewWidthStyle = pageWidth === "80mm" ? "320px" : "220px"
+  const previewWidthStyle = pageWidth === "a4" ? "420px" : (pageWidth === "80mm" ? "320px" : "220px")
 
   const previewLineHeight = density === "tight" ? 1.3 : (density === "relaxed" ? 1.75 : 1.5)
   const previewItemPadding = density === "tight" ? "2px 0" : (density === "relaxed" ? "6px 0" : "3.5px 0")
@@ -414,7 +418,7 @@ export function PrintModal({
                 <span>Paper Width / Format</span>
                 <span className="label-badge">{pageWidth.toUpperCase()}</span>
               </label>
-              <div className="paper-format-pills paper-format-pills--two">
+              <div className="paper-format-pills paper-format-pills--three">
                 <button
                   type="button"
                   className={`paper-format-btn ${pageWidth === "55mm" ? "active" : ""}`}
@@ -423,8 +427,8 @@ export function PrintModal({
                     setFontSize(13.5)
                   }}
                 >
-                  <span className="format-name">55mm Thermal</span>
-                  <span className="format-desc">2-inch Compact Roll</span>
+                  <span className="format-name">55mm</span>
+                  <span className="format-desc">2" Compact</span>
                 </button>
                 <button
                   type="button"
@@ -434,8 +438,19 @@ export function PrintModal({
                     setFontSize(15.5)
                   }}
                 >
-                  <span className="format-name">80mm Thermal</span>
-                  <span className="format-desc">3-inch Retail Counter</span>
+                  <span className="format-name">80mm</span>
+                  <span className="format-desc">3" Counter</span>
+                </button>
+                <button
+                  type="button"
+                  className={`paper-format-btn ${pageWidth === "a4" ? "active" : ""}`}
+                  onClick={() => {
+                    setPageWidth("a4")
+                    setFontSize(14.5)
+                  }}
+                >
+                  <span className="format-name">A4</span>
+                  <span className="format-desc">Full Sheet</span>
                 </button>
               </div>
             </div>
@@ -446,7 +461,7 @@ export function PrintModal({
             <div className="preview-col-header">
               <span className="live-badge">LIVE THERMAL TICKET PREVIEW</span>
               <span className="paper-width-badge">
-                {pageWidth === "55mm" ? "55mm Roll Tape" : "80mm Roll Tape"}
+                {pageWidth === "a4" ? "A4 Sheet" : (pageWidth === "55mm" ? "55mm Roll Tape" : "80mm Roll Tape")}
               </span>
             </div>
 

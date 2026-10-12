@@ -1,5 +1,5 @@
 import { Utensils, ShoppingBag, ArrowRight } from "lucide-react"
-import { money } from "../../lib/utils"
+import { money, getTableDisplayName } from "../../lib/utils"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../../lib/translator"
 
@@ -54,7 +54,7 @@ export function TableCard({ table, onSelectTable }) {
       <div className="table-card-header">
         <div className="table-number-title">
           <Utensils size={18} style={{ color: isOccupied ? "#0284c7" : "#7dd3fc" }} />
-          <span>{table.name || `Table ${table.table_number}`}</span>
+          <span>{getTableDisplayName(table, t, formatNum)}</span>
         </div>
 
         <span className={`table-status-badge ${isOccupied ? "badge-occupied" : "badge-available"}`}>

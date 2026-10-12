@@ -20,7 +20,7 @@ import {
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
-import { call, money, getCachedData, isHotelRestaurant } from "../lib/utils"
+import { call, money, getCachedData, isHotelRestaurant, getTableDisplayName } from "../lib/utils"
 
 export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   const { t } = useTranslation()
@@ -1071,7 +1071,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
                         <p className="home-bill-number">{formatNum(billNumberDisplay)}</p>
                         {bill.table_number && (
                           <span style={{ fontSize: "0.68rem", fontWeight: "600", padding: "1px 5px", borderRadius: "4px", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", whiteSpace: "nowrap" }}>
-                            {bill.table_number}
+                            {getTableDisplayName(bill.table_number, t, formatNum)}
                           </span>
                         )}
                       </div>

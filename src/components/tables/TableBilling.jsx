@@ -25,7 +25,11 @@ import {
   getCachedData,
   findTemplateMatch,
   getItemRate,
-  getStoredMenuItems
+  getStoredMenuItems,
+  removeCachedData,
+  invalidateApiCache,
+  resetSingleStoredTable,
+  getTableDisplayName
 } from "../../lib/utils"
 import { BUILTIN_TEMPLATES } from "../Templates"
 import { TableResetModal } from "./TableResetModal"
@@ -304,7 +308,8 @@ export function TableBilling({
       method: "POST"
     }).catch((e) => console.warn("Backend table reset warning:", e))
 
-    toastSuccess(t("tables.tableResetSuccess", `${table.name || `Table ${table.table_number}`} cleared.`))
+    const tableNameStr = getTableDisplayName(table, t, formatNum)
+    toastSuccess(t("tables.tableResetSuccess", { tableName: tableNameStr, defaultValue: `${tableNameStr} cleared.` }))
   }
 
   // ==========================================
@@ -402,7 +407,8 @@ export function TableBilling({
         })
       }
 
-      toastSuccess(t("tables.orderSavedSuccess", `Bill saved for ${table.name || `Table ${table.table_number}`}!`))
+      const tableNameStr = getTableDisplayName(table, t, formatNum)
+      toastSuccess(t("tables.orderSavedSuccess", { tableName: tableNameStr, defaultValue: `Bill saved for ${tableNameStr}!` }))
       onBack()
     } catch (err) {
       console.error("Failed to save restaurant table bill:", err)
@@ -461,6 +467,7 @@ export function TableBilling({
           method: "PUT",
           body: JSON.stringify(billData)
         }).catch(() => {})
+        call(`/bills/${table.editing_bill_id}/print`, { method: "POST" }).catch(() => {})
       }
 
       const savedBill = await call("/bills", {
@@ -469,15 +476,15 @@ export function TableBilling({
       })
 
       // If this table had an active saved bill in saved_bills, mark as printed in backend so it's removed from Home screen
-      const tableLabel = table.name || `Table ${table.table_number}`
+      const tableLabel = getTableDisplayName(table, t, formatNum)
       call(`/bills/print-table/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => {})
-
-      window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: { ...savedBill, table_number: tableLabel } }))
 
       // Clear table and route directly to reprint
       setItems([])
+      const tableIdOrNum = table.id || table.table_number
+
       if (onUpdateTableState) {
-        onUpdateTableState(table.id || table.table_number, {
+        onUpdateTableState(tableIdOrNum, {
           current_items: [],
           total_amount: 0,
           status: "AVAILABLE",
@@ -485,9 +492,23 @@ export function TableBilling({
           editing_bill_number: null
         })
       }
-      await call(`/restaurant/tables/reset/${table.id || table.table_number}`, {
+
+      await call(`/restaurant/tables/reset/${tableIdOrNum}`, {
         method: "POST"
       }).catch(() => {})
+
+      // Invalidate restaurant tables cache so TableManagement gets clean state
+      removeCachedData("/restaurant/tables")
+      removeCachedData("/tables")
+      invalidateApiCache("restaurant")
+      invalidateApiCache("tables")
+      resetSingleStoredTable(user, tableIdOrNum)
+
+      window.dispatchEvent(
+        new CustomEvent("slipzo_bill_printed", {
+          detail: { ...savedBill, id: savedBill?.id, billId: savedBill?.id, table_number: tableLabel }
+        })
+      )
 
       setSelectedBillId?.(savedBill.id)
       sessionStorage.setItem("slipzo-reprint-id", savedBill.id)
@@ -515,7 +536,7 @@ export function TableBilling({
 
           <div className="table-billing-title-box">
             <h2 className="table-billing-title">
-              {table.name || `Table ${table.table_number}`}
+              {getTableDisplayName(table, t, formatNum)}
             </h2>
             <span className={`table-status-badge ${isOccupied ? "badge-occupied" : "badge-available"}`}>
               <span className="status-dot" />
@@ -729,7 +750,7 @@ export function TableBilling({
               </div>
               <h3 className="nb-summary-header">{t("bills.billSummary", "Bill Summary")}</h3>
               <span style={{ marginLeft: "auto", fontSize: "0.82rem", background: "#f0f9ff", color: "#0369a1", padding: "2px 8px", borderRadius: "10px", fontWeight: "700" }}>
-                {table.name || `Table ${table.table_number}`}
+                {getTableDisplayName(table, t, formatNum)}
               </span>
             </div>
 
@@ -755,7 +776,7 @@ export function TableBilling({
               <div className="nb-payment-section">
                 <label className="nb-payment-label">
                   <CreditCard size={15} style={{ color: "#0f172a" }} />
-                  <span>{t("bills.paymentModeUpper", "PAYMENT MODE")}</span>
+                  <span>{t("bills.paymentModeUpper", t("bills.paymentMode", "PAYMENT MODE"))}</span>
                 </label>
                 <select
                   value={paymentMode}
@@ -826,7 +847,7 @@ export function TableBilling({
                   disabled={isSaving}
                   style={{ width: "100%", marginTop: "0.65rem", padding: "0.45rem", background: "transparent", border: "none", color: "#ef4444", fontSize: "0.82rem", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}
                 >
-                  <RotateCcw size={13} /> {t("common.reset", "Reset Table")}
+                  <RotateCcw size={13} /> {t("tables.resetTable", t("common.resetTable", "Reset Table"))}
                 </button>
               )}
             </div>
@@ -850,7 +871,7 @@ export function TableBilling({
         isOpen={isResetModalOpen}
         onClose={() => setIsResetModalOpen(false)}
         onConfirm={handleConfirmReset}
-        tableName={table.name || `Table ${table.table_number}`}
+        tableName={getTableDisplayName(table, t, formatNum)}
       />
 
       {/* Barcode Camera Scanner */}

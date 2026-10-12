@@ -1,7 +1,15 @@
 import { useState } from "react"
 import { Utensils, Minus, Plus, Check, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { call, setCachedData, getCachedData } from "../../lib/utils"
+import { 
+  call, 
+  setCachedData, 
+  getCachedData, 
+  removeCachedData, 
+  invalidateApiCache, 
+  clearStoredTables, 
+  resetStoredTables 
+} from "../../lib/utils"
 import { useToast } from "../common/Toast"
 
 export function TableSetupModal({ isOpen, onClose, onSetupComplete, currentCount = 10, user }) {
@@ -37,15 +45,39 @@ export function TableSetupModal({ isOpen, onClose, onSetupComplete, currentCount
       setCachedData("/shop", updatedShop)
 
       // 2. Setup tables in backend
-      const res = await call("/restaurant/tables/setup", {
+      await call("/restaurant/tables/setup", {
         method: "POST",
         body: JSON.stringify({ table_count: count })
       }).catch((e) => console.warn("Restaurant tables setup API warning:", e))
 
+      // 3. Ensure all tables are reset to AVAILABLE with 0 items
+      let cleanTables = null
+      try {
+        const resetRes = await call("/restaurant/tables/reset-all", { method: "POST" })
+        if (Array.isArray(resetRes?.tables)) {
+          cleanTables = resetRes.tables
+        }
+      } catch (e) {
+        console.warn("Reset all tables call warning:", e)
+      }
+
+      // 4. Invalidate and refresh local storage
+      removeCachedData("/restaurant/tables")
+      removeCachedData("/tables")
+      invalidateApiCache("restaurant")
+      invalidateApiCache("tables")
+      clearStoredTables(user)
+      const freshStored = resetStoredTables(user, count)
+      const finalTables = cleanTables || freshStored
+
+      window.dispatchEvent(new CustomEvent("slipzo_tables_reset", { 
+        detail: { tables: finalTables, table_count: count } 
+      }))
+
       toastSuccess(t("tables.setupSuccess", `Restaurant configured with ${count} tables!`))
       
       if (onSetupComplete) {
-        onSetupComplete(count, res?.tables)
+        onSetupComplete(count, finalTables)
       }
       onClose()
     } catch (err) {

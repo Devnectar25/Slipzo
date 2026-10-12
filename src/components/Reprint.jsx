@@ -1,14 +1,26 @@
 import { useEffect, useState, useMemo } from "react"
-import { ArrowLeft, Printer, Download, User, Settings } from "lucide-react"
+import { ArrowLeft, Printer, Download, User } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
-import { call, money, cleanTextLines, canPrintFree, getActivePlanDetails, syncUserQuota, incrementFreePrintCount, getCurrentUserKey, findTemplateMatch } from "../lib/utils"
+import { 
+  call, 
+  money, 
+  cleanTextLines, 
+  canPrintFree, 
+  getActivePlanDetails, 
+  syncUserQuota, 
+  incrementFreePrintCount, 
+  getCurrentUserKey, 
+  findTemplateMatch,
+  removeCachedData,
+  invalidateApiCache,
+  resetSingleStoredTable
+} from "../lib/utils"
 import { printReceiptElement, saveReceiptAsPdf } from "../lib/printReceipt"
 import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
-import { PrintModal } from "./PrintModal"
 import Swal from "sweetalert2"
 
 export function Reprint({ billId, setView, requireAuth, user }) {
@@ -18,7 +30,6 @@ export function Reprint({ billId, setView, requireAuth, user }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isPrinting, setIsPrinting] = useState(false)
-  const [showPrintModal, setShowPrintModal] = useState(false)
 
   const { success, error: toastError } = useToast()
 
@@ -45,9 +56,6 @@ export function Reprint({ billId, setView, requireAuth, user }) {
             }
             if (!Array.isArray(parsedItems)) parsedItems = []
             setBill({ ...data, items: parsedItems })
-            if (window.innerWidth <= 768) {
-              setShowPrintModal(true)
-            }
           } else {
             setBill(null)
           }
@@ -138,7 +146,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
       id: matched.id,
       templateId: matched.templateId,
       name: bill.template_name || matched.name,
-      width: printFormat === "a4" ? "80mm" : (printFormat === "55mm" ? "55mm" : "80mm"),
+      width: printFormat === "a4" ? "a4" : (printFormat === "55mm" ? "55mm" : "80mm"),
       footer: bill.footer || matched.footer || "Thank you for shopping with us! Please come again.",
       previewData: {
         shopName: bill.shop_name || "Slipzo Mart",
@@ -161,6 +169,40 @@ export function Reprint({ billId, setView, requireAuth, user }) {
       }
     }
   }, [bill, printFormat, lang])
+
+  const handleFinalizePrint = (printedBillId, printedBill) => {
+    if (printedBillId) {
+      call(`/bills/${printedBillId}/print`, { method: "POST" }).catch(() => {})
+    }
+
+    const tableLabel = printedBill?.table_number || printedBill?.table
+    if (tableLabel) {
+      // Reset table on server
+      call(`/restaurant/tables/reset/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => {})
+      call(`/bills/print-table/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => {})
+
+      // Invalidate table caches
+      removeCachedData("/restaurant/tables")
+      removeCachedData("/tables")
+      invalidateApiCache("restaurant")
+      invalidateApiCache("tables")
+
+      // Reset table in localStorage
+      resetSingleStoredTable(user, tableLabel)
+    }
+
+    // Dispatch global event
+    window.dispatchEvent(
+      new CustomEvent("slipzo_bill_printed", {
+        detail: {
+          id: printedBillId,
+          billId: printedBillId,
+          table_number: tableLabel,
+          bill: printedBill
+        }
+      })
+    )
+  }
 
   const printReceipt = async () => {
     if (isPrinting) return
@@ -214,11 +256,8 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
         })
 
-        // If this was a saved bill, mark as printed so it removes from Home screen recent bills
-        if (actualBillId) {
-          call(`/bills/${actualBillId}/print`, { method: "POST" }).catch(() => {})
-          window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: { id: actualBillId, billId: actualBillId } }))
-        }
+        // Finalize print and reset table to AVAILABLE if table bill
+        handleFinalizePrint(actualBillId, bill)
 
         success(t("bills.printedSuccess", "Printed successfully!"))
 
@@ -230,10 +269,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         printReceiptElement("receipt-to-print", {
           pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
         })
-        if (actualBillId) {
-          call(`/bills/${actualBillId}/print`, { method: "POST" }).catch(() => {})
-          window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: { id: actualBillId, billId: actualBillId } }))
-        }
+        handleFinalizePrint(actualBillId, bill)
         success(t("bills.printedSuccess", "Printed successfully!"))
       }
     } catch (err) {
@@ -311,10 +347,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           <button className="secondary-button" onClick={handleDownloadPdf} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
             <Download size={16} /> PDF
           </button>
-          <button className="secondary-button print-popup-btn" onClick={() => setShowPrintModal(true)} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
-            <Printer size={16} /> {t("bills.printPopUp", "Print Pop Up")}
-          </button>
-          <button className="primary-button" onClick={() => setShowPrintModal(true)} disabled={isPrinting}>
+          <button className="primary-button" onClick={printReceipt} disabled={isPrinting}>
             {isPrinting ? <ButtonLoader text={t("bills.printing", "Printing...")} /> : <><Printer size={16} /> {t("bills.print", "Print")}</>}
           </button>
         </div>
@@ -392,7 +425,8 @@ export function Reprint({ billId, setView, requireAuth, user }) {
 
         <div 
           id="receipt-to-print" 
-          className={`receipt-preview-content format-${printFormat}`}
+          data-receipt-print-area="true"
+          className={`receipt-preview-content receipt-print-area format-${printFormat}`}
           style={{
             background: "#ffffff",
             border: "1px solid #cbd5e1",
@@ -503,19 +537,6 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         }
       `}</style>
 
-      <PrintModal
-        isOpen={showPrintModal}
-        onClose={() => setShowPrintModal(false)}
-        elementId="receipt-to-print"
-        defaultWidth={printFormat === "55mm" ? "55mm" : "80mm"}
-        user={user}
-        onPrinted={() => {
-          if (actualBillId) {
-            call(`/bills/${actualBillId}/print`, { method: "POST" }).catch(() => {})
-            window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: { id: actualBillId, billId: actualBillId } }))
-          }
-        }}
-      />
     </div>
   )
 }

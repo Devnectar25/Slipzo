@@ -6,6 +6,8 @@ import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { RealisticReceiptView } from "./RealisticReceiptView"
+import { useTranslation } from "react-i18next"
+import { getBusinessCategories } from "./common/ChangeCategoryModal"
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -25,6 +27,8 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
 }
 
 export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
+  const { t } = useTranslation()
+  const categories = getBusinessCategories(t)
   const [name, setName] = useState("")
   const [businessType, setBusinessType] = useState("small_business")
   const [logoUrl, setLogoUrl] = useState("")
@@ -451,15 +455,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
             <div className="onboarding-field" style={{ marginBottom: "1rem" }}>
               <label className="onboarding-label" style={{ marginBottom: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
                 <Store size={14} className="field-icon" />
-                <span>Shop Category / Business Type <b className="req-star">*</b></span>
+                <span>{t("profile.shopCategory", "Shop Category / Business Type")} <b className="req-star">*</b></span>
               </label>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.5rem" }}>
-                {[
-                  { id: "small_business", label: "Small Business / Cafe", icon: "☕", desc: "Tea tapri, snacks, cafe & fast food" },
-                  { id: "kirana_grocery", label: "Kirana / Grocery Store", icon: "🛒", desc: "Daily grocery, staples, FMCG items" },
-                  { id: "clothing_garments", label: "Cloth & Garments Shop", icon: "👗", desc: "Apparel, sarees, shirts & garments" },
-                  { id: "hotel_food", label: "Hotel & Food Restaurant", icon: "🍽️", desc: "Dine-in, thalis & restaurant meals" }
-                ].map(cat => (
+                {categories.map(cat => (
                   <button
                     key={cat.id}
                     type="button"
