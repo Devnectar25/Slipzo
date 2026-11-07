@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react"
-import { ArrowRight, Receipt, X, Check, Eye, EyeOff, AlertCircle } from "lucide-react"
+import { ButtonLoader } from "./common/Skeleton"
+import { ArrowRight, Receipt, X, Check, Eye, EyeOff, AlertCircle, Mail, Lock, User } from "lucide-react"
 import { call } from "../lib/utils"
+import "../styles/Auth.css"
 
 export const PASSWORD_RULES = [
   { 
@@ -158,6 +160,11 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
             <p className="art-note">
               A calm, quick billing desk for the shops that keep communities moving.
             </p>
+            <ul className="auth-benefits">
+              <li><span><Check size={12} strokeWidth={3} /></span>Print on 58mm, 80mm and A4 paper</li>
+              <li><span><Check size={12} strokeWidth={3} /></span>Scan barcodes to bill faster</li>
+              <li><span><Check size={12} strokeWidth={3} /></span>Works in English, Hindi and Marathi</li>
+            </ul>
           </div>
           <div className="receipt-stamp">
             <Receipt size={16} />
@@ -189,42 +196,55 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           <form onSubmit={submit} noValidate>
             {isRegister && (
               <label>
-                YOUR NAME
-                <input
-                  data-testid="auth-name-input"
-                  required
-                  value={form.name}
-                  onChange={(e) => {
-                    setForm({ ...form, name: e.target.value })
-                    if (error) setError("")
-                  }}
-                  className={error && (!form.name || !form.name.trim()) ? "input-error" : ""}
-                />
+                <span className="auth-label-text">Your name</span>
+                <div className="auth-field">
+                  <User size={17} className="auth-field-icon" />
+                  <input
+                    data-testid="auth-name-input"
+                    required
+                    autoComplete="name"
+                    placeholder="Your full name"
+                    value={form.name}
+                    onChange={(e) => {
+                      setForm({ ...form, name: e.target.value })
+                      if (error) setError("")
+                    }}
+                    className={error && (!form.name || !form.name.trim()) ? "input-error" : ""}
+                  />
+                </div>
               </label>
             )}
 
             <label>
-              EMAIL ADDRESS
-              <input
-                data-testid="auth-email-input"
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => {
-                  setForm({ ...form, email: e.target.value })
-                  if (error) setError("")
-                }}
-                className={error && (!form.email || !form.email.trim() || error.includes("email")) ? "input-error" : ""}
-              />
+              <span className="auth-label-text">Email address</span>
+              <div className="auth-field">
+                <Mail size={17} className="auth-field-icon" />
+                <input
+                  data-testid="auth-email-input"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="you@yourshop.com"
+                  value={form.email}
+                  onChange={(e) => {
+                    setForm({ ...form, email: e.target.value })
+                    if (error) setError("")
+                  }}
+                  className={error && (!form.email || !form.email.trim() || error.includes("email")) ? "input-error" : ""}
+                />
+              </div>
             </label>
 
             <label>
-              PASSWORD
-              <div className="password-input-wrap">
+              <span className="auth-label-text">Password</span>
+              <div className="auth-field password-input-wrap">
+                <Lock size={17} className="auth-field-icon" />
                 <input
                   data-testid="auth-password-input"
                   type={showPassword ? "text" : "password"}
                   required
+                  autoComplete={isRegister ? "new-password" : "current-password"}
+                  placeholder={isRegister ? "Create a password" : "Enter your password"}
                   value={form.password}
                   onChange={(e) => {
                     setForm({ ...form, password: e.target.value })
@@ -246,12 +266,15 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
 
             {isRegister && (
               <label>
-                RE-ENTER PASSWORD
-                <div className="password-input-wrap">
+                <span className="auth-label-text">Re-enter password</span>
+                <div className="auth-field password-input-wrap">
+                  <Lock size={17} className="auth-field-icon" />
                   <input
                     data-testid="auth-confirm-password-input"
                     type={showConfirmPassword ? "text" : "password"}
                     required
+                    autoComplete="new-password"
+                    placeholder="Re-enter your password"
                     value={form.confirmPassword}
                     onChange={(e) => {
                       setForm({ ...form, confirmPassword: e.target.value })
@@ -285,8 +308,8 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               type="submit"
               disabled={loading}
             >
-              {loading ? "Please wait..." : isRegister ? "Create account" : "Enter Slipzen"}
-              <ArrowRight size={17} />
+              {loading ? <ButtonLoader text="Please wait..." /> : isRegister ? "Create account" : "Enter Slipzen"}
+              {!loading && <ArrowRight size={17} />}
             </button>
           </form>
 
@@ -306,28 +329,9 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
             </button>
           </p>
           
-          {onCancel ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginTop: '1rem' }}>
-              <button type="button" className="back-to-site" onClick={onCancel} style={{ margin: 0 }}>
-                ← Back
-              </button>
-              <button 
-                type="button" 
-                className="back-to-site" 
-                onClick={() => { window.location.href = "/admin/login" }}
-                style={{ fontSize: '0.72rem', opacity: 0.8, margin: 0 }}
-              >
-                Admin Portal →
-              </button>
-            </div>
-          ) : (
-            <button 
-              type="button" 
-              className="back-to-site" 
-              onClick={() => { window.location.href = "/admin/login" }}
-              style={{ fontSize: '0.72rem', opacity: 0.8 }}
-            >
-              Admin Portal →
+          {onCancel && (
+            <button type="button" className="back-to-site" onClick={onCancel}>
+              ← Back
             </button>
           )}
         </section>
@@ -622,597 +626,6 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           to {
             opacity: 1;
             transform: scale(1);
-          }
-        }
-
-        /* Overlay & Modal Box */
-        .auth-overlay {
-          position: fixed !important;
-          inset: 0 !important;
-          background: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 100%) !important;
-          backdrop-filter: blur(6px) !important;
-          -webkit-backdrop-filter: blur(6px) !important;
-          z-index: 9999 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          padding: clamp(8px, 2.5vw, 16px) !important;
-          overflow-y: auto !important;
-          -webkit-overflow-scrolling: touch !important;
-          overscroll-behavior: contain !important;
-          box-sizing: border-box !important;
-        }
-
-        .auth-modal-box {
-          background: #ffffff !important;
-          border-radius: 18px !important;
-          width: 100% !important;
-          max-width: 730px !important;
-          box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
-          overflow: hidden !important;
-          display: grid !important;
-          grid-template-columns: 0.9fr 1.1fr !important;
-          position: relative !important;
-          height: auto !important;
-          max-height: min(90vh, 600px) !important;
-          margin: auto !important;
-          box-sizing: border-box !important;
-        }
-
-        /* Close Button */
-        .auth-close {
-          position: absolute !important;
-          top: 0.85rem !important;
-          right: 0.85rem !important;
-          z-index: 40 !important;
-          background: #f1f5f9 !important;
-          border: 1px solid #e2e8f0 !important;
-          border-radius: 50% !important;
-          width: 32px !important;
-          height: 32px !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          cursor: pointer !important;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
-          transition: all 0.2s !important;
-          color: #64748b !important;
-          padding: 0 !important;
-        }
-
-        .auth-close:hover {
-          background: #e2e8f0 !important;
-          color: #0f172a !important;
-          transform: rotate(90deg) !important;
-        }
-
-        /* Auth Left Side - Dark Navy Slate Theme */
-        .auth-art {
-          background: linear-gradient(145deg, #111c2e 0%, #1c283d 100%) !important;
-          border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-          color: #ffffff !important;
-          padding: 1.4rem 1.6rem !important;
-          display: flex !important;
-          flex-direction: column !important;
-          justify-content: center !important;
-          gap: 1.15rem !important;
-          position: relative !important;
-          overflow: hidden !important;
-          box-sizing: border-box !important;
-          height: 100% !important;
-        }
-
-        .auth-art::before {
-          content: '';
-          position: absolute;
-          top: -50%;
-          right: -50%;
-          width: 100%;
-          height: 100%;
-          background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, transparent 70%);
-          pointer-events: none;
-        }
-
-        .auth-logo-wrapper {
-          margin-bottom: 0 !important;
-          position: relative;
-          z-index: 1;
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-        }
-
-        .auth-logo-wrapper img {
-          width: auto !important;
-          height: 38px !important;
-          max-height: 40px !important;
-          max-width: 150px !important;
-          min-width: 0 !important;
-          object-fit: contain !important;
-          object-position: left center !important;
-          display: block !important;
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          filter: none !important;
-        }
-
-        .auth-art .eyebrow {
-          font-size: 0.68rem !important;
-          letter-spacing: 2px !important;
-          text-transform: uppercase !important;
-          color: #94a3b8 !important;
-          font-weight: 700 !important;
-          margin-bottom: 0.3rem !important;
-          position: relative;
-          z-index: 1;
-        }
-
-        .auth-art h1 {
-          font-size: clamp(1.35rem, 2.6vw, 1.55rem) !important;
-          font-weight: 800 !important;
-          line-height: 1.25 !important;
-          margin: 0 0 0.35rem 0 !important;
-          color: #ffffff !important;
-          position: relative;
-          z-index: 1;
-        }
-
-        .auth-art h1 em {
-          color: #0ea5e9 !important;
-          font-style: normal !important;
-          font-weight: 800 !important;
-        }
-
-        .auth-art .art-note {
-          color: #94a3b8 !important;
-          font-size: 0.82rem !important;
-          max-width: 300px !important;
-          line-height: 1.45 !important;
-          margin-bottom: 0 !important;
-          position: relative;
-          z-index: 1;
-        }
-
-        .auth-art .receipt-stamp {
-          display: inline-flex !important;
-          align-items: center !important;
-          gap: 0.65rem !important;
-          background: rgba(255, 255, 255, 0.06) !important;
-          border: 1px solid rgba(255, 255, 255, 0.12) !important;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
-          padding: 0.35rem 0.75rem !important;
-          border-radius: 9px !important;
-          color: #94a3b8 !important;
-          font-size: 0.75rem !important;
-          width: fit-content !important;
-          position: relative;
-          z-index: 1;
-          margin-top: 0 !important;
-        }
-
-        .auth-art .receipt-stamp svg {
-          color: #ffffff !important;
-          flex-shrink: 0;
-        }
-
-        .auth-art .receipt-stamp b {
-          color: #ffffff !important;
-          font-weight: 700 !important;
-        }
-
-        /* Right Form Side Styling */
-        .auth-form {
-          background: #ffffff !important;
-          padding: 1.25rem 1.65rem 1rem 1.65rem !important;
-          display: flex !important;
-          flex-direction: column !important;
-          justify-content: center !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-          overflow-y: auto !important;
-          max-height: min(90vh, 600px) !important;
-          scrollbar-width: thin !important;
-          scrollbar-color: #cbd5e1 transparent !important;
-        }
-
-        .auth-form::-webkit-scrollbar {
-          width: 5px;
-        }
-        .auth-form::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 4px;
-        }
-
-        .auth-form .mobile-brand {
-          display: none !important;
-        }
-
-        .auth-header-block {
-          margin-bottom: 0.45rem !important;
-          text-align: center !important;
-        }
-
-        .auth-form .eyebrow {
-          font-size: 0.65rem !important;
-          letter-spacing: 2px !important;
-          text-transform: uppercase !important;
-          color: #64748b !important;
-          margin-bottom: 0.1rem !important;
-          text-align: center !important;
-          font-weight: 700 !important;
-        }
-
-        .auth-form h2 {
-          font-size: 1.25rem !important;
-          font-weight: 800 !important;
-          margin: 0 0 0.1rem 0 !important;
-          color: #0f172a !important;
-          text-align: center !important;
-          line-height: 1.2 !important;
-        }
-
-        .auth-form .subtle {
-          color: #64748b !important;
-          font-size: 0.78rem !important;
-          margin-bottom: 0.45rem !important;
-          text-align: center !important;
-          line-height: 1.3 !important;
-        }
-
-        .auth-form form {
-          display: flex !important;
-          flex-direction: column !important;
-          gap: 0.38rem !important;
-          width: 100% !important;
-        }
-
-        .auth-form label {
-          font-size: 0.65rem !important;
-          font-weight: 700 !important;
-          color: #475569 !important;
-          letter-spacing: 0.5px !important;
-          text-transform: uppercase !important;
-          display: flex !important;
-          flex-direction: column !important;
-          gap: 0.15rem !important;
-          margin-bottom: 0 !important;
-          text-align: left !important;
-        }
-
-        .auth-form input {
-          display: block !important;
-          width: 100% !important;
-          height: 35px !important;
-          padding: 0.38rem 0.7rem !important;
-          border: 1.5px solid #cbd5e1 !important;
-          border-radius: 8px !important;
-          font-size: 0.86rem !important;
-          color: #0f172a !important;
-          background: #f8fafc !important;
-          box-sizing: border-box !important;
-          transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s !important;
-        }
-
-        .auth-form input:focus {
-          outline: none !important;
-          border-color: #0ea5e9 !important;
-          background: #ffffff !important;
-          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15) !important;
-        }
-
-        .auth-form button.primary.full {
-          background: #0f172a !important;
-          color: #ffffff !important;
-          border: none !important;
-          min-height: 38px !important;
-          height: 38px !important;
-          padding: 0.45rem 1rem !important;
-          border-radius: 8px !important;
-          font-weight: 700 !important;
-          font-size: 0.88rem !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          gap: 0.4rem !important;
-          cursor: pointer !important;
-          transition: all 0.2s ease !important;
-          margin-top: 0.25rem !important;
-          width: 100% !important;
-          box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2) !important;
-        }
-
-        .auth-form button.primary.full:hover:not(:disabled) {
-          background: #1e293b !important;
-          transform: translateY(-1px) !important;
-        }
-
-        .auth-form .switch {
-          text-align: center !important;
-          font-size: 0.78rem !important;
-          color: #64748b !important;
-          margin-top: 0.35rem !important;
-          margin-bottom: 0 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          gap: 0.35rem !important;
-          flex-wrap: wrap !important;
-        }
-
-        .auth-form .switch button {
-          background: none !important;
-          border: none !important;
-          outline: none !important;
-          color: #0284c7 !important;
-          font-weight: 700 !important;
-          cursor: pointer !important;
-          padding: 0.15rem 0.25rem !important;
-          font-size: inherit !important;
-        }
-
-        .auth-form .switch button:hover {
-          color: #0369a1 !important;
-          text-decoration: underline !important;
-        }
-
-        .auth-form .back-to-site {
-          background: #f1f5f9 !important;
-          border: 1px solid #e2e8f0 !important;
-          border-radius: 20px !important;
-          color: #64748b !important;
-          font-size: 0.74rem !important;
-          font-weight: 600 !important;
-          cursor: pointer !important;
-          margin: 0.3rem auto 0 auto !important;
-          padding: 0.22rem 0.8rem !important;
-          display: inline-flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          transition: all 0.2s ease !important;
-          outline: none !important;
-          width: max-content !important;
-        }
-
-        .auth-form .back-to-site:hover {
-          color: #0f172a !important;
-          background: #e2e8f0 !important;
-        }
-
-        .auth-form input.input-error {
-          border-color: #ef4444 !important;
-          background: #FFE1E5 !important;
-        }
-
-        /* ----------------------------------------------------
-           RESPONSIVE: Tablet & Mobile (< 768px)
-           ---------------------------------------------------- */
-        @media (max-width: 768px) {
-          .auth-overlay {
-            padding: clamp(8px, 2.5vw, 14px) !important;
-          }
-
-          .auth-modal-box {
-            grid-template-columns: 1fr !important;
-            max-width: 420px !important;
-            width: min(420px, 100%) !important;
-            max-height: min(94vh, 94dvh, calc(100vh - 16px)) !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            border-radius: 18px !important;
-            margin: auto !important;
-            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.35) !important;
-            scrollbar-width: thin !important;
-            scrollbar-color: #cbd5e1 transparent !important;
-          }
-
-          .auth-modal-box::-webkit-scrollbar {
-            width: 4px;
-          }
-          .auth-modal-box::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-          }
-
-          .auth-close {
-            top: 0.65rem !important;
-            right: 0.65rem !important;
-            width: 30px !important;
-            height: 30px !important;
-          }
-
-          .auth-art {
-            display: none !important;
-          }
-
-          .auth-form {
-            padding: clamp(1rem, 3.5vw, 1.35rem) clamp(1rem, 4vw, 1.35rem) clamp(1rem, 3.5vw, 1.25rem) !important;
-            width: 100% !important;
-            box-sizing: border-box !important;
-            max-height: none !important;
-            overflow-y: visible !important;
-            justify-content: flex-start !important;
-          }
-
-          .auth-form .mobile-brand {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin: 0 auto clamp(0.35rem, 1.2vh, 0.55rem) auto !important;
-          }
-
-          .auth-form .mobile-brand img,
-          .mobile-auth-logo {
-            width: auto !important;
-            height: clamp(28px, 4.5vh, 32px) !important;
-            max-height: 34px !important;
-            max-width: 120px !important;
-            object-fit: contain !important;
-            display: block !important;
-            margin: 0 auto !important;
-          }
-
-          .auth-header-block {
-            margin-bottom: clamp(0.35rem, 1.2vh, 0.55rem) !important;
-          }
-
-          .auth-form .eyebrow {
-            font-size: clamp(0.62rem, 2vw, 0.66rem) !important;
-            letter-spacing: 1.5px !important;
-            margin-bottom: 0.1rem !important;
-          }
-
-          .auth-form h2 {
-            font-size: clamp(1.15rem, 4vw, 1.28rem) !important;
-            margin-bottom: 0.15rem !important;
-          }
-
-          .auth-form .subtle {
-            font-size: clamp(0.74rem, 2.6vw, 0.8rem) !important;
-            margin-bottom: clamp(0.45rem, 1.4vh, 0.65rem) !important;
-          }
-
-          .auth-form form {
-            gap: clamp(0.35rem, 1.2vh, 0.48rem) !important;
-          }
-
-          .auth-form label {
-            font-size: clamp(0.63rem, 2vw, 0.67rem) !important;
-            gap: 0.18rem !important;
-          }
-
-          .auth-form input {
-            height: clamp(36px, 4.5vh, 39px) !important;
-            padding: 0.4rem 0.7rem !important;
-            font-size: 0.86rem !important;
-          }
-
-          .auth-form button.primary.full {
-            min-height: clamp(38px, 4.8vh, 40px) !important;
-            font-size: 0.86rem !important;
-            margin-top: clamp(0.2rem, 1vh, 0.35rem) !important;
-            padding: 0.5rem 1rem !important;
-          }
-
-          .auth-form .switch {
-            font-size: clamp(0.75rem, 2.5vw, 0.8rem) !important;
-            margin-top: clamp(0.35rem, 1.2vh, 0.5rem) !important;
-          }
-
-          .auth-form .back-to-site {
-            margin: clamp(0.3rem, 1vh, 0.45rem) auto 0 auto !important;
-            padding: 0.25rem 0.75rem !important;
-            font-size: 0.74rem !important;
-          }
-        }
-
-        /* ----------------------------------------------------
-           RESPONSIVE: Extra Small Devices (<= 380px)
-           ---------------------------------------------------- */
-        @media (max-width: 380px) {
-          .auth-overlay {
-            padding: 6px !important;
-          }
-
-          .auth-modal-box {
-            border-radius: 14px !important;
-            max-width: 100% !important;
-          }
-
-          .auth-form {
-            padding: 0.85rem 0.85rem 0.85rem !important;
-          }
-
-          .auth-form .mobile-brand img,
-          .mobile-auth-logo {
-            height: 26px !important;
-          }
-
-          .auth-form h2 {
-            font-size: 1.1rem !important;
-          }
-
-          .auth-form .subtle {
-            font-size: 0.72rem !important;
-            margin-bottom: 0.4rem !important;
-          }
-
-          .auth-form form {
-            gap: 0.32rem !important;
-          }
-
-          .auth-form input {
-            height: 35px !important;
-            padding: 0.35rem 0.6rem !important;
-            font-size: 0.82rem !important;
-          }
-
-          .auth-form button.primary.full {
-            min-height: 36px !important;
-            font-size: 0.82rem !important;
-          }
-        }
-
-        /* ----------------------------------------------------
-           RESPONSIVE: Short Height Screens & Landscape Orientation
-           ---------------------------------------------------- */
-        @media (max-height: 640px) {
-          .auth-overlay {
-            padding: 6px !important;
-          }
-
-          .auth-modal-box {
-            max-height: calc(100vh - 12px) !important;
-            max-height: calc(100dvh - 12px) !important;
-          }
-
-          .auth-form {
-            padding: 0.75rem 1rem !important;
-          }
-
-          .auth-form .mobile-brand {
-            margin-bottom: 0.2rem !important;
-          }
-
-          .auth-form .mobile-brand img,
-          .mobile-auth-logo {
-            height: 24px !important;
-          }
-
-          .auth-header-block {
-            margin-bottom: 0.25rem !important;
-          }
-
-          .auth-form .subtle {
-            display: none !important;
-          }
-
-          .auth-form form {
-            gap: 0.28rem !important;
-          }
-
-          .auth-form input {
-            height: 34px !important;
-            padding: 0.3rem 0.6rem !important;
-            font-size: 0.82rem !important;
-          }
-
-          .auth-form button.primary.full {
-            min-height: 35px !important;
-            padding: 0.4rem 0.75rem !important;
-            font-size: 0.82rem !important;
-            margin-top: 0.2rem !important;
-          }
-
-          .auth-form .switch {
-            margin-top: 0.3rem !important;
-            font-size: 0.74rem !important;
-          }
-
-          .auth-form .back-to-site {
-            margin: 0.25rem auto 0 auto !important;
-            padding: 0.2rem 0.65rem !important;
-            font-size: 0.7rem !important;
           }
         }
       `}</style>

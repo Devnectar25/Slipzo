@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react"
 import {
   ArrowLeft,
   Utensils,
@@ -33,12 +33,14 @@ import {
 } from "../../lib/utils"
 import { BUILTIN_TEMPLATES } from "../Templates"
 import { TableResetModal } from "./TableResetModal"
-import { CameraScannerModal } from "../common/CameraScannerModal"
+// Loaded on demand: the scanner library is large and only needed once the camera is opened
+const CameraScannerModal = lazy(() => import("../common/CameraScannerModal").then((m) => ({ default: m.CameraScannerModal })))
 import { VoiceInputButton } from "../common/VoiceInputButton"
 import { useBarcodeScanner } from "../../hooks/useBarcodeScanner"
 import { playScanSuccessBeep, playScanErrorBeep } from "../../lib/audioFeedback"
 import { useToast } from "../common/Toast"
 import Swal from "sweetalert2"
+import { Spinner } from "../common/Skeleton"
 import "../../styles/NewBillFlow.css"
 
 export function TableBilling({
@@ -175,6 +177,73 @@ export function TableBilling({
     }
   }, [items, total])
 
+  // ==========================================
+  // KEEP THE OPEN ORDER WHEN LEAVING THE TABLE
+  // Items added here only lived in memory until Save, so going back to the table list (which reloads from
+  // the server) threw them away. Leaving now stores them as the table's open order, the same data Save
+  // stores for the table, but without creating a bill.
+  // ==========================================
+  const orderSignature = (list) => JSON.stringify(
+    (list || [])
+      .filter((it) => it.name && it.name.trim() && Number(it.quantity) > 0)
+      .map((it) => [it.name.trim().toLowerCase(), Number(it.quantity), Number(it.rate)])
+  )
+  const itemsRef = useRef(items)
+  useEffect(() => { itemsRef.current = items }, [items])
+  // What the server already holds for this table, so an unchanged order is not written again
+  const savedOrderRef = useRef(orderSignature(normalizeItems(table?.current_items)))
+
+  const keepOpenOrder = async ({ keepalive = false } = {}) => {
+    const list = itemsRef.current.filter((it) => it.name && it.name.trim() && Number(it.quantity) > 0)
+    if (list.length === 0) return false
+    const signature = orderSignature(list)
+    if (signature === savedOrderRef.current) return false
+
+    const previous = savedOrderRef.current
+    savedOrderRef.current = signature // claimed up front, so two exits at once do not save twice
+    const updates = {
+      current_items: list,
+      total_amount: list.reduce((sum, it) => sum + (Number(it.quantity) || 0) * (Number(it.rate) || 0), 0),
+      status: "OCCUPIED"
+    }
+    const tableIdOrNum = table.id || table.table_number
+    try {
+      // keepalive lets the request finish even if the page is closing
+      const updated = await call(`/restaurant/tables/${tableIdOrNum}`, { method: "PUT", body: JSON.stringify(updates), keepalive })
+      if (onUpdateTableState) onUpdateTableState(tableIdOrNum, { ...updates, ...(updated || {}), status: "OCCUPIED" })
+      return true
+    } catch (e) {
+      savedOrderRef.current = previous
+      console.warn("Could not keep the open order for this table:", e)
+      return false
+    }
+  }
+  // Exits that unmount or close the page run from outside this render, so they read the latest function
+  const keepOpenOrderRef = useRef(keepOpenOrder)
+  keepOpenOrderRef.current = keepOpenOrder
+
+  useEffect(() => {
+    const onHidden = () => { if (document.visibilityState === "hidden") keepOpenOrderRef.current({ keepalive: true }) }
+    const onPageHide = () => { keepOpenOrderRef.current({ keepalive: true }) }
+    document.addEventListener("visibilitychange", onHidden)
+    window.addEventListener("pagehide", onPageHide)
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden)
+      window.removeEventListener("pagehide", onPageHide)
+      // Leaving through the sidebar, the phone's back button or any other route
+      keepOpenOrderRef.current({ keepalive: true })
+    }
+  }, [])
+
+  const handleBackClick = async () => {
+    const kept = await keepOpenOrder()
+    if (kept) {
+      const tableNameStr = getTableDisplayName(table, t, formatNum)
+      toastSuccess(t("tables.orderKept", { tableName: tableNameStr, defaultValue: `Order kept for ${tableNameStr}` }))
+    }
+    onBack()
+  }
+
   // Categories list from personal menu
   const menuCategories = useMemo(() => {
     const set = new Set()
@@ -296,6 +365,7 @@ export function TableBilling({
   // ==========================================
   const handleConfirmReset = async () => {
     setItems([])
+    itemsRef.current = [] // a cleared order must never be re-saved while the screen closes
     if (onUpdateTableState) {
       onUpdateTableState(table.id || table.table_number, {
         current_items: [],
@@ -335,7 +405,7 @@ export function TableBilling({
       const billData = {
         template_id: matchedTemplate.id || "classic",
         template_name: matchedTemplate.name || "Classic Receipt",
-        template_width: matchedTemplate.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm"),
+        template_width: matchedTemplate.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.receipt_width === "55mm" ? "55mm" : (shop?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm"))),
         table_number: table.name || `Table ${table.table_number}`,
         table: table.name || `Table ${table.table_number}`,
         items: validItems.map((it) => ({
@@ -398,6 +468,9 @@ export function TableBilling({
         console.warn("Backend table update warning:", e)
       }
 
+      // The server now holds exactly this order
+      savedOrderRef.current = orderSignature(validItems)
+
       // Sync state with OCCUPIED status
       if (onUpdateTableState) {
         onUpdateTableState(tableIdOrNum, {
@@ -443,7 +516,7 @@ export function TableBilling({
       const billData = {
         template_id: matchedTemplate.id || "classic",
         template_name: matchedTemplate.name || "Classic Receipt",
-        template_width: matchedTemplate.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm"),
+        template_width: matchedTemplate.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.receipt_width === "55mm" ? "55mm" : (shop?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm"))),
         table_number: table.name || `Table ${table.table_number}`,
         table: table.name || `Table ${table.table_number}`,
         items: validItems.map((it) => ({
@@ -481,6 +554,7 @@ export function TableBilling({
 
       // Clear table and route directly to reprint
       setItems([])
+      itemsRef.current = [] // a printed order is finished; leaving must not store it again
       const tableIdOrNum = table.id || table.table_number
 
       if (onUpdateTableState) {
@@ -529,7 +603,7 @@ export function TableBilling({
       {/* Top Header */}
       <div className="table-billing-header">
         <div className="table-billing-header-left">
-          <button type="button" className="table-billing-back-btn" onClick={onBack}>
+          <button type="button" className="table-billing-back-btn" onClick={handleBackClick}>
             <ArrowLeft size={16} />
             <span>{t("tables.backToTables", "Tables")}</span>
           </button>
@@ -568,7 +642,7 @@ export function TableBilling({
                 placeholder={t("menu.searchPlaceholder", "Search items or speak to add (e.g. Tea, Coffee, Pizza...)")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-              />
+          />
               {search && (
                 <button
                   type="button"
@@ -582,7 +656,7 @@ export function TableBilling({
               <VoiceInputButton
                 onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
                 placeholder={t("menu.voiceSearch", "Speak to search item")}
-              />
+          />
             </div>
 
             <button
@@ -811,7 +885,7 @@ export function TableBilling({
                     boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)"
                   }}
                 >
-                  <Printer size={16} />
+                  {isSaving ? <Spinner size={16} /> : <Printer size={16} />}
                   <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.print", "Print")}</span>
                 </button>
 
@@ -835,7 +909,7 @@ export function TableBilling({
                     boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)"
                   }}
                 >
-                  <Save size={16} />
+                  {isSaving ? <Spinner size={16} /> : <Save size={16} />}
                   <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.saveBill", "Save Bill")}</span>
                 </button>
               </div>
@@ -875,14 +949,18 @@ export function TableBilling({
       />
 
       {/* Barcode Camera Scanner */}
-      <CameraScannerModal
-        isOpen={isCameraScannerOpen}
-        onClose={() => setIsCameraScannerOpen(false)}
-        onScanSuccess={(scanned) => {
-          handleBarcodeDetected(scanned)
-          setIsCameraScannerOpen(false)
-        }}
-      />
+      {isCameraScannerOpen && (
+        <Suspense fallback={<div className="scanner-chunk-loader" role="status" aria-label="Opening camera"><Spinner size={34} /></div>}>
+          <CameraScannerModal
+            isOpen={isCameraScannerOpen}
+            onClose={() => setIsCameraScannerOpen(false)}
+            onScanSuccess={(scanned) => {
+              handleBarcodeDetected(scanned)
+              setIsCameraScannerOpen(false)
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

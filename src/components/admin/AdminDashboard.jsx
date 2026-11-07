@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { call, invalidateApiCache } from "../../lib/utils"
 import Swal from "sweetalert2"
+import { ButtonLoader, MetricSkeleton, TableSkeleton } from "../common/Skeleton"
 import "../../styles/Admin.css"
 import { AdminMenuManagement } from "./AdminMenuManagement"
 
@@ -204,6 +205,12 @@ export function AdminDashboard({ admin, onLogout }) {
 
     if (printCount) {
       try {
+        Swal.fire({
+          title: 'Granting prints...',
+          allowOutsideClick: false,
+          showConfirmButton: false,
+          didOpen: () => Swal.showLoading()
+        })
         const res = await call(`/admin/users/${user.user_id || user.id}/grant-prints`, {
           method: 'POST',
           headers: getAdminHeaders(),
@@ -931,7 +938,23 @@ export function AdminDashboard({ admin, onLogout }) {
         </nav>
 
         <div className="admin-sidebar-footer">
-          <button className="admin-logout-btn" onClick={onLogout}>
+          <button
+            className="admin-logout-btn"
+            onClick={async () => {
+              const answer = await Swal.fire({
+                title: "Log out of the admin panel?",
+                text: "You will need to log in again to continue.",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Logout",
+                cancelButtonText: "Cancel",
+                confirmButtonColor: "#ef4444",
+                reverseButtons: true,
+                focusCancel: true
+              })
+              if (answer.isConfirmed) onLogout()
+            }}
+          >
             <LogOut size={16} /> Logout Admin
           </button>
         </div>
@@ -963,6 +986,13 @@ export function AdminDashboard({ admin, onLogout }) {
         </header>
 
         <div className="admin-body">
+          {loading && !statsData ? (
+            <div role="status" aria-label="Loading dashboard">
+              <MetricSkeleton count={4} />
+              <div style={{ marginTop: "1.25rem" }}><TableSkeleton rows={6} cols={4} /></div>
+            </div>
+          ) : (
+          <>
           {activeTab === "overview" && (
             <>
               <div className="admin-stats-grid">
@@ -1675,7 +1705,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "1rem", borderRadius: "10px" }}>
                     <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Node Runtime</div>
                     <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0284c7", marginTop: "0.25rem" }}>
-                      {statsData?.systemHealth?.nodeVersion || process.version || "v20.x"}
+                      {statsData?.systemHealth?.nodeVersion || "v20.x"}
                     </div>
                   </div>
 
@@ -1688,6 +1718,8 @@ export function AdminDashboard({ admin, onLogout }) {
                 </div>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
       </main>
@@ -2001,7 +2033,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     justifyContent: 'center'
                   }}
                 >
-                  {prodSubmitting ? 'Adding Product...' : 'Add Product'}
+                  {prodSubmitting ? <ButtonLoader text="Adding Product..." /> : 'Add Product'}
                 </button>
               </div>
             </form>

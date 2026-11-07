@@ -293,7 +293,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
           width: 100%;
           max-width: 100%;
           margin: 0;
-          padding: 0 0 32px;
+          padding: 0;
           box-sizing: border-box;
         }
 
@@ -771,7 +771,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
         /* STRICT MOBILE VIEW: PERFECTLY COMPACT, EXACTLY 2 CARDS PER ROW, ZERO OVERFLOW */
         @media (max-width: 680px) {
           .home-screen-root {
-            padding: 8px 10px max(75px, calc(68px + env(safe-area-inset-bottom, 12px)));
+            padding: 8px 10px 0;
           }
 
           .home-search-bar {

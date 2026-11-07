@@ -15,6 +15,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
   const [isPaused, setIsPaused] = useState(false)
   const touchStartXRef = useRef(null)
   const touchStartYRef = useRef(null)
+  const stageRef = useRef(null)
 
   const slides = [
     {
@@ -263,6 +264,11 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
   ]
 
   const activeSlide = slides[currentIndex]
+
+  // On a very short screen the slide area can scroll; every slide starts from its top
+  useEffect(() => {
+    stageRef.current?.scrollTo?.(0, 0)
+  }, [currentIndex])
   const CategoryIcon = activeSlide.icon
 
   const nextSlide = useCallback(() => {
@@ -367,7 +373,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
         </div>
 
         {/* Middle Interactive Presentation Arena */}
-        <div className="welcome-slider-stage">
+        <div className="welcome-slider-stage" ref={stageRef}>
           {/* Invisible tap areas on left & right to navigate */}
           <div 
             className="welcome-tap-prev" 

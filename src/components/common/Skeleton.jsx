@@ -104,12 +104,15 @@ export function ReceiptSkeleton() {
   )
 }
 
+const SPINNER_SIZES = { xs: 14, sm: 16, md: 18, lg: 24 }
+
 export function Spinner({ size = 18, color = "currentColor" }) {
+  const px = SPINNER_SIZES[size] || size
   return (
     <svg
       className="inline-spinner"
-      width={size}
-      height={size}
+      width={px}
+      height={px}
       viewBox="0 0 24 24"
       fill="none"
       stroke={color}

@@ -5,6 +5,7 @@ import {
 } from "lucide-react"
 import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
+import { ButtonLoader } from "./common/Skeleton"
 import { 
   getActivePlanDetails, activatePlan, syncUserQuota, call, 
   getCurrentUserKey, formatNumberByLang 
@@ -15,6 +16,7 @@ export function Pricing({ setView, setShowAuth, user }) {
   const lang = i18n.language || "en"
   const formatNum = (v) => formatNumberByLang(v, lang)
   const [customPrints, setCustomPrints] = useState(2500)
+  const [buyingPlan, setBuyingPlan] = useState(null)
   const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
 
@@ -50,6 +52,18 @@ export function Pricing({ setView, setShowAuth, user }) {
   }, [user])
 
   const handleBuyPlan = async (planName, amountInRupees, printCount) => {
+    if (buyingPlan) return
+    // The server refuses plan purchases from workers, so stop before any money is taken
+    if (user?.staff_of) {
+      Swal.fire({
+        title: t("pricing.ownerOnlyTitle", "Only the shop owner can buy prints"),
+        text: t("pricing.ownerOnlyText", "Please ask the owner of your shop to buy more prints."),
+        icon: "info",
+        confirmButtonColor: "#0284c7"
+      })
+      return
+    }
+    setBuyingPlan(planName)
     const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SIPp9QznVVM48W'
 
     const loadRazorpay = () => {
@@ -65,6 +79,7 @@ export function Pricing({ setView, setShowAuth, user }) {
 
     const isLoaded = await loadRazorpay()
     if (!isLoaded) {
+      setBuyingPlan(null)
       Swal.fire({
         title: "Connection Error",
         text: "Razorpay SDK failed to load. Please check your internet connection.",
@@ -95,11 +110,15 @@ export function Pricing({ setView, setShowAuth, user }) {
       },
       handler: async function (response) {
         console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
+        Swal.fire({
+          title: t("pricing.activatingPlan", "Activating your plan..."),
+          allowOutsideClick: false,
+          showConfirmButton: false,
+          didOpen: () => Swal.showLoading()
+        })
         const currentUserKey = user?.email || user?.id
-        const updated = activatePlan(planName, printCount, currentUserKey)
-        if (updated) setActivePlan(updated)
         
-        // Persist purchase data into backend subscriptions database table
+        // The server confirms the payment with Razorpay and records the pack. Prints are only added after that.
         try {
           const subRes = await call('/subscriptions', {
             method: 'POST',
@@ -116,9 +135,22 @@ export function Pricing({ setView, setShowAuth, user }) {
           if (subRes && subRes.quota) {
             syncUserQuota(subRes.quota, currentUserKey)
           }
+          const updated = activatePlan(planName, printCount, currentUserKey)
+          if (updated) setActivePlan(updated)
           console.log('✅ Subscription saved to database!')
         } catch (subErr) {
-          console.warn('⚠️ Could not persist subscription to DB backend:', subErr)
+          console.warn('⚠️ Could not confirm the purchase with the server:', subErr)
+          // The money may have been taken, so give the customer what they need to get it sorted out
+          Swal.fire({
+            title: t("pricing.confirmFailedTitle", "We could not confirm your payment yet"),
+            html: `<div style="line-height:1.6;font-size:0.95rem;color:#0C1F41">
+              <p>${t("pricing.confirmFailedText", "If money was deducted, your prints will be added once the payment is confirmed. Please keep this payment ID and contact support if they do not appear.")}</p>
+              <p><strong>Payment ID:</strong> <code>${response.razorpay_payment_id || ""}</code></p>
+            </div>`,
+            icon: "warning",
+            confirmButtonColor: "#0284c7"
+          })
+          return
         }
         
         Swal.fire({
@@ -166,6 +198,9 @@ export function Pricing({ setView, setShowAuth, user }) {
         icon: "error",
         confirmButtonColor: "#ef4444"
       })
+    } finally {
+      // Razorpay shows its own screen from here on
+      setBuyingPlan(null)
     }
   }
 
@@ -479,9 +514,16 @@ export function Pricing({ setView, setShowAuth, user }) {
               <button 
                 className={`plan-cta-button ${plan.btnClass}`}
                 onClick={() => handleBuyPlan(plan.rawName || plan.name, plan.numericPrice, plan.numericPrints)}
+                disabled={Boolean(buyingPlan)}
               >
-                <span>{formatNum(plan.cta)}</span>
-                <ArrowRight size={15} />
+                {buyingPlan === (plan.rawName || plan.name) ? (
+                  <ButtonLoader text={t("pricing.openingPayment", "Opening payment...")} />
+                ) : (
+                  <>
+                    <span>{formatNum(plan.cta)}</span>
+                    <ArrowRight size={15} />
+                  </>
+                )}
               </button>
             </div>
           ))}
@@ -604,9 +646,16 @@ export function Pricing({ setView, setShowAuth, user }) {
               <button
                 onClick={() => handleBuyPlan("Custom Print Pack", calc.finalPrice, calc.count)}
                 className="calc-buy-cta-btn"
+              disabled={Boolean(buyingPlan)}
               >
-                <span>{t("pricing.buyCustomBtn", { count: formatNum(calc.count.toLocaleString()), price: formatNum(calc.finalPrice.toLocaleString()), defaultValue: `Buy ${formatNum(calc.count.toLocaleString())} Prints for ₹${formatNum(calc.finalPrice.toLocaleString())}` })}</span>
-                <ArrowRight size={15} />
+                {buyingPlan === "Custom Print Pack" ? (
+                  <ButtonLoader text={t("pricing.openingPayment", "Opening payment...")} />
+                ) : (
+                  <>
+                    <span>{t("pricing.buyCustomBtn", { count: formatNum(calc.count.toLocaleString()), price: formatNum(calc.finalPrice.toLocaleString()), defaultValue: `Buy ${formatNum(calc.count.toLocaleString())} Prints for ₹${formatNum(calc.finalPrice.toLocaleString())}` })}</span>
+                    <ArrowRight size={15} />
+                  </>
+                )}
               </button>
 
               <div className="calc-security-note">

@@ -205,14 +205,16 @@
   body.slipzo-print-a4 .receipt-print-area,
   #receipt-to-print.format-a4,
   #receipt-print-area.format-a4,
-  .receipt-print-area.format-a4 {
+  .receipt-print-area.format-a4,
+  .receipt-preview-content.format-a4 {
     position: relative !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    max-width: 210mm !important;
+    max-width: 100% !important;
     margin: 0 auto !important;
-    padding: 8mm 6mm !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .realistic-thermal-receipt {
@@ -349,6 +351,15 @@
     break-inside: avoid !important;
     border-bottom: 1px dotted #cbd5e1 !important;
     color: #0f172a !important;
+  }
+
+  /* Item column layouts for each paper size (including stacked rows on 58mm) live in App.css next to the format grids */
+
+  /* Uppercase bold column titles overflow the right edge on 58mm rolls */
+  .format-55mm .realistic-thermal-receipt .receipt-items-header,
+  .format-58mm .realistic-thermal-receipt .receipt-items-header {
+    font-size: 10px !important;
+    letter-spacing: 0 !important;
   }
 
   .receipt-item-name {

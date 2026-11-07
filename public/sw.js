@@ -1,5 +1,5 @@
 // Slipzen PWA Service Worker
-const CACHE_NAME = 'slipzen-cache-v1';
+const CACHE_NAME = 'slipzen-cache-v2';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -36,7 +36,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle static assets & page navigation
+  // Page navigations are network-first so a new deploy's index.html (and its chunk names) is picked up right away;
+  // the cached copy is only used when offline
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', responseToCache));
+        }
+        return networkResponse;
+      }).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // Handle static assets
   if (event.request.method === 'GET') {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {

@@ -5,6 +5,7 @@ import {
   FileText, Smartphone, ChevronDown, ChevronRight
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { ButtonLoader } from "./common/Skeleton"
 import { call } from "../lib/utils"
 import { useToast } from "./common/Toast"
 
@@ -491,7 +492,7 @@ export function Contact({ setView, setShowAuth, user }) {
                   disabled={loading}
                 >
                   {loading ? (
-                    <span>{t("contact.sending", "Sending Message...")}</span>
+                    <ButtonLoader text={t("contact.sending", "Sending Message...")} />
                   ) : (
                     <>
                       <Send size={16} className="btn-send-icon" />

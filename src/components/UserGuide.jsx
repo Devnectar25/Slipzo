@@ -276,7 +276,7 @@ export function UserGuide({ setView, user }) {
             <Sparkles size={13} />
             <span>{tDb("SLIPZEN HELP CENTER & GUIDE")}</span>
           </div>
-          <h1>{t("guide.welcome", "Welcome to Slipzen")}, {user?.name || "Business Owner"}!</h1>
+          <h1>{t("guide.welcome", "Welcome to Slipzen")}, <span className="guide-hero-accent">{user?.name || "Business Owner"}</span>!</h1>
           <p>
             {tDb("Everything you need to master fast billing, barcode inventory, dine-in tables, thermal printers, and daily sales tracking for your business.")}
           </p>

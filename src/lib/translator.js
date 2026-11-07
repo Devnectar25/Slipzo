@@ -48,11 +48,6 @@ const pendingRequests = new Set();
  */
 export const DICTIONARY = {
   // Custom Item UI & Modal Translations
-  "Change Logo": { mr: "लोगो बदला", hi: "लोगो बदलें" },
-  "Remove Logo": { mr: "लोगो काढा", hi: "लोगो हटाएं" },
-  "Recommended size: 512 × 512": { mr: "शिफारस केलेला आकार: ५१२ × ५१२", hi: "अनुशंसित आकार: 512 × 512" },
-  "Remove shop logo?": { mr: "दुकानाचा लोगो काढायचा?", hi: "दुकान का लोगो हटाएं?" },
-  "Are you sure you want to remove your shop logo? It will no longer appear on your receipts.": { mr: "आपल्याला खात्री आहे की आपण दुकानाचा लोगो काढू इच्छिता? तो यापुढे आपल्या पावत्यांवर दिसणार नाही.", hi: "क्या आप वाकई दुकान का लोगो हटाना चाहते हैं? यह अब आपकी रसीदों पर दिखाई नहीं देगा।" },
   "Custom Item": { mr: "कस्टम वस्तू", hi: "कस्टम आइटम" },
   "Create Custom Item": { mr: "कस्टम वस्तू तयार करा", hi: "कस्टम आइटम बनाएं" },
   "Create Custom Product": { mr: "कस्टम उत्पादन तयार करा", hi: "कस्टम उत्पाद बनाएं" },
@@ -76,7 +71,6 @@ export const DICTIONARY = {
   "Photo": { mr: "फोटो", hi: "फोटो" },
   "Change": { mr: "बदला", hi: "बदलें" },
   "Remove image": { mr: "छायाचित्र हटवा", hi: "फोटो हटाएं" },
-  "General": { mr: "सामान्य", hi: "सामान्य" },
   "Small Business / Cafe & Tea": { mr: "लहान व्यवसाय / कॅफे आणि चहा", hi: "छोटा व्यवसाय / कैफे और चाय" },
   "Kirana / Grocery Shop": { mr: "किराणा / ग्रॉसरी दुकान", hi: "किराना / ग्रॉसरी दुकान" },
   "Cloth & Garments Shop": { mr: "कापड आणि कपड्यांचे दुकान", hi: "कपड़ा और वस्त्र दुकान" },
@@ -93,18 +87,6 @@ export const DICTIONARY = {
   "Are you sure you want to remove your shop logo? It will no longer appear on your receipts.": { mr: "तुम्हाला नक्की दुकानाची लोगो हटवायची आहे का? ती पावतीवर पुन्हा दिसणार नाही.", hi: "क्या आप वाकई दुकान का लोगो हटाना चाहते हैं? यह रसीद पर फिर नहीं दिखेगा।" },
 
   // Templates & Showcase
-  "Minimal Clean Bill": { mr: "मिनिमल क्लीन बिल", hi: "मिनिमल क्लीन बिल" },
-  "Classic Receipt": { mr: "क्लासिक पावती", hi: "क्लासिक रसीद" },
-  "Shop Pro": { mr: "शॉप प्रो", hi: "शॉप प्रो" },
-  "Eco Print": { mr: "इको प्रिंट", hi: "इको प्रिंट" },
-  "Modern Shop": { mr: "मॉडर्न शॉप", hi: "मॉडर्न शॉप" },
-  "Business Elite": { mr: "बिझनेस एलिट", hi: "बिजनेस एलीट" },
-  "Most Popular": { mr: "सर्वात लोकप्रिय", hi: "सबसे लोकप्रिय" },
-  "Standard": { mr: "स्टँडर्ड", hi: "स्टैंडर्ड" },
-  "Retail Choice": { mr: "रिटेल पसंती", hi: "रिटेल पसंद" },
-  "Paper Saver": { mr: "कागद बचत", hi: "कागज बचत" },
-  "Trendy": { mr: "ट्रेंडी", hi: "ट्रेंडी" },
-  "Premium": { mr: "प्रीमियम", hi: "प्रीमियम" },
 
   // Food & Menu Master Catalog (all items from database)
   "Masala Chai": { mr: "मसाला चहा", hi: "मसाला चाय" },
@@ -221,10 +203,6 @@ export const DICTIONARY = {
   },
   "Invoice": { mr: "पावती", hi: "चालान / बिल" },
   "Payment Mode": { mr: "पेमेंट पद्धत", hi: "भुगतान का प्रकार" },
-  "Cash": { mr: "रोख (Cash)", hi: "नकद" },
-  "UPI": { mr: "यूपीआय", hi: "यूपीआई" },
-  "Card": { mr: "कार्ड", hi: "कार्ड" },
-  "Credit": { mr: "उधार", hi: "उधार" },
   "UPI / PhonePe": { mr: "यूपीआय / फोनपे", hi: "यूपीआई / फोनपे" },
 
   // Hardware & Store Products

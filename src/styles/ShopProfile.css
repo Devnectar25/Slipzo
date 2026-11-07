@@ -1,0 +1,306 @@
+/* ==========================================================================
+   Shop Profile: visual layer
+   Sits on top of the layout rules in Shop.jsx's own style block. Everything is scoped to
+   .shop-page, so it outranks those rules without touching how the page is laid out.
+   ========================================================================== */
+
+/* ---------- Page header ---------- */
+.shop-page .sp-header {
+  margin-bottom: 1.4rem;
+}
+
+.shop-page .sp-title {
+  font-size: 1.8rem;
+  letter-spacing: -0.025em;
+}
+
+.shop-page .sp-subtitle {
+  font-size: 0.92rem;
+  color: #64748b;
+}
+
+.shop-page .sp-top-save-btn {
+  height: 44px;
+  padding: 0 1.4rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  font-size: 0.92rem;
+  box-shadow: 0 12px 24px -10px rgba(2, 132, 199, 0.65);
+}
+
+.shop-page .sp-top-save-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  filter: brightness(1.06);
+  box-shadow: 0 16px 28px -10px rgba(2, 132, 199, 0.75);
+}
+
+.shop-page .sp-saved-badge.top,
+.shop-page .sp-saved-badge.bottom {
+  font-size: 0.78rem;
+  background: #f0f9ff !important;
+  color: #0284c7 !important;
+  border: 1px solid #bae6fd !important;
+}
+
+.shop-page .sp-unsaved-hint.top {
+  font-size: 0.78rem;
+}
+
+/* ---------- Store banner ---------- */
+/* Same light-blue treatment as the Help Center banner, so the profile matches the other pages */
+.shop-page .sp-store-details-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1.6rem 1.9rem !important;
+  border: 1px solid #bae6fd !important;
+  border-radius: 20px !important;
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 30%, #f0f9ff 70%, #eff6ff 100%) !important;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.06) !important;
+  color: #0f172a;
+}
+
+.shop-page .sp-store-details-card .sp-avatar-wrap {
+  box-shadow: 0 0 0 3px #ffffff, 0 10px 22px -10px rgba(2, 132, 199, 0.55);
+}
+
+.shop-page .sp-store-details-card .sp-avatar-wrap.has-image {
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px #ffffff, 0 10px 22px -10px rgba(2, 132, 199, 0.4) !important;
+}
+
+.shop-page .sp-store-details-card .sp-store-eyebrow {
+  color: #0284c7;
+}
+
+.shop-page .sp-store-details-card .sp-store-name {
+  letter-spacing: -0.015em;
+}
+
+.shop-page .sp-store-details-card .sp-store-subtext {
+  color: #64748b;
+}
+
+.shop-page .sp-store-details-card .sp-info-pill {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: #bae6fd;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.06);
+}
+
+.shop-page .sp-verified-badge {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #0284c7 !important;
+  border: 1px solid #bae6fd !important;
+}
+
+.shop-page .sp-store-details-card .sp-change-logo-btn,
+.shop-page .sp-store-details-card .sp-remove-logo-btn {
+  background: #ffffff;
+}
+
+/* ---------- Cards ---------- */
+.shop-page .sp-card,
+.shop-page .sp-preview-card {
+  border: 1px solid #e3eaf3 !important;
+  border-radius: 20px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(12, 31, 65, 0.04), 0 16px 34px -24px rgba(12, 31, 65, 0.3) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.shop-page .sp-card:hover,
+.shop-page .sp-preview-card:hover {
+  border-color: #cfe0f1 !important;
+  box-shadow: 0 1px 2px rgba(12, 31, 65, 0.04), 0 22px 40px -24px rgba(2, 132, 199, 0.38) !important;
+}
+
+.shop-page .sp-card-header {
+  margin-bottom: 1.2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.shop-page .sp-card-header .sp-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+}
+
+.shop-page .sp-icon-box.blue {
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+}
+
+.shop-page .sp-icon-box.green {
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+}
+
+.shop-page .sp-icon-box.purple {
+  background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%);
+  border: 1px solid #ddd6fe;
+  color: #7c3aed;
+}
+
+.shop-page .sp-card-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.shop-page .sp-card-subtitle {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+/* ---------- Form fields ---------- */
+.shop-page .sp-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.shop-page .sp-input-wrap,
+.shop-page .sp-select-wrap,
+.shop-page .sp-textarea-wrap {
+  min-height: 46px;
+  border: 1.5px solid #dbe3ee;
+  border-radius: 12px;
+  background: #f8fafc;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shop-page .sp-input-wrap:hover,
+.shop-page .sp-select-wrap:hover,
+.shop-page .sp-textarea-wrap:hover {
+  border-color: #b6c4d8;
+}
+
+.shop-page .sp-input-wrap:focus-within,
+.shop-page .sp-select-wrap:focus-within,
+.shop-page .sp-textarea-wrap:focus-within {
+  border-color: #0ea5e9;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.16);
+}
+
+.shop-page .sp-input-wrap.error,
+.shop-page .sp-textarea-wrap.error {
+  border-color: #ef4444;
+  background: #fff7f7;
+}
+
+.shop-page .sp-input-wrap:focus-within .sp-input-icon,
+.shop-page .sp-select-wrap:focus-within .sp-input-icon,
+.shop-page .sp-textarea-wrap:focus-within .sp-textarea-icon {
+  color: #0284c7;
+}
+
+/* The outer .sp-*-wrap draws the field. The global theme also paints a border, background and focus ring on
+   the inner element with very specific selectors, so :not(#sp-x), which adds an ID's worth of specificity,
+   is used to switch those off and avoid a second box inside the first. */
+.shop-page input.sp-input:not(#sp-x),
+.shop-page select.sp-select:not(#sp-x),
+.shop-page textarea.sp-textarea:not(#sp-x),
+.shop-page input.sp-input:not(#sp-x):focus,
+.shop-page select.sp-select:not(#sp-x):focus,
+.shop-page textarea.sp-textarea:not(#sp-x):focus {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.shop-page .sp-input,
+.shop-page .sp-select,
+.shop-page .sp-textarea {
+  font-weight: 500;
+}
+
+.shop-page .sp-input::placeholder,
+.shop-page .sp-textarea::placeholder {
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.shop-page .sp-helper-text {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+/* Preset chips */
+.shop-page .sp-preset-btn {
+  padding: 0.28rem 0.8rem;
+  border-radius: 999px;
+  border-color: #dbe3ee;
+  background: #f8fafc;
+}
+
+.shop-page .sp-preset-btn.active {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  border-color: transparent;
+  box-shadow: 0 8px 16px -8px rgba(2, 132, 199, 0.7);
+}
+
+/* ---------- Live preview ---------- */
+.shop-page .sp-live-badge {
+  padding: 0.28rem 0.75rem;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  background: #f0f9ff;
+  font-size: 0.78rem;
+  color: #0284c7;
+}
+
+.shop-page .sp-paper-dropdown {
+  height: 34px;
+  padding: 0 0.7rem;
+  border: 1.5px solid #dbe3ee;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.shop-page .sp-receipt-wrapper {
+  padding: 1rem 0.75rem;
+  border: 1px solid #d7e6f5;
+  border-radius: 16px;
+  background:
+    radial-gradient(rgba(2, 132, 199, 0.12) 1px, transparent 1px) 0 0 / 16px 16px,
+    linear-gradient(180deg, #f1f7fd 0%, #e6f0fa 100%);
+}
+
+/* On a tall desktop screen the preview stays in view while the settings are edited */
+@media (min-width: 961px) and (min-height: 820px) {
+  .shop-page .sp-right-col {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+@media (min-width: 641px) {
+  .shop-page .sp-card {
+    padding: 1.5rem 1.6rem !important;
+  }
+
+  .shop-page .sp-preview-card {
+    padding: 1.35rem 1.45rem !important;
+  }
+}
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+  .shop-page .sp-store-details-card {
+    padding: 1.1rem 1rem !important;
+    border-radius: 18px !important;
+  }
+
+  .shop-page .sp-card,
+  .shop-page .sp-preview-card {
+    border-radius: 18px !important;
+  }
+
+  .shop-page .sp-title {
+    font-size: 1.45rem !important;
+  }
+}

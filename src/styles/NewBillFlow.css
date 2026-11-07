@@ -6,7 +6,7 @@
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0.25rem 1.25rem 1.25rem;
+  padding: 0.25rem 1.25rem 0;
   box-sizing: border-box;
   color: #0C1F41;
 }
@@ -19,29 +19,40 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 0.85rem;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.1rem;
+  padding: 1.1rem 1.35rem;
   width: 100%;
   box-sizing: border-box;
+  border-radius: 16px;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.06);
+}
+
+/* Needs two classes and !important to beat the white ".app-shell header" strip in theme.css */
+.new-bill-flow-container .nb-top-header {
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 30%, #f0f9ff 70%, #eff6ff 100%) !important;
+  border: 1px solid #bae6fd !important;
 }
 
 .nb-header-left {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.9rem;
   min-width: 0;
 }
 
 .nb-header-icon-box {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
-  background: #f0f9ff;
-  border: 1.5px solid #bae6fd;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #bae6fd;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.08);
 }
 
 .nb-header-icon {
@@ -54,18 +65,81 @@
   min-width: 0;
 }
 
-.nb-page-title {
-  font-size: 1.55rem;
+/* theme.css forces heading and subtitle colours with !important */
+.nb-top-header .nb-page-title {
+  font-size: 1.5rem;
   font-weight: 800;
-  color: #0C1F41;
+  color: #0f172a !important;
   margin: 0;
   line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-shadow: none !important;
 }
 
-.nb-page-subtitle {
+.nb-top-header .nb-page-subtitle {
   font-size: 0.85rem;
-  color: #74788A;
+  color: #64748b !important;
   margin: 0.2rem 0 0 0;
+  font-weight: 500;
+  text-shadow: none !important;
+}
+
+/* Live bill summary: invoice number, item count and running total */
+.nb-header-stats {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.nb-header-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #bae6fd;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.06);
+}
+
+.nb-header-stat-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #0284c7;
+}
+
+.nb-header-stat-value {
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.nb-header-stat-total {
+  background: #ffffff;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
+}
+
+.nb-header-stat-total .nb-header-stat-label {
+  color: #0284c7;
+  font-weight: 800;
+}
+
+.nb-header-stat-total .nb-header-stat-value {
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 800;
 }
 
 .nb-header-right {
@@ -123,33 +197,47 @@
 }
 
 /* ==========================================================================
-   Full-Width Search Bar
+   Search Row & Dedicated Barcode Scanner
    ========================================================================== */
+.nb-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin-bottom: 1.15rem;
+  box-sizing: border-box;
+}
+
 .nb-search-bar {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   background: #ffffff;
-  border: 1px solid #d5e0eb;
+  border: 1.5px solid #e2e8f0;
   border-radius: 12px;
   padding: 0 0.85rem;
   height: 48px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-  margin-bottom: 1rem;
-  width: 100%;
   box-sizing: border-box;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nb-search-bar:focus-within {
-  border-color: #d5e0eb !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04) !important;
   background: #ffffff !important;
 }
 
 .nb-search-icon {
-  color: #8F93A5;
+  color: #94a3b8;
   margin-right: 0.65rem;
   flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.nb-search-bar:focus-within .nb-search-icon {
+  color: #0284c7;
 }
 
 .nb-search-input {
@@ -158,16 +246,16 @@
   outline: none !important;
   box-shadow: none !important;
   background: transparent !important;
-  font-size: 16px;
-  font-weight: 400;
-  color: #0C1F41;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #0f172a;
   padding: 0;
   min-width: 60px;
 }
 
 .nb-search-input::placeholder {
-  color: #8F93A5;
-  font-size: 16px;
+  color: #94a3b8;
+  font-size: 0.92rem;
   font-weight: 400;
 }
 
@@ -175,41 +263,51 @@
   background: none;
   border: none;
   padding: 0.35rem;
-  color: #8F93A5;
+  color: #94a3b8;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   margin-right: 0.35rem;
+  transition: all 0.15s ease;
 }
 
 .nb-search-clear-btn:hover {
-  color: #0284c7;
-  background: #f0f9ff;
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.nb-search-voice-wrapper {
+  display: flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  padding-left: 0.35rem;
+  border-left: 1px solid #e2e8f0;
 }
 
 .nb-scan-barcode-btn {
+  height: 48px;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  background: #0284c7;
+  gap: 0.55rem;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.45rem 0.9rem;
-  font-size: 0.82rem;
-  font-weight: 700;
+  border: 1px solid rgba(2, 132, 199, 0.2);
+  border-radius: 12px;
+  padding: 0 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
-  margin-left: 0.4rem;
-  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.22);
   flex-shrink: 0;
 }
 
 .nb-scan-barcode-btn:hover {
-  background: #0369a1;
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.32);
   transform: translateY(-1px);
 }
 
@@ -217,25 +315,16 @@
   transform: translateY(0);
 }
 
-@media (max-width: 640px) {
-  .nb-scan-barcode-btn span {
-    display: none;
-  }
-  .nb-scan-barcode-btn {
-    padding: 0.45rem 0.6rem;
-  }
-}
-
 /* ==========================================================================
-   Category Filter Chips
+   Category Filter Chips - Modern Minimalist
    ========================================================================== */
 .nb-category-chips-row {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.5rem;
   overflow-x: auto;
-  padding: 0.1rem 0 0.5rem 0;
-  margin-bottom: 1.35rem;
+  padding: 0.15rem 0.1rem 0.5rem 0.1rem;
+  margin-bottom: 1.25rem;
   scrollbar-width: none;
   width: 100%;
   box-sizing: border-box;
@@ -246,33 +335,43 @@
 }
 
 .nb-category-chip {
-  padding: 0.45rem 1.1rem;
+  padding: 0.45rem 1.05rem;
   border-radius: 9999px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  border: 1.5px solid #bae6fd;
-  background: #ffffff;
-  color: #0C1F41;
+  font-size: 0.84rem;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  user-select: none;
 }
 
 .nb-category-chip:hover {
-  background: #e0f2fe;
-  border-color: #D9DDE4;
-  color: #0C1F41;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
 }
 
 .nb-category-chip.active {
   background: #0284c7;
   border-color: #0284c7;
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);
+  font-weight: 600;
+  box-shadow: 0 3px 8px -1px rgba(2, 132, 199, 0.35);
+}
+
+.nb-category-chip.active:hover {
+  background: #0369a1;
+  border-color: #0369a1;
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
@@ -956,10 +1055,15 @@
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none !important;
+  transition: all 0.15s ease;
 }
 
-.nb-success-new-btn:hover {
-  text-decoration: underline;
+.nb-success-new-btn:hover,
+.nb-success-new-btn:focus,
+.nb-success-new-btn:active {
+  text-decoration: none !important;
+  color: #0369a1;
 }
 
 /* ==========================================================================
@@ -967,38 +1071,75 @@
    ========================================================================== */
 @media (max-width: 680px) {
   .new-bill-flow-container {
-    padding: 0 0.25rem 1rem;
+    padding: 0 0.25rem 0;
   }
 
   .nb-top-header {
-    flex-direction: row;
-    align-items: center;
-    gap: 0.65rem;
-    margin-bottom: 0.65rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.85rem;
+    border-radius: 14px;
   }
 
   .nb-header-left {
     gap: 0.65rem;
   }
 
-  .nb-page-title {
+  .nb-top-header .nb-page-title {
     font-size: 1.25rem;
   }
 
   .nb-header-icon-box {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+  }
+
+  /* Invoice gets its own row: its number is too long to share a phone-width line */
+  .nb-header-stats {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.45rem;
+  }
+
+  .nb-header-stat-invoice {
+    grid-column: 1 / -1;
+  }
+
+  .nb-header-stat {
+    padding: 0.4rem 0.7rem;
     border-radius: 10px;
   }
 
+  .nb-header-stat-total {
+    align-items: flex-end;
+  }
+
+  .nb-search-row {
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .nb-scan-barcode-btn {
+    height: 44px;
+    padding: 0 0.85rem;
+    border-radius: 10px;
+  }
+
+  .nb-scan-barcode-btn span {
+    display: none;
+  }
+
   .nb-search-bar {
-    padding: 0.35rem 0.5rem 0.35rem 0.85rem;
-    border-radius: 12px;
-    margin-bottom: 0.75rem;
+    height: 44px;
+    padding: 0 0.65rem;
+    border-radius: 10px;
   }
 
   .nb-search-input {
-    font-size: 0.84rem;
+    font-size: 0.86rem;
   }
 
   .nb-category-chips-row {

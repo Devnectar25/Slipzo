@@ -25,14 +25,16 @@ export function PrintModal({
       try {
         const parsed = JSON.parse(saved)
         if (parsed.pageWidth) {
-          if (parsed.pageWidth === "55mm") return "55mm"
-          if (parsed.pageWidth === "80mm") return "80mm"
-          if (parsed.pageWidth === "a4") return "a4"
+          const pw = String(parsed.pageWidth).trim().toLowerCase()
+          if (pw === "55mm" || pw === "55" || pw === "58mm" || pw === "58") return "55mm"
+          if (pw === "80mm" || pw === "80") return "80mm"
+          if (pw === "a4" || pw === "full") return "a4"
         }
       } catch (_) { }
     }
-    if (defaultWidth === "55mm") return "55mm"
-    if (defaultWidth === "a4") return "a4"
+    const dw = String(defaultWidth || "").trim().toLowerCase()
+    if (dw === "55mm" || dw === "55" || dw === "58mm" || dw === "58") return "55mm"
+    if (dw === "a4" || dw === "full") return "a4"
     return "80mm"
   })
 
@@ -78,7 +80,8 @@ export function PrintModal({
   // Update width if defaultWidth prop changes or when modal opens
   useEffect(() => {
     if (defaultWidth) {
-      const sanitized = (defaultWidth === "55mm") ? "55mm" : (defaultWidth === "a4" ? "a4" : "80mm")
+      const dw = String(defaultWidth).trim().toLowerCase()
+      const sanitized = (dw === "55mm" || dw === "55" || dw === "58mm" || dw === "58") ? "55mm" : ((dw === "a4" || dw === "full") ? "a4" : "80mm")
       setPageWidth(sanitized)
       if (sanitized === "55mm") {
         setFontSize(13.5)
@@ -347,10 +350,11 @@ export function PrintModal({
   }
 
   const handleReset = () => {
-    const resetWidth = (defaultWidth === "55mm") ? "55mm" : "80mm"
+    const dw = String(defaultWidth || "").trim().toLowerCase()
+    const resetWidth = (dw === "55mm" || dw === "55" || dw === "58mm" || dw === "58") ? "55mm" : ((dw === "a4" || dw === "full") ? "a4" : "80mm")
     setPageWidth(resetWidth)
     setScale(100)
-    setFontSize(resetWidth === "55mm" ? 13.5 : 15.5)
+    setFontSize(resetWidth === "55mm" ? 13.5 : (resetWidth === "a4" ? 14.5 : 15.5))
     setDensity("normal")
     setHighContrast(true)
     setShowShopDetails(true)
@@ -528,6 +532,10 @@ export function PrintModal({
                       padding: ${previewItemPadding} !important;
                       line-height: ${previewLineHeight} !important;
                       align-items: start !important;
+                    }
+                    .thermal-paper-inner .tpl-style-elite .receipt-items-header,
+                    .thermal-paper-inner .tpl-style-elite .receipt-item-row {
+                      grid-template-columns: 0.25fr 1.6fr 0.45fr 0.85fr 1fr !important;
                     }
                     .thermal-paper-inner .receipt-item-name {
                       word-break: break-word !important;

@@ -1,38 +1,108 @@
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, lazy, Suspense } from "react"
 import { App as CapApp } from "@capacitor/app"
-import { Auth } from "./components/Auth"
-import { WelcomeOnboarding } from "./components/WelcomeOnboarding"
 import { Shell } from "./components/Shell"
-import { Dashboard } from "./components/Dashboard"
-import { Templates } from "./components/Templates"
-import { Bill } from "./components/Bill"
-import { History } from "./components/History"
-import { Shop } from "./components/Shop"
-import { Products } from "./components/Products"
-import { Reprint } from "./components/Reprint"
-import { Pricing } from "./components/Pricing"
-import { Contact } from "./components/Contact"
-import { UserGuide } from "./components/UserGuide"
-import { ShopOnboardingModal } from "./components/ShopOnboardingModal"
-import { Menu as ShopMenu } from "./components/Menu"
-import { AddYourItemsModal } from "./components/AddYourItemsModal"
-import { OnboardingRewardModal } from "./components/OnboardingRewardModal"
-import { FreeRewardExpiredModal } from "./components/FreeRewardExpiredModal"
-import { TableManagement } from "./components/tables/TableManagement"
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider, useToast } from "./components/common/Toast"
+import { TopProgressBar } from "./components/common/TopProgressBar"
 import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData } from "./lib/utils"
-import { AdminLogin } from "./components/admin/AdminLogin"
-import { AdminDashboard } from "./components/admin/AdminDashboard"
 import "./styles/App.css"
 import "./styles/print.css"
 
+// Pages and modals are code-split so the first load only downloads what the current screen needs.
+// Each loader is kept so the remaining chunks can be prefetched once the app is idle.
+const pageLoaders = []
+const lazyNamed = (loader, name) => {
+  pageLoaders.push(loader)
+  return lazy(() => loader().then((m) => ({ default: m[name] })))
+}
+
+const Auth = lazyNamed(() => import("./components/Auth"), "Auth")
+const WelcomeOnboarding = lazyNamed(() => import("./components/WelcomeOnboarding"), "WelcomeOnboarding")
+const DesktopLanding = lazyNamed(() => import("./components/DesktopLanding"), "DesktopLanding")
+const Dashboard = lazyNamed(() => import("./components/Dashboard"), "Dashboard")
+const Templates = lazyNamed(() => import("./components/Templates"), "Templates")
+const Bill = lazyNamed(() => import("./components/Bill"), "Bill")
+const History = lazyNamed(() => import("./components/History"), "History")
+const Shop = lazyNamed(() => import("./components/Shop"), "Shop")
+const Products = lazyNamed(() => import("./components/Products"), "Products")
+const Reprint = lazyNamed(() => import("./components/Reprint"), "Reprint")
+const Pricing = lazyNamed(() => import("./components/Pricing"), "Pricing")
+const Contact = lazyNamed(() => import("./components/Contact"), "Contact")
+const UserGuide = lazyNamed(() => import("./components/UserGuide"), "UserGuide")
+const ShopMenu = lazyNamed(() => import("./components/Menu"), "Menu")
+const TableManagement = lazyNamed(() => import("./components/tables/TableManagement"), "TableManagement")
+const ShopOnboardingModal = lazyNamed(() => import("./components/ShopOnboardingModal"), "ShopOnboardingModal")
+const AddYourItemsModal = lazyNamed(() => import("./components/AddYourItemsModal"), "AddYourItemsModal")
+const OnboardingRewardModal = lazyNamed(() => import("./components/OnboardingRewardModal"), "OnboardingRewardModal")
+const FreeRewardExpiredModal = lazyNamed(() => import("./components/FreeRewardExpiredModal"), "FreeRewardExpiredModal")
+const AdminLogin = lazyNamed(() => import("./components/admin/AdminLogin"), "AdminLogin")
+const AdminDashboard = lazyNamed(() => import("./components/admin/AdminDashboard"), "AdminDashboard")
+
+// Opened from inside Bill and TableBilling, which load it on demand
+pageLoaders.push(() => import("./components/common/CameraScannerModal"))
+
+// The APK, an installed app and phones keep the story-style welcome screen; a desktop browser gets the
+// advertisement page instead
+const DESKTOP_QUERY = "(min-width: 900px)"
+const isDesktopWeb = () => {
+  if (typeof window === "undefined" || isNativeApp) return false
+  const installed = window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true
+  return !installed && Boolean(window.matchMedia?.(DESKTOP_QUERY).matches)
+}
+
+// Warm the cache with every page chunk in idle time so navigation stays instant and works offline.
+const prefetchPages = () => {
+  const run = () => pageLoaders.forEach((load) => load().catch(() => {}))
+  if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(run, { timeout: 4000 })
+  else setTimeout(run, 2000)
+}
+
+function BrandLoader() {
+  return (
+    <div className="loading">
+      <div className="brand-loader-card">
+        <div className="brand-loader-logo-wrapper">
+          <div className="brand-loader-ring-glow"></div>
+          <div className="brand-loader-ring-spinner"></div>
+          <img src="/logo-white.png" alt="Slipzen" className="brand-loader-logo" />
+        </div>
+        <div className="brand-loader-text-group">
+          <div className="brand-loader-brand">
+            <span className="brand-title">Slipzen</span>
+            <span className="brand-dot">•</span>
+          </div>
+          <p className="brand-loader-subtext">Quick & Smart Billing System</p>
+        </div>
+        <div className="brand-loader-progress-track">
+          <div className="brand-loader-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PageLoader() {
+  return (
+    <div className="page-lazy-loader" role="status" aria-label="Loading">
+      <div className="page-lazy-spinner"></div>
+    </div>
+  )
+}
+
 export default function App() {
+  useEffect(() => {
+    if (document.readyState === "complete") prefetchPages()
+    else window.addEventListener("load", prefetchPages, { once: true })
+  }, [])
+
   return (
     <ErrorBoundary>
+      <TopProgressBar />
       <ToastProvider>
-        <AppContent />
+        <Suspense fallback={<BrandLoader />}>
+          <AppContent />
+        </Suspense>
       </ToastProvider>
     </ErrorBoundary>
   )
@@ -89,6 +159,13 @@ function AppContent() {
     return "dashboard"
   })
   const [checking, setChecking] = useState(true)
+  const [desktopWeb, setDesktopWeb] = useState(isDesktopWeb)
+  useEffect(() => {
+    const query = window.matchMedia(DESKTOP_QUERY)
+    const update = () => setDesktopWeb(isDesktopWeb())
+    query.addEventListener("change", update)
+    return () => query.removeEventListener("change", update)
+  }, [])
   const [showAuth, setShowAuth] = useState(() => {
     if (typeof window !== "undefined") {
       const p = window.location.pathname.toLowerCase()
@@ -210,6 +287,8 @@ function AppContent() {
   const checkShopSetupNeeded = async (userData) => {
     const userKey = userData?.email || userData?.id
     if (!userKey) return
+    // Workers use the owner's shop, which is the owner's to set up
+    if (userData?.staff_of) return
 
     const firstTimeDone = localStorage.getItem(`slipzo_first_time_onboarding_${userKey}`) === "true"
     const isRewardClaimed = Number(userData?.onboarding_reward_claimed || 0) === 1
@@ -600,27 +679,7 @@ function AppContent() {
   }
 
   if (checking) {
-    return (
-      <div className="loading">
-        <div className="brand-loader-card">
-          <div className="brand-loader-logo-wrapper">
-            <div className="brand-loader-ring-glow"></div>
-            <div className="brand-loader-ring-spinner"></div>
-            <img src="/logo-white.png" alt="Slipzen" className="brand-loader-logo" />
-          </div>
-          <div className="brand-loader-text-group">
-            <div className="brand-loader-brand">
-              <span className="brand-title">Slipzen</span>
-              <span className="brand-dot">•</span>
-            </div>
-            <p className="brand-loader-subtext">Quick & Smart Billing System</p>
-          </div>
-          <div className="brand-loader-progress-track">
-            <div className="brand-loader-progress-fill"></div>
-          </div>
-        </div>
-      </div>
-    )
+    return <BrandLoader />
   }
 
   if (view === "admin_login" || view === "admin") {
@@ -650,16 +709,11 @@ function AppContent() {
 
     return (
       <ErrorBoundary onGoHome={() => setView("dashboard")}>
-        <WelcomeOnboarding
-          onLogin={() => {
-            setIsRegister(false)
-            setShowAuth(true)
-          }}
-          onSignUp={() => {
-            setIsRegister(true)
-            setShowAuth(true)
-          }}
-        />
+        {desktopWeb ? (
+          <DesktopLanding onLogin={() => handleOpenAuth(false)} onSignUp={() => handleOpenAuth(true)} />
+        ) : (
+          <WelcomeOnboarding onLogin={() => handleOpenAuth(false)} onSignUp={() => handleOpenAuth(true)} />
+        )}
         <PwaInstallPrompt />
       </ErrorBoundary>
     )
@@ -676,6 +730,7 @@ function AppContent() {
       requireAuth={requireAuth}
     >
       <ErrorBoundary onGoHome={() => setView("dashboard")} onReset={() => setView("dashboard")}>
+       <Suspense fallback={<PageLoader />}>
         {view === "dashboard" && <Dashboard setView={setView} setSelectedBillId={setSelectedBillId} requireAuth={requireAuth} user={user} />}
         {view === "templates" && <Templates setView={setView} requireAuth={requireAuth} user={user} />}
         {(view === "tables" || (view === "bills" && isHotel)) && (
@@ -712,9 +767,11 @@ function AppContent() {
             user={user}
           />
         )}
+       </Suspense>
       </ErrorBoundary>
     </Shell>
-    <ShopOnboardingModal
+    <Suspense fallback={null}>
+    {showShopOnboarding && <ShopOnboardingModal
       isOpen={showShopOnboarding}
       user={user}
       onClose={() => {
@@ -727,27 +784,28 @@ function AppContent() {
         }
         setShowAddItemsModal(true)
       }}
-    />
-    <AddYourItemsModal
+    />}
+    {showAddItemsModal && <AddYourItemsModal
       isOpen={showAddItemsModal}
       user={user}
       shop={cachedShop}
       onClose={() => setShowAddItemsModal(false)}
       onContinue={handleClaimOnboardingReward}
-    />
-    <OnboardingRewardModal
+    />}
+    {showRewardModal && <OnboardingRewardModal
       isOpen={showRewardModal}
       onClose={() => {
         setShowRewardModal(false)
         setView("dashboard")
       }}
       onGetStarted={handleRewardGetStarted}
-    />
-    <FreeRewardExpiredModal
+    />}
+    {showFreeRewardExpiredModal && <FreeRewardExpiredModal
       isOpen={showFreeRewardExpiredModal}
       onClose={handleCloseExpiryModal}
       onViewPlans={handleViewPlansFromExpiry}
-    />
+    />}
+    </Suspense>
     <PwaInstallPrompt />
   </>
   )

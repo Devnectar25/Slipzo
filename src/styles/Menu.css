@@ -6,7 +6,7 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem 1rem 3rem;
+  padding: 1rem 1rem 0;
   box-sizing: border-box;
   color: #0C1F41;
 }
@@ -804,7 +804,7 @@
   padding: 3rem 1.5rem;
   text-align: center;
   max-width: 520px;
-  margin: 1.5rem auto 2.5rem;
+  margin: 1.5rem auto 0;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
 }
 
@@ -922,35 +922,49 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 }
 
 .menu-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem;
-  animation: fadeIn 0.15s ease;
-  overscroll-behavior: contain;
-  touch-action: none;
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100% !important;
+  min-height: 100dvh !important;
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0.75rem !important;
+  box-sizing: border-box !important;
+  animation: fadeIn 0.15s ease !important;
+  overscroll-behavior: contain !important;
+  touch-action: pan-y !important;
 }
 
 .menu-modal-card {
   background: #ffffff;
   border-radius: 16px;
   width: 100%;
-  max-width: 410px;
-  max-height: calc(100vh - 2rem);
+  max-width: 440px;
+  max-height: min(92vh, calc(100dvh - 1.5rem));
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
   overflow: hidden;
   border: 1px solid #bae6fd;
   animation: scaleUp 0.18s ease;
+  margin: auto;
+}
+
+.menu-modal-card form {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
 
 .category-change-modal-card {
@@ -973,6 +987,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   align-items: center;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
 }
 
 .menu-modal-title {
@@ -1003,7 +1018,10 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 .menu-modal-body {
   padding: 1.25rem 1.5rem;
   overflow-y: auto;
-  flex: 1;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+  min-height: 0;
+  overscroll-behavior: contain;
 }
 
 .menu-modal-item-preview {
@@ -1111,6 +1129,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   padding: 1rem 1.5rem;
   border-top: 1px solid #f1f5f9;
   background: #ffffff;
+  flex-shrink: 0;
 }
 
 /* Animations */
@@ -1138,7 +1157,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 
 @media (max-width: 640px) {
   .menu-page-container {
-    padding: 0.5rem 0.5rem 5.5rem;
+    padding: 0.5rem 0.5rem 0;
     box-sizing: border-box;
   }
 
@@ -1408,17 +1427,24 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 
   /* Modals on Mobile */
   .menu-modal-backdrop {
-    padding: 0.65rem !important;
+    padding: 0.5rem !important;
+    align-items: center !important;
   }
 
   .menu-modal-card {
     width: 100% !important;
-    max-width: 360px !important;
-    border-radius: 12px !important;
+    max-width: min(440px, calc(100vw - 1rem)) !important;
+    max-height: min(92vh, calc(100dvh - 1rem)) !important;
+    border-radius: 14px !important;
+    margin: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
   }
 
   .menu-modal-header {
     padding: 0.75rem 1rem !important;
+    flex-shrink: 0 !important;
   }
 
   .menu-modal-title {
@@ -1426,7 +1452,11 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   }
 
   .menu-modal-body {
-    padding: 0.85rem 1rem !important;
+    padding: 0.75rem 1rem !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .menu-modal-item-preview {
@@ -1453,6 +1483,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   .menu-modal-footer {
     padding: 0.75rem 1rem !important;
     gap: 0.5rem !important;
+    flex-shrink: 0 !important;
   }
 
   .menu-modal-footer button {
@@ -1466,7 +1497,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 /* Extra small mobile screens (under 375px) */
 @media (max-width: 375px) {
   .menu-page-container {
-    padding: 0.4rem 0.35rem 5.5rem;
+    padding: 0.4rem 0.35rem 0;
   }
 
   .catalog-item-card,
@@ -1538,9 +1569,8 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   }
 
   .menu-page-container {
-    padding: 0.45rem 0.75rem 5rem 0.75rem !important;
-    background: #FFFDF9 !important;
-    min-height: 100vh !important;
+    padding: 0.45rem 0.75rem 0 0.75rem !important;
+    background: transparent !important;
     box-sizing: border-box !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -2541,7 +2571,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     background: #FFFFFF !important;
     border-radius: 14px !important;
     border: 1px dashed #CBD5E1 !important;
-    margin: 1rem 0 !important;
+    margin: 1rem 0 0 !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -2669,3 +2699,213 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 }
 
 
+
+
+/* ==========================================================================
+   Create Custom Product form
+   ========================================================================== */
+/* The shared modal input looks permanently focused and reserves room for a currency symbol */
+.custom-product-card .menu-modal-input {
+  padding-left: 0.75rem;
+  font-weight: 500;
+}
+
+.custom-product-card .menu-modal-input:not(:focus) {
+  border: 1px solid #cbd5e1;
+  box-shadow: none;
+}
+
+.custom-product-card .menu-modal-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.custom-product-card .menu-modal-price-input-box .menu-modal-input {
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  /* Bottom sheet: within thumb reach, with the actions always in view */
+  .menu-modal-backdrop:has(.custom-product-card) {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  .custom-product-card {
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 20px 20px 0 0 !important;
+    animation: cpSheetUp 0.22s ease-out !important;
+  }
+
+  .custom-product-card .menu-modal-header {
+    position: relative;
+    padding: 1.15rem 1.1rem 0.75rem !important;
+  }
+
+  /* Grab handle */
+  .custom-product-card .menu-modal-header::before {
+    content: "";
+    position: absolute;
+    top: 0.45rem;
+    left: 50%;
+    width: 38px;
+    height: 4px;
+    margin-left: -19px;
+    border-radius: 4px;
+    background: #cbd5e1;
+  }
+
+  .custom-product-card .menu-modal-title {
+    font-size: 1.1rem !important;
+  }
+
+  .custom-product-card .menu-modal-close-btn {
+    width: 36px;
+    height: 36px;
+    background: #f1f5f9;
+    border-radius: 50%;
+  }
+
+  .custom-product-card .menu-modal-body {
+    padding: 0.9rem 1.1rem 1.1rem !important;
+    gap: 0.85rem !important;
+  }
+
+  .custom-product-card .menu-modal-label {
+    font-size: 0.82rem !important;
+    margin-bottom: 0.35rem;
+  }
+
+  /* 16px stops iOS zooming the page when a field is tapped */
+  .custom-product-card .menu-modal-input {
+    height: 46px !important;
+    padding: 0 0.85rem !important;
+    border-radius: 11px !important;
+    font-size: 16px !important;
+    background-color: #ffffff;
+  }
+
+  /* Leaves room for the link icon */
+  .custom-product-card input[type="url"].menu-modal-input {
+    padding-left: 2.1rem !important;
+  }
+
+  /* A native select draws its own text inset on top of the padding */
+  .custom-product-card select.menu-modal-input {
+    padding-left: 0.6rem !important;
+  }
+
+  .custom-product-card .menu-modal-price-input-box .menu-modal-input {
+    padding-left: 1.9rem !important;
+  }
+
+  .custom-product-card .menu-modal-currency-symbol {
+    left: 0.85rem !important;
+    font-size: 1rem !important;
+  }
+
+  .custom-product-card .cp-image-head {
+    margin-bottom: 0.4rem !important;
+    gap: 0.5rem;
+  }
+
+  .custom-product-card .cp-image-head .menu-modal-label {
+    margin: 0;
+  }
+
+  .custom-product-card .cp-image-toggle {
+    flex-shrink: 0;
+    padding: 3px !important;
+    border-radius: 9px !important;
+  }
+
+  .custom-product-card .cp-image-toggle button {
+    padding: 0.3rem 0.75rem !important;
+    border-radius: 7px !important;
+    font-size: 0.78rem !important;
+  }
+
+  .custom-product-card .cp-upload-drop {
+    justify-content: flex-start !important;
+    gap: 0.75rem !important;
+    height: auto !important;
+    padding: 0.75rem 0.85rem !important;
+    border-radius: 11px !important;
+  }
+
+  .custom-product-card .cp-upload-drop > div:first-child {
+    width: 38px !important;
+    height: 38px !important;
+    flex-shrink: 0;
+  }
+
+  .custom-product-card .cp-upload-text {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.1rem !important;
+    min-width: 0;
+  }
+
+  .custom-product-card .cp-upload-text span:first-child {
+    font-size: 0.86rem !important;
+  }
+
+  .custom-product-card .cp-upload-text span:last-child {
+    font-size: 0.72rem !important;
+  }
+
+  .custom-product-card .cp-upload-preview {
+    height: 58px !important;
+    padding: 0.5rem 0.65rem !important;
+    border-radius: 11px !important;
+  }
+
+  .custom-product-card .cp-upload-preview > div:first-child {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 8px !important;
+  }
+
+  .custom-product-card .cp-upload-preview button {
+    height: 34px !important;
+    min-width: 34px;
+  }
+
+  /* Long status labels get room to wrap instead of being clipped by a fixed height */
+  .custom-product-card .cp-status-row {
+    height: auto !important;
+    gap: 0.5rem !important;
+  }
+
+  .custom-product-card .cp-status-row button {
+    min-height: 48px;
+    padding: 0.4rem 0.5rem !important;
+    border-radius: 11px !important;
+    font-size: 0.78rem !important;
+    line-height: 1.25;
+    text-align: left;
+  }
+
+  .custom-product-card .cp-status-row button svg {
+    flex-shrink: 0;
+  }
+
+  .custom-product-card .menu-modal-footer {
+    padding: 0.75rem 1.1rem calc(0.75rem + env(safe-area-inset-bottom)) !important;
+    box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.05);
+  }
+
+  .custom-product-card .menu-modal-footer button {
+    height: 48px !important;
+    border-radius: 12px !important;
+    font-size: 0.92rem !important;
+  }
+}
+
+@keyframes cpSheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

@@ -782,3 +782,128 @@
     padding: 12px;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Short screens: the slide is sized by its content, so on a short window it used to run
+   under the logo and the buttons. Spacing tightens first, then the picture and text scale down.
+   -------------------------------------------------------------------------- */
+
+/* Safety net: whatever is left over scrolls inside the slide area instead of overlapping. */
+.welcome-slider-stage {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.welcome-slider-stage::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+@media (max-height: 760px) {
+  .welcome-container {
+    padding-top: 10px;
+    padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
+  }
+
+  .welcome-top-bar {
+    gap: 8px;
+    padding-top: 0;
+  }
+
+  .welcome-brand-logo {
+    height: 34px;
+  }
+
+  .welcome-slider-stage {
+    padding: 6px 0;
+  }
+
+  .welcome-showcase-frame {
+    min-height: 0;
+    margin-bottom: 14px;
+    padding: 12px;
+  }
+
+  .welcome-category-pill {
+    margin-bottom: 8px;
+  }
+
+  .welcome-headline {
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+
+  .welcome-description {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .welcome-actions-row {
+    padding-top: 6px;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .welcome-btn {
+    height: 46px;
+  }
+}
+
+@media (max-height: 620px) {
+  .welcome-brand-logo {
+    height: 30px;
+  }
+
+  .welcome-headline {
+    font-size: 20px;
+  }
+
+  .welcome-description {
+    font-size: 12.5px;
+  }
+
+  .welcome-btn {
+    height: 44px;
+  }
+}
+
+/* Only now does the picture itself have to shrink */
+@media (max-height: 540px) {
+  .welcome-showcase-frame {
+    zoom: 0.8;
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-height: 470px) {
+  .welcome-top-bar {
+    gap: 6px;
+  }
+
+  .welcome-brand-logo {
+    height: 26px;
+  }
+
+  .welcome-showcase-frame {
+    zoom: 0.62;
+  }
+
+  .welcome-headline {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .welcome-description {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .welcome-btn {
+    height: 40px;
+    font-size: 12.5px;
+  }
+}

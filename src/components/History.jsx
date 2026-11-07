@@ -18,7 +18,9 @@ import {
   Bookmark,
   Pencil,
   Check,
-  Clock
+  Clock,
+  CreditCard,
+  Send
 } from "lucide-react"
 import { call, money, getCachedData, getTableDisplayName } from "../lib/utils"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
@@ -275,7 +277,7 @@ export function History({ setView, setSelectedBillId, user }) {
         String(b.total).includes(search)
       )
     : (paymentMode !== "All"
-        ? displayedBills.filter(b => b.payment_mode.toLowerCase() === paymentMode.toLowerCase())
+        ? displayedBills.filter(b => String(b.payment_mode || "Cash").toLowerCase() === paymentMode.toLowerCase())
         : displayedBills)
 
   const getPaymentIcon = (mode) => {
@@ -661,9 +663,8 @@ export function History({ setView, setSelectedBillId, user }) {
           }
 
           .page.history-page {
-            padding: 0.75rem 0.85rem 3rem 0.85rem !important;
-            background: #FFFBF7 !important;
-            min-height: 100vh !important;
+            padding: 0.75rem 0.85rem 0 0.85rem !important;
+            background: transparent !important;
           }
 
           .mobile-history-top {
@@ -1159,7 +1160,7 @@ export function History({ setView, setSelectedBillId, user }) {
           padding: 3rem 1.5rem;
           text-align: center;
           max-width: 440px;
-          margin: 2.5rem auto;
+          margin: 2.5rem auto 0;
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
           display: flex;
           flex-direction: column;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
+import { createPortal } from "react-dom"
 import {
   Utensils,
   Shirt,
@@ -35,7 +36,7 @@ import {
 } from "lucide-react"
 import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory } from "../lib/utils"
 import { useToast } from "./common/Toast"
-import { Spinner } from "./common/Skeleton"
+import { Spinner, ButtonLoader, CardSkeleton } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { VoiceInputButton } from "./common/VoiceInputButton"
@@ -122,6 +123,8 @@ function MenuImageThumbnail({ src, alt, className = "mob-item-thumb", wrapClassN
   )
 }
 
+const MENU_VIEW_KEY = "slipzo_menu_view"
+
 export function Menu({ setView, requireAuth, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum } = useDbTranslation()
@@ -129,7 +132,29 @@ export function Menu({ setView, requireAuth, user }) {
   const { success: toastSuccess, error: toastError } = useToast()
 
   // View state: 'my_menu' (Shop Menu) | 'add_items' (Catalog Grid)
-  const [currentView, setCurrentView] = useState("my_menu")
+  // The address bar stays on /menu for both screens, so a page reload used to drop the user from
+  // "Available Items" back to the list. The tab remembers the screen; leaving Menu clears it.
+  const [currentView, setCurrentView] = useState(() => {
+    try {
+      return sessionStorage.getItem(MENU_VIEW_KEY) === "add_items" ? "add_items" : "my_menu"
+    } catch (e) {
+      return "my_menu"
+    }
+  })
+
+  useEffect(() => {
+    try {
+      if (currentView === "add_items") sessionStorage.setItem(MENU_VIEW_KEY, "add_items")
+      else sessionStorage.removeItem(MENU_VIEW_KEY)
+    } catch (e) {}
+  }, [currentView])
+
+  // Unmount means the user left the Menu page; a reload never runs this
+  useEffect(() => {
+    return () => {
+      try { sessionStorage.removeItem(MENU_VIEW_KEY) } catch (e) {}
+    }
+  }, [])
 
   // User shop business type context
   const cachedShop = getCachedData("/shop")
@@ -215,7 +240,8 @@ export function Menu({ setView, requireAuth, user }) {
     const stored = getStoredMenuItems(user)
     return filterForCloth(stored)
   })
-  const [loading, setLoading] = useState(false)
+  // With nothing to show yet, an empty list must not read as "your menu is empty"
+  const [loading, setLoading] = useState(() => Boolean(user) && items.length === 0)
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [myMenuSort, setMyMenuSort] = useState("Latest")
@@ -591,7 +617,7 @@ export function Menu({ setView, requireAuth, user }) {
 
   useEffect(() => {
     if (user) {
-      loadUserMenu()
+      loadUserMenu(items.length === 0)
       loadMasterCatalog(selectedBusinessType)
     }
   }, [user, userKey, selectedBusinessType])
@@ -1622,7 +1648,9 @@ export function Menu({ setView, requireAuth, user }) {
             </div>
 
             {/* Empty State vs User Menu Cards */}
-            {items.length === 0 ? (
+            {loading ? (
+              <CardSkeleton count={6} />
+            ) : items.length === 0 ? (
               /* ================================================================
                  PHASE 3: EMPTY STATE (Clean, no master dummy items shown!)
                  ================================================================ */
@@ -2232,7 +2260,7 @@ export function Menu({ setView, requireAuth, user }) {
                   className="menu-primary-btn"
                   disabled={isSubmittingAdd}
                 >
-                  {isSubmittingAdd ? t("menu.adding", "Adding...") : t("menu.addToMenu", "Add to Menu")}
+                  {isSubmittingAdd ? <ButtonLoader text={t("menu.adding", "Adding...")} /> : t("menu.addToMenu", "Add to Menu")}
                 </button>
               </div>
             </form>
@@ -2382,7 +2410,7 @@ export function Menu({ setView, requireAuth, user }) {
                   className="menu-primary-btn"
                   disabled={isUpdatingPrice}
                 >
-                  {isUpdatingPrice ? t("common.saving", "Saving...") : t("common.saveChanges", "Save Changes")}
+                  {isUpdatingPrice ? <ButtonLoader text={t("common.saving", "Saving...")} /> : t("common.saveChanges", "Save Changes")}
                 </button>
               </div>
             </form>
@@ -2396,9 +2424,9 @@ export function Menu({ setView, requireAuth, user }) {
       {/* ====================================================================
           CREATE CUSTOM ITEM MODAL
           ==================================================================== */}
-      {isCustomModalOpen && (
+      {isCustomModalOpen && createPortal(
         <div className="menu-modal-backdrop" onClick={handleCloseCustomModal}>
-          <div className="menu-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "440px" }}>
+          <div className="menu-modal-card custom-product-card" onClick={(e) => e.stopPropagation()}>
             <div className="menu-modal-header">
               <h3 className="menu-modal-title">{tDb("Create Custom Product")}</h3>
               <button className="menu-modal-close-btn" onClick={handleCloseCustomModal}>
@@ -2406,16 +2434,16 @@ export function Menu({ setView, requireAuth, user }) {
               </button>
             </div>
 
-            <form onSubmit={handleSaveCustomItem} style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <form onSubmit={handleSaveCustomItem}>
               <div className="menu-modal-body" style={{ padding: "0.75rem 1rem", display: "flex", flexDirection: "column", gap: "0.45rem" }}>
                 {/* 1. Product Image Section */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
+                  <div className="cp-image-head" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.2rem" }}>
                     <label className="menu-modal-label" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.76rem" }}>
                       <ImageIcon size={13} style={{ color: "#0284c7" }} />
                       <span>{tDb("Product Image (Optional)")}</span>
                     </label>
-                    <div style={{ display: "flex", gap: "2px", background: "#f1f5f9", padding: "2px", borderRadius: "5px" }}>
+                    <div className="cp-image-toggle" style={{ display: "flex", gap: "2px", background: "#f1f5f9", padding: "2px", borderRadius: "5px" }}>
                       <button
                         type="button"
                         onClick={() => setCustomImageMode("upload")}
@@ -2463,7 +2491,7 @@ export function Menu({ setView, requireAuth, user }) {
                         style={{ display: "none" }}
                       />
                       {customImagePreview ? (
-                        <div style={{
+                        <div className="cp-upload-preview" style={{
                           display: "flex",
                           alignItems: "center",
                           gap: "0.6rem",
@@ -2520,7 +2548,7 @@ export function Menu({ setView, requireAuth, user }) {
                           </div>
                         </div>
                       ) : (
-                        <div
+                        <div className="cp-upload-drop"
                           onClick={() => customFileInputRef.current?.click()}
                           style={{
                             border: "1.5px dashed #cbd5e1",
@@ -2542,7 +2570,7 @@ export function Menu({ setView, requireAuth, user }) {
                           <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <Upload size={12} />
                           </div>
-                          <div style={{ display: "flex", alignItems: "baseline", gap: "0.4rem" }}>
+                          <div className="cp-upload-text" style={{ display: "flex", alignItems: "baseline", gap: "0.4rem" }}>
                             <span style={{ fontSize: "0.76rem", fontWeight: "700", color: "#0f172a" }}>
                               {tDb("Click to upload product image")}
                             </span>
@@ -2603,7 +2631,7 @@ export function Menu({ setView, requireAuth, user }) {
                     value={customName}
                     onChange={(e) => handleCustomNameChange(e.target.value)}
                     required
-                    autoFocus
+                    autoFocus={window.matchMedia("(min-width: 641px)").matches}
                     style={{ height: "35px", fontSize: "0.85rem" }}
                   />
                 </div>
@@ -2666,7 +2694,7 @@ export function Menu({ setView, requireAuth, user }) {
                 {/* 6. Barcode Status */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <label className="menu-modal-label">{tDb("Barcode Status")}</label>
-                  <div style={{ display: "flex", gap: "0.4rem", height: "34px" }}>
+                  <div className="cp-status-row" style={{ display: "flex", gap: "0.4rem", height: "34px" }}>
                     <button
                       type="button"
                       onClick={() => setCustomBarcodeActive(true)}
@@ -2735,12 +2763,13 @@ export function Menu({ setView, requireAuth, user }) {
                   disabled={isCreatingCustom}
                   style={{ height: "35px", padding: "0 1rem", fontSize: "0.82rem" }}
                 >
-                  {isCreatingCustom ? tDb("Creating...") : tDb("Create Product")}
+                  {isCreatingCustom ? <ButtonLoader text={tDb("Creating...")} /> : tDb("Create Product")}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Barcode View & Print Modal */}

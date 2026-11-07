@@ -5865,11 +5865,20 @@ body.is-native-app .public-footer,
 }
 
 /* A4 Sheet Invoice Preview */
+/* A4 Sheet Invoice Preview & Print */
 .receipt-preview-content.format-a4 {
   width: 100% !important;
   max-width: 600px !important;
   padding: 0 !important;
   margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+@media print {
+  .receipt-preview-content.format-a4 {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }
 
 .receipt-preview-content.format-a4 .receipt-shop-name {
@@ -5879,8 +5888,89 @@ body.is-native-app .public-footer,
 .receipt-preview-content.format-a4 .receipt-items-header,
 .receipt-preview-content.format-a4 .receipt-item-row {
   grid-template-columns: 2.2fr 0.5fr 1fr 1fr !important;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   gap: 6px;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Business Elite has a leading "#" column, so it needs five tracks instead of the four above */
+.receipt-preview-content .tpl-style-elite .receipt-items-header,
+.receipt-preview-content .tpl-style-elite .receipt-item-row,
+.receipt-preview-content.format-a4 .tpl-style-elite .receipt-items-header,
+.receipt-preview-content.format-a4 .tpl-style-elite .receipt-item-row {
+  grid-template-columns: 0.25fr 1.6fr 0.45fr 0.85fr 1fr !important;
+  gap: 4px;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Small rolls (58mm paper, ~48mm printable): stacked item rows.
+   Four or five columns leave the item name ~15mm wide, so names break word by word.
+   Instead the name gets its own full-width line, with "qty × rate" and the amount beneath it:
+     Fortune Special Biryani Basmati Rice (1kg)
+     2 × ₹125.00                        ₹250.00
+   Keyed on the paper class so it applies on screen and in print alike. */
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro, .tpl-style-elite) .receipt-item-row {
+  column-gap: 5px !important;
+  row-gap: 1px !important;
+  padding: 4px 0 !important;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row {
+  grid-template-columns: auto auto 1fr !important;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row > :nth-child(1) {
+  grid-column: 1 / -1;
+  font-weight: 700;
+}
+
+/* Elite keeps its "#" in front of the name, and lines the qty row up under the name */
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row {
+  grid-template-columns: auto auto auto 1fr !important;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(2) {
+  grid-column: 2 / -1;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(3) {
+  grid-column: 2;
+}
+
+/* Qty and rate read left to right as "2 × ₹125.00"; the amount sits on the right edge */
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row > :nth-child(2),
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(3) {
+  text-align: left !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row > :nth-child(2)::after,
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(3)::after {
+  content: " ×";
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row > :nth-child(3),
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(4) {
+  text-align: left !important;
+  font-weight: 500 !important;
+  color: #334155 !important;
+}
+
+/* Header shrinks to "ITEM ... AMOUNT" since qty and rate no longer have their own columns */
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-items-header {
+  grid-template-columns: 1fr auto !important;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-items-header {
+  grid-template-columns: auto 1fr auto !important;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-items-header > :is(:nth-child(2), :nth-child(3)),
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-items-header > :is(:nth-child(3), :nth-child(4)) {
+  display: none !important;
 }
 
 .receipt-shop {
@@ -5939,6 +6029,22 @@ body.is-native-app .public-footer,
   color: #334155;
   margin-bottom: 0.65rem;
   padding: 0.35rem 0;
+}
+
+/* Shop Pro stacks label/value rows inside .receipt-meta; they must span the full width, not centre */
+.receipt-meta.pro-meta-bar {
+  align-items: stretch;
+}
+
+/* Label/value rows in the Pro, Classic and Elite info boxes: keep a gap between the two, and on
+   narrow rolls let a long value (e.g. the date) drop to its own right-aligned line instead of touching */
+.realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid) > div {
+  flex-wrap: wrap;
+  column-gap: 6px;
+}
+
+.realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid) > div > b {
+  margin-left: auto;
 }
 
 .receipt-divider {
@@ -8712,6 +8818,11 @@ body.is-native-app .public-footer,
   padding: 2px 0;
 }
 
+/* Business Elite's customer block is a stacked card (label, name, phone), not a single line */
+.receipt-customer-line.elite-party-card {
+  display: block;
+}
+
 .form-section-card {
   background: white;
   border: 1px solid #e2e8f0;
@@ -8955,7 +9066,7 @@ body.is-native-app .public-footer,
 .templates-page-root {
   background: #f8fafc;
   min-height: auto;
-  padding: 1.25rem 1.5rem 1.5rem;
+  padding: 1.25rem 1.5rem 0;
   box-sizing: border-box;
 }
 
@@ -10352,8 +10463,7 @@ body.is-native-app .public-footer,
 
 .pricing-page-root {
   background: #f8fafc;
-  min-height: 100vh;
-  padding: 1.5rem 1.75rem 20px;
+  padding: 1.5rem 1.75rem 0;
   max-width: 1240px;
   margin: 0 auto;
   box-sizing: border-box;
@@ -11793,7 +11903,7 @@ body.is-native-app .public-footer,
 
 @media (max-width: 768px) {
   .pricing-page-root {
-    padding: 0.85rem 0.75rem 4.5rem;
+    padding: 0.85rem 0.75rem 0;
     gap: 1rem;
   }
 
@@ -12863,8 +12973,7 @@ body.is-native-app .public-footer,
    ============================================ */
 .contact-page {
   background: #f8fafc;
-  min-height: 100vh;
-  padding: 1.5rem 1.75rem 2.5rem;
+  padding: 1.5rem 1.75rem 0;
   max-width: 1240px;
   margin: 0 auto;
   display: flex;
@@ -12921,8 +13030,7 @@ body.is-native-app .public-footer,
 
 .contact-page {
   background: #f8fafc;
-  min-height: 100vh;
-  padding: 1.5rem 1.75rem 20px;
+  padding: 1.5rem 1.75rem 0;
   max-width: 1240px;
   margin: 0 auto;
   display: flex;
@@ -13686,26 +13794,28 @@ body.is-native-app .public-footer,
 .contact-bottom-cta-container {
   width: 100%;
   margin-top: 0;
-  margin-bottom: 20px !important;
+  margin-bottom: 0 !important;
   animation: contactFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
 }
 
 .contact-cta-banner-card {
-  background: linear-gradient(135deg, #091e42 0%, #034694 40%, #0284c7 85%, #0ea5e9 100%);
-  border-radius: 24px;
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 30%, #f0f9ff 70%, #eff6ff 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 20px;
   padding: 2.25rem 3rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 2rem;
-  box-shadow: 0 15px 35px rgba(2, 132, 199, 0.22);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
   position: relative;
   overflow: hidden;
-  transition: box-shadow 0.35s ease;
+  transition: box-shadow 0.35s ease, transform 0.3s ease;
 }
 
 .contact-cta-banner-card:hover {
-  box-shadow: 0 20px 45px rgba(2, 132, 199, 0.35);
+  box-shadow: 0 14px 32px rgba(14, 165, 233, 0.16);
+  transform: translateY(-2px);
 }
 
 .cta-banner-left {
@@ -13716,30 +13826,34 @@ body.is-native-app .public-footer,
 }
 
 .cta-pill-eyebrow {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  color: #ffffff;
+  background: #ffffff;
+  border: 1px solid #bae6fd;
+  color: #0284c7;
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   padding: 0.3rem 0.75rem;
-  border-radius: 20px;
+  border-radius: 9999px;
   margin-bottom: 0.5rem;
+  box-shadow: 0 1px 3px rgba(14, 165, 233, 0.08);
+  display: inline-block;
 }
 
 .cta-banner-title {
-  font-size: 2.2rem;
+  font-size: 2.15rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #0f172a;
   margin: 0.25rem 0 0.35rem;
   letter-spacing: -0.02em;
+  line-height: 1.18;
 }
 
 .cta-banner-subtext {
-  font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.92rem;
+  color: #64748b;
   margin: 0;
+  line-height: 1.5;
 }
 
 .cta-banner-center {
@@ -13753,14 +13867,15 @@ body.is-native-app .public-footer,
   max-width: 120px;
   height: auto;
   object-fit: contain;
-  border-radius: 12px;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+  border-radius: 14px;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.15);
   animation: contactPrinterFloat 5s ease-in-out infinite;
-  transition: filter 0.3s ease, transform 0.3s ease;
+  transition: filter 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .contact-cta-banner-card:hover .cta-printer-img {
-  filter: drop-shadow(0 15px 28px rgba(0, 0, 0, 0.45));
+  box-shadow: 0 14px 32px rgba(2, 132, 199, 0.25);
 }
 
 .cta-banner-right {
@@ -13768,8 +13883,8 @@ body.is-native-app .public-footer,
 }
 
 .cta-start-billing-btn {
-  background: #ffffff;
-  color: #0284c7;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
   font-size: 0.95rem;
   font-weight: 800;
   border: none;
@@ -13779,7 +13894,7 @@ body.is-native-app .public-footer,
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
@@ -13789,10 +13904,10 @@ body.is-native-app .public-footer,
 }
 
 .cta-start-billing-btn:hover {
-  background: #ffffff;
-  color: #0369a1;
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  color: #ffffff;
   transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45);
 }
 
 .cta-start-billing-btn:hover svg {
@@ -13845,7 +13960,7 @@ body.is-native-app .public-footer,
 
   /* Contact Page Mobile Layout (Matching Reference 2) */
   .contact-page {
-    padding: 0.75rem 0.65rem 20px;
+    padding: 0.75rem 0.65rem 0;
     gap: 20px !important;
   }
 
@@ -14043,12 +14158,13 @@ body.is-native-app .public-footer,
     font-size: 1.25rem;
     margin: 0.15rem 0 0.15rem;
     line-height: 1.2;
+    color: #0f172a;
   }
 
   .cta-banner-subtext {
     font-size: 0.78rem;
     line-height: 1.35;
-    opacity: 0.9;
+    color: #64748b;
   }
 
   .cta-banner-center {
@@ -14059,7 +14175,8 @@ body.is-native-app .public-footer,
   .cta-printer-img {
     max-width: 65px;
     max-height: 56px;
-    border-radius: 8px;
+    border-radius: 10px;
+    border: 1px solid #bae6fd;
   }
 
   .cta-banner-right {
@@ -19815,8 +19932,7 @@ textarea:focus {
 }
 
 .search-input-wrapper:focus-within,
-.menu-search-wrapper:focus-within,
-.nb-search-bar:focus-within {
+.menu-search-wrapper:focus-within {
   border-color: #d5e0eb !important;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
   background: #ffffff !important;
@@ -20086,14 +20202,30 @@ textarea,
   }
 
   @keyframes mobilePageSlideUp {
-    from {
+    0% {
       opacity: 0;
       transform: translateY(8px);
     }
-    to {
+    100% {
       opacity: 1;
-      transform: translateY(0);
+      transform: none !important;
     }
+  }
+
+  /* Automatically hide mobile bottom navigation bar when any modal/popup is open */
+  body:has(.menu-modal-backdrop) .mobile-bottom-nav,
+  body:has(.modal-backdrop) .mobile-bottom-nav,
+  body:has(.add-menu-modal-backdrop) .mobile-bottom-nav,
+  body:has(.print-modal-backdrop) .mobile-bottom-nav,
+  body:has(.table-modal-backdrop) .mobile-bottom-nav,
+  body:has(.shop-onboarding-backdrop) .mobile-bottom-nav,
+  body:has(.auth-modal-overlay) .mobile-bottom-nav,
+  body:has(.pwa-overlay) .mobile-bottom-nav,
+  body:has(.reward-modal-card) .mobile-bottom-nav,
+  body:has(.expiry-modal-card) .mobile-bottom-nav {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   /* Mobile Bottom Navigation Bar Dynamic Animations */

@@ -24,7 +24,8 @@ import {
   UserPlus,
   Mail,
   Printer,
-  ShieldCheck
+  ShieldCheck,
+  Loader2
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
@@ -37,6 +38,45 @@ import { VoiceInputButton } from "./common/VoiceInputButton"
 import { ChangeCategoryModal, BUSINESS_CATEGORIES, getBusinessCategories } from "./common/ChangeCategoryModal"
 import { ManageTablesModal } from "./tables/ManageTablesModal"
 import { Skeleton, ButtonLoader } from "./common/Skeleton"
+import { StaffAccessCard, StaffMemberView } from "./StaffAccessCard"
+import "../styles/ShopProfile.css"
+
+function compressImage(file, maxWidth = 512, maxHeight = 512, quality = 0.88) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error("Failed to read image file"))
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onerror = () => reject(new Error("Failed to parse image file"))
+      img.onload = () => {
+        let { width, height } = img
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height)
+          width = Math.round(width * ratio)
+          height = Math.round(height * ratio)
+        }
+
+        const canvas = document.createElement("canvas")
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          resolve(e.target.result)
+          return
+        }
+
+        ctx.drawImage(img, 0, 0, width, height)
+
+        const isPng = file.type === "image/png"
+        const outputType = isPng ? "image/png" : "image/jpeg"
+        const dataUrl = canvas.toDataURL(outputType, quality)
+        resolve(dataUrl)
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
 
 function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -82,14 +122,6 @@ export function Shop({ user, setView } = {}) {
   const [templates, setTemplates] = useState(() => BUILTIN_TEMPLATES)
   const [shop, setShop] = useState(() => {
     const data = getCachedData("/shop")
-    let parsedStaff = []
-    if (data?.staff_emails) {
-      try {
-        parsedStaff = typeof data.staff_emails === "string" ? JSON.parse(data.staff_emails) : data.staff_emails
-      } catch (e) {
-        parsedStaff = String(data.staff_emails).split(",").map(s => s.trim()).filter(Boolean)
-      }
-    }
     return {
       name: data?.name || "",
       address: data?.address || "",
@@ -103,58 +135,47 @@ export function Shop({ user, setView } = {}) {
       tax_rate: data?.tax_rate !== undefined ? data.tax_rate : 0,
       logo_url: data?.logo_url || "",
       business_type: data?.business_type || "small_business",
-      staff_emails: Array.isArray(parsedStaff) ? parsedStaff : []
     }
   })
 
-  const [newWorkerEmail, setNewWorkerEmail] = useState("")
-  const [workerEmailError, setWorkerEmailError] = useState("")
 
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [ready, setReady] = useState(() => Boolean(getCachedData("/shop")))
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
   const [isChangeCategoryModalOpen, setIsChangeCategoryModalOpen] = useState(false)
   const [isManageTablesModalOpen, setIsManageTablesModalOpen] = useState(false)
   const [isRemoveLogoModalOpen, setIsRemoveLogoModalOpen] = useState(false)
   const edited = useRef(false)
 
-  const handleAddWorkerEmail = () => {
-    const email = newWorkerEmail.trim().toLowerCase()
-    if (!email) {
-      setWorkerEmailError(t("profile.emailRequired", "Please enter a worker email address."))
-      return
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      setWorkerEmailError(t("profile.emailInvalid", "Please enter a valid email address."))
-      return
-    }
-    const currentStaff = Array.isArray(shop.staff_emails) ? shop.staff_emails : []
-    if (currentStaff.includes(email)) {
-      setWorkerEmailError(t("profile.emailExists", "This email has already been added."))
-      return
-    }
-    const updatedStaff = [...currentStaff, email]
-    handleChange("staff_emails", updatedStaff)
-    setNewWorkerEmail("")
-    setWorkerEmailError("")
-    if (success) success(t("profile.workerEmailAdded", "Worker email added! Click 'Save Settings' to apply."))
-  }
+  const { success, error: toastError, warning: toastWarning } = useToast()
 
-  const handleRemoveWorkerEmail = (emailToRemove) => {
-    const currentStaff = Array.isArray(shop.staff_emails) ? shop.staff_emails : []
-    const updatedStaff = currentStaff.filter(email => email !== emailToRemove)
-    handleChange("staff_emails", updatedStaff)
-    if (success) success(t("profile.workerEmailRemoved", "Worker email revoked."))
-  }
-
-  const handleConfirmRemoveLogo = () => {
+  const handleConfirmRemoveLogo = async () => {
     setIsRemoveLogoModalOpen(false)
-    handleChange("logo_url", "")
     if (logoInputRef.current) {
       logoInputRef.current.value = ""
+    }
+    setLogoUploading(true)
+    try {
+      await call("/shop", {
+        method: "PUT",
+        body: JSON.stringify({
+          ...shop,
+          logo_url: ""
+        })
+      })
+      setShop((prev) => ({ ...prev, logo_url: "" }))
+      const updatedShop = { ...shop, logo_url: "" }
+      setCachedData("/shop", updatedShop)
+      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: updatedShop }))
+      success(t("profile.logoRemoved", "Shop logo removed successfully!"))
+    } catch (err) {
+      console.error("Failed to remove shop logo:", err)
+      handleChange("logo_url", "")
+    } finally {
+      setLogoUploading(false)
     }
   }
 
@@ -162,8 +183,6 @@ export function Shop({ user, setView } = {}) {
     const list = getBusinessCategories(t)
     return list.find(c => c.id === (shop.business_type || "small_business")) || list[0]
   }, [shop.business_type, t, i18n?.language])
-
-  const { success, error: toastError, warning: toastWarning } = useToast()
 
   const handleLanguageSelect = async (langCode) => {
     await changeAppLanguage(langCode)
@@ -245,7 +264,7 @@ export function Shop({ user, setView } = {}) {
     const loadShop = async () => {
       try {
         const [data, templatesData] = await Promise.all([
-          call("/shop").catch(() => null),
+          call("/shop", { noCache: true }).catch(() => null),
           call("/templates").catch(() => [])
         ])
 
@@ -260,15 +279,6 @@ export function Shop({ user, setView } = {}) {
           const matchedDefault = findTemplateMatch(tplList, data.default_template_id)
           const resolvedDefaultTplId = matchedDefault ? matchedDefault.id : (data.default_template_id || tplList[0]?.id || "")
 
-          let parsedStaff = []
-          if (data.staff_emails) {
-            try {
-              parsedStaff = typeof data.staff_emails === "string" ? JSON.parse(data.staff_emails) : data.staff_emails
-            } catch (e) {
-              parsedStaff = String(data.staff_emails).split(",").map(s => s.trim()).filter(Boolean)
-            }
-          }
-
           const loadedShop = {
             name: data.name || "",
             address: data.address || "",
@@ -282,9 +292,9 @@ export function Shop({ user, setView } = {}) {
             tax_rate: data.tax_rate !== undefined ? data.tax_rate : 0,
             logo_url: data.logo_url || "",
             business_type: data.business_type || "small_business",
-            staff_emails: Array.isArray(parsedStaff) ? parsedStaff : []
           }
           setShop(loadedShop)
+          setCachedData("/shop", loadedShop)
         }
       } catch (err) {
         console.error("Failed to load shop:", err)
@@ -347,25 +357,47 @@ export function Shop({ user, setView } = {}) {
     setErrors((prev) => ({ ...prev, [key]: fieldError }))
   }
 
-  const handleLogoUpload = (e) => {
+  const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0]
+    // Clear input value immediately so re-selecting same or modified file always fires onChange
+    if (logoInputRef.current) {
+      logoInputRef.current.value = ""
+    }
     if (!file) return
+
     if (!file.type.startsWith("image/")) {
       toastError(t("profile.selectValidImage", "Please select a valid image file."))
       return
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toastError(t("profile.logoSizeLimit", "Logo image must be smaller than 2MB."))
-      return
+
+    setLogoUploading(true)
+    try {
+      // Automatically compress client-side to ensure fast, reliable uploads even for large smartphone camera photos
+      const compressedDataUrl = await compressImage(file, 512, 512, 0.88)
+
+      // Upload directly to server storage and update shop profile immediately
+      const uploadRes = await call("/shop/upload-logo", {
+        method: "POST",
+        body: JSON.stringify({
+          image: compressedDataUrl,
+          name: shop.name || "shop"
+        })
+      })
+
+      const newLogoUrl = uploadRes?.logo_url || compressedDataUrl
+      setShop((prev) => ({ ...prev, logo_url: newLogoUrl }))
+
+      const updatedShop = { ...getCachedData("/shop"), ...shop, logo_url: newLogoUrl }
+      setCachedData("/shop", updatedShop)
+      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: updatedShop }))
+
+      success(t("profile.logoUpdated", "Shop logo updated successfully!"))
+    } catch (err) {
+      console.error("Failed to upload shop logo:", err)
+      toastError(err?.message || t("profile.logoUploadFailed", "Failed to upload shop logo. Please try again."))
+    } finally {
+      setLogoUploading(false)
     }
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result
-      if (dataUrl) {
-        handleChange("logo_url", dataUrl)
-      }
-    }
-    reader.readAsDataURL(file)
   }
 
   const saveShop = async (e) => {
@@ -492,6 +524,11 @@ export function Shop({ user, setView } = {}) {
     }
   }, [templates, shop.default_template_id, shop.name, shop.address, shop.phone, shop.gstin, liveInvoicePreview, receiptMath])
 
+  // Workers do not manage the owner's settings
+  if (user?.staff_of) {
+    return <StaffMemberView user={user} />
+  }
+
   if (!ready) {
     return (
       <div className="page shop-page fade-in">
@@ -576,8 +613,14 @@ export function Shop({ user, setView } = {}) {
 
         {/* Mobile Logo & Actions (Visible only on mobile <= 640px) */}
         <div className="sp-store-mobile-actions mobile-only">
-          <div className={`sp-avatar-wrap ${shop.logo_url ? "has-image" : ""}`} onClick={() => logoInputRef.current?.click()} title={t("profile.clickChangeLogo", "Click to change logo")}>
-            {shop.logo_url ? (
+          <div
+            className={`sp-avatar-wrap ${shop.logo_url && !logoUploading ? "has-image" : ""} ${logoUploading ? "is-uploading" : ""}`}
+            onClick={() => !logoUploading && logoInputRef.current?.click()}
+            title={logoUploading ? t("common.uploading", "Uploading...") : t("profile.clickChangeLogo", "Click to change logo")}
+          >
+            {logoUploading ? (
+              <Loader2 size={24} className="animate-spin" style={{ color: "#0284c7" }} />
+            ) : shop.logo_url ? (
               <img src={shop.logo_url} alt="Shop Logo" className="sp-avatar-img" />
             ) : (
               <span className="sp-avatar-letter">{shop.name ? shop.name.trim().charAt(0).toUpperCase() : "H"}</span>
@@ -588,13 +631,15 @@ export function Shop({ user, setView } = {}) {
               <button
                 type="button"
                 className="sp-change-logo-btn"
+                disabled={logoUploading}
                 onClick={() => logoInputRef.current?.click()}
               >
-                <Camera size={14} /> {t("profile.changeLogo", "Change Logo")}
+                {logoUploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} {logoUploading ? t("common.uploading", "Uploading...") : t("profile.changeLogo", "Change Logo")}
               </button>
               <button
                 type="button"
                 className="sp-remove-logo-btn"
+                disabled={logoUploading || !shop.logo_url}
                 onClick={() => setIsRemoveLogoModalOpen(true)}
               >
                 <Trash2 size={14} /> {t("profile.removeLogo", "Remove Logo")}
@@ -626,8 +671,14 @@ export function Shop({ user, setView } = {}) {
         {/* Desktop Content (Visible only on desktop > 640px) */}
         <div className="sp-store-desktop-content desktop-only">
           <div className="sp-store-left">
-            <div className={`sp-avatar-wrap ${shop.logo_url ? "has-image" : ""}`} onClick={() => logoInputRef.current?.click()} title={t("profile.clickChangeLogo", "Click to change logo")}>
-              {shop.logo_url ? (
+            <div
+              className={`sp-avatar-wrap ${shop.logo_url && !logoUploading ? "has-image" : ""} ${logoUploading ? "is-uploading" : ""}`}
+              onClick={() => !logoUploading && logoInputRef.current?.click()}
+              title={logoUploading ? t("common.uploading", "Uploading...") : t("profile.clickChangeLogo", "Click to change logo")}
+            >
+              {logoUploading ? (
+                <Loader2 size={28} className="animate-spin" style={{ color: "#0284c7" }} />
+              ) : shop.logo_url ? (
                 <img src={shop.logo_url} alt="Shop Logo" className="sp-avatar-img" />
               ) : (
                 <span className="sp-avatar-letter">{shop.name ? shop.name.trim().charAt(0).toUpperCase() : "H"}</span>
@@ -672,13 +723,15 @@ export function Shop({ user, setView } = {}) {
               <button
                 type="button"
                 className="sp-change-logo-btn"
+                disabled={logoUploading}
                 onClick={() => logoInputRef.current?.click()}
               >
-                <Camera size={14} /> {t("profile.changeLogo", "Change Logo")}
+                {logoUploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />} {logoUploading ? t("common.uploading", "Uploading...") : t("profile.changeLogo", "Change Logo")}
               </button>
               <button
                 type="button"
                 className="sp-remove-logo-btn"
+                disabled={logoUploading || !shop.logo_url}
                 onClick={() => setIsRemoveLogoModalOpen(true)}
               >
                 <Trash2 size={14} /> {t("profile.removeLogo", "Remove Logo")}
@@ -1029,7 +1082,7 @@ export function Shop({ user, setView } = {}) {
           {/* Card 2: Receipt Settings */}
           <div className="sp-card">
             <div className="sp-card-header">
-              <div className="sp-icon-box green">
+              <div className="sp-icon-box blue">
                 <Receipt size={18} />
               </div>
               <div className="sp-card-titles">
@@ -1240,154 +1293,7 @@ export function Shop({ user, setView } = {}) {
           </div>
 
           {/* Card 4: Staff & Sub-Users (Printer Access Sharing) */}
-          <div className="sp-card sp-subusers-card">
-            <div className="sp-card-header">
-              <div className="sp-icon-box blue">
-                <Users size={18} />
-              </div>
-              <div className="sp-card-titles">
-                <h3 className="sp-card-title">{t("profile.subusersTitle", "Staff & Sub-Users (Printer Sharing)")}</h3>
-                <p className="sp-card-subtitle">{t("profile.subusersSub", "Share receipt printing and billing access with worker email IDs")}</p>
-              </div>
-            </div>
-
-            <div className="sp-field-group full-width">
-              <label className="sp-label">{t("profile.addWorkerLabel", "Worker / Staff Email Address")}</label>
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "stretch" }}>
-                <div className={`sp-input-wrap ${workerEmailError ? "error" : ""}`} style={{ flex: 1, minWidth: "220px" }}>
-                  <Mail size={16} className="sp-input-icon" />
-                  <input
-                    type="email"
-                    placeholder={t("profile.workerEmailPlaceholder", "e.g. worker@myrestaurant.com")}
-                    value={newWorkerEmail}
-                    onChange={(e) => {
-                      setNewWorkerEmail(e.target.value)
-                      if (workerEmailError) setWorkerEmailError("")
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault()
-                        handleAddWorkerEmail()
-                      }
-                    }}
-                    className="sp-input"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleAddWorkerEmail}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.4rem",
-                    padding: "0.6rem 1.1rem",
-                    fontSize: "0.85rem",
-                    fontWeight: 700,
-                    borderRadius: "10px",
-                    background: "#0284c7",
-                    color: "#ffffff",
-                    border: "none",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    boxShadow: "0 2px 4px rgba(2, 132, 199, 0.2)"
-                  }}
-                >
-                  <UserPlus size={15} />
-                  <span>{t("profile.addWorkerBtn", "+ Add Access")}</span>
-                </button>
-              </div>
-              {workerEmailError ? (
-                <span className="sp-field-error" style={{ marginTop: "0.35rem" }}>
-                  <AlertCircle size={12} /> {workerEmailError}
-                </span>
-              ) : (
-                <span className="sp-helper-text" style={{ marginTop: "0.35rem" }}>
-                  {t("profile.workerEmailHelper", "Workers logging in with this email can access bill printing for your shop.")}
-                </span>
-              )}
-            </div>
-
-            {/* Active Worker Email List */}
-            <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", flex: 1 }}>
-              <label className="sp-label" style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <ShieldCheck size={14} color="#0284c7" />
-                <span>{t("profile.authorizedWorkersList", "Authorized Workers")} ({Array.isArray(shop.staff_emails) ? shop.staff_emails.length : 0})</span>
-              </label>
-
-              {(!Array.isArray(shop.staff_emails) || shop.staff_emails.length === 0) ? (
-                <div style={{
-                  padding: "0.95rem 1rem",
-                  borderRadius: "10px",
-                  background: "#f8fafc",
-                  border: "1.5px dashed #cbd5e1",
-                  textAlign: "center",
-                  fontSize: "0.82rem",
-                  color: "#64748b",
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: "75px"
-                }}>
-                  <Printer size={20} color="#94a3b8" style={{ display: "block", margin: "0 auto 0.35rem" }} />
-                  {t("profile.noWorkersYet", "No worker emails added yet. Add an email above to share printer & billing access.")}
-                </div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "175px", overflowY: "auto", flex: 1 }}>
-                  {shop.staff_emails.map((email) => (
-                    <div
-                      key={email}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "0.6rem 0.85rem",
-                        background: "#f0f9ff",
-                        border: "1px solid #bae6fd",
-                        borderRadius: "10px",
-                        gap: "0.5rem"
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0, overflow: "hidden" }}>
-                        <div style={{ width: "26px", height: "26px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                          <Mail size={13} />
-                        </div>
-                        <span style={{ fontSize: "0.84rem", fontWeight: "600", color: "#0369a1", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                          {email}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveWorkerEmail(email)}
-                        title={t("profile.revokeAccess", "Revoke Access")}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#ef4444",
-                          cursor: "pointer",
-                          padding: "4px 8px",
-                          borderRadius: "6px",
-                          fontSize: "0.78rem",
-                          fontWeight: "700",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.25rem",
-                          transition: "background-color 0.15s"
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = "#fee2e2"}
-                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                      >
-                        <Trash2 size={13} />
-                        <span>{t("profile.revoke", "Revoke")}</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <StaffAccessCard user={user} />
         </div>
 
         {/* Mobile-Only Bottom Save Settings Button */}
@@ -1522,6 +1428,12 @@ export function Shop({ user, setView } = {}) {
           overflow: hidden;
         }
 
+        .sp-avatar-wrap.is-uploading {
+          background: #f0f9ff !important;
+          box-shadow: 0 0 0 2px #38bdf8 !important;
+          cursor: wait !important;
+        }
+
         .sp-avatar-letter {
           font-size: 1.75rem;
           font-weight: 800;
@@ -1610,9 +1522,9 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-verified-badge {
-          background: #ecfdf5;
-          color: #059669;
-          border: 1px solid #a7f3d0;
+          background: #f0f9ff;
+          color: #0284c7;
+          border: 1px solid #bae6fd;
           border-radius: 9999px;
           padding: 0.18rem 0.55rem;
           font-size: 0.75rem;
@@ -1714,6 +1626,13 @@ export function Shop({ user, setView } = {}) {
           border-color: #fda4af;
         }
 
+        .sp-change-logo-btn:disabled,
+        .sp-remove-logo-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+
         .sp-logo-hint {
           font-size: 0.72rem;
           color: #8F93A5;
@@ -1793,9 +1712,9 @@ export function Shop({ user, setView } = {}) {
         }
 
         .sp-icon-box.green {
-          background: #ecfdf5;
-          border: 1.5px solid #a7f3d0;
-          color: #059669;
+          background: #f0f9ff;
+          border: 1.5px solid #bae6fd;
+          color: #0284c7;
         }
 
         .sp-icon-box.purple {
@@ -2065,15 +1984,15 @@ export function Shop({ user, setView } = {}) {
           gap: 0.45rem;
           font-size: 0.82rem;
           font-weight: 700;
-          color: #16a34a;
+          color: #0284c7;
         }
 
         .sp-pulse-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: #16a34a;
-          box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+          background: #0ea5e9;
+          box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
         }
 
         .sp-paper-dropdown {
@@ -2166,9 +2085,9 @@ export function Shop({ user, setView } = {}) {
           display: inline-flex;
           align-items: center;
           gap: 0.3rem;
-          background: #ecfdf5;
-          color: #059669;
-          border: 1px solid #a7f3d0;
+          background: #f0f9ff;
+          color: #0284c7;
+          border: 1px solid #bae6fd;
           border-radius: 6px;
           padding: 0.15rem 0.55rem;
           font-size: 0.75rem;
@@ -2315,9 +2234,9 @@ export function Shop({ user, setView } = {}) {
             display: inline-flex !important;
             align-items: center !important;
             gap: 0.25rem !important;
-            background: #ecfdf5 !important;
-            color: #059669 !important;
-            border: 1px solid #a7f3d0 !important;
+            background: #f0f9ff !important;
+            color: #0284c7 !important;
+            border: 1px solid #bae6fd !important;
             border-radius: 9999px !important;
             padding: 0.15rem 0.5rem !important;
             font-size: 0.72rem !important;
@@ -2409,7 +2328,14 @@ export function Shop({ user, setView } = {}) {
             border: 1.5px solid #fecdd3 !important;
           }
 
-          .sp-logo-hint {
+          .sp-change-logo-btn:disabled,
+        .sp-remove-logo-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+
+        .sp-logo-hint {
             font-size: 0.7rem !important;
             color: #8F93A5 !important;
             text-align: left !important;
@@ -2578,7 +2504,7 @@ export function Shop({ user, setView } = {}) {
             gap: 0.5rem !important;
             width: 100% !important;
             margin-top: 0.5rem !important;
-            margin-bottom: 2rem !important;
+            margin-bottom: 0 !important;
             box-sizing: border-box !important;
           }
 
@@ -2624,9 +2550,9 @@ export function Shop({ user, setView } = {}) {
             display: inline-flex !important;
             align-items: center !important;
             gap: 0.35rem !important;
-            background: #ecfdf5 !important;
-            color: #059669 !important;
-            border: 1px solid #a7f3d0 !important;
+            background: #f0f9ff !important;
+            color: #0284c7 !important;
+            border: 1px solid #bae6fd !important;
             border-radius: 6px !important;
             padding: 0.25rem 0.65rem !important;
             font-size: 0.78rem !important;
@@ -2657,7 +2583,14 @@ export function Shop({ user, setView } = {}) {
             align-items: center !important;
           }
 
-          .sp-logo-hint {
+          .sp-change-logo-btn:disabled,
+        .sp-remove-logo-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+
+        .sp-logo-hint {
             text-align: center !important;
           }
         }

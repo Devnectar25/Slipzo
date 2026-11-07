@@ -101,9 +101,11 @@ export function Reprint({ billId, setView, requireAuth, user }) {
     if (bill) {
       const matched = findTemplateMatch(BUILTIN_TEMPLATES, bill.template_id) || 
                       findTemplateMatch(BUILTIN_TEMPLATES, bill.template_name)
-      const width = bill.template_width || matched?.width
-      if (width === "58mm" || width === "55mm" || width === "55") {
+      const width = String(bill.template_width || matched?.width || "").trim().toLowerCase()
+      if (width === "58mm" || width === "55mm" || width === "55" || width === "58") {
         setPrintFormat("55mm")
+      } else if (width === "a4" || width === "full") {
+        setPrintFormat("a4")
       } else if (width === "80mm" || width === "80") {
         setPrintFormat("80mm")
       }

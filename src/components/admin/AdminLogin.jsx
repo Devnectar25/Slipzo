@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { ButtonLoader } from "../common/Skeleton"
 import { ShieldCheck, Lock, Mail, KeyRound, Eye, EyeOff, ArrowRight, AlertTriangle } from "lucide-react"
 import { call } from "../../lib/utils"
 import "../../styles/Admin.css"
@@ -134,7 +135,7 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
             className="admin-btn-primary"
             disabled={loading}
           >
-            {loading ? "Authenticating..." : (
+            {loading ? <ButtonLoader text="Authenticating..." /> : (
               <>
                 Sign In to Admin Panel <ArrowRight size={16} />
               </>

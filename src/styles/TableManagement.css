@@ -20,12 +20,13 @@
    HERO BANNER
    ============================================================ */
 .tables-hero-banner {
-  background: linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #0ea5e9 100%);
-  border-radius: 18px;
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 30%, #f0f9ff 70%, #eff6ff 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 20px;
   padding: 1.5rem 1.75rem;
-  color: #ffffff;
+  color: #0f172a;
   margin-bottom: 1.5rem;
-  box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.3), 0 8px 10px -6px rgba(2, 132, 199, 0.2);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.06);
   position: relative;
   overflow: hidden;
 }
@@ -37,7 +38,7 @@
   right: -10%;
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.08) 0%, rgba(14, 165, 233, 0) 70%);
   border-radius: 50%;
   pointer-events: none;
 }
@@ -61,16 +62,18 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(8px);
   padding: 0.3rem 0.75rem;
   border-radius: 20px;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.06);
 }
 
 .tables-hero-heading {
@@ -79,16 +82,18 @@
   line-height: 1.2;
   margin: 0 0 0.35rem 0;
   letter-spacing: -0.02em;
+  color: #0f172a;
 }
 
 .tables-hero-accent {
-  color: #fef08a;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: #0284c7;
+  text-shadow: none;
 }
 
 .tables-hero-subtext {
   font-size: 0.9rem;
-  opacity: 0.92;
+  color: #64748b;
+  opacity: 1;
   margin: 0;
   line-height: 1.45;
   max-width: 580px;
@@ -106,21 +111,22 @@
   align-items: center;
   gap: 0.5rem;
   background: #ffffff;
-  color: #0369a1;
+  color: #0284c7;
   font-weight: 700;
   font-size: 0.88rem;
   padding: 0.65rem 1.15rem;
   border-radius: 12px;
-  border: none;
+  border: 1.5px solid #bae6fd;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.08);
   transition: all 0.2s ease;
 }
 
 .tables-manage-btn:hover {
-  background: #f8fafc;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  background: #f0f9ff;
+  border-color: #0ea5e9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.16);
 }
 
 /* ============================================================
@@ -695,9 +701,10 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* The bar itself shows focus, same as the search bar on the New Bill page */
 .table-menu-search-input:focus-within {
-  border-color: #d5e0eb !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04) !important;
   background: #ffffff !important;
 }
 
@@ -724,6 +731,18 @@
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
+}
+
+/* App.css draws a blue border and ring on every focused text input with a very specific selector, which put a
+   second square box inside this rounded bar. :not(#tm-search) adds an ID's worth of specificity to switch it off. */
+.table-menu-search-input input:not(#tm-search),
+.table-menu-search-input input:not(#tm-search):focus,
+.table-menu-search-input input:not(#tm-search):active,
+.table-menu-search-input input:not(#tm-search):focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 .table-menu-search-input input::placeholder {
@@ -1309,7 +1328,7 @@
    ============================================================ */
 @media (max-width: 768px) {
   .tables-page-root {
-    padding: 0.75rem 0.5rem 4.5rem;
+    padding: 0.75rem 0.5rem 0;
   }
 
   .tables-hero-banner {
@@ -1342,7 +1361,7 @@
   }
 
   .table-billing-workspace {
-    padding: 0.5rem 0.35rem 5rem;
+    padding: 0.5rem 0.35rem 0;
   }
 
   .table-billing-header {
@@ -1381,7 +1400,7 @@
 
 @media (max-width: 600px) {
   .tables-page-root {
-    padding: 0.5rem 0.35rem 4.5rem;
+    padding: 0.5rem 0.35rem 0;
   }
 
   .tables-hero-banner {
@@ -1461,7 +1480,7 @@
 
   /* Table Billing Workspace on 300px - 600px */
   .table-billing-workspace {
-    padding: 0.35rem 0.25rem 5.5rem;
+    padding: 0.35rem 0.25rem 0;
   }
 
   .table-billing-header {

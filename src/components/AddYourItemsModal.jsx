@@ -894,7 +894,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             disabled={saving}
           >
             {saving ? (
-              <span>{t("common.saving", "Saving Items...")}</span>
+              <ButtonLoader text={t("common.saving", "Saving Items...")} />
             ) : (
               <>
                 <span>{t("common.continue", "Continue")}</span>

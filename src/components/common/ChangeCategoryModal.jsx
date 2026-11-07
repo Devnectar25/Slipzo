@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { ButtonLoader } from "./Skeleton"
 import { createPortal } from "react-dom"
 import { X, Check, Store, AlertCircle, Info } from "lucide-react"
 import { 
@@ -337,7 +338,7 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
               boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)"
             }}
           >
-            {isSaving ? t("common.saving", "Saving...") : t("profile.confirmChange", "Switch Category")}
+            {isSaving ? <ButtonLoader text={t("common.saving", "Saving...")} /> : t("profile.confirmChange", "Switch Category")}
           </button>
         </div>
       </div>

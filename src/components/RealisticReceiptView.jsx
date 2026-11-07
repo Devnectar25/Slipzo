@@ -2,11 +2,15 @@ import React from "react"
 import { MapPin, Phone } from "lucide-react"
 import { money, formatNumberByLang } from "../lib/utils"
 import { useDbTranslation } from "../lib/translator"
+import { Code128Barcode } from "../lib/code128"
+
+// Fits the barcode inside narrow (58mm) rolls without the card chrome it has in the barcode modal
+const RECEIPT_BARCODE_STYLE = { padding: 0, border: "none", borderRadius: 0, maxWidth: "100%" }
 
 export function RealisticReceiptView({ template }) {
+  const { tDb, formatNum, lang } = useDbTranslation()
   if (!template) return null
 
-  const { tDb, formatNum, lang } = useDbTranslation()
   const isMr = (lang || "").toLowerCase().startsWith("mr")
   const isHi = (lang || "").toLowerCase().startsWith("hi")
 
@@ -230,9 +234,9 @@ export function RealisticReceiptView({ template }) {
             <span>{money(data.total)}</span>
           </div>
 
-          {/* Barcode Mock */}
+          {/* Scannable Code 128 of the invoice number */}
           <div className="receipt-barcode-wrap" style={{ textAlign: "center", margin: "0.5rem 0 0.2rem" }}>
-            <div className="receipt-barcode-bars" style={{ letterSpacing: "3px", fontWeight: 800, fontSize: "0.95rem", color: "#0f172a" }}>|||| ||| ||||| || |||||| ||</div>
+            {data.invoiceNo ? (<div className="receipt-barcode-bars"><Code128Barcode value={String(data.invoiceNo)} height={34} barWidth={2} showText={false} style={RECEIPT_BARCODE_STYLE} /></div>) : null}
             <div className="receipt-barcode-num" style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1e293b", marginTop: "0.1rem" }}>*{formatNum(data.invoiceNo)}*</div>
           </div>
 
@@ -591,9 +595,9 @@ export function RealisticReceiptView({ template }) {
             </div>
           </div>
 
-          {/* Barcode Mock */}
+          {/* Scannable Code 128 of the invoice number */}
           <div className="receipt-barcode-wrap" style={{ textAlign: "center", margin: "0.4rem 0 0.2rem" }}>
-            <div className="receipt-barcode-bars" style={{ letterSpacing: "3px", fontWeight: 800, fontSize: "0.95rem", color: "#0f172a" }}>|||| ||| ||||| || |||||| ||</div>
+            {data.invoiceNo ? (<div className="receipt-barcode-bars"><Code128Barcode value={String(data.invoiceNo)} height={34} barWidth={2} showText={false} style={RECEIPT_BARCODE_STYLE} /></div>) : null}
             <div className="receipt-barcode-num" style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1e293b" }}>*{formatNum(data.invoiceNo)}*</div>
           </div>
 

@@ -28,6 +28,8 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['lucide-react', 'tailwind-merge', 'clsx'],
           'query-vendor': ['@tanstack/react-query', 'axios'],
+          'i18n-vendor': ['i18next', 'react-i18next'],
+          'alert-vendor': ['sweetalert2'],
         }
       }
     }

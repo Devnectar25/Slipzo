@@ -33,8 +33,6 @@ android/local.properties
 *.sqlite3
 
 # Temporary / Test files & assets
-public/products/
-public/products/*
 public/templates_hero_bg.jpg
 *.test.js
 *.spec.js

@@ -241,7 +241,26 @@ const revalidateInBackground = async (cleanPath, options) => {
   }
 }
 
+// Tells the top progress bar how many requests are running. Background cache refreshes are left out.
+let activeRequests = 0
+const reportNetworkActivity = (change) => {
+  activeRequests += change
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('slipzo-network-activity', { detail: { active: activeRequests } }))
+  }
+}
+
 const executeFetch = async (cleanPath, options = {}) => {
+  if (options.isRevalidation) return performFetch(cleanPath, options)
+  reportNetworkActivity(1)
+  try {
+    return await performFetch(cleanPath, options)
+  } finally {
+    reportNetworkActivity(-1)
+  }
+}
+
+const performFetch = async (cleanPath, options = {}) => {
   const url = `${API}${cleanPath}`
   const method = (options.method || 'GET').toUpperCase()
   const isGet = method === 'GET'

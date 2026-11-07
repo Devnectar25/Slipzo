@@ -21,6 +21,7 @@ import {
 import { call, money } from "../../lib/utils"
 import { BarcodeModal } from "../common/BarcodeModal"
 import Swal from "sweetalert2"
+import { ButtonLoader } from "../common/Skeleton"
 
 const DEFAULT_CATEGORIES = [
   "Atta & Flour",
@@ -1107,7 +1108,7 @@ export function AdminMenuManagement({ getAdminHeaders }) {
                     cursor: "pointer"
                   }}
                 >
-                  {submitting ? "Saving..." : editingItem ? "Save Changes" : "Create Item"}
+                  {submitting ? <ButtonLoader text="Saving..." /> : editingItem ? "Save Changes" : "Create Item"}
                 </button>
               </div>
             </form>

@@ -10,6 +10,7 @@ import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
+import { ButtonLoader } from "./common/Skeleton"
 
 const DEFAULT_HARDWARE_PRODUCTS = [
   {
@@ -1127,7 +1128,7 @@ export function Products({ setView, requireAuth, user }) {
                     className="primary-button"
                     style={{ flex: 2, justifyContent: 'center', background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)' }}
                   >
-                    {placingOrder ? "Placing Order..." : "Place Order Now"}
+                    {placingOrder ? <ButtonLoader text="Placing Order..." /> : "Place Order Now"}
                   </button>
                 </div>
               </form>
@@ -1277,7 +1278,7 @@ export function Products({ setView, requireAuth, user }) {
                   className="primary-button"
                   style={{ flex: 2, justifyContent: 'center' }}
                 >
-                  {submitting ? "Saving..." : editingProduct ? "Update Product" : "Save Product"}
+                  {submitting ? <ButtonLoader text="Saving..." /> : editingProduct ? "Update Product" : "Save Product"}
                 </button>
               </div>
             </form>

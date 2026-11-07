@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react"
+import { useEffect, useMemo, useState, useRef, lazy, Suspense } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
@@ -51,7 +51,8 @@ import { useToast } from "./common/Toast"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
-import { CameraScannerModal } from "./common/CameraScannerModal"
+// Loaded on demand: the scanner library is large and only needed once the camera is opened
+const CameraScannerModal = lazy(() => import("./common/CameraScannerModal").then((m) => ({ default: m.CameraScannerModal })))
 import { useBarcodeScanner } from "../hooks/useBarcodeScanner"
 import { playScanSuccessBeep, playScanErrorBeep } from "../lib/audioFeedback"
 import "../styles/NewBillFlow.css"
@@ -479,14 +480,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     const cleanName = (menuItem.name || "").trim()
     const rate = getItemRate(menuItem)
 
-    let wasExisting = false
-    let updatedQty = 1
-
     setItems((prev) => {
       const existingIdx = prev.findIndex((i) => (i.name || "").trim().toLowerCase() === cleanName.toLowerCase())
       if (existingIdx >= 0) {
-        wasExisting = true
-        updatedQty = Number(prev[existingIdx].quantity || 0) + 1
+        const updatedQty = Number(prev[existingIdx].quantity || 0) + 1
         return prev.map((item, idx) =>
           idx === existingIdx ? { ...item, quantity: updatedQty } : item
         )
@@ -506,12 +503,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         ]
       }
     })
-
-    if (wasExisting) {
-      toastSuccess(`Updated ${cleanName} (×${updatedQty})`)
-    } else {
-      toastSuccess(`Added ${cleanName} (${money(rate)})`)
-    }
   }
 
   const handleUpdateQuantity = (itemId, delta) => {
@@ -994,14 +985,17 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       minute: "2-digit"
     })
 
-    const templateWidth = activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.printer_width === "58mm" || shop?.printer_width === "55mm" ? "55mm" : "80mm"))
+    const rawTemplateWidth = String(activeTemplate?.width || shop?.receipt_width || shop?.printer_width || "80mm").trim().toLowerCase()
+    const isA4Width = rawTemplateWidth === "a4" || rawTemplateWidth === "full"
+    const is55Width = rawTemplateWidth === "55mm" || rawTemplateWidth === "58mm" || rawTemplateWidth === "55" || rawTemplateWidth === "58"
+    const templateWidth = isA4Width ? "a4" : (is55Width ? "55mm" : "80mm")
 
     return {
       ...matched,
       id: matched.id,
       templateId: matched.templateId,
       name: matched.name,
-      width: templateWidth === "55mm" || templateWidth === "58mm" ? "55mm" : (templateWidth === "A4" ? "A4" : "80mm"),
+      width: templateWidth,
       footer: activeTemplate?.footer || shop?.receipt_footer || "Thank you for shopping with us! Please come again.",
       previewData: {
         shopName: shop?.name || "Shop Receipt",
@@ -1039,7 +1033,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
             <p className="nb-page-subtitle">{t("bills.newBillSubtitle", "Add items from your menu and create a bill")}</p>
           </div>
         </div>
-
       </header>
 
       {/* ====================================================================
@@ -1079,7 +1072,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
               <Eye size={16} /> {showPreviewDrawer ? "Hide Details" : t("bills.viewReceipt", "View Bill Details")}
             </button>
 
-            <button className="nb-success-new-btn" onClick={handleCreateNewBill}>
+            <button className="nb-success-new-btn" onClick={handleCreateNewBill} style={{ textDecoration: "none" }}>
               <Plus size={16} /> {t("bills.createNewBill", "Create New Bill")}
             </button>
           </div>
@@ -1151,67 +1144,72 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
             </div>
           )}
 
-          {/* Step 1: Search Bar with Voice Recognition */}
-          <div className="nb-search-bar">
-            <Search size={18} className="nb-search-icon" />
-            <input
-              type="text"
-              className="nb-search-input"
-              placeholder={t("bills.searchPlaceholder", "Search items or speak to add (e.g. Tea, Coffee, Pizza...)")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const val = (search || "").trim();
-                  if (val) {
-                    e.preventDefault();
-                    setSearch("");
-                    const nameMatch = userMenuItems.find(
-                      (it) => (it.name || "").trim().toLowerCase() === val.toLowerCase()
-                    );
-                    if (nameMatch) {
-                      if (nameMatch.is_active === false || nameMatch.is_available === false) {
-                        playScanErrorBeep();
-                        Swal.fire({
-                          title: "Item Not Available",
-                          text: "This item is currently unavailable in your menu and cannot be added to the bill.",
-                          icon: "warning",
-                          confirmButtonColor: "#0284c7",
-                          confirmButtonText: "OK"
-                        });
+          {/* Step 1: Search Bar & Barcode Scanner Row */}
+          <div className="nb-search-row">
+            <div className="nb-search-bar">
+              <Search size={19} className="nb-search-icon" />
+              <input
+                type="text"
+                className="nb-search-input"
+                placeholder={t("bills.searchPlaceholder", "Search items or speak to add (e.g. Tea, Coffee, Pizza...)")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const val = (search || "").trim();
+                    if (val) {
+                      e.preventDefault();
+                      setSearch("");
+                      const nameMatch = userMenuItems.find(
+                        (it) => (it.name || "").trim().toLowerCase() === val.toLowerCase()
+                      );
+                      if (nameMatch) {
+                        if (nameMatch.is_active === false || nameMatch.is_available === false) {
+                          playScanErrorBeep();
+                          Swal.fire({
+                            title: "Item Not Available",
+                            text: "This item is currently unavailable in your menu and cannot be added to the bill.",
+                            icon: "warning",
+                            confirmButtonColor: "#0284c7",
+                            confirmButtonText: "OK"
+                          });
+                        } else {
+                          handleAddItemFromMenu(nameMatch);
+                          playScanSuccessBeep();
+                        }
                       } else {
-                        handleAddItemFromMenu(nameMatch);
-                        playScanSuccessBeep();
+                        handleBarcodeDetected(val);
                       }
-                    } else {
-                      handleBarcodeDetected(val);
                     }
                   }
-                }
-              }}
-            />
-            {search && (
-              <button
-                type="button"
-                className="nb-search-clear-btn"
-                onClick={() => setSearch("")}
-                title={t("bills.clearSearch", "Clear search")}
-              >
-                <X size={15} />
-              </button>
-            )}
-            <VoiceInputButton
-              onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
-              variant="icon-only"
-              placeholder={t("bills.speakItemName", "Speak item name")}
-            />
+                }}
+          />
+              {search && (
+                <button
+                  type="button"
+                  className="nb-search-clear-btn"
+                  onClick={() => setSearch("")}
+                  title={t("bills.clearSearch", "Clear search")}
+                >
+                  <X size={16} />
+                </button>
+              )}
+              <div className="nb-search-voice-wrapper">
+                <VoiceInputButton
+                  onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
+                  variant="icon-only"
+                  placeholder={t("bills.speakItemName", "Speak item name")}
+                />
+              </div>
+            </div>
+
             <button
               type="button"
               className="nb-scan-barcode-btn"
               onClick={() => setIsCameraScannerOpen(true)}
               title={t("bills.scanBarcodeTooltip", "Scan barcode with Camera or USB/BT Scanner")}
             >
-              <BarcodeIcon size={16} />
+              <BarcodeIcon size={18} />
               <span>{t("bills.scanBarcode", "Scan Barcode")}</span>
             </button>
           </div>
@@ -1489,7 +1487,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       boxShadow: "0 1px 3px rgba(2, 132, 199, 0.25)"
                     }}
                   >
-                    <Printer size={18} />
+                    {isSaving ? <Spinner size={18} /> : <Printer size={18} />}
                     <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.print", "Print Bill")}</span>
                   </button>
                   <button
@@ -1506,7 +1504,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       fontSize: "0.88rem"
                     }}
                   >
-                    <Save size={18} />
+                    {isSaving ? <Spinner size={18} /> : <Save size={18} />}
                     <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.saveBill", "Save Bill")}</span>
                   </button>
                 </div>
@@ -1599,11 +1597,11 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         <div
           id="receipt-to-print"
           data-receipt-print-area="true"
-          className={`receipt-preview-content receipt-print-area format-${templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "a4" : "80mm")}`}
+          className={`receipt-preview-content receipt-print-area format-${templateForPrint?.width?.toLowerCase() === "55mm" ? "55mm" : (templateForPrint?.width?.toLowerCase() === "a4" ? "a4" : "80mm")}`}
           style={{
             background: "#ffffff",
-            width: templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "100%" : "80mm"),
-            maxWidth: templateForPrint?.width === "55mm" ? "55mm" : (templateForPrint?.width === "A4" ? "600px" : "80mm"),
+            width: templateForPrint?.width?.toLowerCase() === "55mm" ? "55mm" : (templateForPrint?.width?.toLowerCase() === "a4" ? "100%" : "80mm"),
+            maxWidth: templateForPrint?.width?.toLowerCase() === "55mm" ? "55mm" : (templateForPrint?.width?.toLowerCase() === "a4" ? "100%" : "80mm"),
             margin: "0 auto"
           }}
         >
@@ -1612,12 +1610,16 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       </div>
 
       {/* Camera Barcode Scanner Modal */}
-      <CameraScannerModal
-        isOpen={isCameraScannerOpen}
-        onClose={() => setIsCameraScannerOpen(false)}
-        onScan={handleBarcodeDetected}
-        title={t("bills.scanItemBarcode", "Scan Item Barcode")}
-      />
+      {isCameraScannerOpen && (
+        <Suspense fallback={<div className="scanner-chunk-loader" role="status" aria-label="Opening camera"><Spinner size={34} /></div>}>
+          <CameraScannerModal
+            isOpen={isCameraScannerOpen}
+            onClose={() => setIsCameraScannerOpen(false)}
+            onScan={handleBarcodeDetected}
+            title={t("bills.scanItemBarcode", "Scan Item Barcode")}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

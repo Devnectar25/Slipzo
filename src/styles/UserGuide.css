@@ -4,7 +4,7 @@
    ========================================================================== */
 
 .user-guide-page {
-  padding: 24px 32px 60px;
+  padding: 24px 32px 0;
   max-width: 1200px;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -15,13 +15,14 @@
    Header Hero Banner
    -------------------------------------------------------------------------- */
 .guide-hero {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 30%, #f0f9ff 70%, #eff6ff 100%);
+  border: 1px solid #bae6fd;
   border-radius: 20px;
   padding: 36px 40px;
-  color: #ffffff;
+  color: #0f172a;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 16px 36px -10px rgba(2, 132, 199, 0.35);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.06);
   margin-bottom: 32px;
 }
 
@@ -35,16 +36,17 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #bae6fd;
+  color: #0284c7 !important;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   padding: 5px 12px;
   border-radius: 20px;
   margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.06);
 }
 
 .guide-hero h1 {
@@ -53,13 +55,18 @@
   line-height: 1.25;
   margin: 0 0 12px 0;
   letter-spacing: -0.5px;
-  color: #ffffff !important;
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+.guide-hero-accent {
+  color: #0284c7;
 }
 
 .guide-hero p {
   font-size: 15px;
   line-height: 1.6;
-  color: #e2e8f0 !important;
+  color: #64748b !important;
   margin: 0 0 24px 0;
 }
 
@@ -72,19 +79,23 @@
   width: 100%;
   padding: 14px 18px 14px 44px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #bae6fd;
   border-radius: 12px;
   font-size: 14px;
   color: #0f172a;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.08);
   box-sizing: border-box;
   outline: none;
   transition: all 0.2s ease;
 }
 
+.guide-search-input::placeholder {
+  color: #94a3b8;
+}
+
 .guide-search-input:focus {
-  border-color: #059669;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
 .guide-search-icon {
@@ -92,7 +103,7 @@
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: #0284c7;
   pointer-events: none;
 }
 
@@ -531,7 +542,7 @@
    -------------------------------------------------------------------------- */
 @media (max-width: 900px) {
   .user-guide-page {
-    padding: 16px 16px 50px;
+    padding: 16px 16px 0;
   }
 
   .guide-hero {
@@ -564,7 +575,7 @@
 
 @media (max-width: 768px) {
   .user-guide-page {
-    padding: 12px 12px 60px;
+    padding: 12px 12px 0;
   }
 
   .guide-section-header {

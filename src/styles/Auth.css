@@ -1,0 +1,658 @@
+/* ==========================================================================
+   Sign in / Create account
+   Everything is scoped under .auth-overlay and uses !important only where the
+   global theme (theme.css) and older App.css rules force their own values.
+   ========================================================================== */
+
+.auth-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: radial-gradient(ellipse at 25% 0%, #1e3a5f 0%, #0f172a 62%) !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: clamp(8px, 2.5vw, 24px) !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  box-sizing: border-box !important;
+}
+
+.auth-overlay .auth-modal-box {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 0.92fr 1.08fr !important;
+  width: 100% !important;
+  max-width: 900px !important;
+  /* 48px = the overlay's padding on both sides, so the card never makes the page itself scroll */
+  min-height: min(560px, calc(100dvh - 48px)) !important;
+  max-height: min(720px, calc(100dvh - 48px)) !important;
+  margin: auto !important;
+  background: #ffffff !important;
+  border-radius: 24px !important;
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* ---------- Left: brand panel ---------- */
+.auth-overlay .auth-art {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 1.5rem !important;
+  height: auto !important;
+  padding: 2.25rem 2.25rem 2rem !important;
+  background: linear-gradient(160deg, #0b1626 0%, #13233b 55%, #0b5a8c 135%) !important;
+  border-right: none !important;
+  color: #ffffff !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.auth-overlay .auth-art::before {
+  content: "";
+  position: absolute;
+  top: -35%;
+  right: -45%;
+  width: 95%;
+  height: 80%;
+  /* closest-side keeps the glow inside its box, so it fades out instead of ending in a straight edge */
+  background: radial-gradient(closest-side, rgba(14, 165, 233, 0.28) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.auth-overlay .auth-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 65%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.auth-overlay .auth-art > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-overlay .auth-logo-wrapper {
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.auth-overlay .auth-logo-wrapper img {
+  display: block !important;
+  width: auto !important;
+  height: 40px !important;
+  max-height: 44px !important;
+  max-width: 160px !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+}
+
+.auth-overlay .auth-art .eyebrow {
+  margin: 0 0 0.75rem !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+  color: #7dd3fc !important;
+}
+
+.auth-overlay .auth-art h1 {
+  margin: 0 0 0.85rem !important;
+  font-size: clamp(1.7rem, 3vw, 2.15rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.14 !important;
+  letter-spacing: -0.025em !important;
+  color: #ffffff !important;
+}
+
+.auth-overlay .auth-art h1 em {
+  font-style: normal !important;
+  font-weight: 800 !important;
+  background: linear-gradient(90deg, #38bdf8, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #38bdf8 !important;
+}
+
+.auth-overlay .auth-art .art-note {
+  max-width: 330px !important;
+  margin: 0 0 1.25rem !important;
+  font-size: 0.93rem !important;
+  line-height: 1.55 !important;
+  color: #a9b9cf !important;
+}
+
+.auth-overlay .auth-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-overlay .auth-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #dbe7f5;
+}
+
+.auth-overlay .auth-benefits li > span {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.18);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+}
+
+.auth-overlay .auth-art .receipt-stamp {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.7rem !important;
+  width: fit-content !important;
+  margin: 0 !important;
+  padding: 0.55rem 0.9rem !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22) !important;
+  font-size: 0.76rem !important;
+  line-height: 1.35 !important;
+  color: #a9b9cf !important;
+}
+
+.auth-overlay .auth-art .receipt-stamp svg {
+  flex-shrink: 0;
+  color: #7dd3fc !important;
+}
+
+.auth-overlay .auth-art .receipt-stamp b {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* ---------- Right: form panel ---------- */
+.auth-overlay .auth-form {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  max-height: min(720px, calc(100dvh - 48px)) !important;
+  padding: 3.4rem 2.75rem 2rem !important;
+  background: #ffffff !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  /* Still scrolls with the wheel or a swipe; only the bar itself is hidden */
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.auth-overlay .auth-form::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Empty spacers centre the form when there is room, and shrink to nothing when there is not.
+   (justify-content: center would push the top of an overflowing form out of reach.) */
+.auth-overlay .auth-form::before,
+.auth-overlay .auth-form::after {
+  content: "";
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.auth-overlay .auth-form .mobile-brand {
+  display: none !important;
+}
+
+.auth-overlay .auth-header-block {
+  align-items: flex-start !important;
+  margin: 0 0 1.5rem !important;
+  text-align: left !important;
+}
+
+.auth-overlay .auth-form .eyebrow {
+  margin: 0 0 0.5rem !important;
+  font-size: 0.72rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+  color: #0284c7 !important;
+  text-align: left !important;
+}
+
+.auth-overlay .auth-form h2 {
+  margin: 0 0 0.4rem !important;
+  font-size: 1.75rem !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.02em !important;
+  color: #0C1F41 !important;
+  text-align: left !important;
+}
+
+.auth-overlay .auth-form .subtle {
+  margin: 0 !important;
+  font-size: 0.92rem !important;
+  line-height: 1.5 !important;
+  color: #64748b !important;
+  text-align: left !important;
+}
+
+.auth-overlay .auth-form form {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  width: 100% !important;
+}
+
+.auth-overlay .auth-form label {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.4rem !important;
+  margin: 0 !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: #334155 !important;
+  text-align: left !important;
+}
+
+.auth-overlay .auth-field {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.auth-overlay .auth-field-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.auth-overlay .auth-field:focus-within .auth-field-icon {
+  color: #0284c7;
+}
+
+.auth-overlay .auth-form input {
+  display: block !important;
+  width: 100% !important;
+  height: 46px !important;
+  padding: 0 0.95rem 0 2.75rem !important;
+  border: 1.5px solid #dbe3ee !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  color: #0C1F41 !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.auth-overlay .auth-form .password-input-wrap input {
+  padding-right: 2.9rem !important;
+}
+
+.auth-overlay .auth-form input::placeholder {
+  font-weight: 400 !important;
+  color: #94a3b8 !important;
+}
+
+.auth-overlay .auth-form input:hover {
+  border-color: #b6c4d8 !important;
+}
+
+.auth-overlay .auth-form input:focus {
+  outline: none !important;
+  border-color: #0ea5e9 !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.16) !important;
+}
+
+.auth-overlay .auth-form input.input-error {
+  border-color: #ef4444 !important;
+  background: #fff7f7 !important;
+}
+
+.auth-overlay .auth-form input.input-error:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14) !important;
+}
+
+.auth-overlay .password-toggle-btn {
+  right: 0.55rem !important;
+}
+
+.auth-overlay .auth-error-banner {
+  margin: 0 !important;
+  padding: 0.65rem 0.85rem !important;
+  border-radius: 10px !important;
+  font-size: 0.84rem !important;
+  line-height: 1.4 !important;
+}
+
+.auth-overlay .auth-form button.primary.full {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin-top: 0.4rem !important;
+  padding: 0 1rem !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  box-shadow: 0 12px 24px -10px rgba(2, 132, 199, 0.65) !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
+}
+
+.auth-overlay .auth-form button.primary.full:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  filter: brightness(1.06);
+  box-shadow: 0 16px 28px -10px rgba(2, 132, 199, 0.75) !important;
+}
+
+.auth-overlay .auth-form button.primary.full:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+.auth-overlay .auth-form button.primary.full:disabled {
+  opacity: 0.75;
+  cursor: not-allowed !important;
+}
+
+/* "New to Slipzen? Create an account" */
+.auth-overlay .auth-form .switch {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  gap: 0.3rem !important;
+  margin: 1.4rem 0 0 !important;
+  padding-top: 1.15rem !important;
+  border-top: 1px solid #eef2f7 !important;
+  font-size: 0.88rem !important;
+  color: #64748b !important;
+}
+
+.auth-overlay .auth-form .switch button {
+  padding: 0.25rem 0.45rem !important;
+  border-radius: 8px !important;
+  background: none !important;
+  border: none !important;
+  font-size: inherit !important;
+  font-weight: 700 !important;
+  color: #0284c7 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: background-color 0.18s ease, color 0.18s ease !important;
+}
+
+.auth-overlay .auth-form .switch button:hover,
+.auth-overlay .auth-form .switch button:focus,
+.auth-overlay .auth-form .switch button:focus-visible,
+.auth-overlay .auth-form .switch button:active {
+  background: #f0f9ff !important;
+  color: #0369a1 !important;
+  text-decoration: none !important;
+}
+
+/* Back (top-left) and close (top-right) sit on the same line */
+.auth-overlay .auth-form .back-to-site {
+  position: absolute !important;
+  top: 1.1rem !important;
+  left: 1.5rem !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0.4rem 0.7rem !important;
+  border: none !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  font-size: 0.84rem !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  transition: background-color 0.18s ease, color 0.18s ease !important;
+}
+
+.auth-overlay .auth-form .back-to-site:hover {
+  background: #f1f5f9 !important;
+  color: #0C1F41 !important;
+}
+
+.auth-overlay .auth-close {
+  position: absolute !important;
+  top: 1rem !important;
+  right: 1.1rem !important;
+  z-index: 40 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: #f1f5f9 !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+}
+
+.auth-overlay .auth-close:hover {
+  background: #e2e8f0 !important;
+  color: #0C1F41 !important;
+}
+
+/* ---------- Short windows ---------- */
+@media (max-height: 700px) {
+  .auth-overlay .auth-art {
+    padding: 1.75rem 2rem 1.5rem !important;
+    gap: 1rem !important;
+  }
+
+  .auth-overlay .auth-art .art-note {
+    margin-bottom: 0.9rem !important;
+  }
+
+  .auth-overlay .auth-form {
+    padding: 3.4rem 2.5rem 1.5rem !important;
+  }
+
+  .auth-overlay .auth-header-block {
+    margin-bottom: 1.1rem !important;
+  }
+
+  .auth-overlay .auth-form h2 {
+    font-size: 1.55rem !important;
+  }
+
+  .auth-overlay .auth-form form {
+    gap: 0.8rem !important;
+  }
+
+  .auth-overlay .auth-form input {
+    height: 42px !important;
+  }
+
+  .auth-overlay .auth-form button.primary.full {
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+
+  .auth-overlay .auth-form .switch {
+    margin-top: 1rem !important;
+    padding-top: 0.9rem !important;
+  }
+}
+
+/* The create-account form has four fields, so it needs the most room: tighten it so a
+   short window shows the whole form without scrolling */
+@media (max-height: 660px) {
+  .auth-overlay .auth-form {
+    padding: 3rem 2.5rem 1rem !important;
+  }
+
+  .auth-overlay .auth-header-block {
+    margin-bottom: 0.8rem !important;
+  }
+
+  .auth-overlay .auth-form h2 {
+    font-size: 1.4rem !important;
+  }
+
+  .auth-overlay .auth-form .eyebrow {
+    margin-bottom: 0.3rem !important;
+  }
+
+  .auth-overlay .auth-form form {
+    gap: 0.55rem !important;
+  }
+
+  .auth-overlay .auth-form label {
+    gap: 0.25rem !important;
+  }
+
+  .auth-overlay .auth-form input {
+    height: 40px !important;
+  }
+
+  .auth-overlay .auth-form button.primary.full {
+    height: 42px !important;
+    min-height: 42px !important;
+    margin-top: 0.25rem !important;
+  }
+
+  .auth-overlay .auth-form .switch {
+    margin-top: 0.7rem !important;
+    padding-top: 0.6rem !important;
+  }
+}
+
+@media (max-height: 620px) {
+  .auth-overlay .auth-form .subtle {
+    display: none !important;
+  }
+}
+
+/* The benefit points only go when the panel is too short to hold them; hiding them earlier left
+   large empty gaps above and below the headline */
+@media (max-height: 500px) {
+  .auth-overlay .auth-benefits {
+    display: none;
+  }
+}
+
+/* ---------- Phones and small tablets: single column ---------- */
+@media (max-width: 768px) {
+  .auth-overlay {
+    padding: clamp(8px, 2.5vw, 14px) !important;
+  }
+
+  .auth-overlay .auth-modal-box {
+    grid-template-columns: 1fr !important;
+    max-width: 440px !important;
+    min-height: 0 !important;
+    max-height: min(96vh, 96dvh, calc(100vh - 16px)) !important;
+    overflow-y: auto !important;
+    border-radius: 22px !important;
+  }
+
+  .auth-overlay .auth-art {
+    display: none !important;
+  }
+
+  .auth-overlay .auth-form {
+    max-height: none !important;
+    padding: 1.1rem 1.4rem 1.4rem !important;
+    overflow: visible !important;
+  }
+
+  .auth-overlay .auth-form .mobile-brand {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0.25rem auto 1rem !important;
+  }
+
+  .auth-overlay .auth-header-block {
+    align-items: center !important;
+    margin-bottom: 1.2rem !important;
+    text-align: center !important;
+  }
+
+  .auth-overlay .auth-form .eyebrow,
+  .auth-overlay .auth-form h2,
+  .auth-overlay .auth-form .subtle {
+    text-align: center !important;
+  }
+
+  .auth-overlay .auth-form h2 {
+    font-size: 1.5rem !important;
+  }
+
+  .auth-overlay .auth-form .back-to-site {
+    top: 0.85rem !important;
+    left: 0.9rem !important;
+  }
+
+  .auth-overlay .auth-close {
+    top: 0.75rem !important;
+    right: 0.85rem !important;
+  }
+
+  /* 16px keeps iPhones from zooming the page when a field is tapped */
+  .auth-overlay .auth-form input {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-overlay .auth-form .mobile-brand img,
+  .auth-overlay .mobile-auth-logo {
+    height: 34px !important;
+    max-width: 125px !important;
+  }
+
+  .auth-overlay .auth-form {
+    padding: 1rem 1.1rem 1.2rem !important;
+  }
+
+  .auth-overlay .auth-form h2 {
+    font-size: 1.35rem !important;
+  }
+}
