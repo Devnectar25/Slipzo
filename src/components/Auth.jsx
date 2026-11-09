@@ -44,6 +44,20 @@ const normalizeMobile = (value) => {
 }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// What is wrong with a mobile number, in words the person can act on. Returns null when the number is fine.
+// [translation key, English text, values for the text]
+const mobileProblem = (value) => {
+  const raw = String(value || "").trim()
+  if (!raw) return ["auth.err_mobile_required", "Please enter your mobile number"]
+  let digits = raw.replace(/[\s\-().]/g, "")
+  if (digits.startsWith("+")) digits = digits.slice(1)
+  if (!/^\d+$/.test(digits)) return ["auth.err_mobile_digits", "A mobile number can only contain digits (no letters or symbols)"]
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2)
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1)
+  if (digits.length !== 10) return ["auth.err_mobile_length", "A mobile number has 10 digits. You entered {{n}}.", { n: digits.length }]
+  if (!/^[6-9]/.test(digits)) return ["auth.err_mobile_start", "An Indian mobile number starts with 6, 7, 8 or 9"]
+  return null
+}
 // Same four categories as the shop profile (components/common/ChangeCategoryModal.jsx)
 const SHOP_CATEGORIES = [
   { id: "small_business", icon: "☕", label: "Cafe, Tea & Snacks" },
@@ -81,13 +95,17 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
   const [brokenImages, setBrokenImages] = useState({})
   const [error, setError] = useState("")
   const [errorKey, setErrorKey] = useState("")
-  const fail = (key, fallback) => { setErrorKey(key); setError(t(key, fallback)) }
+  const fail = (key, fallback, values) => { setErrorKey(key); setError(t(key, fallback, values)) }
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [showValidationPopup, setShowValidationPopup] = useState(false)
 
+  // Set when this number already has an unfinished sign up: the banner then offers a shortcut to the sign-in form
+  const [offerSignIn, setOfferSignIn] = useState(false)
+
   const resetForm = () => {
+    setOfferSignIn(false)
     setForm(EMPTY_FORM)
     setHasPrinter(null)
     setStep(1)
@@ -135,6 +153,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
   const set = (patch) => {
     setForm((f) => ({ ...f, ...patch }))
     if (error) setError("")
+    if (offerSignIn) setOfferSignIn(false)
   }
 
   const goStep1Next = () => {
@@ -142,8 +161,8 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     if (!shopName) return fail("auth.err_shop", "Please enter your shop name")
     if (shopName.length < 2) return fail("auth.err_shop_short", "Shop name must be at least 2 characters")
     if (!form.category) return fail("auth.err_category", "Please choose your shop category")
-    if (!form.phone.trim()) return fail("auth.err_mobile_required", "Please enter your mobile number")
-    if (!normalizeMobile(form.phone)) return fail("auth.err_mobile_invalid", "Please enter a valid 10-digit mobile number")
+    const phoneProblem = mobileProblem(form.phone)
+    if (phoneProblem) return fail(...phoneProblem)
     if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) return fail("auth.err_email", "Please enter a valid email address or leave it blank")
     setError("")
     setStep(2)
@@ -168,9 +187,15 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         return
       }
       // Accounts made before mobile sign-in can still sign in with their old email
-      const legacyEmail = form.phone.includes("@") && EMAIL_RE.test(form.phone.trim())
-      if (!legacyEmail && !normalizeMobile(form.phone)) {
-        fail("auth.err_mobile_invalid", "Please enter a valid 10-digit mobile number")
+      const typedEmail = form.phone.includes("@")
+      const legacyEmail = typedEmail && EMAIL_RE.test(form.phone.trim())
+      if (typedEmail && !legacyEmail) {
+        fail("auth.err_login_id", "Enter your 10-digit mobile number (or the email you signed up with)")
+        return
+      }
+      const phoneProblem = legacyEmail ? null : mobileProblem(form.phone)
+      if (phoneProblem) {
+        fail(...phoneProblem)
         return
       }
     }
@@ -230,10 +255,20 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
       })
       onLogin(user, isRegister)
     } catch (err) {
+      // This number already started signing up (account made, plan not chosen) and the password typed now is not the same one:
+      // the way back in is to sign in, so offer that with the number filled in
+      if (err.code === "SIGNUP_IN_PROGRESS") {
+        setErrorKey("auth.err_in_progress")
+        setError(err.message)
+        setOfferSignIn(true)
+        return
+      }
       // The server's wording (before translation) decides which field is wrong
       const original = err.rawMessage || err.message || ""
       setErrorKey(/mobile/i.test(original) ? "auth.err_mobile_server" : /email/i.test(original) ? "auth.err_email" : "")
       setError(err.message || t("auth.err_failed", "Authentication failed. Please check your credentials."))
+      // A number that already has a finished account: signing in is the way forward
+      if (isRegister && /mobile number is already registered/i.test(original)) setOfferSignIn(true)
       // A number or email that is already taken is fixed on the first step
       if (isRegister && /mobile number|email/i.test(original) && !/password/i.test(original)) setStep(1)
     } finally {
@@ -244,6 +279,14 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
   const switchMode = () => {
     setIsRegister(!isRegister)
     resetForm()
+  }
+
+  // From the "you already started signing up" message: straight to sign in, number already filled in
+  const goToSignIn = () => {
+    const phone = normalizeMobile(form.phone) || form.phone
+    setIsRegister(false)
+    resetForm()
+    setForm({ ...EMPTY_FORM, phone })
   }
 
   const titles = {
@@ -367,13 +410,21 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                     <input
                       data-testid="auth-phone-input"
                       type="tel"
-                      inputMode="tel"
+                      inputMode="numeric"
                       required
                       autoComplete="tel"
                       maxLength={16}
                       placeholder={t("auth.mobilePlaceholder", "10-digit mobile number")}
                       value={form.phone}
-                      onChange={(e) => set({ phone: e.target.value })}
+                      onChange={(e) => {
+                        let raw = e.target.value.replace(/\D/g, "")
+                        if (raw.length === 12 && raw.startsWith("91")) {
+                          raw = raw.slice(2)
+                        } else if (raw.length === 11 && raw.startsWith("0")) {
+                          raw = raw.slice(1)
+                        }
+                        set({ phone: raw.slice(0, 10) })
+                      }}
                       className={phoneInvalid ? "input-error" : ""}
                     />
                   </div>
@@ -472,13 +523,26 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                   <input
                     data-testid="auth-phone-input"
                     type="tel"
-                    inputMode="tel"
+                    inputMode={/[a-zA-Z@]/.test(form.phone) ? "email" : "numeric"}
                     required
                     autoComplete="tel"
-                    maxLength={64}
+                    maxLength={/[a-zA-Z@]/.test(form.phone) ? 64 : 16}
                     placeholder={t("auth.mobilePlaceholder", "10-digit mobile number")}
                     value={form.phone}
-                    onChange={(e) => set({ phone: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val.includes("@") || /[a-zA-Z]/.test(val)) {
+                        set({ phone: val.slice(0, 64) })
+                      } else {
+                        let raw = val.replace(/\D/g, "")
+                        if (raw.length === 12 && raw.startsWith("91")) {
+                          raw = raw.slice(2)
+                        } else if (raw.length === 11 && raw.startsWith("0")) {
+                          raw = raw.slice(1)
+                        }
+                        set({ phone: raw.slice(0, 10) })
+                      }
+                    }}
                     className={phoneInvalid ? "input-error" : ""}
                   />
                 </div>
@@ -553,6 +617,11 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               <div data-testid="auth-error" className="auth-error-banner">
                 <AlertCircle size={16} />
                 <span>{error}</span>
+                {offerSignIn && (
+                  <button type="button" className="auth-error-action" data-testid="auth-signin-instead" onClick={goToSignIn}>
+                    {t("auth.signInInstead", "Sign in instead")} <ArrowRight size={14} />
+                  </button>
+                )}
               </div>
             )}
 

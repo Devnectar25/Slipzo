@@ -968,3 +968,25 @@
   background: rgba(2, 132, 199, 0.92) !important;
   color: #ffffff !important;
 }
+
+/* "Sign in instead" inside the error message */
+.auth-overlay .auth-form .auth-error-banner {
+  flex-wrap: wrap !important;
+}
+
+.auth-overlay .auth-form .auth-error-action {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.3rem !important;
+  margin: 0.15rem 0 0 auto !important;
+  padding: 0.35rem 0.75rem !important;
+  border: none !important;
+  border-radius: 999px !important;
+  background: #b91c1c !important;
+  color: #ffffff !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+.auth-overlay .auth-form .auth-error-action:hover { background: #991b1b !important; }

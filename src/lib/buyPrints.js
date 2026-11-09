@@ -1,6 +1,6 @@
 import Swal from "sweetalert2"
 import i18n from "../i18n/i18n"
-import { activatePlan, syncUserQuota, call } from "./utils"
+import { activatePlan, syncUserQuota, call, isNativeApp } from "./utils"
 
 // Plan names are stored in English on the server; the screen shows them in the chosen language
 const PLAN_LABEL_KEYS = { "Starter Pack": "planGate.starter.name", "Pro Growth": "planGate.pro.name", "Business Super": "planGate.business.name" }
@@ -46,6 +46,7 @@ async function confirmPurchase(pending, user) {
         amount: amountInRupees,
         prints_count: printCount,
         payment_id: paymentId,
+        ...(pending.orderId ? { order_id: pending.orderId, razorpay_signature: pending.signature || "" } : {}),
         payment_status: "completed",
         user_name: user?.name || "Slipzen Member",
         user_email: user?.email || ""
@@ -140,6 +141,111 @@ export async function resumePendingPurchase({ user, onActivated, onDone }) {
   return confirmWithRetry(pending, user, { onActivated, onDone })
 }
 
+// What the native payment screen reports when it fails: a JSON string, an object or an Error, depending on the platform
+const readNativeError = (err) => {
+  for (const candidate of [err?.code, err?.message, typeof err === "string" ? err : null, err?.error]) {
+    if (!candidate) continue
+    if (typeof candidate === "object") return candidate
+    try {
+      const parsed = JSON.parse(candidate)
+      if (parsed && typeof parsed === "object") return parsed
+    } catch (_) { /* not JSON */ }
+  }
+  return { description: err?.message || String(err || "") }
+}
+
+/**
+ * Pays on the Android app with Razorpay's own native payment screen. A WebView cannot reliably run the web checkout
+ * (bank pages and UPI need windows and app switches it does not handle), so the app asks the server for an order and
+ * hands it to Razorpay's SDK. Returns true if the payment screen was opened, false if the web checkout should be used.
+ */
+async function startNativePurchase({ planName, amountInRupees, printCount, user, onActivated, onDone }) {
+  let Checkout
+  try {
+    ;({ Checkout } = await import("capacitor-razorpay"))
+  } catch (err) {
+    console.warn("Native Razorpay plugin could not be loaded, using the web checkout:", err)
+    return null // not handled: fall back
+  }
+
+  // 1. the server decides the price and opens the order
+  let order
+  try {
+    order = await call("/subscriptions/order", { method: "POST", body: JSON.stringify({ plan_name: planName, prints_count: printCount }) })
+  } catch (err) {
+    // The server answered with a web page (or "not found") instead of data: it does not have the in-app payment step yet
+    const serverTooOld = err?.code === "HTML_RESPONSE" || err?.status === 404
+    Swal.fire({
+      title: tr("pay.cannotStart", "Could not start the payment"),
+      text: serverTooOld
+        ? tr("pay.serverOutdated", "The Slipzen server has not been updated for in-app payments yet. Please update the server and try again.")
+        : (err?.message || tr("pay.initFailed", "Failed to initialize payment gateway.")),
+      icon: "error",
+      confirmButtonColor: "#ef4444"
+    })
+    return false
+  }
+
+  // 2. Razorpay's native payment screen
+  let reply
+  try {
+    reply = await Checkout.open({
+      key: order.key_id,
+      amount: String(order.amount),
+      currency: order.currency || "INR",
+      order_id: order.order_id,
+      name: "Slipzen Print Credits",
+      description: `${planName} (${printCount.toLocaleString()} prints)`,
+      prefill: { name: user?.name || "", email: user?.email || "", contact: user?.phone || user?.shop_phone || "" },
+      theme: { color: "#0284c7" }
+    })
+  } catch (err) {
+    if (/not implemented|unimplemented/i.test(String(err?.message || err?.code || err))) {
+      console.warn("Native Razorpay plugin is not available in this build, using the web checkout:", err)
+      return null
+    }
+    const info = readNativeError(err)
+    const text = String(info.description || info.reason || "")
+    // closing the payment screen is not an error worth a popup
+    if (!/cancel|dismiss|back/i.test(text + " " + String(info.reason || ""))) {
+      Swal.fire({
+        title: tr("pay.declined", "Payment Declined"),
+        text: text || tr("pay.declinedText", "Transaction failed or was declined."),
+        icon: "error",
+        confirmButtonColor: "#ef4444"
+      })
+    }
+    return true
+  }
+
+  // 3. the payment went through at Razorpay: have the server confirm it and add the prints
+  let paid = reply?.response ?? reply
+  if (typeof paid === "string") {
+    try { paid = JSON.parse(paid) } catch (_) { paid = {} }
+  }
+  if (!paid?.razorpay_payment_id) {
+    Swal.fire({
+      title: tr("pay.declined", "Payment Declined"),
+      text: tr("pay.declinedText", "Transaction failed or was declined."),
+      icon: "error",
+      confirmButtonColor: "#ef4444"
+    })
+    return true
+  }
+  const pending = {
+    paymentId: paid.razorpay_payment_id,
+    orderId: paid.razorpay_order_id || order.order_id,
+    signature: paid.razorpay_signature || "",
+    planName,
+    amountInRupees,
+    printCount,
+    userId: user?.id || null
+  }
+  savePending(pending)
+  await confirmWithRetry(pending, user, { onActivated, onDone })
+  return true
+}
+
 /**
  * Opens Razorpay for a print pack and, once the server has confirmed the payment, adds the prints.
  * Used by the Pricing page and by the plan step shown right after sign up.
@@ -158,6 +264,12 @@ export async function startPrintPurchase({ planName, amountInRupees, printCount,
       confirmButtonColor: "#0284c7"
     })
     return false
+  }
+
+  // In the Android app Razorpay's native payment screen is used; the web checkout below is for browsers
+  if (isNativeApp) {
+    const handled = await startNativePurchase({ planName, amountInRupees, printCount, user, onActivated, onDone })
+    if (handled !== null) return handled
   }
 
   const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_SIPp9QznVVM48W"

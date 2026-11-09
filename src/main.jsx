@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import './i18n/i18n.js'
 import App from './App.jsx'
+import { installPopupScrollLock } from './lib/scrollLock.js'
+
+// The page behind a popup must not scroll while the popup is open
+installPopupScrollLock()
 
 // Register Service Worker in production for PWA (WebAPK) installability
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {

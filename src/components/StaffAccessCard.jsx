@@ -192,13 +192,22 @@ export function StaffAccessCard({ user }) {
             <Phone size={16} className="sp-input-icon" />
             <input
               type="tel"
-              inputMode="tel"
+              inputMode={/[a-zA-Z@]/.test(email) ? "email" : "numeric"}
               className="sp-input"
               data-testid="staff-email-input"
-              placeholder={t("profile.workerEmailPlaceholder", "e.g. 98765 43210")}
+              placeholder={t("profile.workerEmailPlaceholder", "e.g. 9876543210")}
               value={email}
+              maxLength={/[a-zA-Z@]/.test(email) ? 64 : 10}
               onChange={(e) => {
-                setEmail(e.target.value)
+                const val = e.target.value
+                if (val.includes("@") || /[a-zA-Z]/.test(val)) {
+                  setEmail(val.slice(0, 64))
+                } else {
+                  let raw = val.replace(/\D/g, "")
+                  if (raw.length === 12 && raw.startsWith("91")) raw = raw.slice(2)
+                  else if (raw.length === 11 && raw.startsWith("0")) raw = raw.slice(1)
+                  setEmail(raw.slice(0, 10))
+                }
                 if (emailError) setEmailError("")
               }}
               onKeyDown={(e) => {

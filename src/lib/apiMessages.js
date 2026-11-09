@@ -33,7 +33,10 @@ const API_MESSAGES = {
   "The amount paid does not cover this pack.": "apiErrors.payAmount",
   "Invalid payment id.": "apiErrors.payBadId",
   "Unexpected payment currency.": "apiErrors.payCurrency",
+  "This payment does not belong to this order.": "apiErrors.payOrder",
+  "Could not start the payment. Please try again.": "apiErrors.payStart",
   "Please choose a plan before finishing setup.": "apiErrors.planRequired",
+  "You already started signing up with this mobile number. Sign in with the password you chose to continue.": "apiErrors.signupInProgress",
   "Something went wrong": "apiErrors.generic"
 }
 

@@ -290,7 +290,10 @@ const performFetch = async (cleanPath, options = {}) => {
     const contentType = response.headers.get("content-type") || ""
     if (contentType.includes("text/html")) {
       console.warn(`⚠️ API returned HTML instead of JSON for ${url}`)
-      throw new Error("Unable to connect to Slipzo backend API server. Please check deployment URL.")
+      const htmlError = new Error("Unable to connect to Slipzo backend API server. Please check deployment URL.")
+      htmlError.code = "HTML_RESPONSE"
+      htmlError.status = response.status
+      throw htmlError
     }
 
     // Handle empty responses
@@ -326,6 +329,7 @@ const performFetch = async (cleanPath, options = {}) => {
       const apiError = new Error(translateApiMessage(errorMsg))
       apiError.rawMessage = errorMsg
       apiError.status = response.status
+      apiError.code = data && data.code
       throw apiError
     }
 

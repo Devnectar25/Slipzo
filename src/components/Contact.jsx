@@ -442,9 +442,19 @@ export function Contact({ setView, setShowAuth, user }) {
                     <input
                       id="contact-phone"
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       placeholder={t("contact.phonePlaceholder", "10-digit mobile number")}
                       value={form.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
+                      onChange={(e) => {
+                        let raw = e.target.value.replace(/\D/g, "")
+                        if (raw.length === 12 && raw.startsWith("91")) {
+                          raw = raw.slice(2)
+                        } else if (raw.length === 11 && raw.startsWith("0")) {
+                          raw = raw.slice(1)
+                        }
+                        handleChange("phone", raw.slice(0, 10))
+                      }}
                       className={fieldErrors.phone ? "input-has-error" : ""}
                     />
                     {fieldErrors.phone && (

@@ -1087,7 +1087,12 @@
     "hidePassword": "Hide password",
     "showPassword": "Show password",
     "hideConfirm": "Hide confirm password",
-    "showConfirm": "Show confirm password"
+    "showConfirm": "Show confirm password",
+    "err_mobile_digits": "A mobile number can only contain digits (no letters or symbols)",
+    "err_mobile_length": "A mobile number has 10 digits. You entered {{n}}.",
+    "err_mobile_start": "An Indian mobile number starts with 6, 7, 8 or 9",
+    "err_login_id": "Enter your 10-digit mobile number (or the email you signed up with)",
+    "signInInstead": "Sign in instead"
   },
   "planGate": {
     "back": "Back",
@@ -1136,7 +1141,9 @@
     "activated": "Your <strong>{{prints}} print quota</strong> has been activated for <strong>{{plan}}</strong>!",
     "tryAgain": "Try again",
     "close": "Close",
-    "noSecondCharge": "You do not need to pay again. Press Try again to confirm this same payment."
+    "noSecondCharge": "You do not need to pay again. Press Try again to confirm this same payment.",
+    "cannotStart": "Could not start the payment",
+    "serverOutdated": "The Slipzen server has not been updated for in-app payments yet. Please update the server and try again."
   },
   "apiErrors": {
     "invalidCredentials": "Invalid credentials",
@@ -1164,7 +1171,10 @@
     "payAmount": "The amount paid does not cover this pack.",
     "payBadId": "Invalid payment id.",
     "payCurrency": "Unexpected payment currency.",
-    "planRequired": "Please choose a plan before finishing setup."
+    "planRequired": "Please choose a plan before finishing setup.",
+    "signupInProgress": "You already started signing up with this mobile number. Sign in with the password you chose to continue.",
+    "payOrder": "This payment does not belong to this order.",
+    "payStart": "Could not start the payment. Please try again."
   },
   "shell": {
     "ariaFooterNav": "Footer navigation",
