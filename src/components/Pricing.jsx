@@ -3,11 +3,12 @@ import {
   ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, 
   ShieldCheck, Printer, Crown, Layers, Percent, TrendingUp 
 } from "lucide-react"
-import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
 import { ButtonLoader } from "./common/Skeleton"
+import { startPrintPurchase, resumePendingPurchase, getPendingPayment } from "../lib/buyPrints"
+import { translatePlanName } from "../lib/apiMessages"
 import { 
-  getActivePlanDetails, activatePlan, syncUserQuota, call, 
+  getActivePlanDetails, syncUserQuota, call, 
   getCurrentUserKey, formatNumberByLang 
 } from "../lib/utils"
 
@@ -19,6 +20,13 @@ export function Pricing({ setView, setShowAuth, user }) {
   const [buyingPlan, setBuyingPlan] = useState(null)
   const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
+
+  // Finish a payment that was made earlier but never confirmed, with no second charge
+  useEffect(() => {
+    if (!user || !getPendingPayment(user)) return
+    resumePendingPurchase({ user, onActivated: (updated) => { if (updated) setActivePlan(updated) } })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -53,150 +61,21 @@ export function Pricing({ setView, setShowAuth, user }) {
 
   const handleBuyPlan = async (planName, amountInRupees, printCount) => {
     if (buyingPlan) return
-    // The server refuses plan purchases from workers, so stop before any money is taken
-    if (user?.staff_of) {
-      Swal.fire({
-        title: t("pricing.ownerOnlyTitle", "Only the shop owner can buy prints"),
-        text: t("pricing.ownerOnlyText", "Please ask the owner of your shop to buy more prints."),
-        icon: "info",
-        confirmButtonColor: "#0284c7"
-      })
+    // Someone who is not signed in can look at the prices, but buying needs an account: send them to sign up first
+    if (!user) {
+      if (typeof setShowAuth === "function") setShowAuth(true)
       return
     }
     setBuyingPlan(planName)
-    const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SIPp9QznVVM48W'
-
-    const loadRazorpay = () => {
-      return new Promise((resolve) => {
-        if (window.Razorpay) return resolve(true)
-        const script = document.createElement("script")
-        script.src = "https://checkout.razorpay.com/v1/checkout.js"
-        script.onload = () => resolve(true)
-        script.onerror = () => resolve(false)
-        document.body.appendChild(script)
-      })
-    }
-
-    const isLoaded = await loadRazorpay()
-    if (!isLoaded) {
-      setBuyingPlan(null)
-      Swal.fire({
-        title: "Connection Error",
-        text: "Razorpay SDK failed to load. Please check your internet connection.",
-        icon: "warning",
-        confirmButtonColor: "#0284c7"
-      })
-      return
-    }
-
-    const options = {
-      key: razorpayKey,
-      amount: amountInRupees * 100, // Amount in paise
-      currency: "INR",
-      name: "Slipzen Print Credits",
-      description: `${planName} (${printCount.toLocaleString()} prints)`,
-      image: "/logo.png",
-      prefill: {
-        name: user?.name || "",
-        email: user?.email || "",
-        contact: user?.shop_phone || ""
-      },
-      notes: {
-        plan_name: planName,
-        prints: printCount
-      },
-      theme: {
-        color: "#0284c7"
-      },
-      handler: async function (response) {
-        console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
-        Swal.fire({
-          title: t("pricing.activatingPlan", "Activating your plan..."),
-          allowOutsideClick: false,
-          showConfirmButton: false,
-          didOpen: () => Swal.showLoading()
-        })
-        const currentUserKey = user?.email || user?.id
-        
-        // The server confirms the payment with Razorpay and records the pack. Prints are only added after that.
-        try {
-          const subRes = await call('/subscriptions', {
-            method: 'POST',
-            body: JSON.stringify({
-              plan_name: planName,
-              amount: amountInRupees,
-              prints_count: printCount,
-              payment_id: response.razorpay_payment_id || `PAY_${Date.now()}`,
-              payment_status: 'completed',
-              user_name: user?.name || 'Slipzen Member',
-              user_email: user?.email || ''
-            })
-          })
-          if (subRes && subRes.quota) {
-            syncUserQuota(subRes.quota, currentUserKey)
-          }
-          const updated = activatePlan(planName, printCount, currentUserKey)
-          if (updated) setActivePlan(updated)
-          console.log('✅ Subscription saved to database!')
-        } catch (subErr) {
-          console.warn('⚠️ Could not confirm the purchase with the server:', subErr)
-          // The money may have been taken, so give the customer what they need to get it sorted out
-          Swal.fire({
-            title: t("pricing.confirmFailedTitle", "We could not confirm your payment yet"),
-            html: `<div style="line-height:1.6;font-size:0.95rem;color:#0C1F41">
-              <p>${t("pricing.confirmFailedText", "If money was deducted, your prints will be added once the payment is confirmed. Please keep this payment ID and contact support if they do not appear.")}</p>
-              <p><strong>Payment ID:</strong> <code>${response.razorpay_payment_id || ""}</code></p>
-            </div>`,
-            icon: "warning",
-            confirmButtonColor: "#0284c7"
-          })
-          return
-        }
-        
-        Swal.fire({
-          title: "🎉 Payment Successful!",
-          html: `
-            <div style="text-align: center; font-size: 0.95rem; line-height: 1.6; color: #0C1F41; padding: 0.5rem 0;">
-              <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
-                <strong>Payment ID:</strong> <code style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${response.razorpay_payment_id}</code>
-              </p>
-              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.85rem 1rem; border-radius: 12px; color: #166534; font-weight: 600;">
-                Your <strong>${printCount.toLocaleString()} print quota</strong> has been activated for <strong>${planName}</strong>!
-              </div>
-            </div>
-          `,
-          icon: "success",
-          confirmButtonText: "Great, Let's Print!",
-          confirmButtonColor: "#0284c7",
-          background: "#ffffff",
-          borderRadius: "20px"
-        })
-      },
-      modal: {
-        ondismiss: function () {
-          console.log("Razorpay modal closed")
-        }
-      }
-    }
-
     try {
-      const rzp = new window.Razorpay(options)
-      rzp.on('payment.failed', function (response) {
-        Swal.fire({
-          title: "Payment Declined",
-          text: response.error?.description || "Transaction failed or was declined.",
-          icon: "error",
-          confirmButtonColor: "#ef4444"
-        })
-      })
-      rzp.open()
-    } catch (err) {
-      console.error("Razorpay launch error:", err)
-      Swal.fire({
-        title: "Razorpay Error",
-        text: err.message || "Failed to initialize payment gateway.",
-        icon: "error",
-        confirmButtonColor: "#ef4444"
+      // Opens Razorpay; prints are only added once the server has confirmed the payment
+      await startPrintPurchase({
+        planName,
+        amountInRupees,
+        printCount,
+        user,
+        t,
+        onActivated: (updated) => { if (updated) setActivePlan(updated) }
       })
     } finally {
       // Razorpay shows its own screen from here on
@@ -348,8 +227,8 @@ export function Pricing({ setView, setShowAuth, user }) {
                   <ShieldCheck size={14} />
                 </div>
                 <div className="pricing-feat-content">
-                  <span className="feat-title">No Monthly Fees</span>
-                  <span className="feat-subtitle">Pay as you go</span>
+                  <span className="feat-title">{t("pricingPage.noFees", "No Monthly Fees")}</span>
+                  <span className="feat-subtitle">{t("pricingPage.payAsYouGo", "Pay as you go")}</span>
                 </div>
               </div>
 
@@ -358,8 +237,8 @@ export function Pricing({ setView, setShowAuth, user }) {
                   <Zap size={14} />
                 </div>
                 <div className="pricing-feat-content">
-                  <span className="feat-title">Automatic Discounts</span>
-                  <span className="feat-subtitle">Up to 28% OFF</span>
+                  <span className="feat-title">{t("pricingPage.autoDiscounts", "Automatic Discounts")}</span>
+                  <span className="feat-subtitle">{t("pricingPage.upTo28", "Up to 28% OFF")}</span>
                 </div>
               </div>
 
@@ -368,8 +247,8 @@ export function Pricing({ setView, setShowAuth, user }) {
                   <Sparkles size={14} />
                 </div>
                 <div className="pricing-feat-content">
-                  <span className="feat-title">Transparent Pricing</span>
-                  <span className="feat-subtitle">Only ₹0.25 per print</span>
+                  <span className="feat-title">{t("pricingPage.transparent", "Transparent Pricing")}</span>
+                  <span className="feat-subtitle">{t("pricingPage.only025", "Only ₹0.25 per print")}</span>
                 </div>
               </div>
             </div>
@@ -380,7 +259,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div className="pricing-hero-art-wrapper">
               <img 
                 src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/pricing_hero_printer.jpg" 
-                alt="Slipzen POS Thermal Printer" 
+                alt={t("pricingPage.altPrinter", "Slipzen POS Thermal Printer")} 
                 className="pricing-hero-printer-img" 
               />
             </div>
@@ -388,14 +267,14 @@ export function Pricing({ setView, setShowAuth, user }) {
         </div>
       </section>
 
-      {/* 2. Current Print Usage Card */}
-      <section className="pricing-usage-section">
+      {/* 2. Current Print Usage Card (only for a signed-in account) */}
+      {user && <section className="pricing-usage-section">
         <div className="pricing-usage-card">
           <div className="pricing-usage-top-row">
             <div className="pricing-usage-left">
               <div className="usage-plan-badge-row">
                 <span className={`usage-plan-pill ${activePlan.isFreeTier ? 'pill-free-tier' : 'pill-active-tier'}`}>
-                  <Sparkles size={13} /> {activePlan.name || t("pricing.freeStarterTier", "FREE STARTER TIER")}
+                  <Sparkles size={13} /> {translatePlanName(activePlan.name) || t("pricing.freeStarterTier", "FREE STARTER TIER")}
                 </span>
                 <span className="usage-active-label">{t("pricing.activePlan", "Active Plan")}</span>
               </div>
@@ -408,7 +287,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div className="pricing-usage-stats-right">
               <div className="usage-stat-box">
                 <span className="stat-label">{t("pricing.totalQuota", "TOTAL QUOTA")}</span>
-                <span className="stat-value">{formatNum((activePlan.totalPrints || 10).toLocaleString())} {t("pricing.prints", "prints")}</span>
+                <span className="stat-value">{formatNum((activePlan.totalPrints || 0).toLocaleString())} {t("pricing.prints", "prints")}</span>
               </div>
               <div className="usage-stat-box">
                 <span className="stat-label">{t("pricing.printsUsed", "PRINTS USED")}</span>
@@ -422,20 +301,20 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div className="progress-labels-strip">
               <span>{t("pricing.quotaConsumption", "Print Quota Consumption")}</span>
               <span className="progress-pct">
-                {formatNum(Math.round(((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}% {t("pricing.used", "Used")}
+                {formatNum(activePlan.totalPrints > 0 ? Math.round(((activePlan.usedPrints || Math.max(0, activePlan.totalPrints - (activePlan.printsRemaining || 0))) / activePlan.totalPrints) * 100) : 0)}% {t("pricing.used", "Used")}
               </span>
             </div>
             <div className="pricing-progress-track">
               <div 
                 className="pricing-progress-fill" 
                 style={{ 
-                  width: `${Math.min(100, Math.max(0, ((activePlan.usedPrints || (10 - activePlan.printsRemaining)) / (activePlan.totalPrints || 10)) * 100))}%` 
+                  width: `${activePlan.totalPrints > 0 ? Math.min(100, Math.max(0, ((activePlan.usedPrints || Math.max(0, activePlan.totalPrints - (activePlan.printsRemaining || 0))) / activePlan.totalPrints) * 100)) : 0}%` 
                 }} 
               />
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* 3. Pricing Plan Cards (3 Cards in one row) */}
       <section className="pricing-cards-section">
@@ -599,10 +478,10 @@ export function Pricing({ setView, setShowAuth, user }) {
                 />
                 
                 <div className="slider-marks-row">
-                  <span>{formatNum("100")} prints</span>
-                  <span>{formatNum("5,000")} prints</span>
-                  <span>{formatNum("10,000")} prints</span>
-                  <span>{formatNum("20,000")} prints</span>
+                  <span>{formatNum("100")} {t("pricing.prints", "prints")}</span>
+                  <span>{formatNum("5,000")} {t("pricing.prints", "prints")}</span>
+                  <span>{formatNum("10,000")} {t("pricing.prints", "prints")}</span>
+                  <span>{formatNum("20,000")} {t("pricing.prints", "prints")}</span>
                 </div>
               </div>
             </div>
@@ -725,7 +604,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             {/* 3 Plan Headers */}
             <div className="mobile-matrix-header-grid">
               <div className="mm-head-card mm-head-starter">
-                <span className="mm-plan-badge mm-badge-starter">Pack</span>
+                <span className="mm-plan-badge mm-badge-starter">{t("pricingPage.pack", "Pack")}</span>
                 <span className="mm-plan-title">{t("pricing.colStarter", "Starter Pack")}</span>
               </div>
               <div className="mm-head-card mm-head-pro">
@@ -831,7 +710,7 @@ export function Pricing({ setView, setShowAuth, user }) {
           <div className="cta-left-art">
             <img 
               src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/templates_hero_illustration.jpg" 
-              alt="Slipzen Receipt Billing" 
+              alt={t("pricingPage.altBilling", "Slipzen Receipt Billing")} 
               className="cta-receipt-art-img" 
             />
           </div>
@@ -851,19 +730,19 @@ export function Pricing({ setView, setShowAuth, user }) {
           <div className="cta-right-checklist">
             <div className="cta-check-row">
               <div className="cta-check-icon"><Check size={13} /></div>
-              <span>No credit card required</span>
+              <span>{t("pricingPage.noCard", "Pay only for what you print")}</span>
             </div>
             <div className="cta-check-row">
               <div className="cta-check-icon"><Check size={13} /></div>
-              <span>Instant activation</span>
+              <span>{t("pricingPage.instant", "Instant activation")}</span>
             </div>
             <div className="cta-check-row">
               <div className="cta-check-icon"><Check size={13} /></div>
-              <span>Works with all thermal printers</span>
+              <span>{t("pricingPage.allPrinters", "Works with all thermal printers")}</span>
             </div>
             <div className="cta-check-row">
               <div className="cta-check-icon"><Check size={13} /></div>
-              <span>Trusted by 10,000+ businesses</span>
+              <span>{t("pricingPage.trusted", "Trusted by 10,000+ businesses")}</span>
             </div>
           </div>
         </div>

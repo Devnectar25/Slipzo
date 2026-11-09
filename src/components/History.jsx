@@ -23,6 +23,7 @@ import {
   Send
 } from "lucide-react"
 import { call, money, getCachedData, getTableDisplayName } from "../lib/utils"
+import { appSpeechLanguage } from "../hooks/useSpeechInput"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
@@ -140,7 +141,7 @@ export function History({ setView, setSelectedBillId, user }) {
       }
     } catch (err) {
       console.error("Failed to load bills:", err)
-      toastError("Failed to load bill history")
+      toastError(t("history.err_loadFailed", "Failed to load bill history"))
       setBills([])
     } finally {
       setLoading(false)
@@ -167,7 +168,7 @@ export function History({ setView, setSelectedBillId, user }) {
       return
     }
     const recognition = new SpeechRecognition()
-    recognition.lang = "en-IN"
+    recognition.lang = appSpeechLanguage()
     recognition.onstart = () => setIsListening(true)
     recognition.onend = () => setIsListening(false)
     recognition.onerror = () => setIsListening(false)
@@ -221,7 +222,7 @@ export function History({ setView, setSelectedBillId, user }) {
       setDeletingId(bill.id)
       await call(`/bills/${bill.id}`, { method: "DELETE" })
 
-      toastSuccess(`Bill #${bill.number} deleted successfully`)
+      toastSuccess(t("history.deletedOk", "Bill #{{n}} deleted successfully", { n: bill.number }))
 
       if (bills.length === 1 && page > 1) {
         setPage((p) => p - 1)
@@ -422,7 +423,7 @@ export function History({ setView, setSelectedBillId, user }) {
                     : 1
                 )
 
-                const itemsLabel = itemsCount === 1 ? "1 item" : `${itemsCount} items`
+                const itemsLabel = itemsCount === 1 ? t("history.oneItem", "1 item") : t("history.manyItems", "{{count}} items", { count: itemsCount })
                 const invoiceNum = bill.number || bill.invoiceNo || bill.billNumber || `SLP-${bill.id}`
 
                 return (
@@ -544,7 +545,7 @@ export function History({ setView, setSelectedBillId, user }) {
                   className="pagination-btn"
                   disabled={page <= 1}
                   onClick={() => setPage(1)}
-                  title="First Page"
+                  title={t("common.firstPage", "First Page")}
                 >
                   <ChevronsLeft size={16} />
                 </button>
@@ -552,7 +553,7 @@ export function History({ setView, setSelectedBillId, user }) {
                   className="pagination-btn"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  title="Previous Page"
+                  title={t("common.prevPage", "Previous Page")}
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -586,7 +587,7 @@ export function History({ setView, setSelectedBillId, user }) {
                   className="pagination-btn"
                   disabled={page >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  title="Next Page"
+                  title={t("common.nextPage", "Next Page")}
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -594,7 +595,7 @@ export function History({ setView, setSelectedBillId, user }) {
                   className="pagination-btn"
                   disabled={page >= totalPages}
                   onClick={() => setPage(totalPages)}
-                  title="Last Page"
+                  title={t("common.lastPage", "Last Page")}
                 >
                   <ChevronsRight size={16} />
                 </button>

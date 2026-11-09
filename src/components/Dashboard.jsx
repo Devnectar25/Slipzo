@@ -899,7 +899,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("home.searchPlaceholder", "Search bills, products, templates, customers...")}
-          aria-label="Search"
+          aria-label={t("dashboard.searchAria", "Search")}
         />
         {search.trim() && (
           <button

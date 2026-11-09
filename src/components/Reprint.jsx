@@ -45,7 +45,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
       try {
         setLoading(true)
         if (!actualBillId) {
-          setError("No bill selected")
+          setError(t("reprint.noBill", "No bill selected"))
           return
         }
           const data = await call(`/bills/${actualBillId}`)
@@ -218,10 +218,10 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
       } else {
         Swal.fire({
-          title: "Print Quota Limit Reached",
-          text: "You have used all available prints in your plan. Please view pricing plans to add print credits.",
+          title: t("bills.quotaTitle", "Print Quota Limit Reached"),
+          text: t("bills.quotaText", "You have used all available prints in your plan. Please view pricing plans to add print credits."),
           icon: "warning",
-          confirmButtonText: "View Pricing Plans",
+          confirmButtonText: t("bills.viewPlans", "View Pricing Plans"),
           confirmButtonColor: "#0284c7"
         }).then(() => {
           setView?.("pricing")
@@ -242,12 +242,12 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           }
         } catch (err) {
           console.error("Print quota deduction failed:", err)
-          const errMsg = err?.detail || err?.message || "No print credits available"
+          const errMsg = err?.detail || err?.message || t("reprint.noCredits", "No print credits available")
           Swal.fire({
-            title: "Print Quota Reached",
+            title: t("reprint.quotaReached", "Print Quota Reached"),
             text: errMsg,
             icon: "warning",
-            confirmButtonText: "View Plans",
+            confirmButtonText: t("reprint.viewPlans", "View Plans"),
             confirmButtonColor: "#0284c7"
           })
           setIsPrinting(false)
@@ -300,8 +300,8 @@ export function Reprint({ billId, setView, requireAuth, user }) {
       <div className="page reprint-page fade-in">
         <div className="page-intro">
           <div>
-            <p className="eyebrow accent">SAVED RECEIPT</p>
-            <h2>Loading Receipt...</h2>
+            <p className="eyebrow accent">{t("reprint.saved", "SAVED RECEIPT")}</p>
+            <h2>{t("reprint.loading", "Loading Receipt...")}</h2>
           </div>
         </div>
         <div style={{ maxWidth: "380px", margin: "0 auto" }}>
@@ -373,12 +373,12 @@ export function Reprint({ billId, setView, requireAuth, user }) {
               {printFormat === "a4" ? "A4 Sheet" : `${printFormat} Thermal`}
             </span>
           </div>
-          <div className="print-format-toggle-group" role="group" aria-label="Print Size">
+          <div className="print-format-toggle-group" role="group" aria-label={t("reprint.printSize", "Print Size")}>
             <button
               type="button"
               className={`format-toggle-btn ${printFormat === "55mm" ? "active" : ""}`}
               onClick={() => handleFormatChange("55mm")}
-              title="55mm Thermal Roll"
+              title={t("reprint.t55", "55mm Thermal Roll")}
             >
               55mm
             </button>
@@ -386,7 +386,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
               type="button"
               className={`format-toggle-btn ${printFormat === "80mm" ? "active" : ""}`}
               onClick={() => handleFormatChange("80mm")}
-              title="80mm Thermal Roll"
+              title={t("reprint.t80", "80mm Thermal Roll")}
             >
               80mm
             </button>
@@ -394,7 +394,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
               type="button"
               className={`format-toggle-btn ${printFormat === "a4" ? "active" : ""}`}
               onClick={() => handleFormatChange("a4")}
-              title="A4 Standard Document"
+              title={t("reprint.tA4", "A4 Standard Document")}
             >
               A4
             </button>
@@ -420,7 +420,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           }}>
             <span>💡</span>
             <span>
-              <strong>Tip:</strong> Select POS thermal printer or click <strong>PDF</strong> for exact-fit slip.
+              <span dangerouslySetInnerHTML={{ __html: t("reprint.tip", "<strong>Tip:</strong> Select POS thermal printer or click <strong>PDF</strong> for exact-fit slip.") }} />
             </span>
           </div>
         )}

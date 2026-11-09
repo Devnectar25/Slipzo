@@ -202,7 +202,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
               image_url: it.image_url || ""
             })))
           }
-          toastSuccess(`Loaded saved bill #${editBill.number} for editing`)
+          toastSuccess(t("bills.loadedEdit", "Loaded saved bill #{{n}} for editing", { n: editBill.number }))
         }
       } catch (e) {
         console.warn("Failed to parse edit bill:", e)
@@ -468,8 +468,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     if (menuItem.is_active === false || menuItem.is_available === false) {
       playScanErrorBeep()
       Swal.fire({
-        title: "Item Not Available",
-        text: "This item is currently unavailable in your menu and cannot be added to the bill.",
+        title: t("bills.itemUnavailable", "Item Not Available"),
+        text: t("bills.itemUnavailableText", "This item is currently unavailable in your menu and cannot be added to the bill."),
         icon: "warning",
         confirmButtonColor: "#0284c7",
         confirmButtonText: "OK"
@@ -524,14 +524,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const handleClearAll = async () => {
     if (items.length === 0) return
     const confirmResult = await Swal.fire({
-      title: "Clear All Items?",
-      text: "Are you sure you want to remove all items from this bill?",
+      title: t("bills.clearTitle", "Clear All Items?"),
+      text: t("bills.clearText", "Are you sure you want to remove all items from this bill?"),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Yes, Clear All",
-      cancelButtonText: "Cancel",
+      confirmButtonText: t("bills.clearYes", "Yes, Clear All"),
+      cancelButtonText: t("common.cancel", "Cancel"),
       reverseButtons: true,
       focusCancel: true
     })
@@ -599,10 +599,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       if (localMatch.is_active === false || localMatch.is_available === false || localMatch.barcode_active === false) {
         playScanErrorBeep()
         await Swal.fire({
-          title: "Item Not Available",
+          title: t("bills.itemUnavailable", "Item Not Available"),
           text: localMatch.barcode_active === false
             ? "Barcode scanning is deactivated for this item in your menu."
-            : "This item is currently unavailable in your menu and cannot be added to the bill.",
+            : t("bills.itemUnavailableText", "This item is currently unavailable in your menu and cannot be added to the bill."),
           icon: "warning",
           confirmButtonColor: "#0284c7",
           confirmButtonText: "OK"
@@ -622,8 +622,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         if (res.item.is_active === false || res.item.is_available === false) {
           playScanErrorBeep()
           await Swal.fire({
-            title: "Item Not Available",
-            text: "This item is currently unavailable in your menu and cannot be added to the bill.",
+            title: t("bills.itemUnavailable", "Item Not Available"),
+            text: t("bills.itemUnavailableText", "This item is currently unavailable in your menu and cannot be added to the bill."),
             icon: "warning",
             confirmButtonColor: "#0284c7",
             confirmButtonText: "OK"
@@ -639,8 +639,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       if (res && res.found && (!res.available || res.in_catalog || res.code === "NOT_IN_USER_MENU" || res.code === "ITEM_UNAVAILABLE")) {
         playScanErrorBeep()
         await Swal.fire({
-          title: "Item Not Available",
-          text: "This item is currently unavailable in your menu and cannot be added to the bill.",
+          title: t("bills.itemUnavailable", "Item Not Available"),
+          text: t("bills.itemUnavailableText", "This item is currently unavailable in your menu and cannot be added to the bill."),
           icon: "warning",
           confirmButtonColor: "#0284c7",
           confirmButtonText: "OK"
@@ -659,8 +659,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       ) {
         playScanErrorBeep()
         await Swal.fire({
-          title: "Item Not Available",
-          text: "This item is currently unavailable in your menu and cannot be added to the bill.",
+          title: t("bills.itemUnavailable", "Item Not Available"),
+          text: t("bills.itemUnavailableText", "This item is currently unavailable in your menu and cannot be added to the bill."),
           icon: "warning",
           confirmButtonColor: "#0284c7",
           confirmButtonText: "OK"
@@ -672,14 +672,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       if (err?.code === "PRODUCT_NOT_FOUND" || err?.status === 404) {
         playScanErrorBeep()
         const notFoundResult = await Swal.fire({
-          title: "Product Not Found",
+          title: t("bills.productNotFound", "Product Not Found"),
           text: `No product was found matching barcode "${barcode}".`,
           icon: "warning",
           showCancelButton: true,
           confirmButtonColor: "#0284c7",
           cancelButtonColor: "#64748b",
-          confirmButtonText: "Add Product",
-          cancelButtonText: "Cancel"
+          confirmButtonText: t("bills.addProduct", "Add Product"),
+          cancelButtonText: t("common.cancel", "Cancel")
         })
 
         if (notFoundResult.isConfirmed) {
@@ -693,14 +693,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     // Default Fallback: Unknown Barcode
     playScanErrorBeep()
     const notFoundResult = await Swal.fire({
-      title: "Product Not Found",
+      title: t("bills.productNotFound", "Product Not Found"),
       text: `No product was found matching barcode "${barcode}".`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#0284c7",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Add Product",
-      cancelButtonText: "Cancel"
+      confirmButtonText: t("bills.addProduct", "Add Product"),
+      cancelButtonText: t("common.cancel", "Cancel")
     })
 
     if (notFoundResult.isConfirmed) {
@@ -730,7 +730,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
     const validItems = items.filter((item) => item.name && item.name.trim() && Number(item.quantity) > 0)
     if (validItems.length === 0) {
-      toastError("Please add at least one item to save the bill.")
+      toastError(t("bills.err_noItems", "Please add at least one item to save the bill."))
       return
     }
 
@@ -766,13 +766,13 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           method: "PUT",
           body: JSON.stringify(billData)
         })
-        toastSuccess(`Bill #${bill?.number || customBillNumber} updated successfully!`)
+        toastSuccess(t("bills.updatedOk", "Bill #{{n}} updated successfully!", { n: bill?.number || customBillNumber }))
       } else {
         bill = await call("/bills", {
           method: "POST",
           body: JSON.stringify(billData)
         })
-        toastSuccess(`Bill #${bill?.number || customBillNumber} saved successfully!`)
+        toastSuccess(t("bills.savedOk", "Bill #{{n}} saved successfully!", { n: bill?.number || customBillNumber }))
       }
 
       setSaved(bill)
@@ -784,7 +784,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       setFlowStep("success")
     } catch (err) {
       console.error("Failed to save bill:", err)
-      const msg = err.detail || err.message || "Failed to save bill. Please try again."
+      const msg = err.detail || err.message || t("bills.err_saveFailed", "Failed to save bill. Please try again.")
       setSaveError(msg)
       toastError(msg)
     } finally {
@@ -874,7 +874,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       setView("reprint")
     } catch (err) {
       console.error("Failed to save and print bill:", err)
-      const msg = err.detail || err.message || "Failed to save bill. Please try again."
+      const msg = err.detail || err.message || t("bills.err_saveFailed", "Failed to save bill. Please try again.")
       setSaveError(msg)
       toastError(msg)
     } finally {
@@ -898,10 +898,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
       } else {
         Swal.fire({
-          title: "Print Quota Limit Reached",
-          text: "You have used all available prints in your plan. Please view pricing plans to add print credits.",
+          title: t("bills.quotaTitle", "Print Quota Limit Reached"),
+          text: t("bills.quotaText", "You have used all available prints in your plan. Please view pricing plans to add print credits."),
           icon: "warning",
-          confirmButtonText: "View Pricing Plans",
+          confirmButtonText: t("bills.viewPlans", "View Pricing Plans"),
           confirmButtonColor: "#0284c7"
         }).then(() => {
           setView("pricing")
@@ -916,10 +916,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       printReceiptElement("receipt-to-print", {
         pageWidth: templateWidth || "80mm"
       })
-      toastSuccess("Printed successfully!")
+      toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
     } catch (err) {
       console.error("Printing failed:", err)
-      toastError("Printing failed. Please check printer connection.")
+      toastError(t("bills.err_printFailed", "Printing failed. Please check printer connection."))
     } finally {
       setTimeout(() => {
         isPrintingRef.current = false
@@ -1047,7 +1047,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           <h2 className="nb-success-title">{t("bills.createdSuccess", "Bill Created Successfully!")}</h2>
 
           <p className="nb-success-text">
-            Your bill has been saved. You can print it now using your selected receipt template (
+            {t("bills.savedMsg", "Your bill has been saved. You can print it now using your selected receipt template")} (
             <strong>{activeTemplate?.name || "Shop Pro"}</strong>).
           </p>
 
@@ -1123,7 +1123,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                   setEditingBillId(null)
                   setEditingBillNumber(null)
                   setItems([])
-                  toastSuccess("Switched to new bill mode")
+                  toastSuccess(t("bills.newMode", "Switched to new bill mode"))
                 }}
                 style={{
                   display: "inline-flex",
@@ -1139,7 +1139,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                   cursor: "pointer"
                 }}
               >
-                <X size={13} /> Cancel / New Bill
+                <X size={13} /> {t("bills.cancelNew", "Cancel / New Bill")}
               </button>
             </div>
           )}
@@ -1167,8 +1167,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                         if (nameMatch.is_active === false || nameMatch.is_available === false) {
                           playScanErrorBeep();
                           Swal.fire({
-                            title: "Item Not Available",
-                            text: "This item is currently unavailable in your menu and cannot be added to the bill.",
+                            title: t("bills.itemUnavailable", "Item Not Available"),
+                            text: t("bills.itemUnavailableText", "This item is currently unavailable in your menu and cannot be added to the bill."),
                             icon: "warning",
                             confirmButtonColor: "#0284c7",
                             confirmButtonText: "OK"
@@ -1250,7 +1250,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                   <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
                     <Spinner />
                     <p style={{ fontSize: "0.85rem", color: "#74788A", marginTop: "0.75rem" }}>
-                      Loading your menu items...
+                      {t("bills.loadingMenu", "Loading your menu items...")}
                     </p>
                   </div>
                 ) : userMenuItems.length === 0 ? (
@@ -1265,9 +1265,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                         <ShoppingBag size={28} />
                       )}
                     </div>
-                    <h4 className="nb-empty-title">Your Menu is Empty</h4>
+                    <h4 className="nb-empty-title">{t("bills.menuEmpty", "Your Menu is Empty")}</h4>
                     <p className="nb-empty-desc">
-                      Add items to your personal menu first to start creating bills with fast 1-click adding.
+                      {t("bills.menuEmptyText", "Add items to your personal menu first to start creating bills with fast 1-click adding.")}
                     </p>
                     <button
                       type="button"
@@ -1275,23 +1275,23 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       onClick={() => setView?.("menu")}
                       style={{ margin: "0 auto", padding: "0.6rem 1.25rem", fontSize: "0.9rem" }}
                     >
-                      <Plus size={16} /> Go to Menu
+                      <Plus size={16} /> {t("bills.goMenu", "Go to Menu")}
                     </button>
                   </div>
                 ) : filteredMenuItems.length === 0 ? (
                   /* No Search Results */
                   <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #D9DDE4", marginBottom: "1rem" }}>
                     <AlertCircle size={28} style={{ color: "#8F93A5", margin: "0 auto 0.5rem" }} />
-                    <div style={{ fontWeight: "700", color: "#0C1F41", fontSize: "0.95rem" }}>No items found</div>
+                    <div style={{ fontWeight: "700", color: "#0C1F41", fontSize: "0.95rem" }}>{t("bills.noItems", "No items found")}</div>
                     <p style={{ color: "#74788A", fontSize: "0.82rem", margin: "0.2rem 0 0.85rem" }}>
-                      Try another item name or category.
+                      {t("bills.tryAnother", "Try another item name or category.")}
                     </p>
                     <button
                       type="button"
                       className="nb-add-more-btn"
                       onClick={() => { setSearch(""); setSelectedCategory("all"); }}
                     >
-                      Reset Filter
+                      {t("bills.resetFilter", "Reset Filter")}
                     </button>
                   </div>
                 ) : (
@@ -1346,8 +1346,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                     type="button"
                                     className="nb-qty-btn"
                                     onClick={() => handleUpdateQuantity(addedItem.id, -1)}
-                                    title="Decrease quantity"
-                                    aria-label="Decrease quantity"
+                                    title={t("bills.decrease", "Decrease quantity")}
+                                    aria-label={t("bills.decrease", "Decrease quantity")}
                                   >
                                     −
                                   </button>
@@ -1356,8 +1356,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                     type="button"
                                     className="nb-qty-btn"
                                     onClick={() => handleUpdateQuantity(addedItem.id, 1)}
-                                    title="Increase quantity"
-                                    aria-label="Increase quantity"
+                                    title={t("bills.increase", "Increase quantity")}
+                                    aria-label={t("bills.increase", "Increase quantity")}
                                   >
                                     +
                                   </button>
@@ -1541,8 +1541,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                   className="pagination-btn"
                   disabled={menuPage <= 1}
                   onClick={() => setMenuPage((p) => Math.max(1, p - 1))}
-                  title="Previous Page"
-                  aria-label="Previous Page"
+                  title={t("common.prevPage", "Previous Page")}
+                  aria-label={t("common.prevPage", "Previous Page")}
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -1578,8 +1578,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                   className="pagination-btn"
                   disabled={menuPage >= totalMenuPages}
                   onClick={() => setMenuPage((p) => Math.min(totalMenuPages, p + 1))}
-                  title="Next Page"
-                  aria-label="Next Page"
+                  title={t("common.nextPage", "Next Page")}
+                  aria-label={t("common.nextPage", "Next Page")}
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -1611,7 +1611,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
       {/* Camera Barcode Scanner Modal */}
       {isCameraScannerOpen && (
-        <Suspense fallback={<div className="scanner-chunk-loader" role="status" aria-label="Opening camera"><Spinner size={34} /></div>}>
+        <Suspense fallback={<div className="scanner-chunk-loader" role="status" aria-label={t("common.openingCamera", "Opening camera")}><Spinner size={34} /></div>}>
           <CameraScannerModal
             isOpen={isCameraScannerOpen}
             onClose={() => setIsCameraScannerOpen(false)}

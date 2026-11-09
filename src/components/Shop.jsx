@@ -30,7 +30,7 @@ import {
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
-import { call, getCachedData, setCachedData, getActivePlanDetails, findTemplateMatch, isHotelRestaurant } from "../lib/utils"
+import { call, getCachedData, setCachedData, getActivePlanDetails, findTemplateMatch, isHotelRestaurant, getDateLocale } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
@@ -298,7 +298,7 @@ export function Shop({ user, setView } = {}) {
         }
       } catch (err) {
         console.error("Failed to load shop:", err)
-        toastError("Failed to load shop details")
+        toastError(t("profile.err_loadShop", "Failed to load shop details"))
       } finally {
         setReady(true)
       }
@@ -508,7 +508,7 @@ export function Shop({ user, setView } = {}) {
         phone: (shop.phone || "8329300932").trim(),
         gst: (shop.gstin || "").trim(),
         invoiceNo: liveInvoicePreview,
-        date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+        date: new Date().toLocaleDateString(getDateLocale(), { day: "2-digit", month: "short", year: "numeric" }),
         items: [
           { name: "Basmati Rice 1kg", qty: 2, rate: 120, total: 240 },
           { name: "Assam Tea 250g", qty: 1, rate: 160, total: 160 },
@@ -1038,7 +1038,7 @@ export function Shop({ user, setView } = {}) {
                     <AlertCircle size={12} /> {errors.phone}
                   </span>
                 ) : (
-                  <span className="sp-helper-text">{shop.phone ? `${shop.phone.length}/10 digits` : t("profile.phoneHelper", "10-digit mobile number for receipt header")}</span>
+                  <span className="sp-helper-text">{shop.phone ? t("shopSetup.digitsCount", "{{n}}/10 digits", { n: shop.phone.length }) : t("profile.phoneHelper", "10-digit mobile number for receipt header")}</span>
                 )}
               </div>
             </div>

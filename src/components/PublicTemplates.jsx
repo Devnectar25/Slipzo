@@ -277,7 +277,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
           </p>
           <div className="templates-header-actions">
             <button className="cta-button primary large" onClick={() => (user ? setView("bills") : setShowAuth(true))}>
-              {t("templates.startBillingFree", "Start billing free")} <ArrowRight size={18} />
+              {t("templates.startBillingFree", "Start billing")} <ArrowRight size={18} />
             </button>
             <button className="cta-button secondary" onClick={() => setView("pricing")}>
               {t("templates.viewPricingPlans", "View pricing plans")}
@@ -417,7 +417,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
           <p>{t("templates.upgradeBillingSub", "Join thousands of shops printing clean, branded receipts with Slipzen today.")}</p>
           <div className="templates-cta-buttons">
             <button className="cta-button primary large" onClick={() => (user ? setView("bills") : setShowAuth(true))}>
-              {t("templates.createFirstReceipt", "Create your first receipt free")} <ArrowRight size={18} />
+              {t("templates.createFirstReceipt", "Create your first receipt")} <ArrowRight size={18} />
             </button>
           </div>
         </div>

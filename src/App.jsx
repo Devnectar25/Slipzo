@@ -20,6 +20,7 @@ const lazyNamed = (loader, name) => {
 const Auth = lazyNamed(() => import("./components/Auth"), "Auth")
 const WelcomeOnboarding = lazyNamed(() => import("./components/WelcomeOnboarding"), "WelcomeOnboarding")
 const DesktopLanding = lazyNamed(() => import("./components/DesktopLanding"), "DesktopLanding")
+const PublicPageShell = lazyNamed(() => import("./components/PublicPageShell"), "PublicPageShell")
 const Dashboard = lazyNamed(() => import("./components/Dashboard"), "Dashboard")
 const Templates = lazyNamed(() => import("./components/Templates"), "Templates")
 const Bill = lazyNamed(() => import("./components/Bill"), "Bill")
@@ -34,7 +35,7 @@ const ShopMenu = lazyNamed(() => import("./components/Menu"), "Menu")
 const TableManagement = lazyNamed(() => import("./components/tables/TableManagement"), "TableManagement")
 const ShopOnboardingModal = lazyNamed(() => import("./components/ShopOnboardingModal"), "ShopOnboardingModal")
 const AddYourItemsModal = lazyNamed(() => import("./components/AddYourItemsModal"), "AddYourItemsModal")
-const OnboardingRewardModal = lazyNamed(() => import("./components/OnboardingRewardModal"), "OnboardingRewardModal")
+const PlanGate = lazyNamed(() => import("./components/PlanGate"), "PlanGate")
 const FreeRewardExpiredModal = lazyNamed(() => import("./components/FreeRewardExpiredModal"), "FreeRewardExpiredModal")
 const AdminLogin = lazyNamed(() => import("./components/admin/AdminLogin"), "AdminLogin")
 const AdminDashboard = lazyNamed(() => import("./components/admin/AdminDashboard"), "AdminDashboard")
@@ -108,6 +109,9 @@ export default function App() {
   )
 }
 
+// Waits for a promise, but never longer than ms: a slow server must not keep the loader on screen forever
+const withTimeout = (promise, ms) => Promise.race([promise, new Promise((resolve) => setTimeout(resolve, ms))])
+
 const pathToView = (pathname) => {
   if (!pathname) return "dashboard"
   const clean = pathname.toLowerCase().trim()
@@ -126,6 +130,13 @@ const pathToView = (pathname) => {
   if (clean === "/reprint") return "reprint"
   if (clean === "/overview" || clean === "/dashboard" || clean === "/") return "dashboard"
   return "dashboard"
+}
+
+// The pages a visitor who is not signed in can open on their own URL (a reload keeps them there)
+const publicViewFromPath = () => {
+  if (typeof window === "undefined") return "dashboard"
+  const v = pathToView(window.location.pathname)
+  return v === "pricing" || v === "contact" ? v : "dashboard"
 }
 
 const viewToPath = (viewName) => {
@@ -185,12 +196,14 @@ function AppContent() {
     return false
   })
   const [showShopOnboarding, setShowShopOnboarding] = useState(false)
+  // New accounts must buy a print pack before the shop and item setup
+  const [showPlanGate, setShowPlanGate] = useState(false)
+  const [resolvingSetup, setResolvingSetup] = useState(false)
   const [adminUser, setAdminUser] = useState(null)
   const [adminToken, setAdminToken] = useState(null)
   const [isAdminChecking, setIsAdminChecking] = useState(true)
   const [selectedBillId, setSelectedBillId] = useState(null)
   const [showAddItemsModal, setShowAddItemsModal] = useState(false)
-  const [showRewardModal, setShowRewardModal] = useState(false)
   const [showFreeRewardExpiredModal, setShowFreeRewardExpiredModal] = useState(false)
   const [cachedShop, setCachedShop] = useState(() => getCachedData("/shop") || {})
   const isHotel = isHotelRestaurant(cachedShop)
@@ -206,7 +219,7 @@ function AppContent() {
   const { error: toastError } = useToast()
   const isClaimingRewardRef = useRef(false)
 
-  const handleClaimOnboardingReward = async () => {
+  const handleCompleteOnboarding = async () => {
     if (isClaimingRewardRef.current) return
     isClaimingRewardRef.current = true
     try {
@@ -219,8 +232,8 @@ function AppContent() {
         localStorage.removeItem(`slipzo_onboarding_in_progress_${userKey}`)
       }
 
-      // Claim 10 free prints onboarding reward from backend API
-      const res = await call("/subscriptions/claim-onboarding-reward", {
+      // Setup is finished: tell the server (no prints are given for this; the pack was bought on the plan step) and open the dashboard
+      const res = await call("/subscriptions/complete-onboarding", {
         method: "POST"
       })
 
@@ -229,19 +242,20 @@ function AppContent() {
       }
 
       setShowAddItemsModal(false)
-      setShowRewardModal(true)
+      setView("dashboard")
     } catch (err) {
-      console.error("Failed to claim onboarding reward:", err)
-      toastError(err.message || "Failed to claim 10 free prints reward. Please try again.")
+      console.error("Failed to finish setup:", err)
+      toastError(err.message || "Failed to finish setup. Please try again.")
       throw err
     } finally {
       isClaimingRewardRef.current = false
     }
   }
 
-  const handleRewardGetStarted = () => {
-    setShowRewardModal(false)
-    setView("dashboard") // Redirect to /overview
+  // The pack is paid for and confirmed: on to the shop profile, then the items
+  const handlePlanPurchased = () => {
+    setShowPlanGate(false)
+    setShowShopOnboarding(true)
   }
 
   const handleViewPlansFromExpiry = () => {
@@ -280,6 +294,8 @@ function AppContent() {
   }
 
   const handleOpenAuth = (register = false) => {
+    // Warm up the plan step while the sign-up form is open so it appears instantly afterwards
+    if (register) import("./components/PlanGate").catch(() => {})
     setIsRegister(register)
     setShowAuth(true)
   }
@@ -291,13 +307,12 @@ function AppContent() {
     if (userData?.staff_of) return
 
     const firstTimeDone = localStorage.getItem(`slipzo_first_time_onboarding_${userKey}`) === "true"
-    const isRewardClaimed = Number(userData?.onboarding_reward_claimed || 0) === 1
+    const isRewardClaimed = Number(userData?.onboarding_reward_claimed || 0) >= 1
 
     // If user has already claimed reward or completed onboarding, keep all onboarding modals closed
     if (firstTimeDone || isRewardClaimed) {
       setShowShopOnboarding(false)
       setShowAddItemsModal(false)
-      setShowRewardModal(false)
       localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
       localStorage.removeItem(`slipzo_onboarding_in_progress_${userKey}`)
       return
@@ -317,21 +332,33 @@ function AppContent() {
         shopData.address.trim()
       )
 
-      if (!isComplete) {
+      // A brand new account (nothing bought, reward not claimed) has to pick a plan before anything else
+      let needsPlan = false
+      if (isOnboardingInProgress || !isComplete) {
+        try {
+          const subRes = await call("/subscriptions/my")
+          const q = subRes?.quota
+          needsPlan = Boolean(q && q.isFreeTier && !q.onboardingRewardClaimed)
+        } catch (_) {}
+      }
+
+      if (needsPlan) {
+        setShowPlanGate(true)
+        setShowShopOnboarding(false)
+        setShowAddItemsModal(false)
+      } else if (!isComplete) {
         // STATE 2: Shop profile is incomplete: show shop profile popup
+        setShowPlanGate(false)
         setShowShopOnboarding(true)
         setShowAddItemsModal(false)
-        setShowRewardModal(false)
       } else if (isOnboardingInProgress) {
         // STATE 3: Shop profile is complete, but onboarding is in progress: show Add Items modal
         setShowShopOnboarding(false)
         setShowAddItemsModal(true)
-        setShowRewardModal(false)
       } else {
         // Existing user with complete profile: finish onboarding
         setShowShopOnboarding(false)
         setShowAddItemsModal(false)
-        setShowRewardModal(false)
         localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
       }
     } catch (err) {
@@ -405,22 +432,35 @@ function AppContent() {
         } else {
           setView("dashboard")
         }
-        checkShopSetupNeeded(userData)
+        // Wait for the answer (the loader stays up) so the dashboard never flashes before the plan or setup screen
+        await withTimeout(checkShopSetupNeeded(userData), 8000)
       } else {
         console.log('❌ Invalid user data returned:', userData)
         localStorage.removeItem("slipzo_user_info")
         setUser(null)
-        setView("dashboard")
+        setView(publicViewFromPath())
       }
     } catch (err) {
       console.log('❌ Not authenticated:', err.message)
       localStorage.removeItem("slipzo_user_info")
       setUser(null)
-      setView("dashboard")
+      setView(publicViewFromPath())
     } finally {
       setChecking(false)
     }
   }
+
+  // Safety nets: if the server is slow or cannot be reached, the big loader gives way after a while instead of staying forever
+  useEffect(() => {
+    if (!checking) return undefined
+    const timer = setTimeout(() => setChecking(false), 25000)
+    return () => clearTimeout(timer)
+  }, [checking])
+  useEffect(() => {
+    if (!resolvingSetup) return undefined
+    const timer = setTimeout(() => setResolvingSetup(false), 12000)
+    return () => clearTimeout(timer)
+  }, [resolvingSetup])
 
   const userRef = useRef(user)
   useEffect(() => {
@@ -490,21 +530,21 @@ function AppContent() {
 
   const modalStatesRef = useRef({
     showAuth,
+    showPlanGate,
     showShopOnboarding,
     showAddItemsModal,
-    showRewardModal,
     showFreeRewardExpiredModal
   })
 
   useEffect(() => {
     modalStatesRef.current = {
       showAuth,
+      showPlanGate,
       showShopOnboarding,
       showAddItemsModal,
-      showRewardModal,
       showFreeRewardExpiredModal
     }
-  }, [showAuth, showShopOnboarding, showAddItemsModal, showRewardModal, showFreeRewardExpiredModal])
+  }, [showAuth, showPlanGate, showShopOnboarding, showAddItemsModal, showFreeRewardExpiredModal])
 
   useEffect(() => {
     let removeListenerFunc = null
@@ -514,9 +554,9 @@ function AppContent() {
         const listener = await CapApp.addListener('backButton', () => {
           const {
             showAuth: authOpen,
+            showPlanGate: planGateOpen,
             showShopOnboarding: shopOnboardingOpen,
             showAddItemsModal: addItemsOpen,
-            showRewardModal: rewardOpen,
             showFreeRewardExpiredModal: expiryOpen
           } = modalStatesRef.current
 
@@ -525,10 +565,8 @@ function AppContent() {
             setShowAuth(false)
             return
           }
-          if (rewardOpen) {
-            setShowRewardModal(false)
-            return
-          }
+          // The plan step cannot be backed out of
+          if (planGateOpen) return
           if (expiryOpen) {
             setShowFreeRewardExpiredModal(false)
             return
@@ -607,9 +645,9 @@ function AppContent() {
 
       setUser(null)
       setShowAuth(false)
+      setShowPlanGate(false)
       setShowShopOnboarding(false)
       setShowAddItemsModal(false)
-      setShowRewardModal(false)
       setView("dashboard")
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
@@ -618,6 +656,15 @@ function AppContent() {
   }
 
   const handleLogin = async (userData, isNewUser = false) => {
+    // A new account goes straight to the plan step, before anything else is awaited, so the dashboard never shows first.
+    // A returning account sees the loader while we check whether it still has the plan or setup to finish.
+    if (isNewUser) {
+      setShowPlanGate(true)
+      setShowShopOnboarding(false)
+      setShowAddItemsModal(false)
+    } else {
+      setResolvingSetup(true)
+    }
     setUser(userData)
     setView("dashboard")
     setShowAuth(false)
@@ -637,15 +684,20 @@ function AppContent() {
         localStorage.setItem(`slipzo_onboarding_in_progress_${userKey}`, "true")
         localStorage.removeItem(`slipzo_first_time_onboarding_${userKey}`)
       }
-      setShowShopOnboarding(true)
-      setShowAddItemsModal(false)
-      setShowRewardModal(false)
+      // Plan first, then the shop profile and the items
+      call("/shop").then((shop) => { if (shop) setCachedShop(shop) }).catch(() => {})
     } else {
+      setShowPlanGate(false)
       setShowShopOnboarding(false)
       setShowAddItemsModal(false)
-      setShowRewardModal(false)
-      if (Number(userData?.onboarding_reward_claimed || 0) === 1 && userKey) {
+      if (Number(userData?.onboarding_reward_claimed || 0) >= 1 && userKey) {
         localStorage.setItem(`slipzo_first_time_onboarding_${userKey}`, "true")
+      }
+      // Someone who signed up but never paid or finished setup picks up where they stopped (same check as a page reload)
+      try {
+        await withTimeout(checkShopSetupNeeded(userData), 8000)
+      } finally {
+        setResolvingSetup(false)
       }
     }
   }
@@ -678,7 +730,7 @@ function AppContent() {
     window.history.pushState({}, "", "/admin/login")
   }
 
-  if (checking) {
+  if (checking || (user && resolvingSetup)) {
     return <BrandLoader />
   }
 
@@ -707,19 +759,71 @@ function AppContent() {
       )
     }
 
+    // On the public Pricing and Contact pages, anything that needs an account opens sign up instead
+    const publicSetView = (target) => {
+      if (target === "pricing" || target === "contact" || target === "dashboard") setView(target)
+      else handleOpenAuth(true)
+    }
+    const publicSetShowAuth = (open) => (open ? handleOpenAuth(true) : setShowAuth(false))
+
+    if (view === "pricing") {
+      return (
+        <ErrorBoundary onGoHome={() => setView("dashboard")}>
+          <Suspense fallback={<PageLoader />}>
+            <PublicPageShell
+              activeView="pricing"
+              setView={setView}
+              onLogin={() => handleOpenAuth(false)}
+              onSignUp={() => handleOpenAuth(true)}
+            >
+              <Pricing setView={publicSetView} setShowAuth={publicSetShowAuth} user={user} />
+            </PublicPageShell>
+          </Suspense>
+          <PwaInstallPrompt />
+        </ErrorBoundary>
+      )
+    }
+
+    if (view === "contact") {
+      return (
+        <ErrorBoundary onGoHome={() => setView("dashboard")}>
+          <Suspense fallback={<PageLoader />}>
+            <PublicPageShell
+              activeView="contact"
+              setView={setView}
+              onLogin={() => handleOpenAuth(false)}
+              onSignUp={() => handleOpenAuth(true)}
+            >
+              <Contact setView={publicSetView} setShowAuth={publicSetShowAuth} user={user} />
+            </PublicPageShell>
+          </Suspense>
+          <PwaInstallPrompt />
+        </ErrorBoundary>
+      )
+    }
+
     return (
       <ErrorBoundary onGoHome={() => setView("dashboard")}>
         {desktopWeb ? (
-          <DesktopLanding onLogin={() => handleOpenAuth(false)} onSignUp={() => handleOpenAuth(true)} />
+          <DesktopLanding
+            onLogin={() => handleOpenAuth(false)}
+            onSignUp={() => handleOpenAuth(true)}
+            onNavigate={setView}
+          />
         ) : (
-          <WelcomeOnboarding onLogin={() => handleOpenAuth(false)} onSignUp={() => handleOpenAuth(true)} />
+          <WelcomeOnboarding
+            onLogin={() => handleOpenAuth(false)}
+            onSignUp={() => handleOpenAuth(true)}
+            onNavigate={setView}
+          />
         )}
         <PwaInstallPrompt />
       </ErrorBoundary>
     )
   }
 
-  // Protected routes - only accessible when logged in
+  // Protected routes - only accessible when logged in.
+  // Pricing and Contact us stay inside the app (with the sidebar) for a signed-in user; only visitors get them as separate public pages.
   return (
     <>
       <Shell
@@ -771,6 +875,12 @@ function AppContent() {
       </ErrorBoundary>
     </Shell>
     <Suspense fallback={null}>
+    {showPlanGate && <Suspense fallback={<div style={{ position: "fixed", inset: 0, zIndex: 1055, background: "#eaf6ff" }} />}><PlanGate
+      user={user}
+      shopName={cachedShop?.name && !String(cachedShop.name).endsWith("'s Shop") ? cachedShop.name : ""}
+      onPurchased={handlePlanPurchased}
+      onBack={handleLogout}
+    /></Suspense>}
     {showShopOnboarding && <ShopOnboardingModal
       isOpen={showShopOnboarding}
       user={user}
@@ -790,15 +900,7 @@ function AppContent() {
       user={user}
       shop={cachedShop}
       onClose={() => setShowAddItemsModal(false)}
-      onContinue={handleClaimOnboardingReward}
-    />}
-    {showRewardModal && <OnboardingRewardModal
-      isOpen={showRewardModal}
-      onClose={() => {
-        setShowRewardModal(false)
-        setView("dashboard")
-      }}
-      onGetStarted={handleRewardGetStarted}
+      onContinue={handleCompleteOnboarding}
     />}
     {showFreeRewardExpiredModal && <FreeRewardExpiredModal
       isOpen={showFreeRewardExpiredModal}

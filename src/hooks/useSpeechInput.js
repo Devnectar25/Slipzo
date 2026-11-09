@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import i18n from "../i18n/i18n"
+
+// Listen in the language the app is showing (Hindi / Marathi), not just the browser default
+const SPEECH_LANGUAGES = { hi: "hi-IN", mr: "mr-IN" }
+export const appSpeechLanguage = () => SPEECH_LANGUAGES[(i18n.language || "en").slice(0, 2)] || "en-IN"
 
 /**
  * Helper to remove trailing punctuation (. ? ! , ; :) auto-appended by speech recognition engines
@@ -147,7 +152,7 @@ export function useSpeechInput() {
     setInterimTranscript("")
 
     if (!isWebSpeechSupported) {
-      setErrorMsg("Speech recognition is not supported in this browser.")
+      setErrorMsg(i18n.t("voice.err_unsupported", "Speech recognition is not supported in this browser."))
       return
     }
 
@@ -161,7 +166,7 @@ export function useSpeechInput() {
 
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognitionAPI) {
-      setErrorMsg("Speech recognition is not supported in this browser.")
+      setErrorMsg(i18n.t("voice.err_unsupported", "Speech recognition is not supported in this browser."))
       return
     }
 
@@ -170,7 +175,7 @@ export function useSpeechInput() {
     // Single-shot or continuous listening
     recognition.continuous = options.continuous ?? false
     recognition.interimResults = options.interimResults ?? true
-    recognition.lang = options.language || (typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US") || "en-US"
+    recognition.lang = options.language || appSpeechLanguage() || (typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US") || "en-US"
 
     recognition.onstart = () => {
       isListeningRef.current = true
@@ -208,12 +213,12 @@ export function useSpeechInput() {
     recognition.onerror = (event) => {
       console.warn("Speech recognition error:", event.error)
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setErrorMsg("Microphone access denied. Please allow microphone permissions.")
+        setErrorMsg(i18n.t("voice.err_denied", "Microphone access denied. Please allow microphone permissions."))
         setIsMicrophoneAvailable(false)
       } else if (event.error === "network") {
-        setErrorMsg("Network error: speech service temporarily unavailable.")
+        setErrorMsg(i18n.t("voice.err_network", "Network error: speech service temporarily unavailable."))
       } else if (event.error === "audio-capture") {
-        setErrorMsg("No microphone was detected on your device.")
+        setErrorMsg(i18n.t("voice.err_nomic", "No microphone was detected on your device."))
         setIsMicrophoneAvailable(false)
       } else if (event.error !== "no-speech" && event.error !== "aborted") {
         setErrorMsg(`Speech recognition error: ${event.error}`)
@@ -234,7 +239,7 @@ export function useSpeechInput() {
     } catch (err) {
       console.warn("Speech recognition start failed:", err)
       if (err.name !== "InvalidStateError") {
-        setErrorMsg("Could not start speech recognition.")
+        setErrorMsg(i18n.t("voice.err_start", "Could not start speech recognition."))
         setIsListening(false)
       }
     }

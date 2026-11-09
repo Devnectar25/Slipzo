@@ -285,7 +285,7 @@ export function UserGuide({ setView, user }) {
             <Search size={18} className="guide-search-icon" />
             <input 
               type="text"
-              placeholder="Search help topics (e.g. thermal print, barcode, tables, GST, Udhar)..."
+              placeholder={t("guide.searchPlaceholder", "Search help topics (e.g. thermal print, barcode, tables, GST, Udhar)...")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="guide-search-input"

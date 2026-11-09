@@ -1,7 +1,9 @@
 import React, { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { AlertCircle, ArrowRight, Zap, CheckCircle2 } from "lucide-react"
 
 export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
+  const { t } = useTranslation()
   useEffect(() => {
     if (isOpen) {
       const originalBodyOverflow = document.body.style.overflow
@@ -110,7 +112,7 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
               letterSpacing: "-0.02em"
             }}
           >
-            Your Free Reward Has Expired
+            {t("expired.title", "Your Free Reward Has Expired")}
           </h2>
 
           {/* Description */}
@@ -122,7 +124,7 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
               margin: "0 0 1.25rem 0"
             }}
           >
-            Your 10 free prints have been used. Continue creating bills by choosing a plan that works for you.
+            {t("expired.body", "Your 10 free prints have been used. Continue creating bills by choosing a plan that works for you.")}
           </p>
 
           {/* Balance & Feature Highlight Box */}
@@ -148,7 +150,7 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
               }}
             >
               <span style={{ fontWeight: "700", color: "#111827", fontSize: "0.9rem" }}>
-                Free Prints Balance
+                {t("expired.balance", "Free Prints Balance")}
               </span>
               <span
                 style={{
@@ -168,15 +170,15 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
             <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
                 <CheckCircle2 size={15} style={{ color: "#0284c7", flexShrink: 0 }} />
-                <span>Unlimited invoices & instant thermal printing</span>
+                <span>{t("expired.f1", "Unlimited invoices & instant thermal printing")}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
                 <CheckCircle2 size={15} style={{ color: "#0284c7", flexShrink: 0 }} />
-                <span>GST compliance & custom template branding</span>
+                <span>{t("expired.f2", "GST compliance & custom template branding")}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", color: "#575B6B" }}>
                 <CheckCircle2 size={15} style={{ color: "#0284c7", flexShrink: 0 }} />
-                <span>Low cost starting at just ₹99 with instant activation</span>
+                <span>{t("expired.f3", "Low cost starting at just ₹99 with instant activation")}</span>
               </div>
             </div>
           </div>
@@ -204,7 +206,7 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
               }}
             >
               <Zap size={17} />
-              <span>View Plans</span>
+              <span>{t("expired.viewPlans", "View Plans")}</span>
               <ArrowRight size={17} />
             </button>
 
@@ -225,7 +227,7 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
                 transition: "background 0.15s ease, color 0.15s ease"
               }}
             >
-              Maybe Later
+              {t("expired.later", "Maybe Later")}
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { translateApiMessage, networkErrorMessage } from "./apiMessages"
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs))
@@ -321,7 +322,11 @@ const performFetch = async (cleanPath, options = {}) => {
         } catch (e) {}
       }
 
-      throw new Error(errorMsg)
+      // The screen shows the translated text; the server's own wording stays available as rawMessage
+      const apiError = new Error(translateApiMessage(errorMsg))
+      apiError.rawMessage = errorMsg
+      apiError.status = response.status
+      throw apiError
     }
 
     if (data && data.token) {
@@ -342,7 +347,10 @@ const performFetch = async (cleanPath, options = {}) => {
     return data
   } catch (err) {
     if (err.message === 'Failed to fetch') {
-      throw new Error(`Failed to connect to backend server (${API}). Please verify network connection.`)
+      console.warn(`Failed to connect to backend server (${API}).`)
+      const networkError = new Error(networkErrorMessage())
+      networkError.rawMessage = err.message
+      throw networkError
     }
     throw err
   }
@@ -634,13 +642,12 @@ export const getActivePlanDetails = (userKey) => {
     }
   } catch (e) {}
 
-  const freeUsed = getFreePrintCount(key)
-  const remaining = Math.max(0, 10 - freeUsed)
+  // No pack bought yet and no free prints: the real numbers arrive from the server (syncUserQuota)
   return {
-    name: "Free Starter Tier",
-    printsRemaining: remaining,
-    totalPrints: 10,
-    usedPrints: freeUsed,
+    name: "No Plan",
+    printsRemaining: 0,
+    totalPrints: 0,
+    usedPrints: getFreePrintCount(key),
     isFreeTier: true
   }
 }
@@ -671,19 +678,19 @@ export const syncUserQuota = (quotaData, userKey) => {
   const key = getCurrentUserKey(userKey)
   try {
     const current = getActivePlanDetails(key)
-    const totalPrints = quotaData.totalPrints !== undefined ? Number(quotaData.totalPrints) : (current?.totalPrints ?? 10)
+    const totalPrints = quotaData.totalPrints !== undefined ? Number(quotaData.totalPrints) : (current?.totalPrints ?? 0)
     const usedPrints = quotaData.usedPrints !== undefined ? Number(quotaData.usedPrints) : (current?.usedPrints ?? 0)
     const printsRemaining = quotaData.printsRemaining !== undefined
       ? Number(quotaData.printsRemaining)
       : Math.max(0, totalPrints - usedPrints)
-    const planName = quotaData.activePlanName || quotaData.planName || current?.name || (totalPrints > 10 ? "Purchased Plan" : "Free Starter Tier")
+    const planName = quotaData.activePlanName || quotaData.planName || current?.name || (quotaData.isFreeTier === false ? "Purchased Plan" : "No Plan")
 
     const updatedPlan = {
       name: planName,
       printsRemaining,
       totalPrints,
       usedPrints,
-      isFreeTier: totalPrints <= 10,
+      isFreeTier: quotaData.isFreeTier !== undefined ? Boolean(quotaData.isFreeTier) : totalPrints <= 10,
       onboardingRewardClaimed: quotaData.onboardingRewardClaimed,
       updatedAt: new Date().toISOString()
     }
@@ -1038,4 +1045,10 @@ export const getTableDisplayName = (tableOrName, t, formatNum) => {
   }
 
   return rawName
+}
+
+// Locale for dates and times, following the language the app is showing
+export const getDateLocale = () => {
+  const lang = getAppLanguage().slice(0, 2)
+  return lang === "hi" ? "hi-IN" : lang === "mr" ? "mr-IN" : "en-IN"
 }

@@ -26,9 +26,42 @@ import {
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import Swal from "sweetalert2"
+import "../styles/ConfirmDialog.css"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
 import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, getCachedData } from "../lib/utils"
+
+// Sign-out confirmation in the app's own look instead of the stock dialog (styles: ConfirmDialog.css)
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
+const signOutIcon = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`
+
+const confirmSignOut = (t, user) => {
+  const who = user?.name || (user?.phone ? `+91 ${user.phone}` : user?.email) || ""
+  const chip = who
+    ? `<div class="slipzen-confirm-user"><span class="slipzen-confirm-user-avatar">${escapeHtml(String(who).trim().charAt(0))}</span><span class="slipzen-confirm-user-name">${escapeHtml(who)}</span></div>`
+    : ""
+  return Swal.fire({
+    iconHtml: signOutIcon(34),
+    title: t("nav.signOutConfirmTitle", "Sign out of Slipzen?"),
+    html: `<div>${escapeHtml(t("nav.signOutConfirmText", "You will need to log in again to continue."))}</div>${chip}`,
+    showCancelButton: true,
+    confirmButtonText: `${signOutIcon(18)}<span>${escapeHtml(t("nav.signOut", "Sign out"))}</span>`,
+    cancelButtonText: t("common.cancel", "Cancel"),
+    reverseButtons: true,
+    focusCancel: true,
+    buttonsStyling: false,
+    customClass: {
+      container: "slipzen-confirm-container",
+      popup: "slipzen-confirm-popup",
+      icon: "slipzen-confirm-icon",
+      title: "slipzen-confirm-title",
+      htmlContainer: "slipzen-confirm-text",
+      actions: "slipzen-confirm-actions",
+      confirmButton: "slipzen-confirm-btn slipzen-confirm-ok",
+      cancelButton: "slipzen-confirm-btn slipzen-confirm-cancel"
+    }
+  })
+}
 
 export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
   const { t, i18n } = useTranslation()
@@ -232,13 +265,13 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           className="side-brand"
           onClick={() => setView("dashboard")}
           style={{ cursor: 'pointer', paddingBottom: '0.65rem', marginBottom: '0.65rem', marginTop: 0, borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center' }}
-          title="Return to Home Dashboard"
+          title={t("shell.ariaHomeDash", "Return to Home Dashboard")}
         >
           <img src="/logo.png" alt="Slipzen" className="side-logo" style={{ height: '38px', width: 'auto', objectFit: 'contain', objectPosition: 'left center', marginLeft: '8px' }} />
           <button
             className="side-close-btn"
             onClick={closeSidebar}
-            aria-label="Close menu"
+            aria-label={t("shell.ariaCloseMenu", "Close menu")}
             style={{
               display: 'none',
               background: 'transparent',
@@ -340,7 +373,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
             }}
             onClick={() => handleNavClick("pricing")}
-            title="Click to view pricing plans"
+            title={t("shell.ariaPlans", "Click to view pricing plans")}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
@@ -371,12 +404,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 borderRadius: '6px',
                 fontVariantNumeric: 'tabular-nums'
               }}>
-                {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 10).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
+                {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 0).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
               </span>
             </div>
             <div style={{ width: '100%', height: '6px', background: 'rgba(2, 132, 199, 0.15)', borderRadius: '9999px', overflow: 'hidden' }}>
               <div style={{
-                width: `${Math.min(100, Math.max(0, ((activePlan.printsRemaining || 0) / (activePlan.totalPrints || 10)) * 100))}%`,
+                width: `${Math.min(100, Math.max(0, activePlan.totalPrints > 0 ? ((activePlan.printsRemaining || 0) / activePlan.totalPrints) * 100 : 0))}%`,
                 height: '100%',
                 background: (activePlan.printsRemaining || 0) > 2 ? 'linear-gradient(90deg, #38bdf8, #0284c7)' : '#EF4444',
                 borderRadius: '9999px',
@@ -423,7 +456,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
                 {user?.name || "User"}
               </b>
               <small style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
-                {user?.staff_of ? `${t("profile.staffOf", "Staff at")} ${user.staff_of.shop_name}` : (user?.email || "")}
+                {user?.staff_of ? `${t("profile.staffOf", "Staff at")} ${user.staff_of.shop_name}` : (user?.email || (user?.phone ? `+91 ${user.phone}` : ""))}
               </small>
             </span>
           </div>
@@ -451,7 +484,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
               transition: 'all 0.15s ease'
             }}
-            title="Profile language settings"
+            title={t("shell.ariaLang", "Profile language settings")}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600, color: '#0f172a' }}>
               <Globe size={13} style={{ color: '#0284c7' }} />
@@ -472,17 +505,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             className="logout side-logout-btn"
             onClick={async (e) => {
               e.preventDefault()
-              const answer = await Swal.fire({
-                title: t("nav.signOutConfirmTitle", "Sign out of Slipzen?"),
-                text: t("nav.signOutConfirmText", "You will need to log in again to continue."),
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonText: t("nav.signOut", "Sign out"),
-                cancelButtonText: t("common.cancel", "Cancel"),
-                confirmButtonColor: "#ef4444",
-                reverseButtons: true,
-                focusCancel: true
-              })
+              const answer = await confirmSignOut(t, user)
               if (!answer.isConfirmed) return
               setIsOpen(false)
               if (onLogout) onLogout()
@@ -516,7 +539,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           <div
             className="shell-header-brand"
             onClick={() => setView("dashboard")}
-            title="Slipzen Dashboard"
+            title={t("shell.ariaDashboard", "Slipzen Dashboard")}
             style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
           >
             <img src="/logo.png" alt="Slipzen" className="shell-header-logo" style={{ height: '36px', width: 'auto', objectFit: 'contain', objectPosition: 'left center' }} />
@@ -526,7 +549,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             <div 
               className="header-prints-badge"
               onClick={() => setView("pricing")}
-              title="Click to view pricing plans"
+              title={t("shell.ariaPlans", "Click to view pricing plans")}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -551,8 +574,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
               data-testid="shell-menu-button"
               className="shell-menu-btn"
               onClick={toggleSidebar}
-              aria-label="Toggle navigation menu"
-              title="Menu"
+              aria-label={t("shell.ariaToggleNav", "Toggle navigation menu")}
+              title={t("shell.menu", "Menu")}
             >
               {isOpen ? <X size={20} /> : <Menu size={20} />}
             </button>

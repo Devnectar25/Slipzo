@@ -316,7 +316,7 @@ export function Templates({ setView, user }) {
     } catch (err) {
       console.error("Failed to load templates:", err)
       if (!getCachedData("/templates")) {
-        toastError("Failed to load templates")
+        toastError(t("templatesPage.err_load", "Failed to load templates"))
       }
       setItems([])
     } finally {
@@ -405,7 +405,7 @@ export function Templates({ setView, user }) {
           <div className="templates-hero-left">
             <span className="templates-eyebrow">{t("templates.eyebrow", "REUSABLE RECEIPTS")}</span>
             <h1 className="templates-hero-heading">
-              Templates that <span className="templates-hero-accent">save time.</span>
+              {t("templatesPage.heroA", "Templates that")} <span className="templates-hero-accent">{t("templatesPage.heroB", "save time.")}</span>
             </h1>
             <p className="templates-hero-subtext">
               {t("templates.subtitle", "Pick from our pre-designed receipt styles or create your own custom layout for your business.")}
@@ -415,7 +415,7 @@ export function Templates({ setView, user }) {
           <div className="templates-hero-center-art">
             <img 
               src="https://apzabspkfpuszlduyoqv.supabase.co/storage/v1/object/public/UI_Images/templates_hero_illustration.jpg" 
-              alt="Receipt Templates Artwork" 
+              alt={t("templatesPage.artAlt", "Receipt Templates Artwork")} 
               className="templates-hero-art-img" 
             />
           </div>
@@ -425,21 +425,21 @@ export function Templates({ setView, user }) {
               <div className="feature-icon-circle feat-circle-green">
                 <Sparkles size={16} />
               </div>
-              <span className="feature-badge-label">Professional</span>
+              <span className="feature-badge-label">{t("templatesPage.professional", "Professional")}</span>
             </div>
 
             <div className="hero-feature-badge-card">
               <div className="feature-icon-circle feat-circle-purple">
                 <Wand2 size={16} />
               </div>
-              <span className="feature-badge-label">Customizable</span>
+              <span className="feature-badge-label">{t("templatesPage.customizable", "Customizable")}</span>
             </div>
 
             <div className="hero-feature-badge-card">
               <div className="feature-icon-circle feat-circle-blue">
                 <Printer size={16} />
               </div>
-              <span className="feature-badge-label">Print Ready</span>
+              <span className="feature-badge-label">{t("templatesPage.printReady", "Print Ready")}</span>
             </div>
           </div>
         </div>
@@ -545,7 +545,7 @@ export function Templates({ setView, user }) {
                       </span>
                       {template.is_default && (
                         <span className="template-default-badge" style={{ marginLeft: "4px" }}>
-                          Default
+                          {t("templatesPage.default", "Default")}
                         </span>
                       )}
                       <span className="template-paper-tag" style={{ marginLeft: "auto" }}>

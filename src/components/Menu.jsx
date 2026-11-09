@@ -449,7 +449,7 @@ export function Menu({ setView, requireAuth, user }) {
       })
 
       invalidateApiCache("/menu")
-      toastSuccess(`Created custom product "${trimmedName}"`)
+      toastSuccess(t("menu.createdCustom", "Created custom product \"{{name}}\"", { name: trimmedName }))
       handleCloseCustomModal()
     } catch (err) {
       console.error("Error creating custom item:", err)
@@ -636,7 +636,7 @@ export function Menu({ setView, requireAuth, user }) {
         set.add(it.category.trim())
       }
     })
-    const list = [{ id: "all", label: "All Items", icon: <LayoutGrid size={15} /> }]
+    const list = [{ id: "all", label: t("menu.allItems", "All Items"), icon: <LayoutGrid size={15} /> }]
     const getCategoryIcon = (catName) => {
       const lower = String(catName || "").toLowerCase()
       if (lower.includes("baker") || lower.includes("bread") || lower.includes("croissant")) return <Croissant size={15} />
@@ -799,7 +799,7 @@ export function Menu({ setView, requireAuth, user }) {
         return next
       })
 
-      toastSuccess(`Added "${catItem.name}" to My Menu!`)
+      toastSuccess(t("menu.toastAdded", "Added \"{{name}}\" to My Menu!", { name: catItem.name }))
     } catch (err) {
       toastError(err?.message || "Failed to add item to menu.")
     }
@@ -928,7 +928,7 @@ export function Menu({ setView, requireAuth, user }) {
         return next
       })
 
-      toastSuccess(`Updated "${trimmedName}"`)
+      toastSuccess(t("menu.toastUpdated", "Updated \"{{name}}\"", { name: trimmedName }))
       handleCloseEditModal()
     } catch (err) {
       setEditFormError("Unable to update item. Please try again.")
@@ -949,14 +949,14 @@ export function Menu({ setView, requireAuth, user }) {
 
     // Step 1: First SweetAlert2 confirmation
     const firstResult = await Swal.fire({
-      title: "Remove menu item?",
-      text: `Remove "${itemName}" from your menu?`,
+      title: t("menu.removeTitle", "Remove menu item?"),
+      text: t("menu.removeAsk", "Remove \"{{name}}\" from your menu?", { name: itemName }),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Remove",
-      cancelButtonText: "Cancel",
+      confirmButtonText: t("menu.removeBtn", "Remove"),
+      cancelButtonText: t("common.cancel", "Cancel"),
       reverseButtons: true,
       focusCancel: true
     })
@@ -965,14 +965,14 @@ export function Menu({ setView, requireAuth, user }) {
 
     // Step 2: Second SweetAlert2 confirmation
     const secondResult = await Swal.fire({
-      title: "Confirm to remove?",
-      text: "Are you sure you want to remove this menu item?",
+      title: t("menu.confirmTitle", "Confirm to remove?"),
+      text: t("menu.confirmText", "Are you sure you want to remove this menu item?"),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Confirm",
-      cancelButtonText: "Cancel",
+      confirmButtonText: t("menu.confirmBtn", "Confirm"),
+      cancelButtonText: t("common.cancel", "Cancel"),
       reverseButtons: true,
       focusCancel: true
     })
@@ -989,9 +989,9 @@ export function Menu({ setView, requireAuth, user }) {
         return next
       })
 
-      toastSuccess(`Removed "${itemName}" from My Menu`)
+      toastSuccess(t("menu.toastRemoved", "Removed \"{{name}}\" from My Menu", { name: itemName }))
     } catch (err) {
-      toastError("Unable to remove item from your menu.")
+      toastError(t("menu.err_removeFailed", "Unable to remove item from your menu."))
     } finally {
       setDeletingId(null)
     }
@@ -1002,7 +1002,7 @@ export function Menu({ setView, requireAuth, user }) {
     e?.stopPropagation()
 
     if (!browserSupportsSpeech) {
-      toastError("Speech recognition is not supported in this browser.")
+      toastError(t("menu.err_speech", "Speech recognition is not supported in this browser."))
       return
     }
 
@@ -1128,7 +1128,7 @@ export function Menu({ setView, requireAuth, user }) {
           {/* Section Subheader: My Menu count & Sort */}
             <div className="mob-menu-subheader">
               <div className="mob-menu-count-wrap">
-                <h3 className="mob-menu-heading">My Menu</h3>
+                <h3 className="mob-menu-heading">{t("menu.myMenu", "My Menu")}</h3>
                 <span className="mob-menu-count-badge">
                   {filteredUserItems.length} {filteredUserItems.length === 1 ? "item" : "items"}
                 </span>
@@ -1167,7 +1167,7 @@ export function Menu({ setView, requireAuth, user }) {
               {loading ? (
                 <div style={{ textAlign: "center", padding: "2.5rem 1rem" }}>
                   <Spinner />
-                  <p style={{ color: "#64748b", marginTop: "0.75rem", fontSize: "0.88rem" }}>Loading menu items...</p>
+                  <p style={{ color: "#64748b", marginTop: "0.75rem", fontSize: "0.88rem" }}>{t("menu.loadingMenuItems", "Loading menu items...")}</p>
                 </div>
               ) : filteredUserItems.length === 0 ? (
                 <div className="mob-menu-empty-card">
@@ -1184,7 +1184,7 @@ export function Menu({ setView, requireAuth, user }) {
                       className="mob-menu-reset-btn"
                       onClick={() => { setSearch(""); setSelectedCategory("all"); }}
                     >
-                      Reset Search
+                      {t("menu.resetSearch", "Reset Search")}
                     </button>
                   ) : (
                     <button
@@ -1192,7 +1192,7 @@ export function Menu({ setView, requireAuth, user }) {
                       className="mob-menu-reset-btn"
                       onClick={() => setCurrentView("add_items")}
                     >
-                      <Plus size={14} style={{ marginRight: "4px" }} /> Add Items
+                      <Plus size={14} style={{ marginRight: "4px" }} /> {t("menu.addItems", "Add Items")}
                     </button>
                   )}
                 </div>
@@ -1219,7 +1219,7 @@ export function Menu({ setView, requireAuth, user }) {
                             <span className="mob-item-price">{money(item.price)}</span>
                             {isItemActive && (
                               <span className="mob-item-active-status">
-                                <span className="mob-status-dot" /> Active
+                                <span className="mob-status-dot" /> {t("menu.statusActive", "Active")}
                               </span>
                             )}
                           </div>
@@ -1230,8 +1230,8 @@ export function Menu({ setView, requireAuth, user }) {
                             type="button"
                             className="mob-item-edit-btn"
                             onClick={() => handleOpenEditModal(item)}
-                            title="Edit selling price"
-                            aria-label="Edit"
+                            title={t("menu.editPrice", "Edit selling price")}
+                            aria-label={t("menu.edit", "Edit")}
                           >
                             <Edit2 size={16} />
                           </button>
@@ -1240,8 +1240,8 @@ export function Menu({ setView, requireAuth, user }) {
                             className="mob-item-delete-btn"
                             onClick={(e) => handleRemoveFromUserMenu(item, e)}
                             disabled={deletingId === item.id}
-                            title="Remove from My Menu"
-                            aria-label="Delete"
+                            title={t("menu.removeFromMenu", "Remove from My Menu")}
+                            aria-label={t("menu.delete", "Delete")}
                           >
                             {deletingId === item.id ? <Spinner size="xs" /> : <Trash2 size={16} />}
                           </button>
@@ -1253,7 +1253,7 @@ export function Menu({ setView, requireAuth, user }) {
                   {totalMyMenuPages > 1 && (
                     <div className="menu-pagination-bar">
                       <div className="menu-pagination-info">
-                        Showing <strong>{formatNum((myMenuPage - 1) * myMenuPageSize + 1)}</strong>–<strong>{formatNum(Math.min(myMenuPage * myMenuPageSize, filteredUserItems.length))}</strong> of <strong>{formatNum(filteredUserItems.length)}</strong> items
+                        {t("menu.showing", "Showing")} <strong>{formatNum((myMenuPage - 1) * myMenuPageSize + 1)}</strong>–<strong>{formatNum(Math.min(myMenuPage * myMenuPageSize, filteredUserItems.length))}</strong> of <strong>{formatNum(filteredUserItems.length)}</strong> items
                       </div>
                       <div className="menu-pagination-controls">
                         <button
@@ -1261,9 +1261,9 @@ export function Menu({ setView, requireAuth, user }) {
                           className="menu-pagination-btn"
                           disabled={myMenuPage <= 1}
                           onClick={() => setMyMenuPage((p) => Math.max(1, p - 1))}
-                          title="Previous page"
+                          title={t("menu.prevPage", "Previous page")}
                         >
-                          <ChevronLeft size={16} /> Prev
+                          <ChevronLeft size={16} /> {t("menu.prev", "Prev")}
                         </button>
                         {Array.from({ length: totalMyMenuPages }, (_, i) => i + 1).map((pg) => {
                           if (pg === 1 || pg === totalMyMenuPages || Math.abs(pg - myMenuPage) <= 1) {
@@ -1288,9 +1288,9 @@ export function Menu({ setView, requireAuth, user }) {
                           className="menu-pagination-btn"
                           disabled={myMenuPage >= totalMyMenuPages}
                           onClick={() => setMyMenuPage((p) => Math.min(totalMyMenuPages, p + 1))}
-                          title="Next page"
+                          title={t("menu.nextPage", "Next page")}
                         >
-                          Next <ChevronRight size={16} />
+                          {t("menu.next", "Next")} <ChevronRight size={16} />
                         </button>
                       </div>
                     </div>
@@ -1312,13 +1312,13 @@ export function Menu({ setView, requireAuth, user }) {
                   type="text"
                   value={catalogSearch}
                   onChange={(e) => setCatalogSearch(e.target.value)}
-                  placeholder="Search items..."
+                  placeholder={t("menu.searchItems", "Search items...")}
                 />
                 <button
                   type="button"
                   className={`mob-search-mic-btn-inline ${isListening ? "listening" : ""}`}
                   onClick={handleToggleVoiceSearch}
-                  title="Voice Search"
+                  title={t("menu.voiceSearchLabel", "Voice Search")}
                 >
                   <Mic size={16} />
                 </button>
@@ -1327,7 +1327,7 @@ export function Menu({ setView, requireAuth, user }) {
                 type="button"
                 className="mob-catalog-filter-btn"
                 onClick={() => setFilterOpen((prev) => !prev)}
-                title="Filter Options"
+                title={t("menu.filterOptions", "Filter Options")}
               >
                 <SlidersHorizontal size={18} />
               </button>
@@ -1354,7 +1354,7 @@ export function Menu({ setView, requireAuth, user }) {
                 type="button"
                 className="mob-catalog-view-toggle-btn"
                 onClick={() => setCurrentView("my_menu")}
-                title="Toggle View"
+                title={t("menu.toggleView", "Toggle View")}
               >
                 <LayoutGrid size={18} />
               </button>
@@ -1368,7 +1368,7 @@ export function Menu({ setView, requireAuth, user }) {
                   className="mob-filter-sort-pill"
                   onClick={() => setFilterOpen((prev) => !prev)}
                 >
-                  <span>Filter</span>
+                  <span>{t("menu.filter", "Filter")}</span>
                   <ChevronDown size={14} />
                 </button>
               </div>
@@ -1405,13 +1405,13 @@ export function Menu({ setView, requireAuth, user }) {
             {catalogLoading ? (
               <div style={{ textAlign: "center", padding: "2.5rem 1rem" }}>
                 <Spinner />
-                <p style={{ color: "#64748b", marginTop: "0.75rem", fontSize: "0.88rem" }}>Loading catalog...</p>
+                <p style={{ color: "#64748b", marginTop: "0.75rem", fontSize: "0.88rem" }}>{t("menu.loadingCatalog", "Loading catalog...")}</p>
               </div>
             ) : filteredCatalogItems.length === 0 ? (
               <div className="mob-menu-empty-card">
                 <AlertCircle size={32} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
                 <h4 style={{ fontSize: "1rem", fontWeight: "700", color: "#0C1F41", margin: "0 0 0.25rem" }}>
-                  No catalog items found
+                  {t("menu.noCatalog", "No catalog items found")}
                 </h4>
                 <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "0 0 0.75rem", textAlign: "center" }}>
                   {catalogSearch ? "Try adjusting your search or category." : "No items available in the catalog."}
@@ -1422,7 +1422,7 @@ export function Menu({ setView, requireAuth, user }) {
                     className="mob-menu-reset-btn"
                     onClick={() => { setCatalogSearch(""); setCatalogCategory("all"); }}
                   >
-                    Reset Filters
+                    {t("menu.resetFilters", "Reset Filters")}
                   </button>
                 )}
               </div>
@@ -1430,7 +1430,7 @@ export function Menu({ setView, requireAuth, user }) {
               <>
                 <div className="menu-section-subheader">
                   <h3 className="menu-section-title">
-                    Search Results
+                    {t("menu.searchResults", "Search Results")}
                     <span className="menu-items-count-badge">
                       {formatNum(filteredCatalogItems.length)} {t("menu.found", "found")}
                     </span>
@@ -1441,7 +1441,7 @@ export function Menu({ setView, requireAuth, user }) {
                       style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
                       onClick={() => setCatalogSearch("")}
                     >
-                      Clear Search
+                      {t("menu.clearSearch", "Clear Search")}
                     </button>
                   )}
                 </div>
@@ -1510,7 +1510,7 @@ export function Menu({ setView, requireAuth, user }) {
                 {totalCatalogPages > 1 && (
                   <div className="menu-pagination-bar" style={{ marginTop: "1rem" }}>
                     <div className="menu-pagination-info">
-                      Showing <strong>{formatNum((catalogPage - 1) * catalogPageSize + 1)}</strong>–<strong>{formatNum(Math.min(catalogPage * catalogPageSize, filteredCatalogItems.length))}</strong> of <strong>{formatNum(filteredCatalogItems.length)}</strong> items
+                      {t("menu.showing", "Showing")} <strong>{formatNum((catalogPage - 1) * catalogPageSize + 1)}</strong>–<strong>{formatNum(Math.min(catalogPage * catalogPageSize, filteredCatalogItems.length))}</strong> of <strong>{formatNum(filteredCatalogItems.length)}</strong> items
                     </div>
                     <div className="menu-pagination-controls">
                       <button
@@ -1518,9 +1518,9 @@ export function Menu({ setView, requireAuth, user }) {
                         className="menu-pagination-btn"
                         disabled={catalogPage <= 1}
                         onClick={() => setCatalogPage((p) => Math.max(1, p - 1))}
-                        title="Previous page"
+                        title={t("menu.prevPage", "Previous page")}
                       >
-                        <ChevronLeft size={16} /> Prev
+                        <ChevronLeft size={16} /> {t("menu.prev", "Prev")}
                       </button>
                       {Array.from({ length: totalCatalogPages }, (_, i) => i + 1).map((pg) => {
                         if (pg === 1 || pg === totalCatalogPages || Math.abs(pg - catalogPage) <= 1) {
@@ -1545,9 +1545,9 @@ export function Menu({ setView, requireAuth, user }) {
                         className="menu-pagination-btn"
                         disabled={catalogPage >= totalCatalogPages}
                         onClick={() => setCatalogPage((p) => Math.min(totalCatalogPages, p + 1))}
-                        title="Next page"
+                        title={t("menu.nextPage", "Next page")}
                       >
-                        Next <ChevronRight size={16} />
+                        {t("menu.next", "Next")} <ChevronRight size={16} />
                       </button>
                     </div>
                   </div>
@@ -1624,7 +1624,7 @@ export function Menu({ setView, requireAuth, user }) {
               <input
                 type="text"
                 className="menu-search-input"
-                placeholder={isListening ? t("menu.listeningSpeak", "Listening... Speak item name") : "Search or speak to find in My Menu..."}
+                placeholder={isListening ? t("menu.listeningSpeak", "Listening... Speak item name") : t("menu.searchUserMenu", "Search or speak to find in My Menu...")}
                 value={isListening && transcript ? transcript : search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -1736,7 +1736,7 @@ export function Menu({ setView, requireAuth, user }) {
                   <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #cbd5e1", marginTop: "1rem" }}>
                     <AlertCircle size={32} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
                     <h4 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#0f172a", margin: "0 0 0.25rem" }}>
-                      No menu items found
+                      {t("menu.noMenuItems", "No menu items found")}
                     </h4>
                     <p style={{ fontSize: "0.88rem", color: "#64748b", margin: "0 0 0.75rem" }}>
                       No items in your menu match "{search}".
@@ -1746,7 +1746,7 @@ export function Menu({ setView, requireAuth, user }) {
                       className="menu-secondary-btn"
                       onClick={() => setSearch("")}
                     >
-                      Clear Search
+                      {t("menu.clearSearch", "Clear Search")}
                     </button>
                   </div>
                 ) : (
@@ -1794,9 +1794,9 @@ export function Menu({ setView, requireAuth, user }) {
                               type="button"
                               className="menu-action-btn barcode-btn"
                               onClick={() => setBarcodeModalItem(item)}
-                              title="View Barcode"
+                              title={t("menu.viewBarcode", "View Barcode")}
                             >
-                              <span>Barcode</span>
+                              <span>{t("menu.barcode", "Barcode")}</span>
                             </button>
                           )}
                           <button
@@ -1826,7 +1826,7 @@ export function Menu({ setView, requireAuth, user }) {
                 {totalMyMenuPages > 1 && (
                   <div className="menu-pagination-bar">
                     <div className="menu-pagination-info">
-                      Showing <strong>{formatNum((myMenuPage - 1) * myMenuPageSize + 1)}</strong>–<strong>{formatNum(Math.min(myMenuPage * myMenuPageSize, filteredUserItems.length))}</strong> of <strong>{formatNum(filteredUserItems.length)}</strong> items
+                      {t("menu.showing", "Showing")} <strong>{formatNum((myMenuPage - 1) * myMenuPageSize + 1)}</strong>–<strong>{formatNum(Math.min(myMenuPage * myMenuPageSize, filteredUserItems.length))}</strong> of <strong>{formatNum(filteredUserItems.length)}</strong> items
                     </div>
                     <div className="menu-pagination-controls">
                       <button
@@ -1834,9 +1834,9 @@ export function Menu({ setView, requireAuth, user }) {
                         className="menu-pagination-btn"
                         disabled={myMenuPage <= 1}
                         onClick={() => setMyMenuPage((p) => Math.max(1, p - 1))}
-                        title="Previous page"
+                        title={t("menu.prevPage", "Previous page")}
                       >
-                        <ChevronLeft size={16} /> Prev
+                        <ChevronLeft size={16} /> {t("menu.prev", "Prev")}
                       </button>
 
                       {Array.from({ length: totalMyMenuPages }, (_, i) => i + 1).map((pg) => {
@@ -1863,9 +1863,9 @@ export function Menu({ setView, requireAuth, user }) {
                         className="menu-pagination-btn"
                         disabled={myMenuPage >= totalMyMenuPages}
                         onClick={() => setMyMenuPage((p) => Math.min(totalMyMenuPages, p + 1))}
-                        title="Next page"
+                        title={t("menu.nextPage", "Next page")}
                       >
-                        Next <ChevronRight size={16} />
+                        {t("menu.next", "Next")} <ChevronRight size={16} />
                       </button>
                     </div>
                   </div>
@@ -2040,11 +2040,11 @@ export function Menu({ setView, requireAuth, user }) {
               {filteredCatalogItems.length > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginTop: "1.5rem", padding: "1rem 1.25rem", background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
                   <div style={{ fontSize: "0.88rem", color: "#64748b" }}>
-                    Showing <strong>{formatNum((catalogPage - 1) * catalogPageSize + 1)}</strong>–<strong>{formatNum(Math.min(catalogPage * catalogPageSize, filteredCatalogItems.length))}</strong> of <strong>{formatNum(filteredCatalogItems.length)}</strong> products
+                    {t("menu.showing", "Showing")} <strong>{formatNum((catalogPage - 1) * catalogPageSize + 1)}</strong>–<strong>{formatNum(Math.min(catalogPage * catalogPageSize, filteredCatalogItems.length))}</strong> of <strong>{formatNum(filteredCatalogItems.length)}</strong> products
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginRight: "0.5rem", fontSize: "0.85rem", color: "#64748b" }}>
-                      <span>Per page:</span>
+                      <span>{t("menu.perPage", "Per page:")}</span>
                       <select
                         value={catalogPageSize}
                         onChange={(e) => {
@@ -2066,7 +2066,7 @@ export function Menu({ setView, requireAuth, user }) {
                       className="menu-secondary-btn"
                       style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", opacity: catalogPage <= 1 ? 0.5 : 1, cursor: catalogPage <= 1 ? "not-allowed" : "pointer" }}
                     >
-                      Previous
+                      {t("menu.previous", "Previous")}
                     </button>
                     <div style={{ display: "flex", gap: "0.25rem" }}>
                       {Array.from({ length: totalCatalogPages }).map((_, idx) => {
@@ -2114,7 +2114,7 @@ export function Menu({ setView, requireAuth, user }) {
                       className="menu-secondary-btn"
                       style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", opacity: catalogPage >= totalCatalogPages ? 0.5 : 1, cursor: catalogPage >= totalCatalogPages ? "not-allowed" : "pointer" }}
                     >
-                      Next
+                      {t("menu.next", "Next")}
                     </button>
                   </div>
                 </div>
@@ -2234,7 +2234,7 @@ export function Menu({ setView, requireAuth, user }) {
                   {selectedCatalogItem.barcode && addBarcodeActive && (
                     <div style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
                       <BarcodeIcon size={13} />
-                      <span>Master Barcode: <code>{selectedCatalogItem.barcode}</code></span>
+                      <span>{t("menu.masterBarcode", "Master Barcode:")} <code>{selectedCatalogItem.barcode}</code></span>
                     </div>
                   )}
                 </div>
@@ -2390,7 +2390,7 @@ export function Menu({ setView, requireAuth, user }) {
                   {editingItem.barcode && editBarcodeActive && (
                     <div style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "0.35rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
                       <BarcodeIcon size={13} />
-                      <span>Item Barcode: <code>{editingItem.barcode}</code></span>
+                      <span>{t("menu.itemBarcode", "Item Barcode:")} <code>{editingItem.barcode}</code></span>
                     </div>
                   )}
                 </div>
@@ -2515,7 +2515,7 @@ export function Menu({ setView, requireAuth, user }) {
                           }}>
                             <img
                               src={customImagePreview}
-                              alt="Preview"
+                              alt={t("menu.preview", "Preview")}
                               style={{ width: "100%", height: "100%", objectFit: "cover" }}
                             />
                           </div>
@@ -2601,7 +2601,7 @@ export function Menu({ setView, requireAuth, user }) {
                         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.25rem", padding: "0.2rem 0.5rem", background: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
                           <img
                             src={customImageUrl}
-                            alt="URL preview"
+                            alt={t("menu.urlPreview", "URL preview")}
                             onError={(e) => { e.currentTarget.style.display = "none" }}
                             style={{ width: "22px", height: "22px", borderRadius: "4px", objectFit: "cover" }}
                           />

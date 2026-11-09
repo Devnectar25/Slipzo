@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle, Upload } from "lucide-react"
-import { call, findTemplateMatch, setCachedData } from "../lib/utils"
+import { call, findTemplateMatch, setCachedData, getDateLocale } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
@@ -112,47 +112,47 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
     const val = String(value || "").trim()
 
     if (key === "name") {
-      if (!val) return "Shop name is required."
-      if (val.length < 2) return "Shop name must be at least 2 characters."
-      if (val.length > 100) return "Shop name cannot exceed 100 characters."
+      if (!val) return t("shopSetup.err_name", "Shop name is required.")
+      if (val.length < 2) return t("shopSetup.err_nameShort", "Shop name must be at least 2 characters.")
+      if (val.length > 100) return t("shopSetup.err_nameLong", "Shop name cannot exceed 100 characters.")
     }
 
     if (key === "phone") {
-      if (!val) return "Phone number is required for your shop profile."
+      if (!val) return t("shopSetup.err_phone", "Phone number is required for your shop profile.")
       const cleanDigits = val.replace(/[^0-9]/g, "")
       const mobileDigits = (cleanDigits.length === 12 && cleanDigits.startsWith("91")) ? cleanDigits.slice(2) : cleanDigits
 
       if (mobileDigits.length === 0) {
-        return "Phone number is required for your shop profile."
+        return t("shopSetup.err_phone", "Phone number is required for your shop profile.")
       }
       if (mobileDigits.length < 10) {
-        return `Mobile number must be 10 digits (currently ${mobileDigits.length}/10).`
+        return t("shopSetup.err_phoneShort", "Mobile number must be 10 digits (currently {{n}}/10).", { n: mobileDigits.length })
       }
       if (mobileDigits.length > 10) {
-        return "Mobile number cannot exceed 10 digits."
+        return t("shopSetup.err_phoneLong", "Mobile number cannot exceed 10 digits.")
       }
       if (!/^[6-9]\d{9}$/.test(mobileDigits)) {
-        return "Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9."
+        return t("shopSetup.err_phoneInvalid", "Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.")
       }
       if (/^(\d)\1{9}$/.test(mobileDigits)) {
-        return "Please enter a valid active mobile number."
+        return t("shopSetup.err_phoneActive", "Please enter a valid active mobile number.")
       }
     }
 
     if (key === "address") {
-      if (!val) return "Shop address is required for your shop profile."
-      if (val.length > 300) return "Address cannot exceed 300 characters."
+      if (!val) return t("shopSetup.err_address", "Shop address is required for your shop profile.")
+      if (val.length > 300) return t("shopSetup.err_addressLong", "Address cannot exceed 300 characters.")
     }
 
     if (key === "prefix" && format !== "SEQ") {
-      if (!val) return "Prefix is required."
-      if (!/^[A-Za-z0-9]{1,8}$/.test(val)) return "Prefix must be 1–8 letters or numbers (e.g. SLP)."
+      if (!val) return t("shopSetup.err_prefix", "Prefix is required.")
+      if (!/^[A-Za-z0-9]{1,8}$/.test(val)) return t("shopSetup.err_prefixFormat", "Prefix must be 1–8 letters or numbers (e.g. SLP).")
     }
 
     if (key === "sequence") {
       const num = Number(value)
-      if (value === "" || isNaN(num)) return "Starting invoice sequence is required."
-      if (!Number.isInteger(num) || num < 1) return "Sequence number must be at least 1."
+      if (value === "" || isNaN(num)) return t("shopSetup.err_seq", "Starting invoice sequence is required.")
+      if (!Number.isInteger(num) || num < 1) return t("shopSetup.err_seqMin", "Sequence number must be at least 1.")
     }
 
     return ""
@@ -177,7 +177,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
     // Validate File Size (Max 2 MB = 2 * 1024 * 1024 bytes)
     if (file.size > 2 * 1024 * 1024) {
-      setLogoError("Logo size must be 2 MB or less.")
+      setLogoError(t("shopSetup.logoTooBig", "Logo size must be 2 MB or less."))
       if (logoInputRef.current) logoInputRef.current.value = ""
       return
     }
@@ -188,7 +188,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
     const isValidExtension = /\.(png|jpe?g|webp)$/i.test(fileNameLower)
 
     if (!allowedTypes.includes(file.type) || !isValidExtension) {
-      setLogoError("Please upload a PNG, JPG, or WEBP image.")
+      setLogoError(t("shopSetup.logoType", "Please upload a PNG, JPG, or WEBP image."))
       if (logoInputRef.current) logoInputRef.current.value = ""
       return
     }
@@ -203,13 +203,13 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         setLogoError("")
       }
       img.onerror = () => {
-        setLogoError("Unable to use this image. Please select a valid image.")
+        setLogoError(t("shopSetup.logoBad", "Unable to use this image. Please select a valid image."))
         if (logoInputRef.current) logoInputRef.current.value = ""
       }
       img.src = dataUrl
     }
     reader.onerror = () => {
-      setLogoError("Unable to use this image. Please select a valid image.")
+      setLogoError(t("shopSetup.logoBad", "Unable to use this image. Please select a valid image."))
       if (logoInputRef.current) logoInputRef.current.value = ""
     }
     reader.readAsDataURL(file)
@@ -242,7 +242,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
     setTouched({ name: true, phone: true, address: true, prefix: true, sequence: true })
 
     if (Object.values(newErrors).some(Boolean)) {
-      toastError("Please complete your shop profile (Name, Phone & Address).")
+      toastError(t("shopSetup.toastIncomplete", "Please complete your shop profile (Name, Phone & Address)."))
       return
     }
 
@@ -288,7 +288,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         detail: fullShop
       }))
 
-      success("🎉 Shop profile saved! Welcome to Slipzen.")
+      success(t("shopSetup.toastSaved", "🎉 Shop profile saved! Welcome to Slipzen."))
       if (onComplete) {
         onComplete()
       } else {
@@ -296,7 +296,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
       }
     } catch (err) {
       console.error("Failed to save shop details:", err)
-      toastError(err.message || "Failed to save shop details.")
+      toastError(err.message || t("shopSetup.toastFailed", "Failed to save shop details."))
     } finally {
       setLoading(false)
     }
@@ -307,7 +307,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
     setShake(true)
     setTimeout(() => setShake(false), 500)
     if (toastWarning) {
-      toastWarning("Please complete your shop profile (Name, Phone & Address) to continue.")
+      toastWarning(t("shopSetup.toastContinue", "Please complete your shop profile (Name, Phone & Address) to continue."))
     }
   }
 
@@ -332,7 +332,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         logo: logoUrl || "",
         gst: "",
         invoiceNo: liveInvoiceNo,
-        date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+        date: new Date().toLocaleDateString(getDateLocale(), { day: "2-digit", month: "short", year: "numeric" }),
         items: [
           { name: "Sample Item 1", qty: 1, rate: 150, total: 150 },
           { name: "Sample Item 2", qty: 2, rate: 100, total: 200 }
@@ -369,11 +369,11 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         <div className="onboarding-header">
           <div className="onboarding-header-content">
             <div className="onboarding-sparkle-pill">
-              <Sparkles size={16} /> Quick Setup
+              <Sparkles size={16} /> {t("shopSetup.quick", "Quick Setup")}
             </div>
-            <h2>Welcome to Slipzen! Let's set up your Shop</h2>
+            <h2>{t("shopSetup.welcome", "Welcome to Slipzen! Let's set up your Shop")}</h2>
             <p>
-              Your shop name, address, and contact number will appear at the top of every receipt you print.
+              {t("shopSetup.intro", "Your shop name, address, and contact number will appear at the top of every receipt you print.")}
             </p>
           </div>
         </div>
@@ -388,8 +388,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 mode="shop"
                 variant="pill"
                 size="sm"
-                label="Voice Fill All Details"
-                placeholder="Speak shop name, phone and address"
+                label={t("shopSetup.voiceFill", "Voice Fill All Details")}
+                placeholder={t("shopSetup.voiceAll", "Speak shop name, phone and address")}
                 onParsedResult={(parsed) => {
                   if (parsed.name) {
                     setName(parsed.name)
@@ -417,13 +417,13 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
             <div className="onboarding-field">
               <label className="onboarding-label" style={{ marginBottom: "0.25rem" }}>
                 <Store size={14} className="field-icon" />
-                <span>Shop / Business Name <b className="req-star">*</b></span>
+                <span>{t("shopSetup.shopName", "Shop / Business Name")} <b className="req-star">*</b></span>
               </label>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <input
                   type="text"
                   autoFocus
-                  placeholder="e.g. Krishna Supermarket & Cafe"
+                  placeholder={t("shopSetup.shopNamePh", "e.g. Krishna Supermarket & Cafe")}
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value)
@@ -438,7 +438,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 2 }}>
                   <VoiceInputButton
                     size="sm"
-                    placeholder="Speak shop name"
+                    placeholder={t("shopSetup.voiceName", "Speak shop name")}
                     onSpeechResult={(text) => {
                       setName(text)
                       setErrors((prev) => ({ ...prev, name: validateField("name", text) }))
@@ -492,10 +492,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
                 <label className="onboarding-label" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.35rem" }}>
                   <Upload size={14} className="field-icon" />
-                  <span>Shop Logo</span>
+                  <span>{t("shopSetup.logo", "Shop Logo")}</span>
                 </label>
                 <span style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 600, background: "#f1f5f9", padding: "0.15rem 0.45rem", borderRadius: "4px" }}>
-                  Optional
+                  {t("shopSetup.optional", "Optional")}
                 </span>
               </div>
 
@@ -531,14 +531,14 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                   }}>
                     <img
                       src={logoUrl}
-                      alt="Shop Logo Preview"
+                      alt={t("shopSetup.logoPreviewAlt", "Shop Logo Preview")}
                       style={{ width: "100%", height: "100%", objectFit: "contain" }}
                     />
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#1e293b" }}>Logo Preview</div>
-                    <div style={{ fontSize: "0.68rem", color: "#64748b" }}>PNG, JPG or WEBP • Max 2 MB</div>
+                    <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "#1e293b" }}>{t("shopSetup.logoPreview", "Logo Preview")}</div>
+                    <div style={{ fontSize: "0.68rem", color: "#64748b" }}>{t("shopSetup.logoHint", "PNG, JPG or WEBP • Max 2 MB")}</div>
                   </div>
 
                   <div style={{ display: "flex", gap: "0.35rem" }}>
@@ -559,7 +559,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                         gap: "0.25rem"
                       }}
                     >
-                      Change
+                      {t("shopSetup.change", "Change")}
                     </button>
                     <button
                       type="button"
@@ -578,7 +578,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                         gap: "0.25rem"
                       }}
                     >
-                      <X size={12} /> Remove
+                      <X size={12} /> {t("shopSetup.remove", "Remove")}
                     </button>
                   </div>
                 </div>
@@ -604,10 +604,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                       transition: "all 0.15s ease"
                     }}
                   >
-                    <Upload size={16} /> Upload Logo
+                    <Upload size={16} /> {t("shopSetup.upload", "Upload Logo")}
                   </button>
                   <div style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "0.3rem", textAlign: "left" }}>
-                    PNG, JPG or WEBP • Max 2 MB
+                    {t("shopSetup.logoHint", "PNG, JPG or WEBP • Max 2 MB")}
                   </div>
                 </div>
               )}
@@ -624,11 +624,11 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
                 <label className="onboarding-label" style={{ margin: 0 }}>
                   <Phone size={14} className="field-icon" />
-                  <span>Phone / WhatsApp Number <b className="req-star">*</b></span>
+                  <span>{t("shopSetup.phone", "Phone / WhatsApp Number")} <b className="req-star">*</b></span>
                 </label>
                 {phone && (
                   <span style={{ fontSize: "0.75rem", fontWeight: 600, color: phone.length === 10 && /^[6-9]\d{9}$/.test(phone) && !/^(\d)\1{9}$/.test(phone) ? "#10b981" : "#64748b" }}>
-                    {phone.length}/10 digits
+                    {t("shopSetup.digitsCount", "{{n}}/10 digits", { n: phone.length })}
                   </span>
                 )}
               </div>
@@ -656,7 +656,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 2 }}>
                   <VoiceInputButton
                     size="sm"
-                    placeholder="Speak phone number"
+                    placeholder={t("shopSetup.voicePhone", "Speak phone number")}
                     onSpeechResult={(text) => {
                       let digits = text.replace(/[^0-9]/g, "")
                       if (digits.length === 12 && digits.startsWith("91")) {
@@ -679,12 +679,12 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
             <div className="onboarding-field">
               <label className="onboarding-label" style={{ marginBottom: "0.25rem" }}>
                 <MapPin size={14} className="field-icon" />
-                <span>Shop Address / City <b className="req-star">*</b></span>
+                <span>{t("shopSetup.address", "Shop Address / City")} <b className="req-star">*</b></span>
               </label>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Shop #14, Main Commercial Street, Indiranagar, Bengaluru"
+                  placeholder={t("shopSetup.addressPh", "e.g. Shop #14, Main Commercial Street, Indiranagar, Bengaluru")}
                   value={address}
                   onChange={(e) => {
                     setAddress(e.target.value)
@@ -699,7 +699,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 <div style={{ position: "absolute", right: "0.5rem", top: "0.6rem", display: "flex", alignItems: "center", zIndex: 2 }}>
                   <VoiceInputButton
                     size="sm"
-                    placeholder="Speak store address"
+                    placeholder={t("shopSetup.voiceAddress", "Speak store address")}
                     onSpeechResult={(text) => {
                       setAddress(text)
                       setErrors((prev) => ({ ...prev, address: validateField("address", text) }))
@@ -718,7 +718,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               <div className="onboarding-field">
                 <label className="onboarding-label">
                   <Hash size={14} className="field-icon" />
-                  <span>Invoice Prefix</span>
+                  <span>{t("shopSetup.prefix", "Invoice Prefix")}</span>
                 </label>
                 <input
                   type="text"
@@ -742,7 +742,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
               <div className="onboarding-field">
                 <label className="onboarding-label">
-                  <span>Starting Bill #</span>
+                  <span>{t("shopSetup.startNo", "Starting Bill #")}</span>
                 </label>
                 <input
                   type="number"
@@ -767,7 +767,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
             <div className="onboarding-field">
               <label className="onboarding-label">
-                <span>Receipt Template</span>
+                <span>{t("shopSetup.template", "Receipt Template")}</span>
               </label>
               <select
                 value={defaultTemplateId}
@@ -795,8 +795,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
           {/* Live Thermal Receipt Preview Column */}
           <div className="onboarding-preview-col">
             <div className="preview-pill-header">
-              <span className="pill-title">LIVE RECEIPT PREVIEW</span>
-              <span className="paper-pill">{selectedTemplate?.width ? `${selectedTemplate.width} Thermal` : "58mm Thermal"}</span>
+              <span className="pill-title">{t("shopSetup.preview", "LIVE RECEIPT PREVIEW")}</span>
+              <span className="paper-pill">{t("shopSetup.thermal", "{{size}} Thermal", { size: selectedTemplate?.width || "58mm" })}</span>
             </div>
 
             <div className="onboarding-receipt-box" style={{ background: "transparent", boxShadow: "none", overflow: "visible", maxWidth: selectedTemplate?.width === "80mm" ? "340px" : "280px" }}>
@@ -809,7 +809,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         <div className="onboarding-footer">
           <div className="required-info-badge" style={{ fontSize: "0.8rem", color: "#74788A", display: "flex", alignItems: "center", gap: "0.4rem" }}>
             <AlertCircle size={14} style={{ color: "#FC9B3E" }} />
-            <span>Complete shop profile is required to print receipts</span>
+            <span>{t("shopSetup.required", "Complete shop profile is required to print receipts")}</span>
           </div>
           <button
             type="button"
@@ -818,7 +818,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
             disabled={loading}
             style={{ width: "fit-content", minWidth: "220px" }}
           >
-            {loading ? <ButtonLoader text="Saving details..." /> : <>Save & Start Billing <ArrowRight size={16} /></>}
+            {loading ? <ButtonLoader text={t("shopSetup.saving", "Saving details...")} /> : <>{t("shopSetup.save", "Save & Start Billing")} <ArrowRight size={16} /></>}
           </button>
         </div>
       </div>
@@ -936,15 +936,16 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         }
 
         @media (max-width: 820px) {
+          /* phone: stay clear of the status bar (top) and the navigation bar (bottom) */
           .shop-onboarding-backdrop {
-            padding: 0.5rem !important;
+            padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 0.5rem) 0.5rem calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 0.5rem) !important;
           }
 
           .shop-onboarding-card {
             width: calc(100vw - 1rem) !important;
             max-width: 100% !important;
-            max-height: 90vh !important;
-            max-height: 90dvh !important;
+            max-height: calc(100vh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
+            max-height: calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
             border-radius: 16px !important;
             margin: 0 auto !important;
           }

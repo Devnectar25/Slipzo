@@ -480,7 +480,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           saveStoredMenuItems(merged, user)
         }
 
-        toastSuccess(`Added ${selectedItems.length} item${selectedItems.length > 1 ? "s" : ""} to your menu!`)
+        toastSuccess(t("addItems.added", "Added {{count}} item(s) to your menu!", { count: selectedItems.length }))
       }
 
       if (user?.id) {
@@ -493,7 +493,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
       onClose?.()
     } catch (err) {
       console.error("Failed to complete items setup:", err)
-      toastError(err.message || "Failed to save items.")
+      toastError(err.message || t("addItems.saveFailed", "Failed to save items."))
     } finally {
       setSaving(false)
     }
@@ -544,9 +544,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               )}
             </div>
             <div>
-              <h2 className="add-menu-title">Add Menu Items</h2>
+              <h2 className="add-menu-title">{t("addItems.title", "Add Menu Items")}</h2>
               <p className="add-menu-subtitle">
-                Search and add items from your menu to get started. You can adjust the price before adding.
+                {t("addItems.intro", "Search and add items from your menu to get started. You can adjust the price before adding.")}
               </p>
             </div>
           </div>
@@ -554,14 +554,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             type="button"
             className="add-menu-close-btn"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("addItems.close", "Close")}
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Mobile Tab Switcher */}
-        <div className="add-menu-mobile-tabs" role="tablist" aria-label="Menu Items Navigation">
+        <div className="add-menu-mobile-tabs" role="tablist" aria-label={t("addItems.navAria", "Menu Items Navigation")}>
           <button
             type="button"
             role="tab"
@@ -592,7 +592,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               <Search size={18} color="#0284c7" className="search-lead-icon" />
               <input
                 type="text"
-                placeholder={isClothShop ? "Search items (e.g. Shirt, Jeans, Saree, Kurti...)" : "Search items (e.g. Tea, Coffee, Pizza, Burger...)"}
+                placeholder={isClothShop ? t("addItems.searchCloth", "Search items (e.g. Shirt, Jeans, Saree, Kurti...)") : t("addItems.searchFood", "Search items (e.g. Tea, Coffee, Pizza, Burger...)")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="add-menu-search-input"
@@ -717,7 +717,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             {selectedItems.length > 0 && (
               <div className="mobile-view-selected-banner" onClick={() => setMobileTab("selected")}>
                 <span>🛒 <b>{selectedItems.length} item{selectedItems.length > 1 ? "s" : ""}</b> selected</span>
-                <span className="banner-action">View Selected →</span>
+                <span className="banner-action">{t("addItems.viewSelected", "View Selected →")}</span>
               </div>
             )}
           </div>
@@ -728,23 +728,23 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             <div className="add-menu-tip-card">
               <div className="tip-header">
                 <Lightbulb size={16} color="#0284c7" />
-                <span className="tip-title">Tip</span>
+                <span className="tip-title">{t("addItems.tip", "Tip")}</span>
               </div>
               <p className="tip-content">
-                Search for any item and click Add. You can set or change the price before adding.
+                {t("addItems.tipText", "Search for any item and click Add. You can set or change the price before adding.")}
               </p>
             </div>
 
             {/* Selected Items Header */}
             <div className="selected-items-head">
-              <h4 className="selected-count-title">Selected Items ({selectedItems.length})</h4>
+              <h4 className="selected-count-title">{t("addItems.selectedItems", "Selected Items")} ({selectedItems.length})</h4>
               {selectedItems.length > 0 && (
                 <button
                   type="button"
                   className="clear-all-btn"
                   onClick={handleClearAll}
                 >
-                  Clear All
+                  {t("addItems.clearAll", "Clear All")}
                 </button>
               )}
             </div>
@@ -754,8 +754,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               {selectedItems.length === 0 ? (
                 <div className="selected-items-empty">
                   {isClothShop ? <Shirt size={28} color="#cbd5e1" /> : isFoodShop ? <Utensils size={28} color="#cbd5e1" /> : <ShoppingBag size={28} color="#cbd5e1" />}
-                  <p>No items selected yet.</p>
-                  <small>Click "+ Add" on any product to customize price and add to your menu.</small>
+                  <p>{t("addItems.none", "No items selected yet.")}</p>
+                  <small>{t("addItems.noneHint", "Click \"+ Add\" on any product to customize price and add to your menu.")}</small>
                   <button
                     type="button"
                     className="mobile-browse-more-btn"
@@ -828,14 +828,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                                 className="selected-cancel-btn"
                                 onClick={handleCancelEdit}
                               >
-                                Cancel
+                                {t("addItems.cancel", "Cancel")}
                               </button>
                               <button
                                 type="button"
                                 className="selected-save-btn"
                                 onClick={() => handleSaveEdit(item.id)}
                               >
-                                Save
+                                {t("addItems.save", "Save")}
                               </button>
                             </div>
                           </div>
@@ -854,17 +854,17 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                           type="button"
                           className="selected-edit-btn"
                           onClick={() => handleStartEdit(item)}
-                          title="Edit price"
+                          title={t("addItems.editPrice", "Edit price")}
                         >
                           <Edit2 size={13} />
-                          <span>Edit</span>
+                          <span>{t("addItems.edit", "Edit")}</span>
                         </button>
                         <button
                           type="button"
                           className="item-trash-btn"
                           onClick={() => handleRemoveItem(item.id)}
-                          aria-label="Remove item"
-                          title="Remove from selection"
+                          aria-label={t("addItems.removeItem", "Remove item")}
+                          title={t("addItems.removeFromSel", "Remove from selection")}
                         >
                           <Trash2 size={15} color="#ef4444" />
                         </button>
@@ -921,7 +921,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                   type="button"
                   className="set-price-close-btn"
                   onClick={handleCloseSetPrice}
-                  aria-label="Close"
+                  aria-label={t("addItems.close", "Close")}
                 >
                   <X size={18} />
                 </button>
@@ -1951,17 +1951,18 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           /* Mobile & Tablet Responsive Styles */
           @media (max-width: 860px) {
+            /* phone: stay clear of the status bar (top) and the navigation bar (bottom) */
             .add-menu-modal-backdrop {
-              padding: 0.5rem !important;
+              padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 0.5rem) 0.5rem calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 0.5rem) !important;
             }
 
             .add-menu-modal-card {
               width: 100% !important;
               max-width: 100% !important;
-              height: calc(100vh - 1rem) !important;
-              height: calc(100dvh - 1rem) !important;
-              max-height: 94vh !important;
-              max-height: 94dvh !important;
+              height: calc(100vh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
+              height: calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
+              max-height: calc(100vh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
+              max-height: calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
               border-radius: 16px !important;
               display: flex !important;
               flex-direction: column !important;

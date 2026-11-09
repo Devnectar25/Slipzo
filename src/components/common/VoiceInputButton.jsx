@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import { Mic, Sparkles, Volume2, AlertCircle } from "lucide-react"
+import i18n from "../../i18n/i18n"
 import { useSpeechInput, parseMenuItemSpeech, parseShopProfileSpeech, cleanSpeechText } from "../../hooks/useSpeechInput"
 
 export function VoiceInputButton({
@@ -7,7 +8,7 @@ export function VoiceInputButton({
   onParsedResult,
   mode = "raw", // "raw" | "menu" | "shop"
   label = "",
-  placeholder = "Click & Speak",
+  placeholder = i18n.t("voice.clickSpeak", "Click & Speak"),
   size = "md", // "sm" | "md" | "lg"
   variant = "icon-only", // "icon-only" | "button" | "pill"
   style = {},
@@ -98,7 +99,7 @@ export function VoiceInputButton({
         <button
           type="button"
           onClick={toggleListen}
-          title={isListening ? "Listening... Click to stop" : (placeholder || "Click & Speak")}
+          title={isListening ? i18n.t("voice.listeningStop", "Listening... Click to stop") : (placeholder || i18n.t("voice.clickSpeak", "Click & Speak"))}
           className={`voice-input-btn ${isListening ? "listening" : ""} ${className}`}
           style={{
             display: "inline-flex",

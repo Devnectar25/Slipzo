@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { ButtonLoader } from "./common/Skeleton"
-import { ArrowRight, Receipt, X, Check, Eye, EyeOff, AlertCircle, Mail, Lock, User } from "lucide-react"
+import { ArrowRight, Receipt, X, Check, Eye, EyeOff, AlertCircle, Phone, Lock, Printer, Store, Mail, ArrowLeft, ExternalLink } from "lucide-react"
 import { call } from "../lib/utils"
 import "../styles/Auth.css"
 
@@ -32,20 +33,72 @@ export const PASSWORD_RULES = [
   }
 ]
 
+// "+91 98765-43210", "09876543210" and "9876543210" are all the same number
+const normalizeMobile = (value) => {
+  let digits = String(value || "").replace(/[\s\-().]/g, "")
+  if (digits.startsWith("+")) digits = digits.slice(1)
+  if (!/^\d+$/.test(digits)) return null
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2)
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1)
+  return /^[6-9]\d{9}$/.test(digits) ? digits : null
+}
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Same four categories as the shop profile (components/common/ChangeCategoryModal.jsx)
+const SHOP_CATEGORIES = [
+  { id: "small_business", icon: "☕", label: "Cafe, Tea & Snacks" },
+  { id: "kirana_grocery", icon: "🛒", label: "Kirana / Grocery" },
+  { id: "clothing_garments", icon: "👗", label: "Cloth & Garments" },
+  { id: "hotel_food", icon: "🍽️", label: "Hotel / Restaurant" }
+]
+
+// The product's buy page (the Flipkart link saved on the product, same one the Products page opens)
+const buyLink = (raw) => {
+  const value = String(raw || "").trim()
+  if (!value) return ""
+  try {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`)
+    return /^https?:$/.test(url.protocol) && url.hostname.includes(".") ? url.href : ""
+  } catch (_) {
+    return ""
+  }
+}
+
+// Used until the Products catalogue answers (or if it cannot be reached). Same pictures as the Products page.
+const PRINTER_FALLBACK = [
+  { id: "niyama", name: "NIYAMA Portable Bluetooth POS Printer (58mm)", image: "/products/niyama_printer.jpg" },
+  { id: "pos-bt200", name: "Bluetooth POS Receipt Printer (80mm)", image: "/products/pos_printer.jpg" }
+]
+
 export function Auth({ onLogin, onCancel, initialRegister = false }) {
+  const { t } = useTranslation()
   const [isRegister, setIsRegister] = useState(initialRegister)
-  const [form, setForm] = useState({ email: "", password: "", confirmPassword: "", name: "" })
+  const [step, setStep] = useState(1) // sign up only: 1 shop details, 2 printer, 3 password
+  const EMPTY_FORM = { shopName: "", category: "", phone: "", email: "", password: "", confirmPassword: "" }
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [hasPrinter, setHasPrinter] = useState(null) // null = not answered yet
+  const [printers, setPrinters] = useState(PRINTER_FALLBACK)
+  const [brokenImages, setBrokenImages] = useState({})
   const [error, setError] = useState("")
+  const [errorKey, setErrorKey] = useState("")
+  const fail = (key, fallback) => { setErrorKey(key); setError(t(key, fallback)) }
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [showValidationPopup, setShowValidationPopup] = useState(false)
 
-  useEffect(() => {
-    setIsRegister(initialRegister)
+  const resetForm = () => {
+    setForm(EMPTY_FORM)
+    setHasPrinter(null)
+    setStep(1)
     setError("")
     setShowValidationPopup(false)
-    setForm({ email: "", password: "", confirmPassword: "", name: "" })
+  }
+
+  useEffect(() => {
+    setIsRegister(initialRegister)
+    resetForm()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRegister])
 
   useEffect(() => {
@@ -61,115 +114,185 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     }
   }, [])
 
+  // Printer pictures come from the Products catalogue (public), with built-in ones as a fallback
+  useEffect(() => {
+    if (!isRegister || hasPrinter !== false) return
+    let alive = true
+    call("/products")
+      .then((list) => {
+        if (!alive || !Array.isArray(list)) return
+        const found = list
+          .filter((p) => p && /printer/i.test(p.name || "") && !/roll|paper/i.test(p.name || "") && (p.image || p.images))
+          .slice(0, 4)
+          .map((p) => ({ id: String(p.id), name: p.name, image: p.image || (Array.isArray(p.images) ? p.images[0] : ""), link: buyLink(p.product_link) }))
+          .filter((p) => p.image)
+        if (found.length) setPrinters(found)
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [isRegister, hasPrinter])
+
+  const set = (patch) => {
+    setForm((f) => ({ ...f, ...patch }))
+    if (error) setError("")
+  }
+
+  const goStep1Next = () => {
+    const shopName = form.shopName.trim()
+    if (!shopName) return fail("auth.err_shop", "Please enter your shop name")
+    if (shopName.length < 2) return fail("auth.err_shop_short", "Shop name must be at least 2 characters")
+    if (!form.category) return fail("auth.err_category", "Please choose your shop category")
+    if (!form.phone.trim()) return fail("auth.err_mobile_required", "Please enter your mobile number")
+    if (!normalizeMobile(form.phone)) return fail("auth.err_mobile_invalid", "Please enter a valid 10-digit mobile number")
+    if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) return fail("auth.err_email", "Please enter a valid email address or leave it blank")
+    setError("")
+    setStep(2)
+  }
+
+  const goStep2Next = () => {
+    if (hasPrinter === null) return fail("auth.err_printer", "Please choose Yes or No")
+    setError("")
+    setStep(3)
+  }
+
   const submit = async (e) => {
     e.preventDefault()
     setError("")
 
-    if (isRegister && (!form.name || !form.name.trim())) {
-      setError("Please enter your full name")
-      return
-    }
+    if (isRegister && step === 1) return goStep1Next()
+    if (isRegister && step === 2) return goStep2Next()
 
-    if (isRegister && form.name.trim().length < 2) {
-      setError("Name must be at least 2 characters")
-      return
-    }
-
-    if (!form.email || !form.email.trim()) {
-      setError("Please enter your email address")
-      return
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(form.email.trim())) {
-      setError("Please enter a valid email address (e.g. name@domain.com)")
-      return
+    if (!isRegister) {
+      if (!form.phone || !form.phone.trim()) {
+        fail("auth.err_mobile_required", "Please enter your mobile number")
+        return
+      }
+      // Accounts made before mobile sign-in can still sign in with their old email
+      const legacyEmail = form.phone.includes("@") && EMAIL_RE.test(form.phone.trim())
+      if (!legacyEmail && !normalizeMobile(form.phone)) {
+        fail("auth.err_mobile_invalid", "Please enter a valid 10-digit mobile number")
+        return
+      }
     }
 
     if (!form.password) {
-      setError("Please enter your password")
+      fail("auth.err_password_required", "Please enter your password")
       return
     }
 
     if (isRegister) {
       if (!form.confirmPassword) {
-        setError("Please re-enter your password")
+        fail("auth.err_confirm_required", "Please re-enter your password")
         return
       }
 
       if (form.password !== form.confirmPassword) {
-        setError("Passwords do not match")
+        fail("auth.err_mismatch", "Passwords do not match")
         return
       }
 
       const allRulesPassed = PASSWORD_RULES.every(rule => rule.test(form.password))
       if (!allRulesPassed) {
-        setError("Password does not meet the security requirements")
+        fail("auth.err_password_rules", "Password does not meet the security requirements")
         setShowValidationPopup(true)
         return
       }
     } else {
       if (form.password.length < 4) {
-        setError("Password must be at least 4 characters")
+        fail("auth.err_password_short", "Password must be at least 4 characters")
         return
       }
     }
 
     setLoading(true)
     try {
-      const endpoint = isRegister ? "/auth/register" : "/auth/login"
-      const user = await call(endpoint, {
-        method: "POST",
-        body: JSON.stringify({
-          email: form.email.trim(),
+      let body
+      if (isRegister) {
+        const shopName = form.shopName.trim()
+        body = {
+          phone: normalizeMobile(form.phone),
           password: form.password,
-          ...(isRegister ? { name: form.name.trim() } : {})
-        })
+          name: shopName,
+          shop_name: shopName,
+          business_type: form.category,
+          ...(form.email.trim() ? { email: form.email.trim() } : {})
+        }
+      } else {
+        const legacyEmail = form.phone.includes("@") && EMAIL_RE.test(form.phone.trim())
+        body = {
+          ...(legacyEmail ? { email: form.phone.trim() } : { phone: normalizeMobile(form.phone) }),
+          password: form.password
+        }
+      }
+      const user = await call(isRegister ? "/auth/register" : "/auth/login", {
+        method: "POST",
+        body: JSON.stringify(body)
       })
       onLogin(user, isRegister)
     } catch (err) {
-      setError(err.message || "Authentication failed. Please check your credentials.")
+      // The server's wording (before translation) decides which field is wrong
+      const original = err.rawMessage || err.message || ""
+      setErrorKey(/mobile/i.test(original) ? "auth.err_mobile_server" : /email/i.test(original) ? "auth.err_email" : "")
+      setError(err.message || t("auth.err_failed", "Authentication failed. Please check your credentials."))
+      // A number or email that is already taken is fixed on the first step
+      if (isRegister && /mobile number|email/i.test(original) && !/password/i.test(original)) setStep(1)
     } finally {
       setLoading(false)
     }
   }
 
+  const switchMode = () => {
+    setIsRegister(!isRegister)
+    resetForm()
+  }
+
+  const titles = {
+    1: [t("auth.step1Eyebrow", "STEP 1 OF 3 · YOUR SHOP"), t("auth.step1Title", "Tell us about your shop"), t("auth.step1Sub", "Just the basics. You can add the rest later.")],
+    2: [t("auth.step2Eyebrow", "STEP 2 OF 3 · PRINTER"), t("auth.step2Title", "Do you have a receipt printer?"), t("auth.step2Sub", "Slipzen works with 58mm and 80mm thermal printers.")],
+    3: [t("auth.step3Eyebrow", "STEP 3 OF 3 · PASSWORD"), t("auth.step3Title", "Set your password"), t("auth.step3Sub", "Last step. Then you will pick a plan and set up your items.")]
+  }
+  const [eyebrowText, headingText, subText] = isRegister
+    ? titles[step]
+    : [t("auth.signinEyebrow", "WELCOME BACK"), t("auth.signinTitle", "Sign in to Slipzen"), t("auth.signinSub", "Your shop, your templates, ready when you are.")]
+
+  const phoneInvalid = error && (!form.phone || !form.phone.trim() || errorKey.startsWith("auth.err_mobile"))
+
   return (
     <div className="auth-overlay" onClick={onCancel ? onCancel : undefined}>
       <div className="auth-modal-box" onClick={(e) => e.stopPropagation()}>
         {onCancel && (
-          <button className="auth-close" onClick={onCancel} aria-label="Close authentication">
+          <button className="auth-close" onClick={onCancel} aria-label={t("auth.close", "Close authentication")}>
             <X size={18} />
           </button>
         )}
-        
+
         <section className="auth-art">
           <div className="auth-logo-wrapper">
-            <img 
-              src="/logo-white.png" 
-              alt="Slipzen" 
+            <img
+              src="/logo-white.png"
+              alt="Slipzen"
               className="auth-logo"
             />
           </div>
           <div>
-            <p className="eyebrow">THE DIGITAL RECEIPT BOOK</p>
+            <p className="eyebrow">{t("auth.artEyebrow", "THE DIGITAL RECEIPT BOOK")}</p>
             <h1>
-              Make every sale<br />
-              <em>feel effortless.</em>
+              {t("auth.artTitle1", "Make every sale")}<br />
+              <em>{t("auth.artTitle2", "feel effortless.")}</em>
             </h1>
             <p className="art-note">
-              A calm, quick billing desk for the shops that keep communities moving.
+              {t("auth.artNote", "A calm, quick billing desk for the shops that keep communities moving.")}
             </p>
             <ul className="auth-benefits">
-              <li><span><Check size={12} strokeWidth={3} /></span>Print on 58mm, 80mm and A4 paper</li>
-              <li><span><Check size={12} strokeWidth={3} /></span>Scan barcodes to bill faster</li>
-              <li><span><Check size={12} strokeWidth={3} /></span>Works in English, Hindi and Marathi</li>
+              <li><span><Check size={12} strokeWidth={3} /></span>{t("auth.benefit1", "Print on 58mm, 80mm and A4 paper")}</li>
+              <li><span><Check size={12} strokeWidth={3} /></span>{t("auth.benefit2", "Scan barcodes to bill faster")}</li>
+              <li><span><Check size={12} strokeWidth={3} /></span>{t("auth.benefit3", "Works in English, Hindi and Marathi")}</li>
             </ul>
           </div>
           <div className="receipt-stamp">
             <Receipt size={16} />
             <span>
-              Ready to print<br />
+              {t("auth.readyToPrint", "Ready to print")}<br />
               <b>58mm · 80mm · A4</b>
             </span>
           </div>
@@ -178,121 +301,252 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         <section className="auth-form">
           <div className="auth-header-block">
             <div className="mobile-brand">
-              <img 
-                src="/logo.png" 
-                alt="Slipzen" 
+              <img
+                src="/logo.png"
+                alt="Slipzen"
                 className="mobile-auth-logo"
               />
             </div>
-            <p className="eyebrow">{isRegister ? "CREATE ACCOUNT" : "WELCOME BACK"}</p>
-            <h2>{isRegister ? "Create your account" : "Sign in to Slipzen"}</h2>
-            <p className="subtle">
-              {isRegister
-                ? "Set up your digital receipt desk in a minute."
-                : "Your shop, your templates, ready when you are."}
-            </p>
+            {isRegister && (
+              <div className="auth-steps" data-testid="auth-steps" aria-hidden="true">
+                {[1, 2, 3].map((n) => (
+                  <span key={n} className={`auth-step-dot ${n < step ? "done" : ""} ${n === step ? "now" : ""}`} />
+                ))}
+              </div>
+            )}
+            <p className="eyebrow" data-testid="auth-step-eyebrow">{eyebrowText}</p>
+            <h2 data-testid="auth-step-title">{headingText}</h2>
+            <p className="subtle">{subText}</p>
           </div>
 
           <form onSubmit={submit} noValidate>
-            {isRegister && (
+            {/* ---------- sign up, step 1: the shop ---------- */}
+            {isRegister && step === 1 && (
+              <>
+                <label>
+                  <span className="auth-label-text">{t("auth.shopName", "Shop name")}</span>
+                  <div className="auth-field">
+                    <Store size={17} className="auth-field-icon" />
+                    <input
+                      data-testid="auth-shop-input"
+                      required
+                      autoComplete="organization"
+                      maxLength={100}
+                      placeholder={t("auth.shopPlaceholder", "e.g. Krishna Supermarket")}
+                      value={form.shopName}
+                      onChange={(e) => set({ shopName: e.target.value })}
+                      className={error && !form.shopName.trim() ? "input-error" : ""}
+                    />
+                  </div>
+                </label>
+
+                <div className="auth-cats" data-testid="auth-categories">
+                  <span className="auth-label-text">{t("auth.shopCategory", "Shop category")}</span>
+                  <div className="auth-cat-grid" role="radiogroup" aria-label={t("auth.shopCategory", "Shop category")}>
+                    {SHOP_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={form.category === cat.id}
+                        data-testid={`auth-cat-${cat.id}`}
+                        className={`auth-cat ${form.category === cat.id ? "active" : ""}`}
+                        onClick={() => set({ category: cat.id })}
+                      >
+                        <span className="auth-cat-icon">{cat.icon}</span>
+                        <span className="auth-cat-label">{t(`auth.cat_${cat.id}`, cat.label)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label>
+                  <span className="auth-label-text">{t("auth.mobile", "Mobile number")}</span>
+                  <div className="auth-field">
+                    <Phone size={17} className="auth-field-icon" />
+                    <input
+                      data-testid="auth-phone-input"
+                      type="tel"
+                      inputMode="tel"
+                      required
+                      autoComplete="tel"
+                      maxLength={16}
+                      placeholder={t("auth.mobilePlaceholder", "10-digit mobile number")}
+                      value={form.phone}
+                      onChange={(e) => set({ phone: e.target.value })}
+                      className={phoneInvalid ? "input-error" : ""}
+                    />
+                  </div>
+                </label>
+
+                <label>
+                  <span className="auth-label-text">{t("auth.email", "Email")} <span className="auth-optional">{t("auth.optional", "(optional)")}</span></span>
+                  <div className="auth-field">
+                    <Mail size={17} className="auth-field-icon" />
+                    <input
+                      data-testid="auth-email-input"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      maxLength={254}
+                      placeholder="you@example.com"
+                      value={form.email}
+                      onChange={(e) => set({ email: e.target.value })}
+                      className={error && errorKey === "auth.err_email" ? "input-error" : ""}
+                    />
+                  </div>
+                </label>
+              </>
+            )}
+
+            {/* ---------- sign up, step 2: the printer ---------- */}
+            {isRegister && step === 2 && (
+              <div className="auth-printer" data-testid="auth-printer-question">
+                <div className="auth-printer-choices" role="group" aria-label={t("auth.step2Title", "Do you have a receipt printer?")}>
+                  <button
+                    type="button"
+                    data-testid="auth-printer-yes"
+                    className={`auth-printer-choice ${hasPrinter === true ? "active" : ""}`}
+                    aria-pressed={hasPrinter === true}
+                    onClick={() => { setHasPrinter(true); if (error) setError("") }}
+                  >
+                    <Check size={15} /> {t("auth.printerYes", "Yes, I have one")}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="auth-printer-no"
+                    className={`auth-printer-choice ${hasPrinter === false ? "active" : ""}`}
+                    aria-pressed={hasPrinter === false}
+                    onClick={() => { setHasPrinter(false); if (error) setError("") }}
+                  >
+                    <X size={15} /> {t("auth.printerNo", "No, not yet")}
+                  </button>
+                </div>
+
+                {hasPrinter === false && (
+                  <div className="auth-printer-suggest" data-testid="auth-printer-suggest">
+                    <p className="auth-printer-suggest-title">{t("auth.printerSuggest", "No problem! These printers work with Slipzen. You can order one later from the Products page.")}</p>
+                    <div className="auth-printer-gallery">
+                      {printers.map((p) => {
+                        const picture = brokenImages[p.id] ? (
+                          <span className="auth-printer-shot-fallback" aria-label={p.name}><Printer size={34} /></span>
+                        ) : (
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            loading="lazy"
+                            onError={() => setBrokenImages((b) => ({ ...b, [p.id]: true }))}
+                          />
+                        )
+                        // Tapping the picture opens the product's buy page in a new tab; sign-up stays where it is
+                        return p.link ? (
+                          <a
+                            className="auth-printer-shot is-link"
+                            key={p.id}
+                            data-testid="auth-printer-shot"
+                            href={p.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Buy ${p.name}`}
+                            title={`Buy ${p.name}`}
+                          >
+                            {picture}
+                            <span className="auth-printer-shot-go" aria-hidden="true"><ExternalLink size={13} /></span>
+                          </a>
+                        ) : (
+                          <div className="auth-printer-shot" key={p.id} data-testid="auth-printer-shot">{picture}</div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ---------- sign up step 3 and sign in: the password ---------- */}
+            {!isRegister && (
               <label>
-                <span className="auth-label-text">Your name</span>
+                <span className="auth-label-text">{t("auth.mobile", "Mobile number")}</span>
                 <div className="auth-field">
-                  <User size={17} className="auth-field-icon" />
+                  <Phone size={17} className="auth-field-icon" />
                   <input
-                    data-testid="auth-name-input"
+                    data-testid="auth-phone-input"
+                    type="tel"
+                    inputMode="tel"
                     required
-                    autoComplete="name"
-                    placeholder="Your full name"
-                    value={form.name}
-                    onChange={(e) => {
-                      setForm({ ...form, name: e.target.value })
-                      if (error) setError("")
-                    }}
-                    className={error && (!form.name || !form.name.trim()) ? "input-error" : ""}
+                    autoComplete="tel"
+                    maxLength={64}
+                    placeholder={t("auth.mobilePlaceholder", "10-digit mobile number")}
+                    value={form.phone}
+                    onChange={(e) => set({ phone: e.target.value })}
+                    className={phoneInvalid ? "input-error" : ""}
                   />
                 </div>
               </label>
             )}
 
-            <label>
-              <span className="auth-label-text">Email address</span>
-              <div className="auth-field">
-                <Mail size={17} className="auth-field-icon" />
-                <input
-                  data-testid="auth-email-input"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="you@yourshop.com"
-                  value={form.email}
-                  onChange={(e) => {
-                    setForm({ ...form, email: e.target.value })
-                    if (error) setError("")
-                  }}
-                  className={error && (!form.email || !form.email.trim() || error.includes("email")) ? "input-error" : ""}
-                />
-              </div>
-            </label>
+            {(!isRegister || step === 3) && (
+              <>
+                {isRegister && (
+                  <p className="auth-summary" data-testid="auth-summary">
+                    <b>{form.shopName.trim()}</b> · +91 {normalizeMobile(form.phone)}
+                  </p>
+                )}
 
-            <label>
-              <span className="auth-label-text">Password</span>
-              <div className="auth-field password-input-wrap">
-                <Lock size={17} className="auth-field-icon" />
-                <input
-                  data-testid="auth-password-input"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  autoComplete={isRegister ? "new-password" : "current-password"}
-                  placeholder={isRegister ? "Create a password" : "Enter your password"}
-                  value={form.password}
-                  onChange={(e) => {
-                    setForm({ ...form, password: e.target.value })
-                    if (error) setError("")
-                  }}
-                  className={error && (!form.password || error.includes("password")) ? "input-error" : ""}
-                />
-                <button
-                  type="button"
-                  className="password-toggle-btn"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </label>
+                <label>
+                  <span className="auth-label-text">{t("auth.password", "Password")}</span>
+                  <div className="auth-field password-input-wrap">
+                    <Lock size={17} className="auth-field-icon" />
+                    <input
+                      data-testid="auth-password-input"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      autoComplete={isRegister ? "new-password" : "current-password"}
+                      placeholder={isRegister ? t("auth.createPassword", "Create a password") : t("auth.enterPassword", "Enter your password")}
+                      value={form.password}
+                      onChange={(e) => set({ password: e.target.value })}
+                      className={error && (!form.password || ["auth.err_password_required", "auth.err_password_rules", "auth.err_password_short"].includes(errorKey)) ? "input-error" : ""}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? t("auth.hidePassword", "Hide password") : t("auth.showPassword", "Show password")}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </label>
 
-            {isRegister && (
-              <label>
-                <span className="auth-label-text">Re-enter password</span>
-                <div className="auth-field password-input-wrap">
-                  <Lock size={17} className="auth-field-icon" />
-                  <input
-                    data-testid="auth-confirm-password-input"
-                    type={showConfirmPassword ? "text" : "password"}
-                    required
-                    autoComplete="new-password"
-                    placeholder="Re-enter your password"
-                    value={form.confirmPassword}
-                    onChange={(e) => {
-                      setForm({ ...form, confirmPassword: e.target.value })
-                      if (error) setError("")
-                    }}
-                    className={error && (!form.confirmPassword || error.includes("match") || error.includes("re-enter")) ? "input-error" : ""}
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle-btn"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                    tabIndex={-1}
-                  >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </label>
+                {isRegister && (
+                  <label>
+                    <span className="auth-label-text">{t("auth.confirmPassword", "Re-enter password")}</span>
+                    <div className="auth-field password-input-wrap">
+                      <Lock size={17} className="auth-field-icon" />
+                      <input
+                        data-testid="auth-confirm-password-input"
+                        type={showConfirmPassword ? "text" : "password"}
+                        required
+                        autoComplete="new-password"
+                        placeholder={t("auth.confirmPlaceholder", "Re-enter your password")}
+                        value={form.confirmPassword}
+                        onChange={(e) => set({ confirmPassword: e.target.value })}
+                        className={error && (!form.confirmPassword || ["auth.err_mismatch", "auth.err_confirm_required"].includes(errorKey)) ? "input-error" : ""}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle-btn"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? t("auth.hideConfirm", "Hide confirm password") : t("auth.showConfirm", "Show confirm password")}
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </label>
+                )}
+              </>
             )}
 
             {error && (
@@ -302,38 +556,48 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               </div>
             )}
 
-            <button
-              data-testid="auth-submit-button"
-              className="primary full"
-              type="submit"
-              disabled={loading}
-            >
-              {loading ? <ButtonLoader text="Please wait..." /> : isRegister ? "Create account" : "Enter Slipzen"}
-              {!loading && <ArrowRight size={17} />}
-            </button>
+            <div className="auth-actions">
+              <button
+                data-testid="auth-submit-button"
+                className="primary full"
+                type="submit"
+                disabled={loading}
+              >
+                {loading
+                  ? <ButtonLoader text={t("auth.pleaseWait", "Please wait...")} />
+                  : !isRegister
+                    ? t("auth.enter", "Enter Slipzen")
+                    : step === 1
+                      ? t("auth.continue", "Continue")
+                      : step === 2
+                        ? (hasPrinter === false ? t("auth.skip", "Skip") : t("auth.continue", "Continue"))
+                        : t("auth.createAccount", "Create account")}
+                {!loading && <ArrowRight size={17} />}
+              </button>
+            </div>
           </form>
 
-
-          <p className="switch">
-            {isRegister ? "Already have an account?" : "New to Slipzen?"}
+          {isRegister && step > 1 && (
             <button
-              data-testid="auth-toggle-button"
-              onClick={() => {
-                setIsRegister(!isRegister)
-                setError("")
-                setShowValidationPopup(false)
-                setForm({ email: "", password: "", confirmPassword: "", name: "" })
-              }}
+              type="button"
+              className="auth-step-back"
+              data-testid="auth-step-back"
+              onClick={() => { setError(""); setStep(step - 1) }}
             >
-              {isRegister ? "Sign in" : "Create an account"}
-            </button>
-          </p>
-          
-          {onCancel && (
-            <button type="button" className="back-to-site" onClick={onCancel}>
-              ← Back
+              <ArrowLeft size={14} /> {t("auth.back", "Back")}
             </button>
           )}
+
+          <p className="switch">
+            {isRegister ? t("auth.haveAccount", "Already have an account?") : t("auth.newTo", "New to Slipzen?")}
+            <button
+              data-testid="auth-toggle-button"
+              onClick={switchMode}
+            >
+              {isRegister ? t("auth.signIn", "Sign in") : t("auth.createAnAccount", "Create an account")}
+            </button>
+          </p>
+
         </section>
       </div>
 
@@ -352,20 +616,20 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                 <div className="popup-alert-icon">
                   <AlertCircle size={20} />
                 </div>
-                <h3>Password Requirements</h3>
+                <h3>{t("auth.rulesTitle", "Password Requirements")}</h3>
               </div>
               <button 
                 type="button"
                 className="popup-close-btn" 
                 onClick={() => setShowValidationPopup(false)}
-                aria-label="Close popup"
+                aria-label={t("auth.closePopup", "Close popup")}
               >
                 <X size={18} />
               </button>
             </div>
 
             <p className="popup-desc">
-              Your password must meet all 5 security rules to create an account:
+              {t("auth.rulesDesc", "Your password must meet all 5 security rules to create an account:")}
             </p>
 
             <div className="popup-rules-list">
@@ -383,7 +647,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                         <X size={13} strokeWidth={3} />
                       )}
                     </span>
-                    <span className="popup-rule-text">{rule.label}</span>
+                    <span className="popup-rule-text">{t(`auth.rule_${rule.id}`, rule.label)}</span>
                   </div>
                 )
               })}
@@ -398,7 +662,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                 if (pwdInput) pwdInput.focus()
               }}
             >
-              Got it, update password
+              {t("auth.rulesOk", "Got it, update password")}
             </button>
           </div>
         </div>

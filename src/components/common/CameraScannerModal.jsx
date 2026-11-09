@@ -12,13 +12,14 @@ import {
   Barcode as BarcodeIcon,
   Volume2
 } from "lucide-react";
+import i18n from "../../i18n/i18n";
 import { playScanSuccessBeep, playScanErrorBeep } from "../../lib/audioFeedback";
 
 export function CameraScannerModal({
   isOpen,
   onClose,
   onScan,
-  title = "Scan Item Barcode"
+  title = i18n.t("camera.title", "Scan Item Barcode")
 }) {
   const [cameras, setCameras] = useState([]);
   const [selectedCameraId, setSelectedCameraId] = useState(null);
@@ -102,22 +103,22 @@ export function CameraScannerModal({
     if (errStr.includes("notallowederror") || errStr.includes("permission denied")) {
       setCameraError({
         type: "PERMISSION_DENIED",
-        message: "Camera permission was denied. Please allow camera access in your browser site settings, or use manual/USB barcode entry."
+        message: i18n.t("camera.err_denied", "Camera permission was denied. Please allow camera access in your browser site settings, or use manual/USB barcode entry.")
       });
     } else if (errStr.includes("notfounderror") || errStr.includes("devicesnotfound")) {
       setCameraError({
         type: "NO_CAMERA",
-        message: "No camera device found on this system."
+        message: i18n.t("camera.err_none", "No camera device found on this system.")
       });
     } else if (errStr.includes("notreadableerror") || errStr.includes("in use")) {
       setCameraError({
         type: "IN_USE",
-        message: "Camera is currently in use by another application or tab."
+        message: i18n.t("camera.err_busy", "Camera is currently in use by another application or tab.")
       });
     } else {
       setCameraError({
         type: "UNKNOWN",
-        message: err?.message || "Could not access camera. Please check your camera permissions."
+        message: err?.message || i18n.t("camera.err_unknown", "Could not access camera. Please check your camera permissions.")
       });
     }
   };
@@ -352,7 +353,7 @@ export function CameraScannerModal({
             <div>
               <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: "700" }}>{title}</h3>
               <p style={{ margin: 0, fontSize: "0.75rem", color: "#94a3b8" }}>
-                Position barcode inside the target box
+                {i18n.t("camera.position", "Position barcode inside the target box")}
               </p>
             </div>
           </div>
@@ -451,7 +452,7 @@ export function CameraScannerModal({
             >
               <AlertCircle size={36} style={{ color: "#ef4444", margin: "0 auto 0.75rem" }} />
               <div style={{ fontWeight: "700", fontSize: "0.95rem", marginBottom: "0.35rem" }}>
-                Camera Not Available
+                {i18n.t("camera.notAvailable", "Camera Not Available")}
               </div>
               <p style={{ fontSize: "0.82rem", color: "#94a3b8", lineHeight: 1.4, margin: "0 0 1rem" }}>
                 {cameraError.message}
@@ -475,7 +476,7 @@ export function CameraScannerModal({
                   gap: "0.4rem"
                 }}
               >
-                <RefreshCw size={14} /> Retry Camera
+                <RefreshCw size={14} /> {i18n.t("camera.retry", "Retry Camera")}
               </button>
             </div>
           )}
@@ -498,9 +499,9 @@ export function CameraScannerModal({
           >
             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
               <CheckCircle2 size={16} style={{ color: "#10b981" }} />
-              <span>Scanned: <strong>{lastScannedText}</strong></span>
+              <span>{i18n.t("camera.scanned", "Scanned:")} <strong>{lastScannedText}</strong></span>
             </div>
-            <span style={{ fontSize: "0.72rem", color: "#059669" }}>Added to bill</span>
+            <span style={{ fontSize: "0.72rem", color: "#059669" }}>{i18n.t("camera.addedToBill", "Added to bill")}</span>
           </div>
         )}
 
@@ -539,7 +540,7 @@ export function CameraScannerModal({
             </select>
           ) : (
             <div style={{ fontSize: "0.75rem", color: "#64748b", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-              <BarcodeIcon size={14} /> Ready for Code 128 / EAN / UPC
+              <BarcodeIcon size={14} /> {i18n.t("camera.ready", "Ready for Code 128 / EAN / UPC")}
             </div>
           )}
 
@@ -575,7 +576,7 @@ export function CameraScannerModal({
               onChange={(e) => setContinuousMode(e.target.checked)}
               style={{ accentColor: "#2563eb", cursor: "pointer" }}
             />
-            Continuous Scan
+            {i18n.t("camera.continuous", "Continuous Scan")}
           </label>
         </div>
 
@@ -594,7 +595,7 @@ export function CameraScannerModal({
             <Keyboard size={15} style={{ position: "absolute", left: "0.6rem", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
             <input
               type="text"
-              placeholder="Or type barcode (e.g. SLP-000001)..."
+              placeholder={i18n.t("camera.typePh", "Or type barcode (e.g. SLP-000001)...")}
               value={manualInput}
               onChange={(e) => setManualInput(e.target.value)}
               data-barcode-input="true"
@@ -622,7 +623,7 @@ export function CameraScannerModal({
               cursor: manualInput.trim() ? "pointer" : "default"
             }}
           >
-            Add
+            {i18n.t("camera.add", "Add")}
           </button>
         </form>
       </div>

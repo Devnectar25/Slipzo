@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react"
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react"
+import i18n from "../../i18n/i18n"
 
 const ToastContext = createContext(null)
 
@@ -62,7 +63,7 @@ export function ToastProvider({ children }) {
             <button
               className="toast-close"
               onClick={() => removeToast(toast.id)}
-              aria-label="Close notification"
+              aria-label={i18n.t("common.closeNotification", "Close notification")}
             >
               <X size={14} />
             </button>

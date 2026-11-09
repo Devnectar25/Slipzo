@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { 
   Printer, Zap, Check, ArrowRight, ShieldCheck, 
   Smartphone, Monitor, WifiOff, Cloud, RefreshCw,
@@ -10,6 +11,7 @@ import "../styles/WelcomeOnboarding.css"
 const SLIDE_DURATION_MS = 4500
 
 export function WelcomeOnboarding({ onLogin, onSignUp }) {
+  const { t } = useTranslation()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
@@ -20,62 +22,62 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
   const slides = [
     {
       id: "billing",
-      eyebrow: "SMART BILLING DESK",
+      eyebrow: t("welcome.s1Eyebrow", "SMART BILLING DESK"),
       eyebrowColor: "emerald",
       icon: Receipt,
-      headline: "Create bills in seconds, print anywhere",
-      description: "Generate GST & Non-GST invoices in a single tap. Print directly to any 58mm or 80mm thermal printer or share via WhatsApp.",
+      headline: t("welcome.s1Headline", "Create bills in seconds, print anywhere"),
+      description: t("welcome.s1Desc", "Generate GST & Non-GST invoices in a single tap. Print directly to any 58mm or 80mm thermal printer or share via WhatsApp."),
       renderVisual: () => (
         <div className="showcase-receipt-card">
           <div className="receipt-float-tag-left">
             <Printer size={13} />
-            <span>58mm / 80mm Ready</span>
+            <span>{t("landing.mockReady", "58mm / 80mm Ready")}</span>
           </div>
 
           <div className="receipt-header-row">
             <div>
               <div className="receipt-brand-title">SLIPZEN POS</div>
-              <span style={{ fontSize: "10px", color: "#64748b" }}>Bill #SZ-1082</span>
+              <span style={{ fontSize: "10px", color: "#64748b" }}>{t("landing.mockBill", "Bill #SZ-1082")}</span>
             </div>
-            <span className="receipt-inv-badge">PAID</span>
+            <span className="receipt-inv-badge">{t("landing.mockPaid", "PAID")}</span>
           </div>
 
           <div className="receipt-items-list">
             <div className="receipt-item-row">
-              <span><span className="receipt-item-qty">2x</span> Masala Chai</span>
+              <span><span className="receipt-item-qty">2x</span> {t("landing.mockChai", "Masala Chai")}</span>
               <span>₹40.00</span>
             </div>
             <div className="receipt-item-row">
-              <span><span className="receipt-item-qty">3x</span> Fresh Samosa</span>
+              <span><span className="receipt-item-qty">3x</span> {t("landing.mockSamosa", "Fresh Samosa")}</span>
               <span>₹60.00</span>
             </div>
             <div className="receipt-item-row">
-              <span><span className="receipt-item-qty">1x</span> Cold Coffee</span>
+              <span><span className="receipt-item-qty">1x</span> {t("landing.mockCoffee", "Cold Coffee")}</span>
               <span>₹80.00</span>
             </div>
           </div>
 
           <div className="receipt-totals-box">
             <div className="receipt-total-row">
-              <span className="receipt-total-label">Total Amount</span>
+              <span className="receipt-total-label">{t("landing.mockTotal", "Total Amount")}</span>
               <span className="receipt-total-value">₹180.00</span>
             </div>
           </div>
 
           <div className="receipt-float-tag-bottom">
             <Zap size={12} />
-            <span>0.2s Lightning Print</span>
+            <span>{t("landing.mockLightning", "0.2s Lightning Print")}</span>
           </div>
         </div>
       )
     },
     {
       id: "inventory",
-      eyebrow: "BARCODE & INVENTORY",
+      eyebrow: t("welcome.s2Eyebrow", "BARCODE & INVENTORY"),
       eyebrowColor: "amber",
       icon: ScanBarcode,
-      headline: "Scan barcodes & track stock in real time",
-      description: "Look up products instantly with camera or USB scanner. Get automatic low-stock alerts before your top items run out.",
+      headline: t("welcome.s2Headline", "Scan barcodes & track stock in real time"),
+      description: t("welcome.s2Desc", "Look up products instantly with camera or USB scanner. Get automatic low-stock alerts before your top items run out."),
       renderVisual: () => (
         <div className="showcase-inventory-grid">
           {/* Barcode scanner card with red animated laser */}
@@ -110,7 +112,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
               </svg>
             </div>
             <div className="barcode-detected-row">
-              <span className="barcode-item-name">📦 Maggi Noodles 70g</span>
+              <span className="barcode-item-name">{t("welcome.maggi", "📦 Maggi Noodles 70g")}</span>
               <span className="barcode-item-price">₹14.00</span>
             </div>
           </div>
@@ -118,12 +120,12 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
           {/* 2 Balanced product stock cards side by side */}
           <div className="inventory-items-row">
             <div className="stock-card">
-              <div className="stock-card-title">Amul Butter 500g</div>
-              <span className="stock-card-badge green">84 in stock</span>
+              <div className="stock-card-title">{t("welcome.butter", "Amul Butter 500g")}</div>
+              <span className="stock-card-badge green">{t("welcome.inStock", "84 in stock")}</span>
             </div>
             <div className="stock-card">
-              <div className="stock-card-title">Tata Tea Gold</div>
-              <span className="stock-card-badge amber">⚠️ Only 3 left</span>
+              <div className="stock-card-title">{t("welcome.tea", "Tata Tea Gold")}</div>
+              <span className="stock-card-badge amber">{t("welcome.low", "⚠️ Only 3 left")}</span>
             </div>
           </div>
         </div>
@@ -131,11 +133,11 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
     },
     {
       id: "restaurant",
-      eyebrow: "DINE-IN & KOT TICKETS",
+      eyebrow: t("welcome.s3Eyebrow", "DINE-IN & KOT TICKETS"),
       eyebrowColor: "rose",
       icon: UtensilsCrossed,
-      headline: "Manage tables & kitchen orders effortlessly",
-      description: "Track occupied, vacant, and billing tables live. Send instant Kitchen Order Tickets (KOT) without running around.",
+      headline: t("welcome.s3Headline", "Manage tables & kitchen orders effortlessly"),
+      description: t("welcome.s3Desc", "Track occupied, vacant, and billing tables live. Send instant Kitchen Order Tickets (KOT) without running around."),
       renderVisual: () => (
         <div className="showcase-restaurant-grid">
           {/* Table layout matrix */}
@@ -146,11 +148,11 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
             </div>
             <div className="table-matrix-chip billing">
               <div className="table-chip-label">T-02</div>
-              <div className="table-chip-status">Billing</div>
+              <div className="table-chip-status">{t("landing.mockBilling", "Billing")}</div>
             </div>
             <div className="table-matrix-chip available">
               <div className="table-chip-label">T-03</div>
-              <div className="table-chip-status">Vacant</div>
+              <div className="table-chip-status">{t("welcome.vacant", "Vacant")}</div>
             </div>
             <div className="table-matrix-chip occupied">
               <div className="table-chip-label">T-04</div>
@@ -162,7 +164,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
           <div className="kot-ticket-card">
             <div className="kot-header-row">
               <span>KOT #18</span>
-              <span>Table 01</span>
+              <span>{t("welcome.table01", "Table 01")}</span>
             </div>
             <div className="kot-items-list">
               <div>• 1x Paneer Butter Masala</div>
@@ -171,7 +173,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
             </div>
             <div className="kot-status-pill">
               <UtensilsCrossed size={11} />
-              <span>Cooking in Kitchen</span>
+              <span>{t("welcome.cooking", "Cooking in Kitchen")}</span>
             </div>
           </div>
         </div>
@@ -179,16 +181,16 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
     },
     {
       id: "analytics",
-      eyebrow: "BUSINESS ANALYTICS",
+      eyebrow: t("welcome.s4Eyebrow", "BUSINESS ANALYTICS"),
       eyebrowColor: "indigo",
       icon: BarChart3,
-      headline: "Know your daily sales & profits at a glance",
-      description: "Monitor UPI vs cash collections, hourly sales rush, and customer balances (Udhar) with zero manual bookkeeping.",
+      headline: t("welcome.s4Headline", "Know your daily sales & profits at a glance"),
+      description: t("welcome.s4Desc", "Monitor UPI vs cash collections, hourly sales rush, and customer balances (Udhar) with zero manual bookkeeping."),
       renderVisual: () => (
         <div className="showcase-analytics-card">
           <div className="analytics-header-row">
             <div>
-              <div className="analytics-title">Today's Revenue</div>
+              <div className="analytics-title">{t("welcome.revenue", "Today's Revenue")}</div>
               <div className="analytics-big-number">₹38,420</div>
             </div>
             <div className="analytics-growth-badge">
@@ -203,7 +205,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
               <div className="analytics-split-value">₹26,800</div>
             </div>
             <div className="analytics-split-box cash">
-              <div className="analytics-split-label">Cash Drawer</div>
+              <div className="analytics-split-label">{t("welcome.drawer", "Cash Drawer")}</div>
               <div className="analytics-split-value">₹11,620</div>
             </div>
           </div>
@@ -222,36 +224,36 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
     },
     {
       id: "devices",
-      eyebrow: "CLOUD & OFFLINE READY",
+      eyebrow: t("welcome.s5Eyebrow", "CLOUD & OFFLINE READY"),
       eyebrowColor: "emerald",
       icon: Cloud,
-      headline: "Your shop in your pocket, works on any device",
-      description: "Seamlessly bill on Android phones, counter PCs, and thermal printers. Offline billing resilience keeps your store running non-stop.",
+      headline: t("welcome.s5Headline", "Your shop in your pocket, works on any device"),
+      description: t("welcome.s5Desc", "Seamlessly bill on Android phones, counter PCs, and thermal printers. Offline billing resilience keeps your store running non-stop."),
       renderVisual: () => (
         <div className="showcase-devices-grid">
           {/* Top row with 2 devices */}
           <div className="devices-top-row">
             <div className="device-card-item">
               <Smartphone size={16} color="#3b82f6" />
-              <span>Mobile POS</span>
+              <span>{t("welcome.mobilePos", "Mobile POS")}</span>
             </div>
             <div className="device-card-item">
               <Monitor size={16} color="#8b5cf6" />
-              <span>Counter Desktop</span>
+              <span>{t("welcome.counter", "Counter Desktop")}</span>
             </div>
           </div>
 
           {/* Center bridge */}
           <div className="devices-center-bridge">
             <Cloud size={14} />
-            <span>Slipzen Cloud Auto-Sync</span>
+            <span>{t("welcome.sync", "Slipzen Cloud Auto-Sync")}</span>
           </div>
 
           {/* Bottom row with 2 items cleanly spaced (NO OVERLAP!) */}
           <div className="devices-bottom-row">
             <div className="device-card-item">
               <Printer size={16} color="#059669" />
-              <span>Thermal Printer</span>
+              <span>{t("welcome.thermal", "Thermal Printer")}</span>
             </div>
             <div className="device-card-item offline-badge">
               <WifiOff size={15} color="#059669" />
@@ -381,7 +383,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
               e.stopPropagation()
               prevSlide()
             }} 
-            title="Previous"
+            title={t("welcome.prev", "Previous")}
           />
           <div 
             className="welcome-tap-next" 
@@ -389,7 +391,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
               e.stopPropagation()
               nextSlide()
             }} 
-            title="Next"
+            title={t("welcome.next", "Next")}
           />
 
           <div key={activeSlide.id} className="welcome-slide">
@@ -420,7 +422,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
               if (onLogin) onLogin()
             }}
           >
-            LOG IN
+            {t("welcome.login", "LOG IN")}
           </button>
           <button 
             type="button" 
@@ -430,7 +432,7 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
               if (onSignUp) onSignUp()
             }}
           >
-            SIGN UP
+            {t("welcome.signup", "SIGN UP")}
           </button>
         </div>
       </div>

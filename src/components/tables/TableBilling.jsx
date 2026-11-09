@@ -352,7 +352,7 @@ export function TableBilling({
       return true
     }
     playScanErrorBeep()
-    toastError(`No item matching barcode "${barcode}" found in menu.`)
+    toastError(t("tables.noBarcodeMatch", "No item matching barcode \"{{code}}\" found in menu.", { code: barcode }))
     return false
   }
 
@@ -759,8 +759,8 @@ export function TableBilling({
                               type="button"
                               className="nb-qty-btn"
                               onClick={() => handleUpdateQty(item.name, -1)}
-                              title="Decrease quantity"
-                              aria-label="Decrease quantity"
+                              title={t("bills.decrease", "Decrease quantity")}
+                              aria-label={t("bills.decrease", "Decrease quantity")}
                             >
                               −
                             </button>
@@ -769,8 +769,8 @@ export function TableBilling({
                               type="button"
                               className="nb-qty-btn"
                               onClick={() => handleUpdateQty(item.name, 1)}
-                              title="Increase quantity"
-                              aria-label="Increase quantity"
+                              title={t("bills.increase", "Increase quantity")}
+                              aria-label={t("bills.increase", "Increase quantity")}
                             >
                               +
                             </button>
@@ -950,7 +950,7 @@ export function TableBilling({
 
       {/* Barcode Camera Scanner */}
       {isCameraScannerOpen && (
-        <Suspense fallback={<div className="scanner-chunk-loader" role="status" aria-label="Opening camera"><Spinner size={34} /></div>}>
+        <Suspense fallback={<div className="scanner-chunk-loader" role="status" aria-label={t("common.openingCamera", "Opening camera")}><Spinner size={34} /></div>}>
           <CameraScannerModal
             isOpen={isCameraScannerOpen}
             onClose={() => setIsCameraScannerOpen(false)}

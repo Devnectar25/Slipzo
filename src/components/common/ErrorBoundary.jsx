@@ -1,5 +1,6 @@
 import React from "react"
 import { AlertTriangle, RefreshCw, Home } from "lucide-react"
+import i18n from "../../i18n/i18n"
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -39,9 +40,9 @@ export class ErrorBoundary extends React.Component {
             <div className="error-icon-wrapper">
               <AlertTriangle size={36} />
             </div>
-            <h2>Something went wrong</h2>
+            <h2>{i18n.t("errorBoundary.title", "Something went wrong")}</h2>
             <p className="error-desc">
-              We encountered an unexpected problem in this view. Don't worry, your data is safe.
+              {i18n.t("errorBoundary.body", "We encountered an unexpected problem in this view. Don't worry, your data is safe.")}
             </p>
             {this.state.error?.message && (
               <div className="error-details-box">
@@ -53,20 +54,20 @@ export class ErrorBoundary extends React.Component {
                 className="primary-button"
                 onClick={this.handleReset}
               >
-                <RefreshCw size={16} /> Try Again
+                <RefreshCw size={16} /> {i18n.t("errorBoundary.retry", "Try Again")}
               </button>
               <button
                 className="secondary-button"
                 onClick={this.handleReload}
               >
-                Reload App
+                {i18n.t("errorBoundary.reload", "Reload App")}
               </button>
               {this.props.onGoHome && (
                 <button
                   className="ghost-button"
                   onClick={this.props.onGoHome}
                 >
-                  <Home size={16} /> Return to Home
+                  <Home size={16} /> {i18n.t("errorBoundary.home", "Return to Home")}
                 </button>
               )}
             </div>

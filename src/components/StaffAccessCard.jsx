@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Users, Mail, Trash2, UserPlus, ShieldCheck, Printer, AlertCircle, Copy, Check, KeyRound, RefreshCw, LogOut, Store } from "lucide-react"
+import { Users, Phone, Trash2, UserPlus, ShieldCheck, Printer, AlertCircle, Copy, Check, KeyRound, RefreshCw, LogOut, Store } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import Swal from "sweetalert2"
 import { call, clearApiCache, clearStoredMenuItems } from "../lib/utils"
@@ -7,6 +7,19 @@ import { useToast } from "./common/Toast"
 import { ButtonLoader, Skeleton, Spinner } from "./common/Skeleton"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// "+91 98765-43210", "09876543210" and "9876543210" are all the same number
+const normalizeMobile = (value) => {
+  let digits = String(value || "").replace(/[\s\-().]/g, "")
+  if (digits.startsWith("+")) digits = digits.slice(1)
+  if (!/^\d+$/.test(digits)) return null
+  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2)
+  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1)
+  return /^[6-9]\d{9}$/.test(digits) ? digits : null
+}
+
+// Workers are shown by mobile number; an older worker account made with an email shows that instead
+const memberLabel = (m) => (m?.phone ? `+91 ${m.phone}` : m?.email || "")
 
 // Joining or leaving swaps every piece of data on screen, so start clean
 const reloadWithFreshData = (user) => {
@@ -65,16 +78,24 @@ export function StaffAccessCard({ user }) {
   }
 
   const handleInvite = async () => {
-    const clean = email.trim().toLowerCase()
-    if (!clean) return setEmailError(t("profile.emailRequired", "Please enter a worker email address."))
-    if (!EMAIL_REGEX.test(clean)) return setEmailError(t("profile.emailInvalid", "Please enter a valid email address."))
+    const entered = email.trim()
+    if (!entered) return setEmailError(t("profile.emailRequired", "Please enter the worker's mobile number."))
+    let body
+    if (entered.includes("@")) {
+      if (!EMAIL_REGEX.test(entered.toLowerCase())) return setEmailError(t("profile.emailInvalid", "Please enter a valid 10-digit mobile number."))
+      body = { email: entered.toLowerCase() }
+    } else {
+      const mobile = normalizeMobile(entered)
+      if (!mobile) return setEmailError(t("profile.emailInvalid", "Please enter a valid 10-digit mobile number."))
+      body = { phone: mobile }
+    }
     setInviting(true)
     try {
-      const res = await call("/shop/staff", { method: "POST", body: JSON.stringify({ email: clean }) })
+      const res = await call("/shop/staff", { method: "POST", body: JSON.stringify(body) })
       setMembers((prev) => [res.member, ...(prev || [])])
       setEmail("")
       setEmailError("")
-      showInvite(res.member.email, res.invite_code)
+      showInvite(memberLabel(res.member), res.invite_code)
     } catch (err) {
       setEmailError(err?.message || t("profile.staffActionFailed", "Something went wrong. Please try again."))
     } finally {
@@ -87,7 +108,7 @@ export function StaffAccessCard({ user }) {
     try {
       const res = await call(`/shop/staff/${member.id}/regenerate`, { method: "POST" })
       setMembers((prev) => prev.map((m) => (m.id === member.id ? res.member : m)))
-      showInvite(res.member.email, res.invite_code)
+      showInvite(memberLabel(res.member), res.invite_code)
     } catch (err) {
       toastError(err?.message || t("profile.staffActionFailed", "Something went wrong. Please try again."))
     } finally {
@@ -110,7 +131,7 @@ export function StaffAccessCard({ user }) {
     try {
       await call(`/shop/staff/${member.id}`, { method: "DELETE" })
       setMembers((prev) => prev.filter((m) => m.id !== member.id))
-      if (newInvite?.email === member.email) setNewInvite(null)
+      if (newInvite?.email === memberLabel(member)) setNewInvite(null)
       success(t("profile.workerEmailRemoved", "Worker access removed."))
     } catch (err) {
       toastError(err?.message || t("profile.staffActionFailed", "Something went wrong. Please try again."))
@@ -160,20 +181,21 @@ export function StaffAccessCard({ user }) {
         </div>
         <div className="sp-card-titles">
           <h3 className="sp-card-title">{t("profile.subusersTitle", "Staff & Sub-Users (Printer Sharing)")}</h3>
-          <p className="sp-card-subtitle">{t("profile.subusersSub", "Share receipt printing and billing access with worker email IDs")}</p>
+          <p className="sp-card-subtitle">{t("profile.subusersSub", "Share receipt printing and billing access with your workers' mobile numbers")}</p>
         </div>
       </div>
 
       <div className="sp-field-group full-width">
-        <label className="sp-label">{t("profile.addWorkerLabel", "Worker / Staff Email Address")}</label>
+        <label className="sp-label">{t("profile.addWorkerLabel", "Worker / Staff Mobile Number")}</label>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "stretch" }}>
           <div className={`sp-input-wrap ${emailError ? "error" : ""}`} style={{ flex: 1, minWidth: "220px" }}>
-            <Mail size={16} className="sp-input-icon" />
+            <Phone size={16} className="sp-input-icon" />
             <input
-              type="email"
+              type="tel"
+              inputMode="tel"
               className="sp-input"
               data-testid="staff-email-input"
-              placeholder={t("profile.workerEmailPlaceholder", "e.g. worker@myrestaurant.com")}
+              placeholder={t("profile.workerEmailPlaceholder", "e.g. 98765 43210")}
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
@@ -221,7 +243,7 @@ export function StaffAccessCard({ user }) {
             </button>
           </div>
           <ol style={{ listStyle: "decimal", margin: "0.3rem 0 0.2rem", paddingLeft: "1.1rem", fontSize: "0.74rem", color: "#334155", lineHeight: 1.5 }}>
-            <li>{t("profile.staffStep1", "Your worker logs in to Slipzo with this email.")}</li>
+            <li>{t("profile.staffStep1", "Your worker logs in to Slipzo with this mobile number.")}</li>
             <li>{t("profile.staffStep2", "They open Shop Profile and enter this code under \"Joining a shop?\".")}</li>
           </ol>
           <p style={{ fontSize: "0.72rem", color: "#92400e", margin: "0.3rem 0 0", fontWeight: 600 }}>
@@ -241,14 +263,14 @@ export function StaffAccessCard({ user }) {
         ) : members.length === 0 ? (
           <div style={{ border: "1.5px dashed #cbd5e1", borderRadius: "12px", padding: "1.25rem", textAlign: "center", color: "#64748b", fontSize: "0.82rem" }}>
             <Printer size={20} style={{ marginBottom: "0.35rem" }} />
-            <div>{t("profile.noWorkersYet", "No worker emails added yet. Add an email above to share printer & billing access.")}</div>
+            <div>{t("profile.noWorkersYet", "No workers added yet. Add a mobile number above to share printer & billing access.")}</div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "260px", overflowY: "auto" }}>
             {members.map((member) => (
               <div key={member.id} data-testid="staff-member-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", padding: "0.55rem 0.8rem", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", gap: "0.4rem" }}>
                 <div style={{ minWidth: 0, flex: "1 1 170px" }}>
-                  <div style={{ fontSize: "0.84rem", fontWeight: 600, color: "#0C1F41", overflowWrap: "anywhere" }}>{member.email}</div>
+                  <div style={{ fontSize: "0.84rem", fontWeight: 600, color: "#0C1F41", overflowWrap: "anywhere" }}>{memberLabel(member)}</div>
                   <div style={{ marginTop: "0.15rem" }}><StatusBadge member={member} /></div>
                 </div>
                 <div style={{ display: "flex", gap: "0.25rem", flexShrink: 0 }}>

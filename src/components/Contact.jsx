@@ -408,7 +408,7 @@ export function Contact({ setView, setShowAuth, user }) {
                     <input
                       id="contact-name"
                       type="text"
-                      placeholder={t("contact.namePlaceholder", "Kuldeep")}
+                      placeholder={t("contact.namePlaceholder", "Enter your name")}
                       value={form.name}
                       onChange={(e) => handleChange("name", e.target.value)}
                       className={fieldErrors.name ? "input-has-error" : ""}
@@ -424,7 +424,7 @@ export function Contact({ setView, setShowAuth, user }) {
                     <input
                       id="contact-email"
                       type="email"
-                      placeholder={t("contact.emailPlaceholder", "admin@gmail.com")}
+                      placeholder={t("contact.emailPlaceholder", "you@example.com")}
                       value={form.email}
                       onChange={(e) => handleChange("email", e.target.value)}
                       className={fieldErrors.email ? "input-has-error" : ""}
@@ -442,7 +442,7 @@ export function Contact({ setView, setShowAuth, user }) {
                     <input
                       id="contact-phone"
                       type="tel"
-                      placeholder={t("contact.phonePlaceholder", "+91 98765 43210")}
+                      placeholder={t("contact.phonePlaceholder", "10-digit mobile number")}
                       value={form.phone}
                       onChange={(e) => handleChange("phone", e.target.value)}
                       className={fieldErrors.phone ? "input-has-error" : ""}
@@ -475,7 +475,7 @@ export function Contact({ setView, setShowAuth, user }) {
                   <textarea
                     id="contact-message"
                     rows={4}
-                    placeholder={t("contact.messagePlaceholder", "Tell us about your store, printer model, or your question...")}
+                    placeholder={t("contact.messagePlaceholder", "Write your message here...")}
                     value={form.message}
                     onChange={(e) => handleChange("message", e.target.value)}
                     className={fieldErrors.message ? "input-has-error" : ""}
@@ -552,7 +552,7 @@ export function Contact({ setView, setShowAuth, user }) {
             <span className="cta-pill-eyebrow">{t("contact.ctaBadge", "GET STARTED TODAY")}</span>
             <h2 className="cta-banner-title">{t("contact.ctaTitle", "Ready to get started?")}</h2>
             <p className="cta-banner-subtext">
-              {t("contact.ctaSubtitle", "Create receipts in seconds. No credit card required.")}
+              {t("contact.ctaSubtitle", "Create receipts in seconds. No monthly fees.")}
             </p>
           </div>
 
@@ -576,7 +576,7 @@ export function Contact({ setView, setShowAuth, user }) {
                 }
               }}
             >
-              <span>{t("contact.ctaButton", "Start Billing Free")}</span>
+              <span>{t("contact.ctaButton", "Start Billing")}</span>
               <ArrowRight size={16} />
             </button>
           </div>

@@ -82,7 +82,7 @@ export function TableSetupModal({ isOpen, onClose, onSetupComplete, currentCount
       onClose()
     } catch (err) {
       console.error("Failed to setup tables:", err)
-      toastError("Failed to save table setup. Please try again.")
+      toastError(t("tables.err_setup", "Failed to save table setup. Please try again."))
     } finally {
       setIsSaving(false)
     }
@@ -126,7 +126,7 @@ export function TableSetupModal({ isOpen, onClose, onSetupComplete, currentCount
               className="stepper-btn"
               onClick={handleDecrement}
               disabled={count <= 1 || isSaving}
-              aria-label="Decrease tables"
+              aria-label={t("tables.decrease", "Decrease tables")}
             >
               <Minus size={18} />
             </button>
@@ -138,7 +138,7 @@ export function TableSetupModal({ isOpen, onClose, onSetupComplete, currentCount
               className="stepper-btn"
               onClick={handleIncrement}
               disabled={count >= 100 || isSaving}
-              aria-label="Increase tables"
+              aria-label={t("tables.increase", "Increase tables")}
             >
               <Plus size={18} />
             </button>

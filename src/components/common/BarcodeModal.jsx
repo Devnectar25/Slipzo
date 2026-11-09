@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { X, Printer, Copy, Check, Barcode as BarcodeIcon, Tag } from "lucide-react"
 import { Code128Barcode } from "../../lib/code128"
 import { printBarcodeLabel, LABEL_FORMATS } from "../../lib/printBarcodeLabel"
 import { useToast } from "./Toast"
 
 export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" }) {
+  const { t } = useTranslation()
   const [labelSize, setLabelSize] = useState("50x25mm")
   const [copies, setCopies] = useState(1)
   const [copied, setCopied] = useState(false)
@@ -29,7 +31,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(barcodeValue)
       setCopied(true)
-      toastSuccess(`Copied "${barcodeValue}" to clipboard`)
+      toastSuccess(t("barcode.copiedClip", "Copied \"{{code}}\" to clipboard", { code: barcodeValue }))
       setTimeout(() => setCopied(false), 2000)
     }
   }
@@ -101,10 +103,10 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
             </div>
             <div>
               <h3 style={{ fontSize: "1rem", fontWeight: "700", color: "#0f172a", margin: 0 }}>
-                Item Barcode Label
+                {t("barcode.title", "Item Barcode Label")}
               </h3>
               <p style={{ fontSize: "0.78rem", color: "#64748b", margin: 0 }}>
-                Standard Code 128 machine-readable identifier
+                {t("barcode.sub", "Standard Code 128 machine-readable identifier")}
               </p>
             </div>
           </div>
@@ -190,7 +192,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
           >
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <Tag size={15} style={{ color: "#0284c7" }} />
-              <span style={{ fontSize: "0.82rem", color: "#64748b" }}>Code:</span>
+              <span style={{ fontSize: "0.82rem", color: "#64748b" }}>{t("barcode.code", "Code:")}</span>
               <strong style={{ fontFamily: "monospace", fontSize: "0.92rem", color: "#0f172a" }}>
                 {barcodeValue}
               </strong>
@@ -214,7 +216,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
               }}
             >
               {copied ? <Check size={13} /> : <Copy size={13} />}
-              {copied ? "Copied" : "Copy"}
+              {copied ? t("barcode.copied", "Copied") : t("barcode.copy", "Copy")}
             </button>
           </div>
 
@@ -222,7 +224,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "0.75rem", marginBottom: "1.25rem" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.78rem", fontWeight: "600", color: "#475569", marginBottom: "0.3rem" }}>
-                Label Format
+                {t("barcode.format", "Label Format")}
               </label>
               <select
                 value={labelSize}
@@ -248,7 +250,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
 
             <div>
               <label style={{ display: "block", fontSize: "0.78rem", fontWeight: "600", color: "#475569", marginBottom: "0.3rem" }}>
-                Copies
+                {t("barcode.copies", "Copies")}
               </label>
               <select
                 value={copies}
@@ -265,13 +267,13 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
                 }}
               >
                 <option value={1}>1 Copy</option>
-                <option value={2}>2 Copies</option>
-                <option value={5}>5 Copies</option>
-                <option value={10}>10 Copies (Single A4 Page)</option>
-                <option value={15}>15 Copies (Single A4 Page)</option>
-                <option value={20}>20 Copies (Single A4 Page)</option>
-                <option value={24}>24 Copies (Full A4 Sheet)</option>
-                <option value={30}>30 Copies (Full A4 Sheet)</option>
+                <option value={2}>{t("barcode.copiesN", "{{n}} Copies", { n: 2 })}</option>
+                <option value={5}>{t("barcode.copiesN", "{{n}} Copies", { n: 5 })}</option>
+                <option value={10}>{t("barcode.copiesPage", "{{n}} Copies (Single A4 Page)", { n: 10 })}</option>
+                <option value={15}>{t("barcode.copiesPage", "{{n}} Copies (Single A4 Page)", { n: 15 })}</option>
+                <option value={20}>{t("barcode.copiesPage", "{{n}} Copies (Single A4 Page)", { n: 20 })}</option>
+                <option value={24}>{t("barcode.copiesSheet", "{{n}} Copies (Full A4 Sheet)", { n: 24 })}</option>
+                <option value={30}>{t("barcode.copiesSheet", "{{n}} Copies (Full A4 Sheet)", { n: 30 })}</option>
               </select>
             </div>
           </div>
@@ -298,7 +300,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
                 boxShadow: "0 4px 12px rgba(2, 132, 199, 0.25)"
               }}
             >
-              <Printer size={18} /> Print Barcode Label
+              <Printer size={18} /> {t("barcode.print", "Print Barcode Label")}
             </button>
 
             <button
@@ -315,7 +317,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" })
                 cursor: "pointer"
               }}
             >
-              Close
+              {t("barcode.close", "Close")}
             </button>
           </div>
         </div>

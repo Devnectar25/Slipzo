@@ -8,6 +8,7 @@ import {
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { call, getCachedData } from "../lib/utils"
+import { appSpeechLanguage } from "../hooks/useSpeechInput"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
 import { ButtonLoader } from "./common/Skeleton"
@@ -209,7 +210,7 @@ export function Products({ setView, requireAuth, user }) {
     }
     try {
       const recognition = new SpeechRecognition()
-      recognition.lang = "en-IN"
+      recognition.lang = appSpeechLanguage()
       recognition.interimResults = false
       recognition.onresult = (event) => {
         const transcript = event.results?.[0]?.[0]?.transcript || ""
@@ -357,14 +358,14 @@ export function Products({ setView, requireAuth, user }) {
 
   const handleDelete = async (id) => {
     const confirmResult = await Swal.fire({
-      title: "Delete Product?",
-      text: "Are you sure you want to delete this product?",
+      title: t("productsPage.deleteTitle", "Delete Product?"),
+      text: t("productsPage.deleteText", "Are you sure you want to delete this product?"),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
       cancelButtonColor: "#64748b",
-      confirmButtonText: "Yes, Delete",
-      cancelButtonText: "Cancel",
+      confirmButtonText: t("productsPage.deleteYes", "Yes, Delete"),
+      cancelButtonText: t("common.cancel", "Cancel"),
       reverseButtons: true,
       focusCancel: true
     })
@@ -628,7 +629,7 @@ export function Products({ setView, requireAuth, user }) {
                     type="button"
                     onClick={() => setSearch("")}
                     className="products-search-clear"
-                    aria-label="Clear search"
+                    aria-label={t("productsPage.clearSearch", "Clear search")}
                   >
                     <X size={14} />
                   </button>
@@ -742,13 +743,13 @@ export function Products({ setView, requireAuth, user }) {
           <div className="products-features-box">
             <div className="products-features-header">
               <span className="products-features-badge">
-                Hardware & POS Supplies
+                {t("productsPage.hardware", "Hardware & POS Supplies")}
               </span>
               <h2>
-                Tested & Certified for Slipzen
+                {t("productsPage.tested", "Tested & Certified for Slipzen")}
               </h2>
               <p>
-                All thermal receipt printers and paper rolls sold on Slipzen are pre-tested for plug-and-play speed with our thermal engine.
+                {t("productsPage.testedText", "All thermal receipt printers and paper rolls sold on Slipzen are pre-tested for plug-and-play speed with our thermal engine.")}
               </p>
             </div>
 
@@ -757,24 +758,24 @@ export function Products({ setView, requireAuth, user }) {
                 <div className="feature-item-icon blue">
                   <Zap size={22} />
                 </div>
-                <h3>Instant Bluetooth Connectivity</h3>
-                <p>Seamless 1-click Bluetooth pairing with ESC/POS standard support for lightning fast receipts.</p>
+                <h3>{t("productsPage.bt", "Instant Bluetooth Connectivity")}</h3>
+                <p>{t("productsPage.btText", "Seamless 1-click Bluetooth pairing with ESC/POS standard support for lightning fast receipts.")}</p>
               </div>
 
               <div className="feature-item-card">
                 <div className="feature-item-icon blue">
                   <Sparkles size={22} />
                 </div>
-                <h3>Jam-Free Thermal Paper</h3>
-                <p>High-density BPA-free thermal rolls designed to prevent cutter jams and ensure crisp printing.</p>
+                <h3>{t("productsPage.jam", "Jam-Free Thermal Paper")}</h3>
+                <p>{t("productsPage.jamText", "High-density BPA-free thermal rolls designed to prevent cutter jams and ensure crisp printing.")}</p>
               </div>
 
               <div className="feature-item-card">
                 <div className="feature-item-icon green">
                   <Printer size={22} />
                 </div>
-                <h3>Zero Ink & Maintenance</h3>
-                <p>Direct thermal printing means no expensive ink ribbons, cartridges, or toner refills ever.</p>
+                <h3>{t("productsPage.ink", "Zero Ink & Maintenance")}</h3>
+                <p>{t("productsPage.inkText", "Direct thermal printing means no expensive ink ribbons, cartridges, or toner refills ever.")}</p>
               </div>
             </div>
           </div>
@@ -817,7 +818,7 @@ export function Products({ setView, requireAuth, user }) {
                 type="button"
                 onClick={() => setSearch("")}
                 className="products-search-clear-btn"
-                aria-label="Clear search"
+                aria-label={t("productsPage.clearSearch", "Clear search")}
               >
                 <X size={14} />
               </button>
@@ -828,8 +829,8 @@ export function Products({ setView, requireAuth, user }) {
             type="button"
             onClick={handleVoiceSearch}
             className="products-mic-btn"
-            title="Voice search"
-            aria-label="Voice search"
+            title={t("productsPage.voiceSearch", "Voice search")}
+            aria-label={t("productsPage.voiceSearch", "Voice search")}
           >
             <Mic size={18} />
           </button>
@@ -880,8 +881,8 @@ export function Products({ setView, requireAuth, user }) {
                         type="button"
                         className={`product-heart-btn ${isWish ? "active" : ""}`}
                         onClick={(e) => toggleWishlist(product.id, e)}
-                        aria-label="Wishlist"
-                        title="Add to Wishlist"
+                        aria-label={t("productsPage.wishlist", "Wishlist")}
+                        title={t("productsPage.addWishlist", "Add to Wishlist")}
                       >
                         <Heart
                           size={18}
@@ -966,7 +967,7 @@ export function Products({ setView, requireAuth, user }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShoppingBag size={18} style={{ color: '#0284c7' }} />
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0C1F41', margin: 0 }}>
-                  Buy Product / Hardware
+                  {t("productsPage.buyTitle", "Buy Product / Hardware")}
                 </h3>
               </div>
               <button onClick={() => setBuyProduct(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#74788A' }}>
@@ -979,26 +980,26 @@ export function Products({ setView, requireAuth, user }) {
                 <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
                   <CheckCircle2 size={32} />
                 </div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0C1F41', margin: '0 0 0.25rem 0' }}>Order Placed Successfully!</h3>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0C1F41', margin: '0 0 0.25rem 0' }}>{t("productsPage.orderPlaced", "Order Placed Successfully!")}</h3>
                 <p style={{ fontSize: '0.85rem', color: '#74788A', margin: '0 0 1rem 0' }}>
-                  Order ID: <strong style={{ color: '#0284c7' }}>#{orderPlaced.orderId}</strong>
+                  {t("productsPage.orderId", "Order ID:")} <strong style={{ color: '#0284c7' }}>#{orderPlaced.orderId}</strong>
                 </p>
 
                 <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '0.85rem', textAlign: 'left', fontSize: '0.8rem', color: '#0C1F41', marginBottom: '1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <span>Product:</span>
+                    <span>{t("productsPage.product", "Product:")}</span>
                     <strong>{orderPlaced.productName} (x{orderPlaced.quantity})</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <span>Total Amount:</span>
+                    <span>{t("productsPage.totalAmount", "Total Amount:")}</span>
                     <strong>₹{orderPlaced.totalAmount}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <span>Delivery Contact:</span>
+                    <span>{t("productsPage.deliveryContact", "Delivery Contact:")}</span>
                     <strong>{orderPlaced.buyerName} ({orderPlaced.buyerPhone})</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Payment Mode:</span>
+                    <span>{t("productsPage.paymentMode", "Payment Mode:")}</span>
                     <strong>{orderPlaced.paymentMethod}</strong>
                   </div>
                 </div>
@@ -1008,7 +1009,7 @@ export function Products({ setView, requireAuth, user }) {
                   className="primary-button"
                   style={{ width: '100%', justifyContent: 'center' }}
                 >
-                  Done
+                  {t("productsPage.done", "Done")}
                 </button>
               </div>
             ) : (
@@ -1030,7 +1031,7 @@ export function Products({ setView, requireAuth, user }) {
 
                 {/* Quantity Selector */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '0.5rem 0.75rem', border: '1px solid #bae6fd', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0C1F41' }}>Quantity</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0C1F41' }}>{t("productsPage.quantity", "Quantity")}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <button
                       type="button"
@@ -1052,11 +1053,11 @@ export function Products({ setView, requireAuth, user }) {
 
                 {/* Buyer Details */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Your Full Name *</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.fullName", "Your Full Name *")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Enter your name"
+                    placeholder={t("productsPage.enterName", "Enter your name")}
                     value={buyerName}
                     onChange={(e) => setBuyerName(e.target.value)}
                     style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none' }}
@@ -1065,7 +1066,7 @@ export function Products({ setView, requireAuth, user }) {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Phone Number *</label>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.phone", "Phone Number *")}</label>
                     <input
                       type="text"
                       required
@@ -1077,7 +1078,7 @@ export function Products({ setView, requireAuth, user }) {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Payment Mode</label>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.paymentModeLabel", "Payment Mode")}</label>
                     <select
                       value={paymentMethod}
                       onChange={(e) => setPaymentMethod(e.target.value)}
@@ -1091,10 +1092,10 @@ export function Products({ setView, requireAuth, user }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Delivery Address</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.address", "Delivery Address")}</label>
                   <textarea
                     rows="2"
-                    placeholder="Enter shop address for shipping..."
+                    placeholder={t("productsPage.enterAddress", "Enter shop address for shipping...")}
                     value={buyerAddress}
                     onChange={(e) => setBuyerAddress(e.target.value)}
                     style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none', resize: 'vertical' }}
@@ -1108,7 +1109,7 @@ export function Products({ setView, requireAuth, user }) {
                   const total = Math.round(base + tax)
                   return (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.65rem 0.85rem' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>Total Amount (incl. GST):</span>
+                      <span style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>{t("productsPage.totalGst", "Total Amount (incl. GST):")}</span>
                       <span style={{ fontSize: '1.15rem', color: '#15803d', fontWeight: 800 }}>₹{total}</span>
                     </div>
                   )
@@ -1120,7 +1121,7 @@ export function Products({ setView, requireAuth, user }) {
                     onClick={() => setBuyProduct(null)}
                     style={{ flex: 1, padding: '0.55rem', border: '1px solid #D9DDE4', background: '#f0f9ff', color: '#575B6B', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                   >
-                    Cancel
+                    {t("productsPage.cancel", "Cancel")}
                   </button>
                   <button
                     type="submit"
@@ -1152,11 +1153,11 @@ export function Products({ setView, requireAuth, user }) {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Product Name *</label>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.productName", "Product Name *")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Bluetooth POS Receipt Printer"
+                  placeholder={t("productsPage.namePh", "e.g. Bluetooth POS Receipt Printer")}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.88rem', outline: 'none' }}
@@ -1165,7 +1166,7 @@ export function Products({ setView, requireAuth, user }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Price (₹) *</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.price", "Price (₹) *")}</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1178,7 +1179,7 @@ export function Products({ setView, requireAuth, user }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Category</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.category", "Category")}</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
@@ -1191,7 +1192,7 @@ export function Products({ setView, requireAuth, user }) {
 
               {/* Image Input & Presets */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Product Image URL</label>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.imageUrl", "Product Image URL")}</label>
                 <input
                   type="text"
                   placeholder="/products/pos_printer.jpg or https://..."
@@ -1200,27 +1201,27 @@ export function Products({ setView, requireAuth, user }) {
                   style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none', marginBottom: '0.35rem' }}
                 />
                 <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                  <small style={{ fontSize: '0.7rem', color: '#74788A' }}>Quick presets:</small>
+                  <small style={{ fontSize: '0.7rem', color: '#74788A' }}>{t("productsPage.presets", "Quick presets:")}</small>
                   <button
                     type="button"
                     onClick={() => setImage("/products/pos_printer.jpg")}
                     style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', cursor: 'pointer' }}
                   >
-                    POS Printer
+                    {t("productsPage.posPrinter", "POS Printer")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setImage("/products/paper_rolls.jpg")}
                     style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid #bae6fd', background: '#f0f9ff', color: '#0284c7', cursor: 'pointer' }}
                   >
-                    Paper Rolls
+                    {t("productsPage.paperRolls", "Paper Rolls")}
                   </button>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.65rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>SKU Code</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.sku", "SKU Code")}</label>
                   <input
                     type="text"
                     placeholder="POS-101"
@@ -1231,7 +1232,7 @@ export function Products({ setView, requireAuth, user }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Product Link</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.link", "Product Link")}</label>
                   <input
                     type="url"
                     placeholder="https://example.com/product"
@@ -1242,7 +1243,7 @@ export function Products({ setView, requireAuth, user }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Stock Units</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.stock", "Stock Units")}</label>
                   <input
                     type="number"
                     placeholder="100"
@@ -1254,10 +1255,10 @@ export function Products({ setView, requireAuth, user }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>Description</label>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#0C1F41', marginBottom: '0.2rem' }}>{t("productsPage.description", "Description")}</label>
                 <textarea
                   rows="2"
-                  placeholder="Product specs or delivery details..."
+                  placeholder={t("productsPage.specsPh", "Product specs or delivery details...")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #D9DDE4', fontSize: '0.85rem', outline: 'none', resize: 'vertical' }}
@@ -1270,7 +1271,7 @@ export function Products({ setView, requireAuth, user }) {
                   onClick={() => setShowModal(false)}
                   style={{ flex: 1, padding: '0.55rem', border: '1px solid #D9DDE4', background: '#f0f9ff', color: '#575B6B', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  Cancel
+                  {t("productsPage.cancel", "Cancel")}
                 </button>
                 <button
                   type="submit"
