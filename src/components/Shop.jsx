@@ -35,7 +35,7 @@ import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import { VoiceInputButton } from "./common/VoiceInputButton"
-import { ChangeCategoryModal, BUSINESS_CATEGORIES, getBusinessCategories } from "./common/ChangeCategoryModal"
+import { BUSINESS_CATEGORIES, getBusinessCategories } from "./common/ChangeCategoryModal"
 import { ManageTablesModal } from "./tables/ManageTablesModal"
 import { Skeleton, ButtonLoader } from "./common/Skeleton"
 import { StaffAccessCard, StaffMemberView } from "./StaffAccessCard"
@@ -145,7 +145,6 @@ export function Shop({ user, setView } = {}) {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
   const [logoUploading, setLogoUploading] = useState(false)
-  const [isChangeCategoryModalOpen, setIsChangeCategoryModalOpen] = useState(false)
   const [isManageTablesModalOpen, setIsManageTablesModalOpen] = useState(false)
   const [isRemoveLogoModalOpen, setIsRemoveLogoModalOpen] = useState(false)
   const edited = useRef(false)
@@ -894,15 +893,6 @@ export function Shop({ user, setView } = {}) {
                     </div>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsChangeCategoryModalOpen(true)}
-                  className="sp-change-logo-btn"
-                  style={{ background: "#ffffff", color: "#0284c7", border: "1.5px solid #bae6fd", fontWeight: "700", fontSize: "0.84rem", padding: "0.5rem 0.95rem", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
-                >
-                  <SlidersHorizontal size={14} /> {t("profile.changeCategoryBtn", "Change Category")}
-                </button>
               </div>
 
               {isHotelRestaurant(shop) && (
@@ -1079,92 +1069,7 @@ export function Shop({ user, setView } = {}) {
             </div>
           </div>
 
-          {/* Card 2: Receipt Settings */}
-          <div className="sp-card">
-            <div className="sp-card-header">
-              <div className="sp-icon-box blue">
-                <Receipt size={18} />
-              </div>
-              <div className="sp-card-titles">
-                <h3 className="sp-card-title">{t("profile.receiptDefaults", "Receipt Settings")}</h3>
-                <p className="sp-card-subtitle">{t("profile.receiptDefaultsSub", "Customize how your bills look")}</p>
-              </div>
-            </div>
-
-            <div className="sp-field-group full-width">
-              <label className="sp-label">{t("profile.receiptTemplate", "Receipt Template")}</label>
-              <div className="sp-select-wrap">
-                <Receipt size={16} className="sp-input-icon" />
-                <select
-                  value={shop.default_template_id}
-                  onChange={(e) => handleChange("default_template_id", e.target.value)}
-                  className="sp-select"
-                >
-                  {templates.map((tItem) => (
-                    <option key={tItem.id} value={tItem.id}>
-                      {tDb(tItem.name)} ({tItem.width || "58mm"})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={15} className="sp-select-arrow" />
-              </div>
-              <span className="sp-helper-text">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Live Receipt Preview, App Settings */}
-        <div className="sp-right-col">
-          {/* Card 1: Live Receipt Preview */}
-          <div className="sp-preview-card">
-            <div className="sp-preview-header">
-              <div className="sp-live-badge">
-                <span className="sp-pulse-dot" /> {t("profile.livePreview", "Live Preview")}
-              </div>
-            </div>
-
-            <div className="sp-receipt-wrapper">
-              <RealisticReceiptView template={selectedTemplate} />
-            </div>
-          </div>
-
-          {/* Card 2: App Settings */}
-          <div className="sp-card" id="app-settings-section">
-            <div className="sp-card-header">
-              <div className="sp-icon-box blue">
-                <Settings size={18} />
-              </div>
-              <div className="sp-card-titles">
-                <h3 className="sp-card-title">{t("profile.appSettings", "App Settings")}</h3>
-                <p className="sp-card-subtitle">{t("profile.appPreferences", "Language & App Preferences")}</p>
-              </div>
-            </div>
-
-            <div className="sp-field-group">
-              <label className="sp-label">{t("profile.languageTitle", "App Language")}</label>
-              <div className="sp-select-wrap">
-                <Globe size={16} className="sp-input-icon" />
-                <select
-                  value={currentLang}
-                  onChange={(e) => handleLanguageSelect(e.target.value)}
-                  className="sp-select"
-                >
-                  {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.flag} {l.nativeName} ({l.label})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={15} className="sp-select-arrow" />
-              </div>
-              <span className="sp-helper-text">{t("profile.chooseLang", "Choose your preferred application language")}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* BOTTOM FULL-WIDTH ROW: Invoice Sequencing (Left) & Staff & Sub-Users (Right) */}
-        <div className="sp-bottom-grid">
-          {/* Card 3: Invoice Sequencing */}
+          {/* Card 2: Invoice Sequencing */}
           <div className="sp-card sp-sequencing-card">
             <div className="sp-card-header">
               <div className="sp-icon-box purple">
@@ -1292,7 +1197,86 @@ export function Shop({ user, setView } = {}) {
             </div>
           </div>
 
-          {/* Card 4: Staff & Sub-Users (Printer Access Sharing) */}
+          {/* Card 3: App Settings */}
+          <div className="sp-card" id="app-settings-section">
+            <div className="sp-card-header">
+              <div className="sp-icon-box blue">
+                <Settings size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">{t("profile.appSettings", "App Settings")}</h3>
+                <p className="sp-card-subtitle">{t("profile.appPreferences", "Language & App Preferences")}</p>
+              </div>
+            </div>
+
+            <div className="sp-field-group">
+              <label className="sp-label">{t("profile.languageTitle", "App Language")}</label>
+              <div className="sp-select-wrap">
+                <Globe size={16} className="sp-input-icon" />
+                <select
+                  value={currentLang}
+                  onChange={(e) => handleLanguageSelect(e.target.value)}
+                  className="sp-select"
+                >
+                  {SUPPORTED_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.flag} {l.nativeName} ({l.label})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="sp-select-arrow" />
+              </div>
+              <span className="sp-helper-text">{t("profile.chooseLang", "Choose your preferred application language")}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Live Receipt Preview & Receipt Settings, Staff & Sub-Users */}
+        <div className="sp-right-col">
+          {/* Card 1: Live Receipt Preview with Receipt Settings */}
+          <div className="sp-preview-card">
+            <div className="sp-card-header" style={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.95rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div className="sp-icon-box blue">
+                  <Receipt size={18} />
+                </div>
+                <div className="sp-card-titles">
+                  <h3 className="sp-card-title">{t("profile.receiptDefaults", "Receipt Settings")}</h3>
+                  <p className="sp-card-subtitle">{t("profile.receiptDefaultsSub", "Customize how your bills look")}</p>
+                </div>
+              </div>
+
+              <div className="sp-live-badge" style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "0.25rem 0.65rem", borderRadius: "999px" }}>
+                <span className="sp-pulse-dot" /> {t("profile.livePreview", "Live Preview")}
+              </div>
+            </div>
+
+            <div className="sp-field-group full-width" style={{ marginBottom: "1rem" }}>
+              <label className="sp-label">{t("profile.receiptTemplate", "Receipt Template")}</label>
+              <div className="sp-select-wrap">
+                <Receipt size={16} className="sp-input-icon" />
+                <select
+                  value={shop.default_template_id}
+                  onChange={(e) => handleChange("default_template_id", e.target.value)}
+                  className="sp-select"
+                >
+                  {templates.map((tItem) => (
+                    <option key={tItem.id} value={tItem.id}>
+                      {tDb(tItem.name)} ({tItem.width || "58mm"})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="sp-select-arrow" />
+              </div>
+              <span className="sp-helper-text">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</span>
+            </div>
+
+            <div className="sp-receipt-wrapper">
+              <RealisticReceiptView template={selectedTemplate} />
+            </div>
+          </div>
+
+          {/* Card 2: Staff & Sub-Users (Printer Access Sharing) */}
           <StaffAccessCard user={user} />
         </div>
 
@@ -1642,7 +1626,7 @@ export function Shop({ user, setView } = {}) {
         /* Two-Column Desktop Grid Layout */
         .sp-desktop-layout {
           display: grid;
-          grid-template-columns: 1.55fr 1fr;
+          grid-template-columns: 1.15fr 1fr;
           gap: 1.25rem;
           align-items: start;
         }
@@ -1650,32 +1634,22 @@ export function Shop({ user, setView } = {}) {
         .sp-left-col {
           display: flex;
           flex-direction: column;
-          gap: 1.15rem;
+          gap: 1.25rem;
           min-width: 0;
         }
 
         .sp-right-col {
           display: flex;
           flex-direction: column;
-          gap: 1.15rem;
-          min-width: 0;
-        }
-
-        /* Bottom Full-Width 2-Column Row (Invoice Sequencing & Staff / Printer Sharing) */
-        .sp-bottom-grid {
-          grid-column: 1 / -1;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
           gap: 1.25rem;
-          align-items: stretch;
-          width: 100%;
+          min-width: 0;
         }
 
         .sp-sequencing-card,
         .sp-subusers-card {
           display: flex;
           flex-direction: column;
-          height: 100%;
+          height: auto;
           box-sizing: border-box;
         }
 
@@ -1967,7 +1941,7 @@ export function Shop({ user, setView } = {}) {
           background: #ffffff;
           border: 1.5px solid #bae6fd;
           border-radius: 16px;
-          padding: 1.15rem 1.25rem;
+          padding: 1.25rem 1.35rem;
           box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04);
         }
 
@@ -2109,13 +2083,9 @@ export function Shop({ user, setView } = {}) {
           .sp-left-col,
           .sp-right-col {
             width: 100% !important;
-          }
-
-          .sp-bottom-grid {
             display: flex !important;
             flex-direction: column !important;
             gap: 1.15rem !important;
-            width: 100% !important;
           }
         }
 
@@ -2141,7 +2111,7 @@ export function Shop({ user, setView } = {}) {
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 0.2rem !important;
-            margin-bottom: 0.85rem !important;
+            margin-bottom: 0 !important;
             width: 100% !important;
           }
 
@@ -2179,7 +2149,7 @@ export function Shop({ user, setView } = {}) {
             box-shadow: 0 1px 3px rgba(12, 31, 65, 0.04) !important;
             width: 100% !important;
             box-sizing: border-box !important;
-            margin-bottom: 0.85rem !important;
+            margin-bottom: 0 !important;
           }
 
           /* Store Details Mobile Presentation */
@@ -2407,13 +2377,6 @@ export function Shop({ user, setView } = {}) {
             width: 100% !important;
           }
 
-          .sp-bottom-grid {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 0.85rem !important;
-            width: 100% !important;
-          }
-
           .sp-card-header {
             margin-bottom: 0.95rem !important;
           }
@@ -2596,17 +2559,6 @@ export function Shop({ user, setView } = {}) {
         }
       `}</style>
 
-      {/* Change Shop Category Modal */}
-      <ChangeCategoryModal
-        isOpen={isChangeCategoryModalOpen}
-        onClose={() => setIsChangeCategoryModalOpen(false)}
-        currentCategory={shop.business_type || "small_business"}
-        user={user}
-        setView={setView}
-        onCategoryChanged={(newCat, updatedShop) => {
-          setShop((prev) => ({ ...prev, business_type: newCat, ...updatedShop }))
-        }}
-      />
 
       {/* Manage Tables Modal */}
       <ManageTablesModal

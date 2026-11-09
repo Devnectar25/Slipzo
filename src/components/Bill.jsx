@@ -54,6 +54,7 @@ import { useDbTranslation } from "../lib/translator"
 // Loaded on demand: the scanner library is large and only needed once the camera is opened
 const CameraScannerModal = lazy(() => import("./common/CameraScannerModal").then((m) => ({ default: m.CameraScannerModal })))
 import { useBarcodeScanner } from "../hooks/useBarcodeScanner"
+import { useShowBarcode } from "../hooks/useShowBarcode"
 import { playScanSuccessBeep, playScanErrorBeep } from "../lib/audioFeedback"
 import "../styles/NewBillFlow.css"
 
@@ -86,6 +87,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const { tDb, formatNum, lang } = useDbTranslation()
   const userKey = getCurrentUserKey(user)
   const [shop, setShopState] = useState(initialShop || {})
+  // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
+  const showBarcode = useShowBarcode(shop?.business_type ? shop : null)
 
   const setShop = (updater) => {
     setShopState((prev) => {
@@ -716,7 +719,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       setSearch("")
       handleBarcodeDetected(scannedBarcode)
     },
-    { enabled: flowStep === "bill" }
+    { enabled: flowStep === "bill" && showBarcode }
   )
 
   // ==========================================
@@ -1203,15 +1206,17 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
               </div>
             </div>
 
-            <button
-              type="button"
-              className="nb-scan-barcode-btn"
-              onClick={() => setIsCameraScannerOpen(true)}
-              title={t("bills.scanBarcodeTooltip", "Scan barcode with Camera or USB/BT Scanner")}
-            >
-              <BarcodeIcon size={18} />
-              <span>{t("bills.scanBarcode", "Scan Barcode")}</span>
-            </button>
+            {showBarcode && (
+              <button
+                type="button"
+                className="nb-scan-barcode-btn"
+                onClick={() => setIsCameraScannerOpen(true)}
+                title={t("bills.scanBarcodeTooltip", "Scan barcode with Camera or USB/BT Scanner")}
+              >
+                <BarcodeIcon size={18} />
+                <span>{t("bills.scanBarcode", "Scan Barcode")}</span>
+              </button>
+            )}
           </div>
 
           {/* Step 1: Category Filter Chips */}
@@ -1610,7 +1615,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       </div>
 
       {/* Camera Barcode Scanner Modal */}
-      {isCameraScannerOpen && (
+      {showBarcode && isCameraScannerOpen && (
         <Suspense fallback={<div className="scanner-chunk-loader" role="status" aria-label={t("common.openingCamera", "Opening camera")}><Spinner size={34} /></div>}>
           <CameraScannerModal
             isOpen={isCameraScannerOpen}

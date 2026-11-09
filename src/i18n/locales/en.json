@@ -1453,5 +1453,23 @@
     "default": "Default",
     "artAlt": "Receipt Templates Artwork",
     "err_load": "Failed to load templates"
+  },
+  "loader": {
+    "aria": "Loading",
+    "tagline": "Quick & Smart Billing System",
+    "getting": "Getting your billing desk ready…"
+  },
+  "policy": {
+    "title": "Before you start",
+    "subtitle": "Please read and accept our Terms of Service and Privacy Policy to use Slipzen.",
+    "pointData": "We keep only what billing needs: your shop, items and bills. We never sell your data.",
+    "pointPay": "Payments are made on Razorpay's secure screen. We never see your card, UPI PIN or bank password.",
+    "pointPerm": "The microphone and camera are used only when you use voice search or the barcode scanner, and only after you allow them.",
+    "tapRead": "Tap to read",
+    "agree": "I have read and agree to the Terms of Service and the Privacy Policy.",
+    "accept": "Accept & Continue",
+    "decline": "Decline and exit",
+    "gotIt": "Back to agreement",
+    "language": "Language"
   }
 }

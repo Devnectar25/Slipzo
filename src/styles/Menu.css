@@ -2909,3 +2909,14 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
+/* price fields: no tiny up/down arrows on the number input */
+.menu-modal-price-input-box .menu-modal-input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.menu-modal-price-input-box .menu-modal-input::-webkit-outer-spin-button,
+.menu-modal-price-input-box .menu-modal-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

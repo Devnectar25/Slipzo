@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import i18n from "../i18n/i18n"
+import { SpeechRecognition as NativeSpeech } from "@capacitor-community/speech-recognition"
+import { isNativeApp } from "../lib/utils"
 
 // Listen in the language the app is showing (Hindi / Marathi), not just the browser default
 const SPEECH_LANGUAGES = { hi: "hi-IN", mr: "mr-IN" }
@@ -114,9 +116,10 @@ export function useSpeechInput() {
   const isListeningRef = useRef(false)
 
   // Web Speech API check (standard and webkit prefixed for Chrome/Edge/Safari/Opera)
-  const isWebSpeechSupported = typeof window !== "undefined" && Boolean(
+  // Inside the Android app the WebView has no speech API, so the phone's own recogniser is used instead
+  const isWebSpeechSupported = isNativeApp || (typeof window !== "undefined" && Boolean(
     window.SpeechRecognition || window.webkitSpeechRecognition
-  )
+  ))
 
   // Cleanup on unmount
   useEffect(() => {
@@ -126,6 +129,10 @@ export function useSpeechInput() {
           recognitionRef.current.abort()
         } catch (e) {}
         recognitionRef.current = null
+      }
+      if (isNativeApp) {
+        try { NativeSpeech.stop() } catch (e) {}
+        try { NativeSpeech.removeAllListeners() } catch (e) {}
       }
     }
   }, [])
@@ -137,6 +144,9 @@ export function useSpeechInput() {
       try {
         recognitionRef.current.stop()
       } catch (e) {}
+    }
+    if (isNativeApp) {
+      Promise.resolve(NativeSpeech.stop()).catch(() => {})
     }
   }, [])
 
@@ -153,6 +163,60 @@ export function useSpeechInput() {
 
     if (!isWebSpeechSupported) {
       setErrorMsg(i18n.t("voice.err_unsupported", "Speech recognition is not supported in this browser."))
+      return
+    }
+
+    // Android app: ask for the microphone (Android shows its own permission box), then listen with the phone's recogniser
+    if (isNativeApp) {
+      const listenNatively = async () => {
+        try {
+          const { available } = await NativeSpeech.available()
+          if (!available) {
+            setErrorMsg(i18n.t("voice.err_unsupported", "Speech recognition is not supported in this browser."))
+            return
+          }
+
+          let permission = await NativeSpeech.checkPermissions()
+          if (permission.speechRecognition !== "granted") {
+            permission = await NativeSpeech.requestPermissions()
+          }
+          if (permission.speechRecognition !== "granted") {
+            setErrorMsg(i18n.t("voice.err_denied", "Microphone access denied. Please allow microphone permissions."))
+            setIsMicrophoneAvailable(false)
+            return
+          }
+          setIsMicrophoneAvailable(true)
+
+          await NativeSpeech.removeAllListeners()
+          await NativeSpeech.addListener("partialResults", (data) => {
+            const text = cleanSpeechText((data?.matches && data.matches[0]) || "")
+            if (!text) return
+            setTranscript(text)
+            setInterimTranscript(text)
+            if (options.onResult) options.onResult(text)
+          })
+          await NativeSpeech.addListener("listeningState", (data) => {
+            const on = data?.status === "started"
+            isListeningRef.current = on
+            setIsListening(on)
+          })
+
+          isListeningRef.current = true
+          setIsListening(true)
+          await NativeSpeech.start({
+            language: options.language || appSpeechLanguage(),
+            maxResults: 1,
+            partialResults: true,
+            popup: false
+          })
+        } catch (err) {
+          console.warn("Native speech recognition failed:", err)
+          isListeningRef.current = false
+          setIsListening(false)
+          setErrorMsg(i18n.t("voice.err_start", "Could not start speech recognition."))
+        }
+      }
+      listenNatively()
       return
     }
 

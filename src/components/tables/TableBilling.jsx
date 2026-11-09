@@ -37,6 +37,7 @@ import { TableResetModal } from "./TableResetModal"
 const CameraScannerModal = lazy(() => import("../common/CameraScannerModal").then((m) => ({ default: m.CameraScannerModal })))
 import { VoiceInputButton } from "../common/VoiceInputButton"
 import { useBarcodeScanner } from "../../hooks/useBarcodeScanner"
+import { useShowBarcode } from "../../hooks/useShowBarcode"
 import { playScanSuccessBeep, playScanErrorBeep } from "../../lib/audioFeedback"
 import { useToast } from "../common/Toast"
 import Swal from "sweetalert2"
@@ -56,6 +57,8 @@ export function TableBilling({
   const { t } = useTranslation()
   const { tDb, formatNum } = useDbTranslation()
   const { success: toastSuccess, error: toastError } = useToast()
+  // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
+  const showBarcode = useShowBarcode(shop?.business_type ? shop : null)
 
   // Helper to extract image from item object supporting various schemas
   const resolveItemImage = (item) => {
@@ -358,7 +361,7 @@ export function TableBilling({
 
   useBarcodeScanner((scanned) => {
     handleBarcodeDetected(scanned)
-  })
+  }, { enabled: showBarcode })
 
   // ==========================================
   // RESET TABLE BILL
@@ -659,15 +662,17 @@ export function TableBilling({
           />
             </div>
 
-            <button
-              type="button"
-              className="table-scan-barcode-btn"
-              onClick={() => setIsCameraScannerOpen(true)}
-              title={t("bills.scanBarcodeTooltip", "Scan barcode with Camera or USB/BT Scanner")}
-            >
-              <BarcodeIcon size={18} />
-              <span className="table-scan-btn-text">{t("bills.scanBarcode", "Scan Barcode")}</span>
-            </button>
+            {showBarcode && (
+              <button
+                type="button"
+                className="table-scan-barcode-btn"
+                onClick={() => setIsCameraScannerOpen(true)}
+                title={t("bills.scanBarcodeTooltip", "Scan barcode with Camera or USB/BT Scanner")}
+              >
+                <BarcodeIcon size={18} />
+                <span className="table-scan-btn-text">{t("bills.scanBarcode", "Scan Barcode")}</span>
+              </button>
+            )}
           </div>
 
           {/* Categories Horizontal Scroll */}
@@ -949,7 +954,7 @@ export function TableBilling({
       />
 
       {/* Barcode Camera Scanner */}
-      {isCameraScannerOpen && (
+      {showBarcode && isCameraScannerOpen && (
         <Suspense fallback={<div className="scanner-chunk-loader" role="status" aria-label={t("common.openingCamera", "Opening camera")}><Spinner size={34} /></div>}>
           <CameraScannerModal
             isOpen={isCameraScannerOpen}

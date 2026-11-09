@@ -982,6 +982,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                     <input
                       id="user-selling-price-input"
                       type="number"
+                      inputMode="decimal"
                       min="0"
                       step="any"
                       autoFocus
@@ -1138,30 +1139,45 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             position: relative;
             display: flex;
             align-items: center;
-            border: 1.5px solid #0284c7;
-            border-radius: 12px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 14px;
             background: #ffffff;
-            padding: 0 12px;
-            height: 44px;
-            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
-            gap: 8px;
+            padding: 0 8px 0 14px;
+            height: 48px;
+            gap: 10px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+          }
+
+          .add-menu-search-bar:focus-within {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.14);
           }
 
           .search-lead-icon {
             flex-shrink: 0;
           }
 
-          .add-menu-search-input {
+          /* the app has a global text-input focus style (!important) that would draw a second box inside the bar */
+          .add-menu-search-bar input.add-menu-search-input,
+          .add-menu-search-bar input.add-menu-search-input:focus {
             flex: 1;
-            border: none;
-            outline: none;
-            font-size: 0.86rem;
+            min-width: 0;
+            height: 100%;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            font-size: 0.95rem;
+            font-weight: 500;
             color: #0C1F41;
-            background: transparent;
           }
 
           .add-menu-search-input::placeholder {
-            color: #8F93A5;
+            color: #94a3b8;
+            font-weight: 400;
           }
 
           .add-menu-mic-wrap {
@@ -1782,35 +1798,69 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           .set-price-input-container {
             display: flex;
             align-items: center;
-            border: 1.5px solid #0080ff;
-            border-radius: 10px;
-            padding: 0 12px;
-            height: 44px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 0 14px 0 0;
+            height: 50px;
             background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(0, 128, 255, 0.08);
-            gap: 8px;
-            transition: all 0.15s ease;
+            overflow: hidden;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
           }
 
-          .set-price-input-container.error {
+          .set-price-input-container:focus-within {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.14);
+          }
+
+          .set-price-input-container.error,
+          .set-price-input-container.error:focus-within {
             border-color: #ef4444;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
           }
 
           .set-price-currency {
-            font-size: 0.95rem;
+            align-self: stretch;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 46px;
+            background: #f0f9ff;
+            border-right: 1px solid #e0f2fe;
+            font-size: 1.05rem;
             font-weight: 800;
-            color: #0C1F41;
+            color: #0369a1;
           }
 
-          .set-price-input {
+          /* !important: the app has a global input style that would draw a second box inside this field */
+          .set-price-input-container input.set-price-input,
+          .set-price-input-container input.set-price-input:focus {
             flex: 1;
-            border: none;
-            outline: none;
-            font-size: 0.95rem;
+            min-width: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0 !important;
+            padding: 0 0 0 14px !important;
+            border: none !important;
+            border-radius: 0 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            font-size: 1.05rem;
             font-weight: 700;
             color: #0C1F41;
-            background: transparent;
+            -moz-appearance: textfield;
+            appearance: textfield;
+          }
+
+          .set-price-input-container .set-price-input::placeholder {
+            font-weight: 500;
+            color: #94a3b8;
+          }
+
+          .set-price-input-container .set-price-input::-webkit-outer-spin-button,
+          .set-price-input-container .set-price-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
           }
 
           .set-price-error-msg {

@@ -6,7 +6,11 @@ import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider, useToast } from "./components/common/Toast"
 import { TopProgressBar } from "./components/common/TopProgressBar"
 import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData } from "./lib/utils"
+import i18n from "./i18n/i18n"
+import PolicyGate from "./components/PolicyGate"
+import { hasAcceptedPolicy } from "./lib/legalContent"
 import "./styles/App.css"
+import "./styles/BootLoader.css"
 import "./styles/print.css"
 
 // Pages and modals are code-split so the first load only downloads what the current screen needs.
@@ -59,25 +63,20 @@ const prefetchPages = () => {
   else setTimeout(run, 2000)
 }
 
+// Full-screen loader. It is shown before any translation hook can run, so the text comes straight from i18n.
 function BrandLoader() {
   return (
-    <div className="loading">
-      <div className="brand-loader-card">
-        <div className="brand-loader-logo-wrapper">
-          <div className="brand-loader-ring-glow"></div>
-          <div className="brand-loader-ring-spinner"></div>
-          <img src="/logo-white.png" alt="Slipzen" className="brand-loader-logo" />
+    <div className="sz-boot" role="status" aria-live="polite" aria-label={i18n.t("loader.aria", "Loading")}>
+      <span className="sz-boot-blob sz-boot-blob-a" aria-hidden="true" />
+      <span className="sz-boot-blob sz-boot-blob-b" aria-hidden="true" />
+      <div className="sz-boot-center">
+        <div className="sz-boot-mark">
+          <span className="sz-boot-halo" aria-hidden="true" />
+          <img src="/logo.png" alt="Slipzen" className="sz-boot-logo" />
         </div>
-        <div className="brand-loader-text-group">
-          <div className="brand-loader-brand">
-            <span className="brand-title">Slipzen</span>
-            <span className="brand-dot">•</span>
-          </div>
-          <p className="brand-loader-subtext">Quick & Smart Billing System</p>
-        </div>
-        <div className="brand-loader-progress-track">
-          <div className="brand-loader-progress-fill"></div>
-        </div>
+        <p className="sz-boot-tag">{i18n.t("loader.tagline", "Quick & Smart Billing System")}</p>
+        <div className="sz-boot-bar" aria-hidden="true"><span /></div>
+        <p className="sz-boot-sub">{i18n.t("loader.getting", "Getting your billing desk ready…")}</p>
       </div>
     </div>
   )
@@ -92,6 +91,9 @@ function PageLoader() {
 }
 
 export default function App() {
+  // The Android app asks for agreement to the Terms and Privacy Policy before anything else
+  const [policyAccepted, setPolicyAccepted] = useState(() => !isNativeApp || hasAcceptedPolicy())
+
   useEffect(() => {
     if (document.readyState === "complete") prefetchPages()
     else window.addEventListener("load", prefetchPages, { once: true })
@@ -102,7 +104,7 @@ export default function App() {
       <TopProgressBar />
       <ToastProvider>
         <Suspense fallback={<BrandLoader />}>
-          <AppContent />
+          {policyAccepted ? <AppContent /> : <PolicyGate onAccept={() => setPolicyAccepted(true)} />}
         </Suspense>
       </ToastProvider>
     </ErrorBoundary>
@@ -629,30 +631,50 @@ function AppContent() {
     }
   }, [view])
 
-  const handleLogout = async () => {
+  const loggingOutRef = useRef(false)
+
+  // Signing out happens on the phone straight away. The server is told in the background, so a slow or missing
+  // connection can never leave the person stuck on the screen (or signed back in later).
+  const handleLogout = () => {
+    if (loggingOutRef.current) return
+    loggingOutRef.current = true
+
+    let token = null
+    try { token = localStorage.getItem("slipzo_token") } catch (e) {}
     try {
-      await call("/auth/logout", { method: "POST" })
+      call("/auth/logout", {
+        method: "POST",
+        timeout: 8000,
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      }).catch((err) => console.warn("Backend logout endpoint warning:", err))
     } catch (err) {
       console.warn("Backend logout endpoint warning:", err)
-    } finally {
-      try {
-        localStorage.removeItem("slipzo_user_info")
-        localStorage.removeItem("slipzo_token")
-        localStorage.removeItem("slipzo_admin_token")
-        sessionStorage.clear()
-        clearApiCache()
-      } catch (e) {}
-
-      setUser(null)
-      setShowAuth(false)
-      setShowPlanGate(false)
-      setShowShopOnboarding(false)
-      setShowAddItemsModal(false)
-      setView("dashboard")
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
-      }
     }
+
+    try {
+      localStorage.removeItem("slipzo_user_info")
+      localStorage.removeItem("slipzo_token")
+      localStorage.removeItem("slipzo_admin_token")
+      localStorage.removeItem("slipzo_pending_payment")
+      sessionStorage.clear()
+      clearApiCache()
+    } catch (e) {}
+
+    setUser(null)
+    setShowAuth(false)
+    setShowPlanGate(false)
+    setShowShopOnboarding(false)
+    setShowAddItemsModal(false)
+    setShowFreeRewardExpiredModal(false)
+    setResolvingSetup(false)
+    setSelectedBillId(null)
+    setCachedShop({})
+    setView("dashboard")
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+    }
+
+    setTimeout(() => { loggingOutRef.current = false }, 1000)
   }
 
   const handleLogin = async (userData, isNewUser = false) => {

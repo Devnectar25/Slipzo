@@ -278,10 +278,17 @@ const performFetch = async (cleanPath, options = {}) => {
     ...(customHeaders || {})
   }
 
+  const controller = new AbortController()
+  const timeoutMs = options.timeout || 30000
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
   try {
     const response = await fetch(url, {
-      credentials: "include",
+      // The app keeps its own sign-in token and sends it in the header. A cookie kept in the phone's browser could
+      // outlive a sign-out (when the server cannot be reached) and sign the person back in, so the app sends none.
+      credentials: isNativeApp ? "omit" : "include",
       method,
+      signal: options.signal || controller.signal,
       ...restOptions,
       headers: defaultHeaders
     })
@@ -350,6 +357,11 @@ const performFetch = async (cleanPath, options = {}) => {
     
     return data
   } catch (err) {
+    if (err.name === 'AbortError') {
+      const timeoutError = new Error("Connection timed out. Please check your internet connection and try again.")
+      timeoutError.rawMessage = "AbortError"
+      throw timeoutError
+    }
     if (err.message === 'Failed to fetch') {
       console.warn(`Failed to connect to backend server (${API}).`)
       const networkError = new Error(networkErrorMessage())
@@ -357,6 +369,8 @@ const performFetch = async (cleanPath, options = {}) => {
       throw networkError
     }
     throw err
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 

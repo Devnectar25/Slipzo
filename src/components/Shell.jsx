@@ -891,6 +891,14 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             display: flex !important;
           }
 
+          /* The Android bar at the bottom of the screen must not sit on top of the Sign out button */
+          .side-logout-btn {
+            min-height: 46px !important;
+            padding: 0.6rem 0.8rem !important;
+            font-size: 0.92rem !important;
+            border-radius: 10px !important;
+          }
+
           .app-shell aside {
             left: auto !important;
             right: 0 !important;
@@ -904,7 +912,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             height: 100dvh !important;
             max-height: 100dvh !important;
             overflow: hidden !important;
-            padding: max(calc(env(safe-area-inset-top, 0px) + 28px), 32px) 1rem max(0.65rem, env(safe-area-inset-bottom, 0.65rem)) 1rem !important;
+            padding: max(calc(env(safe-area-inset-top, 0px) + 28px), 32px) 1rem calc(max(0.65rem, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) + 0.5rem) 1rem !important;
             box-shadow: -4px 0 24px rgba(12, 31, 65, 0.12) !important;
             width: 280px !important;
             max-width: 85vw !important;

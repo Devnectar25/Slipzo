@@ -37,7 +37,22 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
+    <!-- Permissions. Microphone and camera are asked from the person at the moment they use voice search or the barcode scanner. -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Phones without a camera or microphone can still install and use the app -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <!-- Android 11+: lets the app see the phone's speech recogniser (voice search) -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 </manifest>

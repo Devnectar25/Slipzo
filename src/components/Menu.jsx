@@ -42,6 +42,7 @@ import { useDbTranslation } from "../lib/translator"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useSpeechInput } from "../hooks/useSpeechInput"
 import { BarcodeModal } from "./common/BarcodeModal"
+import { useShowBarcode } from "../hooks/useShowBarcode"
 import Swal from "sweetalert2"
 import "../styles/Menu.css"
 
@@ -160,6 +161,8 @@ export function Menu({ setView, requireAuth, user }) {
   const cachedShop = getCachedData("/shop")
   const defaultBusinessType = cachedShop?.business_type || "small_business"
   const [selectedBusinessType, setSelectedBusinessType] = useState(defaultBusinessType)
+  // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
+  const showBarcode = useShowBarcode(selectedBusinessType)
 
   const isDefaultBarcodeActiveForBusinessType = (bType, catItem) => {
     if (catItem) {
@@ -1063,18 +1066,6 @@ export function Menu({ setView, requireAuth, user }) {
                 <span className="mob-btn-text-full">{tDb("Custom Item")}</span>
                 <span className="mob-btn-text-short">{tDb("Custom Item")}</span>
               </button>
-
-              <button
-                type="button"
-                className={`mob-menu-btn mob-menu-voice-btn ${isListening ? "listening" : ""}`}
-                onClick={handleToggleVoiceSearch}
-                title={isListening ? t("menu.clickToStop", "Click to stop listening") : t("menu.addByVoice", "Add item by speaking its name")}
-                style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
-              >
-                <Mic size={14} />
-                <span className="mob-btn-text-full">{isListening ? t("menu.listening", "Listening...") : t("menu.addByVoice", "Add by Voice")}</span>
-                <span className="mob-btn-text-short">{isListening ? t("menu.listening", "Listening...") : t("menu.voice", "Voice")}</span>
-              </button>
             </div>
 
             {/* Search Bar + Voice Input */}
@@ -1471,7 +1462,7 @@ export function Menu({ setView, requireAuth, user }) {
                             </div>
                           )}
                           <span className="menu-card-overlay-cat">{tDb(catItem.category || "General")}</span>
-                          {catItem.barcode && (
+                          {showBarcode && catItem.barcode && (
                             <span className="menu-card-barcode-badge">
                               <BarcodeIcon size={10} /> {catItem.barcode}
                             </span>
@@ -1595,26 +1586,6 @@ export function Menu({ setView, requireAuth, user }) {
                 >
                   <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{tDb("Custom Item")}</span>
                 </button>
-
-                <button
-                  type="button"
-                  className={`menu-secondary-btn ${isListening ? "listening" : ""}`}
-                  onClick={handleToggleVoiceSearch}
-                  title={isListening ? t("menu.clickToStop", "Click to stop listening") : t("menu.addByVoice", "Add item by speaking its name")}
-                  style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : { color: "#0284c7" }}
-                >
-                  {isListening ? (
-                    <>
-                      <span className="speech-pulse-dot" />
-                      <Volume2 size={16} className="speech-icon-anim" />
-                      <span>{t("menu.listening", "Listening...")}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Mic size={17} style={{ color: "#0284c7" }} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
-                    </>
-                  )}
-                </button>
               </div>
             </div>
 
@@ -1672,26 +1643,6 @@ export function Menu({ setView, requireAuth, user }) {
                     }}
                   >
                     <Plus size={18} /> {t("menu.addItems", "Add Items")}
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`menu-secondary-btn ${isListening ? "listening" : ""}`}
-                    onClick={handleToggleVoiceSearch}
-                    title={isListening ? t("menu.clickToStop", "Click to stop listening") : t("menu.addByVoice", "Add item by speaking its name")}
-                    style={isListening ? { borderColor: "#ef4444", background: "#fef2f2", color: "#dc2626" } : {}}
-                  >
-                    {isListening ? (
-                      <>
-                        <span className="speech-pulse-dot" />
-                        <Volume2 size={16} className="speech-icon-anim" />
-                        <span>{t("menu.listening", "Listening...")}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Mic size={17} style={{ color: "#0284c7" }} /> <span>{t("menu.addByVoice", "Add by Voice")}</span>
-                      </>
-                    )}
                   </button>
                 </div>
 
@@ -1789,7 +1740,7 @@ export function Menu({ setView, requireAuth, user }) {
                         </div>
 
                         <div className="user-menu-card-actions">
-                          {Boolean(item.barcode) && item.barcode_active !== false && item.barcode_active !== 0 && item.barcode_active !== "0" && item.barcode_active !== "false" && (
+                          {showBarcode && Boolean(item.barcode) && item.barcode_active !== false && item.barcode_active !== 0 && item.barcode_active !== "0" && item.barcode_active !== "false" && (
                             <button
                               type="button"
                               className="menu-action-btn barcode-btn"
@@ -2001,7 +1952,7 @@ export function Menu({ setView, requireAuth, user }) {
                           </div>
                         )}
                         <span className="menu-card-overlay-cat">{tDb(catItem.category || "General")}</span>
-                        {catItem.barcode && (
+                        {showBarcode && catItem.barcode && (
                           <span className="menu-card-barcode-badge">
                             <BarcodeIcon size={10} /> {catItem.barcode}
                           </span>
@@ -2184,7 +2135,9 @@ export function Menu({ setView, requireAuth, user }) {
                   </span>
                 </div>
 
-                {/* Barcode Active / Deactive toggle */}
+                {showBarcode && (
+<>
+{/* Barcode Active / Deactive toggle */}
                 <div className="menu-modal-field" style={{ marginTop: "1rem" }}>
                   <label className="menu-modal-label">{t("menu.barcodeStatus", "Barcode Status")}</label>
                   <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.4rem" }}>
@@ -2238,6 +2191,8 @@ export function Menu({ setView, requireAuth, user }) {
                     </div>
                   )}
                 </div>
+</>
+)}
 
                 {addFormError && (
                   <div style={{ color: "#ef4444", fontSize: "0.84rem", marginTop: "0.5rem" }}>
@@ -2340,7 +2295,9 @@ export function Menu({ setView, requireAuth, user }) {
                   </label>
                 </div>
 
-                {/* Barcode Active / Deactive toggle */}
+                {showBarcode && (
+<>
+{/* Barcode Active / Deactive toggle */}
                 <div className="menu-modal-field" style={{ marginTop: "1rem" }}>
                   <label className="menu-modal-label">{t("menu.barcodeStatus", "Barcode Status")}</label>
                   <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.4rem" }}>
@@ -2394,6 +2351,8 @@ export function Menu({ setView, requireAuth, user }) {
                     </div>
                   )}
                 </div>
+</>
+)}
               </div>
 
               <div className="menu-modal-footer">
@@ -2678,7 +2637,9 @@ export function Menu({ setView, requireAuth, user }) {
                   </div>
                 </div>
 
-                {/* 5. Barcode / SKU */}
+                {showBarcode && (
+<>
+{/* 5. Barcode / SKU */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <label className="menu-modal-label">{tDb("Barcode / SKU (Optional)")}</label>
                   <input
@@ -2739,6 +2700,8 @@ export function Menu({ setView, requireAuth, user }) {
                     </button>
                   </div>
                 </div>
+</>
+)}
 
                 {customFormError && (
                   <div style={{ color: "#ef4444", fontSize: "0.76rem", marginTop: "0.15rem" }}>

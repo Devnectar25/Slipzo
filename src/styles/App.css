@@ -19919,7 +19919,7 @@ textarea,
               transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-input[type="text"]:not(.search-input):not(.nb-search-input):not(.menu-search-input):not(.slipzo-search-input):not(.products-search-input):not(.products-search-input-field):not(.templates-search-input-field):not(.home-search-input):focus,
+input[type="text"]:not(.search-input):not(.nb-search-input):not(.menu-search-input):not(.slipzo-search-input):not(.products-search-input):not(.products-search-input-field):not(.templates-search-input-field):not(.home-search-input):not(.tables-search-input):not([class*="search"] input):focus,
 input[type="number"]:focus,
 input[type="email"]:focus,
 input[type="tel"]:focus,
