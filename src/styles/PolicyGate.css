@@ -52,10 +52,15 @@
   text-align: center;
   padding: 14px 0 6px;
 }
-.pg-logo {
-  width: 150px;
-  max-width: 50%;
-  height: auto;
+.pg-hero { display: flex; flex-direction: column; align-items: center; }
+/* !important: the app has global image rules (block / left aligned) that would push the logo to the left */
+.pg-hero img.pg-logo {
+  display: block !important;
+  width: clamp(180px, 58vw, 240px) !important;
+  max-width: 100% !important;
+  height: auto !important;
+  margin: 10px auto 0 !important;
+  object-fit: contain !important;
   filter: drop-shadow(0 8px 18px rgba(2, 132, 199, 0.2));
 }
 .pg-title {

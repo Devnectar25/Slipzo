@@ -317,7 +317,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               className="auth-logo"
             />
           </div>
-          <div>
+          <div className="art-body">
             <p className="eyebrow">{t("auth.artEyebrow", "THE DIGITAL RECEIPT BOOK")}</p>
             <h1>
               {t("auth.artTitle1", "Make every sale")}<br />
@@ -332,11 +332,15 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               <li><span><Check size={12} strokeWidth={3} /></span>{t("auth.benefit3", "Works in English, Hindi and Marathi")}</li>
             </ul>
           </div>
-          <div className="receipt-stamp">
-            <Receipt size={16} />
-            <span>
-              {t("auth.readyToPrint", "Ready to print")}<br />
-              <b>58mm · 80mm · A4</b>
+          <div className="art-footer">
+            <span className="art-footer-label">
+              <Receipt size={16} />
+              {t("auth.readyToPrint", "Ready to print")}
+            </span>
+            <span className="art-sizes">
+              <i>58mm</i>
+              <i>80mm</i>
+              <i>A4</i>
             </span>
           </div>
         </section>
