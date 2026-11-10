@@ -1200,7 +1200,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             display: none;
           }
 
+          /* chips keep their full width; the row scrolls sideways instead of squeezing them */
           .cat-chip-btn {
+            flex: 0 0 auto;
             background: #ffffff;
             border: 1px solid #bae6fd;
             color: #0C1F41;

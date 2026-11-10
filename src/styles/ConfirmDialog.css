@@ -27,7 +27,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #f87171, #dc2626);
+  background: linear-gradient(90deg, #38bdf8, #0284c7);
 }
 
 .slipzen-confirm-popup .swal2-icon.slipzen-confirm-icon {
@@ -39,9 +39,9 @@
   margin: 0.2rem auto 1.15rem;
   border: none !important;
   border-radius: 50%;
-  background: linear-gradient(145deg, #fee2e2, #fecaca);
-  color: #dc2626 !important;
-  box-shadow: 0 0 0 9px rgba(254, 226, 226, 0.6);
+  background: linear-gradient(145deg, #e0f2fe, #bae6fd);
+  color: #0284c7 !important;
+  box-shadow: 0 0 0 9px rgba(224, 242, 254, 0.7);
 }
 
 .slipzen-confirm-popup .swal2-icon.slipzen-confirm-icon .swal2-icon-content {
@@ -146,15 +146,15 @@
 .slipzen-confirm-popup .slipzen-confirm-cancel:hover { background: #e2e8f0; }
 
 .slipzen-confirm-popup .slipzen-confirm-ok {
-  background: linear-gradient(135deg, #f87171, #dc2626);
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
   border: none;
   color: #ffffff;
-  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.28);
+  box-shadow: 0 10px 22px rgba(2, 132, 199, 0.3);
 }
 
 .slipzen-confirm-popup .slipzen-confirm-ok:hover {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
-  box-shadow: 0 12px 26px rgba(220, 38, 38, 0.36);
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  box-shadow: 0 12px 26px rgba(2, 132, 199, 0.38);
 }
 
 .slipzen-confirm-popup .slipzen-confirm-btn:focus-visible {

@@ -2091,38 +2091,41 @@ export function Menu({ setView, requireAuth, user }) {
 
             <form onSubmit={handleConfirmAddToMenu}>
               <div className="menu-modal-body">
-                <div className="menu-modal-item-preview">
-                  {selectedCatalogItem.image_url ? (
-                    <img
-                      src={selectedCatalogItem.image_url}
-                      alt={selectedCatalogItem.name}
-                      className="menu-modal-preview-img"
-                      onError={(e) => {
-                        e.target.style.display = "none"
-                      }}
-                    />
-                  ) : (
-                    <div className="menu-card-image-placeholder" style={{ width: "56px", height: "56px", borderRadius: "8px" }}>
-                      {getItemPlaceholderIcon(selectedCatalogItem.category, 24)}
-                    </div>
-                  )}
-                  <div className="menu-modal-preview-details">
-                    <h4 className="menu-modal-preview-name">{tDb(selectedCatalogItem.name)}</h4>
-                    <div style={{ fontSize: "0.85rem", color: "#64748b", marginTop: "0.15rem" }}>
-                      {t("menu.catalogBasePrice", "Catalog base price:")} <strong style={{ color: "#0C1F41" }}>{money(selectedCatalogItem.price)}</strong>
-                    </div>
+                {/* item being added: fixed-size picture, name and the catalog price */}
+                <div className="amm-item">
+                  <div className="amm-thumb">
+                    {selectedCatalogItem.image_url ? (
+                      <img
+                        src={selectedCatalogItem.image_url}
+                        alt={selectedCatalogItem.name}
+                        onError={(e) => { e.currentTarget.style.display = "none" }}
+                      />
+                    ) : (
+                      getItemPlaceholderIcon(selectedCatalogItem.category, 24)
+                    )}
+                  </div>
+                  <div className="amm-item-text">
+                    <h4 className="amm-item-name">{tDb(selectedCatalogItem.name)}</h4>
+                    {selectedCatalogItem.category && <span className="amm-item-cat">{tDb(selectedCatalogItem.category)}</span>}
                   </div>
                 </div>
 
-                <div className="menu-modal-field">
-                  <label className="menu-modal-label">{t("menu.yourSellingPrice", "Your Selling Price (₹) *")}</label>
-                  <div className="menu-modal-price-input-box">
-                    <span className="menu-modal-currency-symbol">₹</span>
+                <div className="amm-base">
+                  <span>{t("menu.catalogBasePrice", "Catalog base price:")}</span>
+                  <strong>{money(selectedCatalogItem.price)}</strong>
+                </div>
+
+                <div className="menu-modal-field amm-field">
+                  <label className="menu-modal-label" htmlFor="amm-price">{t("menu.yourSellingPrice", "Your Selling Price (₹) *")}</label>
+                  <div className="amm-price">
+                    <span className="amm-currency">₹</span>
                     <input
+                      id="amm-price"
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0"
-                      className="menu-modal-input"
+                      className="amm-price-input"
                       placeholder={t("menu.enterSellingPrice", "Enter selling price")}
                       value={customPrice}
                       onChange={(e) => setCustomPrice(e.target.value)}
@@ -2130,7 +2133,7 @@ export function Menu({ setView, requireAuth, user }) {
                       required
                     />
                   </div>
-                  <span style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "0.3rem", display: "block" }}>
+                  <span className="amm-note">
                     {t("menu.pricePersonalNote", "This price is personal to your shop and will appear on your customer receipts.")}
                   </span>
                 </div>

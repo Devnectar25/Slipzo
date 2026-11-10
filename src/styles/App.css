@@ -20198,7 +20198,9 @@ textarea,
   .templates-view,
   .pricing-view,
   .contact-view {
-    animation: mobilePageSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+    /* backwards, not both: a transform kept after the slide-in would make every popup on the page
+       (position: fixed) line up with the page instead of the screen */
+    animation: mobilePageSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) backwards !important;
   }
 
   @keyframes mobilePageSlideUp {
@@ -20208,7 +20210,7 @@ textarea,
     }
     100% {
       opacity: 1;
-      transform: none !important;
+      transform: none;
     }
   }
 
