@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef, lazy, Suspense } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
+import { chargeAndPrint, downloadReceiptPdf, printWidthOf } from "../lib/directPrint"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import Swal from "sweetalert2"
@@ -29,7 +30,8 @@ import {
   Save,
   Lightbulb,
   Pencil,
-  Barcode as BarcodeIcon
+  Barcode as BarcodeIcon,
+  Download
 } from "lucide-react"
 import {
   call,
@@ -57,6 +59,7 @@ import { useBarcodeScanner } from "../hooks/useBarcodeScanner"
 import { useShowBarcode } from "../hooks/useShowBarcode"
 import { playScanSuccessBeep, playScanErrorBeep } from "../lib/audioFeedback"
 import "../styles/NewBillFlow.css"
+import { EmptyMenuGuide } from "./common/EmptyMenuGuide"
 
 function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -795,8 +798,31 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
   }
 
+  // Print straight from this screen (no separate preview page): one print credit, then the print dialog
+  const printNow = async (bill) => {
+    await new Promise((resolve) => setTimeout(resolve, 120)) // let the receipt pick up the saved bill number
+    const ok = await chargeAndPrint({
+      user,
+      elementId: "receipt-to-print",
+      pageWidth: printWidthOf(templateForPrint?.width),
+      onNeedPlan: () => setView("pricing")
+    })
+    if (!ok) return false
+    if (bill?.id) call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
+    window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
+    toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
+    setFlowStep("success")
+    return true
+  }
+
+  const handleDownloadPdf = () => downloadReceiptPdf({
+    elementId: "receipt-to-print",
+    pageWidth: printWidthOf(templateForPrint?.width),
+    billNumber: saved?.number || customBillNumber
+  })
+
   // ==========================================
-  // HANDLERS: PRINT BILL -> DIRECT TO FINAL PRINT PREVIEW
+  // HANDLERS: PRINT BILL -> SAVE, THEN PRINT DIRECTLY
   // ==========================================
   const handlePrintBill = async () => {
     if (isSaving) return
@@ -812,12 +838,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       return
     }
 
-    // If bill already saved, directly navigate to final print preview
+    // Already saved: print it straight away
     if (saved?.id) {
-      setSelectedBillId?.(saved.id)
-      sessionStorage.setItem("slipzo-reprint-id", saved.id)
-      sessionStorage.setItem("slipzo-print-origin", "bills")
-      setView("reprint")
+      setIsSaving(true)
+      try { await printNow(saved) } finally { setIsSaving(false) }
       return
     }
 
@@ -868,13 +892,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         setCustomBillNumber(bill.number)
       }
 
-      window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
-
-      // DIRECTLY navigate to existing final print preview without showing any intermediate page!
-      setSelectedBillId?.(bill.id)
-      sessionStorage.setItem("slipzo-reprint-id", bill.id)
-      sessionStorage.setItem("slipzo-print-origin", "bills")
-      setView("reprint")
+      const printed = await printNow(bill)
+      if (!printed) {
+        toastError(t("bills.savedNotPrinted", "The bill is saved but was not printed. Add print credits and press Print again."))
+      }
     } catch (err) {
       console.error("Failed to save and print bill:", err)
       const msg = err.detail || err.message || t("bills.err_saveFailed", "Failed to save bill. Please try again.")
@@ -1055,17 +1076,12 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           </p>
 
           <div className="nb-success-actions">
-            <button className="nb-success-print-btn" onClick={() => {
-              if (saved?.id) {
-                setSelectedBillId?.(saved.id)
-                sessionStorage.setItem("slipzo-reprint-id", saved.id)
-                sessionStorage.setItem("slipzo-print-origin", "bills")
-                setView("reprint")
-              } else {
-                handlePrintBill()
-              }
-            }}>
+            <button className="nb-success-print-btn" onClick={() => handlePrintBill()} disabled={isSaving}>
               <Printer size={18} /> {t("bills.printReceipt", "Print Receipt")}
+            </button>
+
+            <button className="nb-success-view-btn" onClick={handleDownloadPdf} data-testid="bill-success-pdf">
+              <Download size={16} /> {t("bills.downloadPdf", "Download PDF")}
             </button>
 
             <button
@@ -1219,26 +1235,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
             )}
           </div>
 
-          {/* Step 1: Category Filter Chips */}
-          {menuCategories.length > 2 && (
-            <div className="nb-category-chips-row">
-              {menuCategories.map((cat) => {
-                const isActive = selectedCategory.toLowerCase() === cat.toLowerCase()
-                const icon = cat === "all" ? "" : getCategoryIcon(cat)
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={`nb-category-chip ${isActive ? "active" : ""}`}
-                    onClick={() => setSelectedCategory(cat)}
-                  >
-                    {icon}{cat === "all" ? t("bills.allItems", "All Items") : tDb(cat)}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
           {/* Main 2-Column Content Layout */}
           <div className="nb-desktop-layout">
             {/* LEFT COLUMN: Main Menu-Items Container */}
@@ -1259,30 +1255,11 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                     </p>
                   </div>
                 ) : userMenuItems.length === 0 ? (
-                  /* Empty Menu State */
-                  <div className="nb-empty-menu-card">
-                    <div className="nb-empty-icon">
-                      {(shop?.business_type || "").toLowerCase().includes("clothing") || (shop?.business_type || "").toLowerCase().includes("garment") ? (
-                        <Shirt size={28} />
-                      ) : (shop?.business_type || "").toLowerCase().includes("hotel") || (shop?.business_type || "").toLowerCase().includes("food") ? (
-                        <Utensils size={28} />
-                      ) : (
-                        <ShoppingBag size={28} />
-                      )}
-                    </div>
-                    <h4 className="nb-empty-title">{t("bills.menuEmpty", "Your Menu is Empty")}</h4>
-                    <p className="nb-empty-desc">
-                      {t("bills.menuEmptyText", "Add items to your personal menu first to start creating bills with fast 1-click adding.")}
-                    </p>
-                    <button
-                      type="button"
-                      className="nb-add-btn"
-                      onClick={() => setView?.("menu")}
-                      style={{ margin: "0 auto", padding: "0.6rem 1.25rem", fontSize: "0.9rem" }}
-                    >
-                      <Plus size={16} /> {t("bills.goMenu", "Go to Menu")}
-                    </button>
-                  </div>
+                  /* Empty Menu State & New User Guide */
+                  <EmptyMenuGuide
+                    businessType={shop?.business_type}
+                    onAddItems={handleAddMoreItemsClick}
+                  />
                 ) : filteredMenuItems.length === 0 ? (
                   /* No Search Results */
                   <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #D9DDE4", marginBottom: "1rem" }}>
@@ -1467,7 +1444,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                 )}
 
                 {/* Direct Print Bill button + Save Bill Button */}
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+                <div className="nb-action-row" style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
                   <button
                     type="button"
                     className="nb-save-bill-btn"
@@ -1513,6 +1490,15 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                     <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.saveBill", "Save Bill")}</span>
                   </button>
                 </div>
+                <button
+                  type="button"
+                  className="tb-pdf-btn"
+                  data-testid="bill-pdf-button"
+                  onClick={handleDownloadPdf}
+                  disabled={isSaving || items.length === 0}
+                >
+                  <Download size={15} /> {t("bills.downloadPdf", "Download PDF")}
+                </button>
               </div>
 
               {/* Tip Card directly below Bill Summary */}

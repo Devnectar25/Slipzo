@@ -609,24 +609,6 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               </div>
             </div>
 
-            {/* Category Filter Chips */}
-            <div className="add-menu-category-chips">
-              {categoryChips.map((chip) => {
-                const isActive = selectedCategory === chip.id
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    className={`cat-chip-btn ${isActive ? "active" : ""}`}
-                    onClick={() => setSelectedCategory(chip.id)}
-                  >
-                    {chip.icon && <span className="cat-chip-icon">{chip.icon}</span>}
-                    <span>{chip.id === "all" ? t("menu.allItems", "All Items") : tDb(chip.label)}</span>
-                  </button>
-                )
-              })}
-            </div>
-
             {/* Section Heading */}
             <div className="add-menu-section-head">
               <h4>{t("menu.availableItems", "Available Items")} ({formatNum(filteredProducts.length)})</h4>

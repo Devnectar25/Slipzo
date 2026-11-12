@@ -1,0 +1,217 @@
+/* "Payment successful" popup (SweetAlert2 with customClass "ps-*") */
+
+.swal2-container.ps-container {
+  background: rgba(12, 31, 65, 0.55) !important;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  padding: 16px;
+}
+
+.ps-popup.swal2-popup {
+  position: relative;
+  width: min(100%, 420px);
+  padding: 0 !important;
+  border-radius: 26px !important;
+  overflow: hidden;
+  background: #ffffff !important;
+  box-shadow: 0 30px 80px -20px rgba(12, 31, 65, 0.45) !important;
+  font-family: inherit;
+}
+
+.ps-popup .swal2-html-container {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* top: light blue band with the tick and confetti */
+.ps-hero {
+  position: relative;
+  padding: 2rem 1.5rem 1.35rem;
+  text-align: center;
+  background:
+    radial-gradient(260px 160px at 85% 0%, rgba(125, 211, 252, 0.55), transparent 70%),
+    linear-gradient(160deg, #e0f2fe 0%, #f0f9ff 60%, #ffffff 100%);
+  overflow: hidden;
+}
+
+.ps-check {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.14), 0 16px 30px -10px rgba(22, 163, 74, 0.6);
+  animation: psPop 0.5s cubic-bezier(0.16, 1.4, 0.3, 1) both;
+}
+.ps-check svg path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: psDraw 0.45s ease-out 0.3s forwards;
+}
+
+.ps-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ps-confetti i {
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: psFall 1.6s ease-in forwards;
+}
+.ps-confetti i:nth-child(1) { left: 12%; background: #0ea5e9; animation-delay: 0.1s; }
+.ps-confetti i:nth-child(2) { left: 24%; background: #f59e0b; animation-delay: 0.3s; width: 6px; }
+.ps-confetti i:nth-child(3) { left: 36%; background: #22c55e; animation-delay: 0.05s; }
+.ps-confetti i:nth-child(4) { left: 62%; background: #ec4899; animation-delay: 0.25s; width: 6px; }
+.ps-confetti i:nth-child(5) { left: 74%; background: #0284c7; animation-delay: 0.15s; }
+.ps-confetti i:nth-child(6) { left: 86%; background: #f59e0b; animation-delay: 0.35s; }
+.ps-confetti i:nth-child(7) { left: 48%; background: #a855f7; animation-delay: 0.45s; width: 6px; }
+.ps-confetti i:nth-child(8) { left: 92%; background: #22c55e; animation-delay: 0.2s; }
+
+.ps-title {
+  position: relative;
+  z-index: 1;
+  margin: 1.1rem 0 0.3rem;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0c1f41;
+}
+.ps-sub {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+/* summary */
+.ps-body {
+  padding: 1.2rem 1.5rem 1.5rem;
+}
+.ps-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #e0f2fe;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.ps-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0.9rem 1rem;
+  text-align: left;
+}
+.ps-stat + .ps-stat { border-left: 1px solid #e0f2fe; }
+.ps-stat span {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.ps-stat b {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0c1f41;
+  overflow-wrap: anywhere;
+}
+.ps-stat b.ps-big {
+  font-size: 1.5rem;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.ps-payid {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.55rem 0.55rem 0.85rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+.ps-payid code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0c1f41;
+  background: none;
+}
+.ps-copy {
+  flex: none;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+  background: #ffffff;
+  color: #0284c7;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ps-copy:hover { background: #f0f9ff; }
+
+.ps-note {
+  margin: 0.85rem 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.ps-popup .swal2-actions {
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 1.5rem 1.5rem;
+  box-sizing: border-box;
+}
+.ps-popup .ps-cta {
+  width: 100%;
+  min-height: 50px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 14px 28px -12px rgba(2, 132, 199, 0.7);
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
+}
+.ps-popup .ps-cta:hover { box-shadow: 0 16px 32px -12px rgba(2, 132, 199, 0.8); }
+.ps-popup .ps-cta:active { transform: scale(0.985); }
+.ps-popup .ps-cta:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.3); }
+
+@keyframes psPop { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes psDraw { to { stroke-dashoffset: 0; } }
+@keyframes psFall {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(170px) rotate(320deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-check, .ps-check svg path, .ps-confetti i { animation: none !important; }
+  .ps-check svg path { stroke-dashoffset: 0; }
+  .ps-confetti { display: none; }
+}

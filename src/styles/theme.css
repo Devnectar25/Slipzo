@@ -285,7 +285,7 @@ input[type="search"],
   background-image: none !important;
 }
 
-input:not([type="search"]):not(.search-input):not(.nb-search-input):not(.menu-search-input):not(.slipzo-search-input):not(.products-search-input):not(.products-search-input-field):not(.templates-search-input-field):not(.home-search-input):not(.tables-search-input):not(.tables-search-box input):not(.table-menu-search-input input):not([class*="search"] input):focus,
+input:not([type="search"]):not(.search-input):not(.nb-search-input):not(.menu-search-input):not(.slipzo-search-input):not(.products-search-input):not(.products-search-input-field):not(.templates-search-input-field):not(.home-search-input):not(.tables-search-input):not(.tables-search-box input):not(.table-menu-search-input input):not([class*="search"] input):not(.amm-price-input):focus,
 select:focus,
 textarea:focus {
   border-color: var(--slipzo-search-focus) !important;

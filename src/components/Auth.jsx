@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { ButtonLoader } from "./common/Skeleton"
-import { ArrowRight, Receipt, X, Check, Eye, EyeOff, AlertCircle, Phone, Lock, Printer, Store, Mail, ArrowLeft, ExternalLink } from "lucide-react"
+import { ArrowRight, ArrowLeft, Receipt, X, Check, Eye, EyeOff, AlertCircle, Phone, Lock, Printer, Store, Mail, ExternalLink } from "lucide-react"
 import { call } from "../lib/utils"
 import "../styles/Auth.css"
 
@@ -42,7 +42,23 @@ const normalizeMobile = (value) => {
   else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1)
   return /^[6-9]\d{9}$/.test(digits) ? digits : null
 }
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// name@domain.tld: no spaces, a dot in the domain, a 2+ letter ending, no ".." anywhere
+const EMAIL_RE = /^(?!.*\.\.)[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/
+
+// Each returns null when the value is fine, otherwise [translation key, English text, values]
+const shopProblem = (value) => {
+  const v = String(value || "").trim()
+  if (!v) return ["auth.err_shop", "Please enter your shop name"]
+  if (v.length < 2) return ["auth.err_shop_short", "Shop name must be at least 2 characters"]
+  if (!/[\p{L}\p{N}]/u.test(v)) return ["auth.err_shop_letters", "Shop name must contain letters or numbers"]
+  return null
+}
+const categoryProblem = (value) => (value ? null : ["auth.err_category", "Please choose your shop category"])
+const emailProblem = (value) => {
+  const v = String(value || "").trim()
+  if (!v) return null // optional
+  return EMAIL_RE.test(v) ? null : ["auth.err_email", "Please enter a valid email address or leave it blank"]
+}
 
 // What is wrong with a mobile number, in words the person can act on. Returns null when the number is fine.
 // [translation key, English text, values for the text]
@@ -57,6 +73,16 @@ const mobileProblem = (value) => {
   if (digits.length !== 10) return ["auth.err_mobile_length", "A mobile number has 10 digits. You entered {{n}}.", { n: digits.length }]
   if (!/^[6-9]/.test(digits)) return ["auth.err_mobile_start", "An Indian mobile number starts with 6, 7, 8 or 9"]
   return null
+}
+
+// Sign in also accepts the email an older account was made with
+const loginIdProblem = (value) => {
+  const v = String(value || "").trim()
+  if (!v) return ["auth.err_mobile_required", "Please enter your mobile number"]
+  if (v.includes("@") || /[a-zA-Z]/.test(v)) {
+    return EMAIL_RE.test(v) ? null : ["auth.err_login_id", "Enter your 10-digit mobile number (or the email you signed up with)"]
+  }
+  return mobileProblem(v)
 }
 // Same four categories as the shop profile (components/common/ChangeCategoryModal.jsx)
 const SHOP_CATEGORIES = [
@@ -92,10 +118,48 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [hasPrinter, setHasPrinter] = useState(null) // null = not answered yet
   const [printers, setPrinters] = useState(PRINTER_FALLBACK)
+  const [myPrinterId, setMyPrinterId] = useState("") // printer picked from the list ("Yes, I have one")
+  const [myPrinterName, setMyPrinterName] = useState("") // or its name typed in
   const [brokenImages, setBrokenImages] = useState({})
   const [error, setError] = useState("")
   const [errorKey, setErrorKey] = useState("")
   const fail = (key, fallback, values) => { setErrorKey(key); setError(t(key, fallback, values)) }
+  // a message under each field (shown when the person leaves the field, or presses Continue)
+  const [fieldErrors, setFieldErrors] = useState({})
+  const problemFor = (name, f) => {
+    switch (name) {
+      case "shopName": return shopProblem(f.shopName)
+      case "category": return categoryProblem(f.category)
+      case "phone": return isRegister ? mobileProblem(f.phone) : loginIdProblem(f.phone)
+      case "email": return emailProblem(f.email)
+      case "password":
+        if (!f.password) return ["auth.err_password_required", "Please enter your password"]
+        if (isRegister && !PASSWORD_RULES.every((rule) => rule.test(f.password))) return ["auth.err_password_rules", "Password does not meet the security requirements"]
+        if (!isRegister && f.password.length < 4) return ["auth.err_password_short", "Password must be at least 4 characters"]
+        return null
+      case "confirmPassword":
+        if (!f.confirmPassword) return ["auth.err_confirm_required", "Please re-enter your password"]
+        return f.password === f.confirmPassword ? null : ["auth.err_mismatch", "Passwords do not match"]
+      default: return null
+    }
+  }
+  const messageFor = (problem) => (problem ? t(problem[0], problem[1], problem[2]) : "")
+  const checkField = (name, f = form) => setFieldErrors((prev) => ({ ...prev, [name]: messageFor(problemFor(name, f)) }))
+  // checks a group of fields at once; true when all are fine
+  const checkFields = (names) => {
+    const next = {}
+    names.forEach((n) => { next[n] = messageFor(problemFor(n, form)) })
+    setFieldErrors((prev) => ({ ...prev, ...next }))
+    const firstBad = names.find((n) => next[n])
+    if (firstBad && typeof document !== "undefined") {
+      setTimeout(() => document.querySelector(`[data-field="${firstBad}"]`)?.focus?.(), 0)
+    }
+    return !firstBad
+  }
+  const fieldError = (name) => (fieldErrors[name]
+    ? <span className="auth-field-error" role="alert" data-testid={`auth-error-${name}`}>{fieldErrors[name]}</span>
+    : null)
+  const required = <span className="auth-required" aria-hidden="true">*</span>
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -110,6 +174,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     setHasPrinter(null)
     setStep(1)
     setError("")
+    setFieldErrors({})
     setShowValidationPopup(false)
   }
 
@@ -134,14 +199,13 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
 
   // Printer pictures come from the Products catalogue (public), with built-in ones as a fallback
   useEffect(() => {
-    if (!isRegister || hasPrinter !== false) return
+    if (!isRegister || hasPrinter === null) return
     let alive = true
     call("/products")
       .then((list) => {
         if (!alive || !Array.isArray(list)) return
         const found = list
           .filter((p) => p && /printer/i.test(p.name || "") && !/roll|paper/i.test(p.name || "") && (p.image || p.images))
-          .slice(0, 4)
           .map((p) => ({ id: String(p.id), name: p.name, image: p.image || (Array.isArray(p.images) ? p.images[0] : ""), link: buyLink(p.product_link) }))
           .filter((p) => p.image)
         if (found.length) setPrinters(found)
@@ -151,25 +215,70 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
   }, [isRegister, hasPrinter])
 
   const set = (patch) => {
-    setForm((f) => ({ ...f, ...patch }))
+    setForm((f) => {
+      const next = { ...f, ...patch }
+      Object.keys(patch).forEach((name) => {
+        if (fieldErrors[name]) checkField(name, next)
+        if (name === "password" && fieldErrors.confirmPassword) checkField("confirmPassword", next)
+      })
+      return next
+    })
     if (error) setError("")
     if (offerSignIn) setOfferSignIn(false)
   }
 
-  const goStep1Next = () => {
-    const shopName = form.shopName.trim()
-    if (!shopName) return fail("auth.err_shop", "Please enter your shop name")
-    if (shopName.length < 2) return fail("auth.err_shop_short", "Shop name must be at least 2 characters")
-    if (!form.category) return fail("auth.err_category", "Please choose your shop category")
-    const phoneProblem = mobileProblem(form.phone)
-    if (phoneProblem) return fail(...phoneProblem)
-    if (form.email.trim() && !EMAIL_RE.test(form.email.trim())) return fail("auth.err_email", "Please enter a valid email address or leave it blank")
+  const goStep1Next = async () => {
+    if (loading) return
     setError("")
-    setStep(2)
+    setOfferSignIn(false)
+    if (!checkFields(["shopName", "category", "phone", "email"])) return
+    setLoading(true)
+    try {
+      const email = form.email.trim()
+      await call("/auth/check-availability", {
+        method: "POST",
+        body: JSON.stringify({
+          phone: normalizeMobile(form.phone),
+          ...(email ? { email } : {}),
+        }),
+      })
+      setStep(2)
+    } catch (err) {
+      // Allow progression only if an older backend does not expose /check-availability yet; register on step 3 still validates
+      if (err.status === 404) {
+        setStep(2)
+        return
+      }
+      const original = err.rawMessage || err.message || ""
+      const isSignupConflict = err.code === "SIGNUP_IN_PROGRESS"
+      const isEmailErr = err.code === "EMAIL_TAKEN" || /email/i.test(original)
+      const isPhoneErr = isSignupConflict || err.code === "MOBILE_TAKEN" || /mobile/i.test(original)
+      const message = err.message || t("auth.err_failed", "Authentication failed. Please check your credentials.")
+      setError(message)
+      if (isEmailErr || isPhoneErr) {
+        const targetField = isEmailErr ? "email" : "phone"
+        setErrorKey(
+          isSignupConflict ? "auth.err_in_progress" : isEmailErr ? "auth.err_email" : "auth.err_mobile_server"
+        )
+        setFieldErrors((prev) => ({ ...prev, [targetField]: message }))
+        if (isPhoneErr) setOfferSignIn(true)
+        setTimeout(() => document.querySelector(`[data-field="${targetField}"]`)?.focus(), 0)
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const goStep2Next = () => {
     if (hasPrinter === null) return fail("auth.err_printer", "Please choose Yes or No")
+    if (hasPrinter === false) return fail("auth.err_printer_buy", "Buy a printer first, then choose \"Yes, I have one\" to continue")
+    if (hasPrinter === true) {
+      const picked = printers.find((pr) => pr.id === myPrinterId)
+      const name = (picked?.name || myPrinterName).trim()
+      if (!name) return fail("auth.err_printer_pick", "Please choose your printer or type its name")
+      if (!picked && name.length < 2) return fail("auth.err_printer_name", "Please enter the full printer name")
+      try { localStorage.setItem("slipzo_my_printer", name) } catch (_) {}
+    }
     setError("")
     setStep(3)
   }
@@ -181,52 +290,10 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     if (isRegister && step === 1) return goStep1Next()
     if (isRegister && step === 2) return goStep2Next()
 
-    if (!isRegister) {
-      if (!form.phone || !form.phone.trim()) {
-        fail("auth.err_mobile_required", "Please enter your mobile number")
-        return
-      }
-      // Accounts made before mobile sign-in can still sign in with their old email
-      const typedEmail = form.phone.includes("@")
-      const legacyEmail = typedEmail && EMAIL_RE.test(form.phone.trim())
-      if (typedEmail && !legacyEmail) {
-        fail("auth.err_login_id", "Enter your 10-digit mobile number (or the email you signed up with)")
-        return
-      }
-      const phoneProblem = legacyEmail ? null : mobileProblem(form.phone)
-      if (phoneProblem) {
-        fail(...phoneProblem)
-        return
-      }
-    }
-
-    if (!form.password) {
-      fail("auth.err_password_required", "Please enter your password")
+    const toCheck = isRegister ? ["password", "confirmPassword"] : ["phone", "password"]
+    if (!checkFields(toCheck)) {
+      if (isRegister && form.password && !PASSWORD_RULES.every((rule) => rule.test(form.password))) setShowValidationPopup(true)
       return
-    }
-
-    if (isRegister) {
-      if (!form.confirmPassword) {
-        fail("auth.err_confirm_required", "Please re-enter your password")
-        return
-      }
-
-      if (form.password !== form.confirmPassword) {
-        fail("auth.err_mismatch", "Passwords do not match")
-        return
-      }
-
-      const allRulesPassed = PASSWORD_RULES.every(rule => rule.test(form.password))
-      if (!allRulesPassed) {
-        fail("auth.err_password_rules", "Password does not meet the security requirements")
-        setShowValidationPopup(true)
-        return
-      }
-    } else {
-      if (form.password.length < 4) {
-        fail("auth.err_password_short", "Password must be at least 4 characters")
-        return
-      }
     }
 
     setLoading(true)
@@ -240,6 +307,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           name: shopName,
           shop_name: shopName,
           business_type: form.category,
+          ...(hasPrinter === true ? { printer_name: (printers.find((pr) => pr.id === myPrinterId)?.name || myPrinterName).trim() } : {}),
           ...(form.email.trim() ? { email: form.email.trim() } : {})
         }
       } else {
@@ -298,7 +366,6 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     ? titles[step]
     : [t("auth.signinEyebrow", "WELCOME BACK"), t("auth.signinTitle", "Sign in to Slipzen"), t("auth.signinSub", "Your shop, your templates, ready when you are.")]
 
-  const phoneInvalid = error && (!form.phone || !form.phone.trim() || errorKey.startsWith("auth.err_mobile"))
 
   return (
     <div className="auth-overlay" onClick={onCancel ? onCancel : undefined}>
@@ -312,7 +379,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         <section className="auth-art">
           <div className="auth-logo-wrapper">
             <img
-              src="/logo-white.png"
+              src="/logo.png"
               alt="Slipzen"
               className="auth-logo"
             />
@@ -371,24 +438,27 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
             {isRegister && step === 1 && (
               <>
                 <label>
-                  <span className="auth-label-text">{t("auth.shopName", "Shop name")}</span>
+                  <span className="auth-label-text">{t("auth.shopName", "Shop name")} {required}</span>
                   <div className="auth-field">
                     <Store size={17} className="auth-field-icon" />
                     <input
                       data-testid="auth-shop-input"
+                      data-field="shopName"
+                      onBlur={() => checkField("shopName")}
                       required
                       autoComplete="organization"
                       maxLength={100}
                       placeholder={t("auth.shopPlaceholder", "e.g. Krishna Supermarket")}
                       value={form.shopName}
                       onChange={(e) => set({ shopName: e.target.value })}
-                      className={error && !form.shopName.trim() ? "input-error" : ""}
+                      className={fieldErrors.shopName ? "input-error" : ""}
                     />
                   </div>
+                  {fieldError("shopName")}
                 </label>
 
                 <div className="auth-cats" data-testid="auth-categories">
-                  <span className="auth-label-text">{t("auth.shopCategory", "Shop category")}</span>
+                  <span className="auth-label-text">{t("auth.shopCategory", "Shop category")} {required}</span>
                   <div className="auth-cat-grid" role="radiogroup" aria-label={t("auth.shopCategory", "Shop category")}>
                     {SHOP_CATEGORIES.map((cat) => (
                       <button
@@ -398,21 +468,25 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                         aria-checked={form.category === cat.id}
                         data-testid={`auth-cat-${cat.id}`}
                         className={`auth-cat ${form.category === cat.id ? "active" : ""}`}
-                        onClick={() => set({ category: cat.id })}
+                        data-field={cat.id === SHOP_CATEGORIES[0].id ? "category" : undefined}
+                        onClick={() => { set({ category: cat.id }); setFieldErrors((prev) => ({ ...prev, category: "" })) }}
                       >
                         <span className="auth-cat-icon">{cat.icon}</span>
                         <span className="auth-cat-label">{t(`auth.cat_${cat.id}`, cat.label)}</span>
                       </button>
                     ))}
                   </div>
+                  {fieldError("category")}
                 </div>
 
                 <label>
-                  <span className="auth-label-text">{t("auth.mobile", "Mobile number")}</span>
+                  <span className="auth-label-text">{t("auth.mobile", "Mobile number")} {required}</span>
                   <div className="auth-field">
                     <Phone size={17} className="auth-field-icon" />
                     <input
                       data-testid="auth-phone-input"
+                      data-field="phone"
+                      onBlur={() => checkField("phone")}
                       type="tel"
                       inputMode="numeric"
                       required
@@ -429,9 +503,10 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                         }
                         set({ phone: raw.slice(0, 10) })
                       }}
-                      className={phoneInvalid ? "input-error" : ""}
+                      className={fieldErrors.phone ? "input-error" : ""}
                     />
                   </div>
+                  {fieldError("phone")}
                 </label>
 
                 <label>
@@ -440,6 +515,8 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                     <Mail size={17} className="auth-field-icon" />
                     <input
                       data-testid="auth-email-input"
+                      data-field="email"
+                      onBlur={() => checkField("email")}
                       type="email"
                       inputMode="email"
                       autoComplete="email"
@@ -447,9 +524,10 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                       placeholder="you@example.com"
                       value={form.email}
                       onChange={(e) => set({ email: e.target.value })}
-                      className={error && errorKey === "auth.err_email" ? "input-error" : ""}
+                      className={fieldErrors.email ? "input-error" : ""}
                     />
                   </div>
+                  {fieldError("email")}
                 </label>
               </>
             )}
@@ -478,11 +556,53 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                   </button>
                 </div>
 
+                {hasPrinter === true && (
+                  <div className="auth-printer-suggest auth-printer-own" data-testid="auth-printer-own">
+                    <p className="auth-printer-suggest-title">{t("auth.printerPickTitle", "Which printer do you have? Tap it, or type its name below.")} <span className="auth-required">*</span></p>
+                    <div className="auth-printer-gallery auth-printer-pick">
+                      {printers.map((pr) => {
+                        const active = myPrinterId === pr.id
+                        return (
+                          <button
+                            type="button"
+                            key={pr.id}
+                            data-testid="auth-printer-pick"
+                            className={`auth-printer-shot auth-printer-option ${active ? "active" : ""}`}
+                            aria-pressed={active}
+                            aria-label={pr.name}
+                            onClick={() => { setMyPrinterId(active ? "" : pr.id); setMyPrinterName(""); if (error) setError("") }}
+                            title={pr.name}
+                          >
+                            {brokenImages[pr.id]
+                              ? <span className="auth-printer-shot-fallback" aria-hidden="true"><Printer size={34} /></span>
+                              : <img src={pr.image} alt="" loading="lazy" onError={() => setBrokenImages((b) => ({ ...b, [pr.id]: true }))} />}
+                            {active && <span className="auth-printer-option-check" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <label className="auth-printer-name-field">
+                      <span className="auth-label-text">{t("auth.printerNameLabel", "Printer name (if not in the list)")}</span>
+                      <div className="auth-field">
+                        <Printer size={17} className="auth-field-icon" />
+                        <input
+                          data-testid="auth-printer-name-input"
+                          maxLength={80}
+                          placeholder={t("auth.printerNamePlaceholder", "e.g. Epson TM-T82, TVS RP 3160")}
+                          value={myPrinterName}
+                          onChange={(e) => { setMyPrinterName(e.target.value); if (e.target.value) setMyPrinterId(""); if (error) setError("") }}
+                          className={error && errorKey.startsWith("auth.err_printer_") ? "input-error" : ""}
+                        />
+                      </div>
+                    </label>
+                  </div>
+                )}
+
                 {hasPrinter === false && (
                   <div className="auth-printer-suggest" data-testid="auth-printer-suggest">
-                    <p className="auth-printer-suggest-title">{t("auth.printerSuggest", "No problem! These printers work with Slipzen. You can order one later from the Products page.")}</p>
+                    <p className="auth-printer-suggest-title">{t("auth.printerSuggestBuy", "These printers work with Slipzen. Tap one to buy it.")}</p>
                     <div className="auth-printer-gallery">
-                      {printers.map((p) => {
+                      {printers.slice(0, 4).map((p) => {
                         const picture = brokenImages[p.id] ? (
                           <span className="auth-printer-shot-fallback" aria-label={p.name}><Printer size={34} /></span>
                         ) : (
@@ -513,6 +633,9 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                         )
                       })}
                     </div>
+                    <p className="auth-printer-next" data-testid="auth-printer-next">
+                      {t("auth.printerBuyNext", "Once you have a printer, choose \"Yes, I have one\" above to continue.")}
+                    </p>
                   </div>
                 )}
               </div>
@@ -521,11 +644,13 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
             {/* ---------- sign up step 3 and sign in: the password ---------- */}
             {!isRegister && (
               <label>
-                <span className="auth-label-text">{t("auth.mobile", "Mobile number")}</span>
+                <span className="auth-label-text">{t("auth.mobile", "Mobile number")} {required}</span>
                 <div className="auth-field">
                   <Phone size={17} className="auth-field-icon" />
                   <input
                     data-testid="auth-phone-input"
+                    data-field="phone"
+                    onBlur={() => checkField("phone")}
                     type="tel"
                     inputMode={/[a-zA-Z@]/.test(form.phone) ? "email" : "numeric"}
                     required
@@ -547,9 +672,10 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                         set({ phone: raw.slice(0, 10) })
                       }
                     }}
-                    className={phoneInvalid ? "input-error" : ""}
+                    className={fieldErrors.phone ? "input-error" : ""}
                   />
                 </div>
+                {fieldError("phone")}
               </label>
             )}
 
@@ -562,18 +688,20 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                 )}
 
                 <label>
-                  <span className="auth-label-text">{t("auth.password", "Password")}</span>
+                  <span className="auth-label-text">{t("auth.password", "Password")} {required}</span>
                   <div className="auth-field password-input-wrap">
                     <Lock size={17} className="auth-field-icon" />
                     <input
                       data-testid="auth-password-input"
+                      data-field="password"
+                      onBlur={() => { if (form.password || fieldErrors.password) checkField("password") }}
                       type={showPassword ? "text" : "password"}
                       required
                       autoComplete={isRegister ? "new-password" : "current-password"}
                       placeholder={isRegister ? t("auth.createPassword", "Create a password") : t("auth.enterPassword", "Enter your password")}
                       value={form.password}
                       onChange={(e) => set({ password: e.target.value })}
-                      className={error && (!form.password || ["auth.err_password_required", "auth.err_password_rules", "auth.err_password_short"].includes(errorKey)) ? "input-error" : ""}
+                      className={fieldErrors.password ? "input-error" : ""}
                     />
                     <button
                       type="button"
@@ -585,22 +713,25 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  {fieldError("password")}
                 </label>
 
                 {isRegister && (
                   <label>
-                    <span className="auth-label-text">{t("auth.confirmPassword", "Re-enter password")}</span>
+                    <span className="auth-label-text">{t("auth.confirmPassword", "Re-enter password")} {required}</span>
                     <div className="auth-field password-input-wrap">
                       <Lock size={17} className="auth-field-icon" />
                       <input
                         data-testid="auth-confirm-password-input"
+                        data-field="confirmPassword"
+                        onBlur={() => { if (form.confirmPassword || fieldErrors.confirmPassword) checkField("confirmPassword") }}
                         type={showConfirmPassword ? "text" : "password"}
                         required
                         autoComplete="new-password"
                         placeholder={t("auth.confirmPlaceholder", "Re-enter your password")}
                         value={form.confirmPassword}
                         onChange={(e) => set({ confirmPassword: e.target.value })}
-                        className={error && (!form.confirmPassword || ["auth.err_mismatch", "auth.err_confirm_required"].includes(errorKey)) ? "input-error" : ""}
+                        className={fieldErrors.confirmPassword ? "input-error" : ""}
                       />
                       <button
                         type="button"
@@ -612,6 +743,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                         {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
+                    {fieldError("confirmPassword")}
                   </label>
                 )}
               </>
@@ -630,6 +762,18 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
             )}
 
             <div className="auth-actions">
+              {isRegister && step > 1 && (
+                <button
+                  type="button"
+                  className="auth-step-back"
+                  data-testid="auth-step-back"
+                  disabled={loading}
+                  onClick={() => { setError(""); setOfferSignIn(false); setStep(step - 1) }}
+                >
+                  <ArrowLeft size={16} /> {t("auth.back", "Back")}
+                </button>
+              )}
+              {!(isRegister && step === 2 && hasPrinter === false) && (
               <button
                 data-testid="auth-submit-button"
                 className="primary full"
@@ -643,23 +787,13 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                     : step === 1
                       ? t("auth.continue", "Continue")
                       : step === 2
-                        ? (hasPrinter === false ? t("auth.skip", "Skip") : t("auth.continue", "Continue"))
+                        ? t("auth.continue", "Continue")
                         : t("auth.createAccount", "Create account")}
                 {!loading && <ArrowRight size={17} />}
               </button>
+              )}
             </div>
           </form>
-
-          {isRegister && step > 1 && (
-            <button
-              type="button"
-              className="auth-step-back"
-              data-testid="auth-step-back"
-              onClick={() => { setError(""); setStep(step - 1) }}
-            >
-              <ArrowLeft size={14} /> {t("auth.back", "Back")}
-            </button>
-          )}
 
           <p className="switch">
             {isRegister ? t("auth.haveAccount", "Already have an account?") : t("auth.newTo", "New to Slipzen?")}

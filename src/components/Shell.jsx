@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   LayoutDashboard,
   Receipt,
@@ -83,15 +83,15 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
 
   const navItems = [
     { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard, protected: false },
-    { 
-      id: isHotel ? "tables" : "bills", 
-      label: isHotel ? t("nav.tables", "Tables") : t("nav.newBill", "New bill"), 
-      icon: isHotel ? Utensils : Receipt, 
-      protected: true 
+    {
+      id: isHotel ? "tables" : "bills",
+      label: isHotel ? t("nav.tables", "Tables") : t("nav.newBill", "New bill"),
+      icon: isHotel ? Utensils : Receipt,
+      protected: true
     },
     { id: "menu", label: t("nav.menu", "Menu"), icon: List, protected: true },
     { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
-    { id: "products", label: t("nav.products", "Products"), icon: Package, protected: true },
+    { id: "products", label: t("nav.products", "Printers & Rolls"), icon: Package, protected: true },
     { id: "history", label: t("nav.history", "History"), icon: History, protected: true },
     { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
     { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings, protected: true },
@@ -102,17 +102,63 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   // Mobile bottom navigation items matching Figma reference
   const mobileNavItems = [
     { id: "dashboard", label: t("nav.home", "Home"), icon: Home },
-    { 
-      id: isHotel ? "tables" : "bills", 
-      label: isHotel ? t("nav.tables", "Tables") : t("nav.newBill", "New Bill"), 
-      icon: isHotel ? Utensils : PlusCircle 
+    {
+      id: isHotel ? "tables" : "bills",
+      label: isHotel ? t("nav.tables", "Tables") : t("nav.newBill", "New Bill"),
+      icon: isHotel ? Utensils : PlusCircle
     },
     { id: "menu", label: t("nav.menu", "Menu"), icon: List },
     { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
     { id: "history", label: t("nav.history", "History"), icon: History }
   ]
+  // desktop header: the main pages (Templates lives in the profile menu here; the phone bar keeps it)
+  const headerNavItems = [
+    ...mobileNavItems.filter((item) => item.id !== "templates"),
+    { id: "products", label: t("nav.products", "Printers & Rolls"), extra: true },
+    { id: "pricing", label: t("nav.pricing", "Pricing"), extra: true },
+    { id: "contact", label: t("nav.contact", "Contact us"), extra: true },
+  ].filter((item) => !(user?.staff_of && item.id === "pricing"))
+
+  // profile menu: "narrow" items are the header's extra links, shown here only when the header has no room for them
+  const profileMenuItems = [
+    { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings },
+    { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
+    { id: "products", label: t("nav.products", "Printers & Rolls"), icon: Package, narrow: true },
+    { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, badge: t("nav.plans", "Plans"), narrow: true },
+    { id: "guide", label: t("nav.guide", "User Guide"), icon: BookOpen, badge: t("sidebar.help", tDb("Help")) },
+    { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, narrow: true },
+  ].filter((item) => !(user?.staff_of && item.id === "pricing"))
   const [isOpen, setIsOpen] = useState(false)
-  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
+  // Desktop has no sidebar any more: the main pages sit in the header, the rest in the profile menu.
+  // (The phone keeps its drawer, opened with the menu button, and the bottom bar.)
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileRef = useRef(null)
+
+  useEffect(() => {
+    if (!profileOpen) return undefined
+    const onPointer = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false) }
+    const onKey = (e) => { if (e.key === "Escape") setProfileOpen(false) }
+    const onScroll = (e) => {
+      if (profileRef.current && e.target instanceof Node && profileRef.current.contains(e.target)) return
+      setProfileOpen(false)
+    }
+    const onResize = () => setProfileOpen(false)
+    document.addEventListener("pointerdown", onPointer)
+    document.addEventListener("keydown", onKey)
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true })
+    window.addEventListener("resize", onResize, { passive: true })
+    return () => {
+      document.removeEventListener("pointerdown", onPointer)
+      document.removeEventListener("keydown", onKey)
+      window.removeEventListener("scroll", onScroll, true)
+      window.removeEventListener("resize", onResize)
+    }
+  }, [profileOpen])
+
+  useEffect(() => {
+    setProfileOpen(false)
+  }, [view])
   const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
 
@@ -288,214 +334,215 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
 
         {/* Logo and Sign out stay fixed; everything between them scrolls */}
         <div className="side-scroll">
-        <div className="side-first-view">
-        <nav
-          style={{
-            flex: '0 0 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.125rem',
-            marginBottom: '0.5rem',
-            paddingRight: '0px',
-          }}
-        >
-          {navItems.filter((item) => !(user?.staff_of && item.id === "pricing")).map((item) => {
-            const isActive = isMobileNavActive(item.id)
-            return (
-            <button
-              data-testid={`nav-${item.id}-button`}
-              className={`side-nav-btn ${isActive ? "active" : ""}`}
-              key={item.id}
-              onClick={() => handleNavClick(item.id)}
+          <div className="side-first-view">
+            <nav
+              style={{
+                flex: '0 0 auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.125rem',
+                marginBottom: '0.5rem',
+                paddingRight: '0px',
+              }}
+            >
+              {navItems.filter((item) => !(user?.staff_of && item.id === "pricing")).map((item) => {
+                const isActive = isMobileNavActive(item.id)
+                return (
+                  <button
+                    data-testid={`nav-${item.id}-button`}
+                    className={`side-nav-btn ${isActive ? "active" : ""}`}
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.38rem 0.8rem',
+                      border: isActive ? '1px solid #bae6fd' : '1px solid transparent',
+                      background: isActive ? 'linear-gradient(135deg, #dbeafe 0%, #e0f2fe 50%, #eff6ff 100%)' : 'transparent',
+                      borderRadius: '10px',
+                      fontSize: '0.86rem',
+                      fontWeight: isActive ? '700' : '500',
+                      color: isActive ? '#0284c7' : '#475569',
+                      cursor: 'pointer',
+                      transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                      textAlign: 'left',
+                      width: '100%',
+                      boxShadow: isActive ? '0 2px 8px rgba(14, 165, 233, 0.08)' : 'none',
+                    }}
+                  >
+                    <item.icon size={18} style={{ color: isActive ? '#0284c7' : '#64748b', flexShrink: 0, transition: 'color 0.15s ease' }} />
+                    <span style={{ flex: 1, letterSpacing: '-0.01em' }}>{item.label}</span>
+                    {item.badge && (
+                      <span style={{
+                        background: isActive ? '#ffffff' : (item.badgeBg || '#e0f2fe'),
+                        color: item.badgeColor || '#0284c7',
+                        border: '1px solid #bae6fd',
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        padding: '0.12rem 0.5rem',
+                        borderRadius: '9999px',
+                        boxShadow: '0 1px 2px rgba(14, 165, 233, 0.06)',
+                        letterSpacing: '0.2px'
+                      }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+
+            {/* ✅ SIDE BOTTOM - Spaced cleanly below navigation categories */}
+            <div
+              className="side-bottom"
+              style={{
+                padding: '0.65rem 0 0 0',
+                borderTop: '1px solid #e2e8f0',
+                marginTop: 'auto',
+                marginBottom: 0,
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {/* Active Prints Quota Widget in Sidebar */}
+              <div
+                className="sidebar-quota-widget"
+                style={{
+                  background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                  border: '1px solid #bae6fd',
+                  borderRadius: '12px',
+                  padding: '0.6rem 0.75rem',
+                  marginBottom: '0.55rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(14, 165, 233, 0.06)',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onClick={() => handleNavClick("pricing")}
+                title={t("shell.ariaPlans", "Click to view pricing plans")}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '7px',
+                      background: '#ffffff',
+                      border: '1px solid #bae6fd',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444',
+                      boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
+                      flexShrink: 0
+                    }}>
+                      <Printer size={13} />
+                    </div>
+                    <span>{activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}</span>
+                  </span>
+                  <span style={{
+                    color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444',
+                    fontWeight: 700,
+                    fontSize: '0.7rem',
+                    background: '#ffffff',
+                    border: '1px solid #bae6fd',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontVariantNumeric: 'tabular-nums'
+                  }}>
+                    {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 0).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: 'rgba(2, 132, 199, 0.15)', borderRadius: '9999px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${Math.min(100, Math.max(0, activePlan.totalPrints > 0 ? ((activePlan.printsRemaining || 0) / activePlan.totalPrints) * 100 : 0))}%`,
+                    height: '100%',
+                    background: (activePlan.printsRemaining || 0) > 2 ? 'linear-gradient(90deg, #38bdf8, #0284c7)' : '#EF4444',
+                    borderRadius: '9999px',
+                    boxShadow: (activePlan.printsRemaining || 0) > 2 ? '0 1px 4px rgba(2, 132, 199, 0.25)' : 'none',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div className="side-bottom side-more" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', marginBottom: '0.5rem' }}>
+            <div className="user-chip side-user-chip" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              padding: '0.45rem 0.65rem',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              marginBottom: '0.45rem',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+              transition: 'all 0.15s ease'
+            }}>
+              <div className="avatar" style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700',
+                fontSize: '0.88rem',
+                boxShadow: '0 2px 6px rgba(2, 132, 199, 0.22)',
+                flexShrink: 0,
+              }}>
+                {(user?.name || "S")[0].toUpperCase()}
+              </div>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <b style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {user?.name || "User"}
+                </b>
+                <small style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
+                  {user?.staff_of ? `${t("profile.staffOf", "Staff at")} ${user.staff_of.shop_name}` : (user?.email || (user?.phone ? `+91 ${user.phone}` : ""))}
+                </small>
+              </span>
+            </div>
+
+            {/* User Language Status Pill - links to Shop Profile App Settings */}
+            <div
+              data-testid="sidebar-language-status"
+              className="sidebar-language-status"
+              onClick={() => {
+                sessionStorage.setItem("slipzo_scroll_to", "app-settings-section")
+                handleNavClick("shop")
+                window.dispatchEvent(new CustomEvent("slipzo-scroll-to-app-settings"))
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.38rem 0.8rem',
-                border: isActive ? '1px solid #bae6fd' : '1px solid transparent',
-                background: isActive ? 'linear-gradient(135deg, #dbeafe 0%, #e0f2fe 50%, #eff6ff 100%)' : 'transparent',
-                borderRadius: '10px',
-                fontSize: '0.86rem',
-                fontWeight: isActive ? '700' : '500',
-                color: isActive ? '#0284c7' : '#475569',
-                cursor: 'pointer',
-                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                textAlign: 'left',
-                width: '100%',
-                boxShadow: isActive ? '0 2px 8px rgba(14, 165, 233, 0.08)' : 'none',
-              }}
-            >
-              <item.icon size={18} style={{ color: isActive ? '#0284c7' : '#64748b', flexShrink: 0, transition: 'color 0.15s ease' }} />
-              <span style={{ flex: 1, letterSpacing: '-0.01em' }}>{item.label}</span>
-              {item.badge && (
-                <span style={{
-                  background: isActive ? '#ffffff' : (item.badgeBg || '#e0f2fe'),
-                  color: item.badgeColor || '#0284c7',
-                  border: '1px solid #bae6fd',
-                  fontSize: '0.66rem',
-                  fontWeight: 700,
-                  padding: '0.12rem 0.5rem',
-                  borderRadius: '9999px',
-                  boxShadow: '0 1px 2px rgba(14, 165, 233, 0.06)',
-                  letterSpacing: '0.2px'
-                }}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          )})}
-        </nav>
-
-        {/* ✅ SIDE BOTTOM - Spaced cleanly below navigation categories */}
-        <div
-          className="side-bottom"
-          style={{
-            padding: '0.65rem 0 0 0',
-            borderTop: '1px solid #e2e8f0',
-            marginTop: 'auto',
-            marginBottom: 0,
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {/* Active Prints Quota Widget in Sidebar */}
-          <div 
-            className="sidebar-quota-widget"
-            style={{
-              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-              border: '1px solid #bae6fd',
-              borderRadius: '12px',
-              padding: '0.6rem 0.75rem',
-              marginBottom: '0.55rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(14, 165, 233, 0.06)',
-              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}
-            onClick={() => handleNavClick("pricing")}
-            title={t("shell.ariaPlans", "Click to view pricing plans")}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
-                <div style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '7px',
-                  background: '#ffffff',
-                  border: '1px solid #bae6fd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444',
-                  boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
-                  flexShrink: 0
-                }}>
-                  <Printer size={13} />
-                </div>
-                <span>{activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}</span>
-              </span>
-              <span style={{
-                color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444',
-                fontWeight: 700,
-                fontSize: '0.7rem',
+                justifyContent: 'space-between',
+                padding: '0.4rem 0.65rem',
                 background: '#ffffff',
-                border: '1px solid #bae6fd',
-                padding: '2px 8px',
-                borderRadius: '6px',
-                fontVariantNumeric: 'tabular-nums'
-              }}>
-                {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 0).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                marginBottom: '0.45rem',
+                cursor: 'pointer',
+                fontSize: '0.76rem',
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                transition: 'all 0.15s ease'
+              }}
+              title={t("shell.ariaLang", "Profile language settings")}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600, color: '#0f172a' }}>
+                <Globe size={13} style={{ color: '#0284c7' }} />
+                <span>{currentLangObj.flag} {currentLangObj.nativeName}</span>
+              </span>
+              <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 700, background: '#f0f9ff', border: '1px solid #bae6fd', padding: '2px 7px', borderRadius: '5px' }}>
+                {t("common.edit", "Edit")}
               </span>
             </div>
-            <div style={{ width: '100%', height: '6px', background: 'rgba(2, 132, 199, 0.15)', borderRadius: '9999px', overflow: 'hidden' }}>
-              <div style={{
-                width: `${Math.min(100, Math.max(0, activePlan.totalPrints > 0 ? ((activePlan.printsRemaining || 0) / activePlan.totalPrints) * 100 : 0))}%`,
-                height: '100%',
-                background: (activePlan.printsRemaining || 0) > 2 ? 'linear-gradient(90deg, #38bdf8, #0284c7)' : '#EF4444',
-                borderRadius: '9999px',
-                boxShadow: (activePlan.printsRemaining || 0) > 2 ? '0 1px 4px rgba(2, 132, 199, 0.25)' : 'none',
-                transition: 'width 0.3s ease'
-              }} />
-            </div>
+
           </div>
-
-        </div>
-        </div>
-
-        <div className="side-bottom side-more" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', marginBottom: '0.5rem' }}>
-          <div className="user-chip side-user-chip" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.65rem',
-            padding: '0.45rem 0.65rem',
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            marginBottom: '0.45rem',
-            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-            transition: 'all 0.15s ease'
-          }}>
-            <div className="avatar" style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: '700',
-              fontSize: '0.88rem',
-              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.22)',
-              flexShrink: 0,
-            }}>
-              {(user?.name || "S")[0].toUpperCase()}
-            </div>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <b style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.name || "User"}
-              </b>
-              <small style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
-                {user?.staff_of ? `${t("profile.staffOf", "Staff at")} ${user.staff_of.shop_name}` : (user?.email || (user?.phone ? `+91 ${user.phone}` : ""))}
-              </small>
-            </span>
-          </div>
-
-          {/* User Language Status Pill - links to Shop Profile App Settings */}
-          <div
-            data-testid="sidebar-language-status"
-            className="sidebar-language-status"
-            onClick={() => {
-              sessionStorage.setItem("slipzo_scroll_to", "app-settings-section")
-              handleNavClick("shop")
-              window.dispatchEvent(new CustomEvent("slipzo-scroll-to-app-settings"))
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.4rem 0.65rem',
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              marginBottom: '0.45rem',
-              cursor: 'pointer',
-              fontSize: '0.76rem',
-              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-              transition: 'all 0.15s ease'
-            }}
-            title={t("shell.ariaLang", "Profile language settings")}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 600, color: '#0f172a' }}>
-              <Globe size={13} style={{ color: '#0284c7' }} />
-              <span>{currentLangObj.flag} {currentLangObj.nativeName}</span>
-            </span>
-            <span style={{ fontSize: '0.68rem', color: '#0284c7', fontWeight: 700, background: '#f0f9ff', border: '1px solid #bae6fd', padding: '2px 7px', borderRadius: '5px' }}>
-              {t("common.edit", "Edit")}
-            </span>
-          </div>
-
-        </div>
         </div>
 
         <div className="side-logout-wrap">
@@ -545,29 +592,116 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             <img src="/logo.png" alt="Slipzen" className="shell-header-logo" style={{ height: '36px', width: 'auto', objectFit: 'contain', objectPosition: 'left center' }} />
           </div>
 
+          <nav className="shell-desktop-nav" aria-label={t("shell.mainNav", "Main pages")}>
+            {headerNavItems.map((item) => {
+              const active = isMobileNavActive(item.id)
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  data-testid={`header-nav-${item.id}`}
+                  className={`shell-desktop-nav-btn ${active ? "active" : ""} ${item.extra ? "extra" : ""}`}
+                  onClick={() => handleNavClick(item.id)}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {item.label}
+                </button>
+              )
+            })}
+          </nav>
+
           <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginLeft: 'auto' }}>
-            <div 
-              className="header-prints-badge"
-              onClick={() => setView("pricing")}
-              title={t("shell.ariaPlans", "Click to view pricing plans")}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.35rem 0.65rem',
-                borderRadius: '9999px',
-                background: (activePlan.printsRemaining || 0) > 2 ? '#f0fdf4' : '#fef2f2',
-                border: `1px solid ${(activePlan.printsRemaining || 0) > 2 ? '#bbf7d0' : '#fecaca'}`,
-                color: (activePlan.printsRemaining || 0) > 2 ? '#166534' : '#991b1b',
-                fontSize: '0.74rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Printer size={13} />
-              <span>{formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} {activePlan.isFreeTier ? t("header.free", "free") + ' ' : ''}{(activePlan.printsRemaining || 0) === 1 ? t("header.print", "print") : t("header.printsLeft", "prints left")}</span>
+            {/* print balance lives in the profile menu (no badge in the header) */}
+            <div className="shell-profile-wrap" ref={profileRef}>
+              <button
+                type="button"
+                data-testid="header-profile-button"
+                className={`shell-profile-btn ${profileOpen ? "open" : ""}`}
+                onClick={() => setProfileOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={profileOpen}
+                title={t("shell.profileMenu", "Profile and settings")}
+              >
+                <span className="shell-profile-avatar">{(user?.name || "S").trim().charAt(0).toUpperCase()}</span>
+                <span className="shell-profile-name">{user?.name || t("shell.account", "Account")}</span>
+                <ChevronDown size={15} className="shell-profile-chevron" />
+              </button>
+
+              {profileOpen && (
+                <div className="shell-profile-menu" role="menu">
+                  <div className="shell-profile-head">
+                    <span className="shell-profile-avatar lg">{(user?.name || "S").trim().charAt(0).toUpperCase()}</span>
+                    <div className="shell-profile-who">
+                      <b>{user?.name || "User"}</b>
+                      <small>{user?.staff_of ? `${t("profile.staffOf", "Staff at")} ${user.staff_of.shop_name}` : (user?.email || (user?.phone ? `+91 ${user.phone}` : ""))}</small>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="shell-profile-quota"
+                    onClick={() => { setProfileOpen(false); handleNavClick("pricing") }}
+                    title={t("shell.ariaPlans", "Click to view pricing plans")}
+                  >
+                    <span className="shell-profile-quota-row">
+                      <span><Printer size={13} /> {activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}</span>
+                      <b className={(activePlan.printsRemaining || 0) > 2 ? "" : "low"}>
+                        {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 0).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
+                      </b>
+                    </span>
+                    <span className="shell-profile-quota-bar">
+                      <i style={{ width: `${Math.min(100, Math.max(0, activePlan.totalPrints > 0 ? ((activePlan.printsRemaining || 0) / activePlan.totalPrints) * 100 : 0))}%` }} className={(activePlan.printsRemaining || 0) > 2 ? "" : "low"} />
+                    </span>
+                  </button>
+
+                  <div className="shell-profile-items">
+                    {profileMenuItems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        role="menuitem"
+                        data-testid={`profile-nav-${item.id}`}
+                        className={`shell-profile-item ${view === item.id ? "active" : ""} ${item.narrow ? "narrow-only" : ""}`}
+                        onClick={() => { setProfileOpen(false); handleNavClick(item.id) }}
+                      >
+                        <item.icon size={16} />
+                        <span>{item.label}</span>
+                        {item.badge && <em>{item.badge}</em>}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="shell-profile-item"
+                      onClick={() => {
+                        setProfileOpen(false)
+                        sessionStorage.setItem("slipzo_scroll_to", "app-settings-section")
+                        handleNavClick("shop")
+                        window.dispatchEvent(new CustomEvent("slipzo-scroll-to-app-settings"))
+                      }}
+                    >
+                      <Globe size={16} />
+                      <span>{t("shell.language", "Language")}</span>
+                      <em className="plain">{currentLangObj.nativeName}</em>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="header-logout-button"
+                    className="shell-profile-logout"
+                    onClick={async () => {
+                      setProfileOpen(false)
+                      const answer = await confirmSignOut(t, user)
+                      if (!answer.isConfirmed) return
+                      if (onLogout) onLogout()
+                    }}
+                  >
+                    <LogOut size={16} /> {t("nav.signOut", "Sign out")}
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
@@ -677,6 +811,226 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
 
         .shell-menu-btn:active {
           transform: scale(0.96) !important;
+        }
+
+        /* ---- desktop header navigation (hidden on phones) ---- */
+        .shell-desktop-nav { display: none; }
+        .shell-profile-wrap { display: none; position: relative; }
+
+        @media (min-width: 769px) {
+          /* no sidebar, no menu button on desktop: everything is in the header */
+          .app-shell aside,
+          .app-shell .sidebar-backdrop,
+          .shell-menu-btn { display: none !important; }
+          .app-shell .shell-header-brand { display: flex !important; margin-right: 0 !important; justify-self: start; }
+          /* logo | links (centred on the page) | prints + profile */
+          .app-shell .shell-static-header {
+            display: grid !important;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center !important;
+            /* logo and profile line up with the page content (max 1280px wide, centred) */
+            /* 20px further in than the page content edge, so the logo and profile sit clear of the border */
+            padding-left: max(40px, calc((100% - 1280px) / 2 + clamp(24px, 4vw, 56px) + 20px)) !important;
+            padding-right: max(40px, calc((100% - 1280px) / 2 + clamp(24px, 4vw, 56px) + 20px)) !important;
+            column-gap: 1.25rem !important;
+          }
+          .app-shell .shell-header-right { justify-self: end; margin-left: 0 !important; }
+
+          .shell-desktop-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+          }
+          .shell-desktop-nav-btn {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            height: 36px;
+            padding: 0 0.75rem;
+            border: none;
+            border-radius: 9px;
+            background: transparent;
+            color: #475569;
+            font-size: 0.88rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+          }
+          .shell-desktop-nav-btn::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 2px;
+            width: 0;
+            height: 2.5px;
+            border-radius: 2px;
+            background: #0284c7;
+            transform: translateX(-50%);
+            transition: width 0.2s ease;
+          }
+          .shell-desktop-nav-btn:hover { color: #0f172a; background: #f1f5f9; }
+          /* no black browser outline after a click; a soft ring only for keyboard users */
+          .shell-desktop-nav-btn:focus { outline: none !important; }
+          .shell-desktop-nav-btn:focus-visible { outline: none !important; box-shadow: 0 0 0 2px #7dd3fc !important; }
+          .shell-desktop-nav-btn.active {
+            background: transparent;
+            color: #0284c7;
+            font-weight: 700;
+          }
+          .shell-desktop-nav-btn.active::after { width: 22px; }
+
+          /* the header's extra links are already visible, so the profile menu does not repeat them */
+          .shell-profile-item.narrow-only { display: none; }
+
+          .shell-profile-wrap { display: block; }
+          .shell-profile-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            height: 42px;
+            padding: 0 0.6rem 0 0.35rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            color: #0f172a;
+            font-size: 0.86rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color 0.15s ease, background 0.15s ease;
+          }
+          .shell-profile-btn:hover,
+          .shell-profile-btn.open { border-color: #bae6fd; background: #f0f9ff; }
+          .shell-profile-avatar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 800;
+            flex-shrink: 0;
+          }
+          .shell-profile-avatar.lg { width: 40px; height: 40px; border-radius: 11px; font-size: 1rem; }
+          .shell-profile-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .shell-profile-chevron { color: #64748b; transition: transform 0.15s ease; }
+          .shell-profile-btn.open .shell-profile-chevron { transform: rotate(180deg); }
+
+          .shell-profile-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 300px;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 8px;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 24px 48px -16px rgba(12, 31, 65, 0.28);
+            z-index: 900;
+            animation: shellMenuIn 0.14s ease-out;
+          }
+          @keyframes shellMenuIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+          .shell-profile-head {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 8px 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+          }
+          .shell-profile-who { min-width: 0; display: flex; flex-direction: column; }
+          .shell-profile-who b { font-size: 0.92rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .shell-profile-who small { font-size: 0.75rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+          .shell-profile-quota {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            margin: 8px 0 4px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #bae6fd;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            cursor: pointer;
+            text-align: left;
+          }
+          .shell-profile-quota-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.78rem; font-weight: 700; color: #0f172a; }
+          .shell-profile-quota-row > span { display: inline-flex; align-items: center; gap: 6px; }
+          .shell-profile-quota-row svg { color: #0284c7; }
+          .shell-profile-quota-row b { font-size: 0.72rem; color: #0284c7; white-space: nowrap; }
+          .shell-profile-quota-row b.low { color: #ef4444; }
+          .shell-profile-quota-bar { display: block; height: 6px; border-radius: 999px; background: rgba(2, 132, 199, 0.15); overflow: hidden; }
+          .shell-profile-quota-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #38bdf8, #0284c7); }
+          .shell-profile-quota-bar i.low { background: #ef4444; }
+
+          .shell-profile-items { display: flex; flex-direction: column; padding: 4px 0; }
+          .shell-profile-item {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            width: 100%;
+            padding: 0.55rem 0.65rem;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: #334155;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+          }
+          .shell-profile-item svg { color: #64748b; flex-shrink: 0; }
+          .shell-profile-item span { flex: 1; }
+          .shell-profile-item:hover { background: #f1f5f9; color: #0f172a; }
+          .shell-profile-item.active { background: #f0f9ff; color: #0284c7; }
+          .shell-profile-item.active svg { color: #0284c7; }
+          .shell-profile-item em {
+            font-style: normal;
+            font-size: 0.66rem;
+            font-weight: 700;
+            padding: 0.1rem 0.5rem;
+            border-radius: 999px;
+            background: #e0f2fe;
+            border: 1px solid #bae6fd;
+            color: #0284c7;
+          }
+          .shell-profile-item em.plain { background: transparent; border: none; color: #64748b; font-size: 0.78rem; font-weight: 600; }
+
+          .shell-profile-logout {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+            margin-top: 4px;
+            padding: 0.6rem 0.65rem;
+            border: none;
+            border-top: 1px solid #f1f5f9;
+            border-radius: 0 0 10px 10px;
+            background: transparent;
+            color: #ef4444;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+          }
+          .shell-profile-logout:hover { background: #fef2f2; }
+        }
+
+        /* narrower desktop windows: Products, Pricing and Contact move into the profile menu */
+        @media (min-width: 769px) and (max-width: 1180px) {
+          .shell-desktop-nav-btn.extra { display: none; }
+          .shell-profile-item.narrow-only { display: flex; }
+          .shell-profile-name { max-width: 90px; }
+        }
+        @media (min-width: 769px) and (max-width: 940px) {
+          .shell-desktop-nav-btn { padding: 0 0.6rem; font-size: 0.82rem; }
+          .shell-profile-name { display: none; }
         }
 
         /* The small negative margin keeps the active tab's shadow from being clipped at the edges */
@@ -796,8 +1150,13 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             display: none !important;
           }
 
+          /* page content: centred with a maximum width and roomy side margins, instead of edge to edge */
           .main-content-scroll {
-            padding: 0.5rem 2rem 1rem !important;
+            width: 100% !important;
+            max-width: 1280px !important;
+            margin: 0 auto !important;
+            padding: 1.25rem clamp(24px, 4vw, 56px) 1.5rem !important;
+            box-sizing: border-box !important;
           }
           
           .side-bottom {
@@ -878,7 +1237,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
           }
 
           .main-content-scroll {
-            padding: 0.25rem 0.65rem calc(72px + env(safe-area-inset-bottom, 0px)) 0.65rem !important;
+            padding: 0.25rem 0.65rem calc(78px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) 0.65rem !important;
             margin-bottom: 0 !important;
           }
           
@@ -985,10 +1344,12 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             display: flex !important;
             justify-content: space-around;
             align-items: center;
-            padding: 0.35rem 0.25rem env(safe-area-inset-bottom);
+            padding: 0.4rem 0.25rem calc(0.5rem + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
             z-index: 100;
             box-shadow: 0 -4px 16px rgba(12, 31, 65, 0.05);
-            height: 64px;
+            min-height: calc(64px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
+            height: auto !important;
+            box-sizing: border-box !important;
             backdrop-filter: blur(12px);
           }
 
@@ -1006,7 +1367,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
-            min-width: 56px;
+            min-width: 0;
+            flex: 1 1 0;
             border-radius: 16px;
             text-decoration: none;
           }
@@ -1033,6 +1395,8 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
             font-weight: 600;
             color: #575B6B;
             letter-spacing: 0.1px;
+            line-height: 1.2;
+            white-space: nowrap;
           }
 
           .mobile-nav-btn.active {
@@ -1082,20 +1446,20 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
            SAFE AREA SUPPORT (Notched Phones)
            ============================================ */
         @supports (padding-bottom: env(safe-area-inset-bottom)) {
-          .mobile-bottom-nav {
-            padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)) !important;
-          }
-          
           @media (max-width: 768px) {
+            .mobile-bottom-nav {
+              min-height: calc(64px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
+              height: auto !important;
+              padding-bottom: calc(0.5rem + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
+            }
+
             .side-bottom {
               padding-bottom: 0 !important;
             }
-          }
-          
-          /* Room for the 64px bottom nav, which only exists on mobile */
-          @media (max-width: 768px) {
+
+            /* Room for the 64px bottom nav plus bottom inset, which only exists on mobile */
             .main-content-scroll {
-              padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+              padding-bottom: calc(78px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
             }
           }
         }

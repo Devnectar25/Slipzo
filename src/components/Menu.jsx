@@ -1097,25 +1097,6 @@ export function Menu({ setView, requireAuth, user }) {
             </button>
           </div>
 
-          {/* Category Filter Pills */}
-          {myMenuCategories.length > 1 && (
-            <div className="menu-category-pills-row">
-              {myMenuCategories.map((cat) => {
-                const isActive = selectedCategory.toLowerCase() === cat.id.toLowerCase()
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className={`mob-category-chip ${isActive ? "active" : ""}`}
-                    onClick={() => setSelectedCategory(cat.id)}
-                  >
-                    {cat.id === "all" ? (search.trim() ? t("menu.allCategories", "All Categories") : t("menu.allItems", "All Items")) : tDb(cat.label)}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
           {/* Section Subheader: My Menu count & Sort */}
             <div className="mob-menu-subheader">
               <div className="mob-menu-count-wrap">
@@ -1314,56 +1295,10 @@ export function Menu({ setView, requireAuth, user }) {
                   <Mic size={16} />
                 </button>
               </div>
-              <button
-                type="button"
-                className="mob-catalog-filter-btn"
-                onClick={() => setFilterOpen((prev) => !prev)}
-                title={t("menu.filterOptions", "Filter Options")}
-              >
-                <SlidersHorizontal size={18} />
-              </button>
-            </div>
-
-            {/* Category Chips + Grid/List View Toggle Button */}
-            <div className="mob-catalog-categories-row">
-              <div className="mob-catalog-chips-scroll">
-                {catalogCategories.map((cat) => {
-                  const isActive = catalogCategory.toLowerCase() === cat.id.toLowerCase()
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      className={`mob-catalog-chip ${isActive ? "active" : ""}`}
-                      onClick={() => setCatalogCategory(cat.id)}
-                    >
-                      {cat.label}
-                    </button>
-                  )
-                })}
-              </div>
-              <button
-                type="button"
-                className="mob-catalog-view-toggle-btn"
-                onClick={() => setCurrentView("my_menu")}
-                title={t("menu.toggleView", "Toggle View")}
-              >
-                <LayoutGrid size={18} />
-              </button>
             </div>
 
             {/* Filter & Sort Controls Row */}
             <div className="mob-catalog-filter-sort-row">
-              <div className="mob-dropdown-relative">
-                <button
-                  type="button"
-                  className="mob-filter-sort-pill"
-                  onClick={() => setFilterOpen((prev) => !prev)}
-                >
-                  <span>{t("menu.filter", "Filter")}</span>
-                  <ChevronDown size={14} />
-                </button>
-              </div>
-
               <div className="mob-dropdown-relative">
                 <button
                   type="button"
@@ -1390,6 +1325,15 @@ export function Menu({ setView, requireAuth, user }) {
                   </div>
                 )}
               </div>
+              <span style={{ marginLeft: "auto" }} />
+              <button
+                type="button"
+                className="mob-catalog-view-toggle-btn"
+                onClick={() => setCurrentView("my_menu")}
+                title={t("menu.toggleView", "Toggle View")}
+              >
+                <LayoutGrid size={18} />
+              </button>
             </div>
 
             {/* 2-Column Catalog Cards Grid */}
@@ -1879,23 +1823,6 @@ export function Menu({ setView, requireAuth, user }) {
               variant="icon-only"
               placeholder={t("menu.speakItemName", "Speak item name")}
             />
-          </div>
-
-          {/* Category Filter Pills (Master Catalog) */}
-          <div className="menu-category-pills-row">
-            {catalogCategories.map((cat) => {
-              const isActive = catalogCategory.toLowerCase() === cat.id.toLowerCase()
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  className={`menu-category-pill ${isActive ? "active" : ""}`}
-                  onClick={() => setCatalogCategory(cat.id)}
-                >
-                  {cat.id === "all" ? t("menu.allCategories", "All Categories") : tDb(cat.label)}
-                </button>
-              )
-            })}
           </div>
 
           {/* Available Catalog Items */}
@@ -2586,16 +2513,26 @@ export function Menu({ setView, requireAuth, user }) {
                 {/* 2. Product Name */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <label className="menu-modal-label">{tDb("Product Name *")}</label>
-                  <input
-                    type="text"
-                    className="menu-modal-input"
-                    placeholder={tDb("e.g. Masala Dosa, Cotton Shirt, Special Chai")}
-                    value={customName}
-                    onChange={(e) => handleCustomNameChange(e.target.value)}
-                    required
-                    autoFocus={window.matchMedia("(min-width: 641px)").matches}
-                    style={{ height: "35px", fontSize: "0.85rem" }}
-                  />
+                  <div className="cp-name-input-wrap">
+                    <input
+                      type="text"
+                      className="menu-modal-input"
+                      placeholder={tDb("e.g. Masala Dosa, Cotton Shirt, Special Chai")}
+                      value={customName}
+                      onChange={(e) => handleCustomNameChange(e.target.value)}
+                      required
+                      autoFocus={window.matchMedia("(min-width: 641px)").matches}
+                      style={{ height: "35px", fontSize: "0.85rem" }}
+                    />
+                    <div className="cp-name-voice-wrap">
+                      <VoiceInputButton
+                        size="sm"
+                        variant="icon-only"
+                        placeholder={t("menu.speakItemName", "Speak item name")}
+                        onSpeechResult={(text) => handleCustomNameChange(text)}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* 3. Category */}

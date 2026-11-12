@@ -1,3 +1,4 @@
+n
 /* ============================================
    APP.CSS - Complete Styling for Slipzo
    ============================================ */
@@ -186,30 +187,74 @@ body,
 }
 
 @keyframes spinSmooth {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes floatBounce {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-3px) scale(1.04); }
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.04);
+  }
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0.95; transform: scale(1.12); }
+
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.95;
+    transform: scale(1.12);
+  }
 }
 
 @keyframes shimmerProgress {
-  0% { left: -45%; width: 45%; }
-  50% { left: 30%; width: 55%; }
-  100% { left: 100%; width: 45%; }
+  0% {
+    left: -45%;
+    width: 45%;
+  }
+
+  50% {
+    left: 30%;
+    width: 55%;
+  }
+
+  100% {
+    left: 100%;
+    width: 45%;
+  }
 }
 
 @keyframes pulse {
-  0%, 20% { opacity: 1; }
-  40%, 60% { opacity: 0.3; }
-  80%, 100% { opacity: 1; }
+
+  0%,
+  20% {
+    opacity: 1;
+  }
+
+  40%,
+  60% {
+    opacity: 0.3;
+  }
+
+  80%,
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeIn {
@@ -5825,10 +5870,10 @@ body.is-native-app .public-footer,
   font-size: 0.75rem;
 }
 
-.receipt-preview-content.format-55mm .receipt-meta > span,
-.receipt-preview-content.format-55mm .receipt-meta > div,
-.receipt-preview-content.format-55mm .minimal-meta-clean > span,
-.receipt-preview-content.format-55mm .minimal-meta-clean > div {
+.receipt-preview-content.format-55mm .receipt-meta>span,
+.receipt-preview-content.format-55mm .receipt-meta>div,
+.receipt-preview-content.format-55mm .minimal-meta-clean>span,
+.receipt-preview-content.format-55mm .minimal-meta-clean>div {
   white-space: nowrap !important;
   flex-shrink: 0 !important;
 }
@@ -5921,7 +5966,7 @@ body.is-native-app .public-footer,
   grid-template-columns: auto auto 1fr !important;
 }
 
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row > :nth-child(1) {
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row> :nth-child(1) {
   grid-column: 1 / -1;
   font-weight: 700;
 }
@@ -5931,29 +5976,29 @@ body.is-native-app .public-footer,
   grid-template-columns: auto auto auto 1fr !important;
 }
 
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(2) {
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row> :nth-child(2) {
   grid-column: 2 / -1;
 }
 
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(3) {
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row> :nth-child(3) {
   grid-column: 2;
 }
 
 /* Qty and rate read left to right as "2 × ₹125.00"; the amount sits on the right edge */
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row > :nth-child(2),
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(3) {
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row> :nth-child(2),
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row> :nth-child(3) {
   text-align: left !important;
   font-weight: 600 !important;
   color: #334155 !important;
 }
 
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row > :nth-child(2)::after,
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(3)::after {
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row> :nth-child(2)::after,
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row> :nth-child(3)::after {
   content: " ×";
 }
 
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row > :nth-child(3),
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row > :nth-child(4) {
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-item-row> :nth-child(3),
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-item-row> :nth-child(4) {
   text-align: left !important;
   font-weight: 500 !important;
   color: #334155 !important;
@@ -5968,8 +6013,8 @@ body.is-native-app .public-footer,
   grid-template-columns: auto 1fr auto !important;
 }
 
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-items-header > :is(:nth-child(2), :nth-child(3)),
-:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-items-header > :is(:nth-child(3), :nth-child(4)) {
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt:is(.tpl-style-classic, .tpl-style-pro) .receipt-items-header> :is(:nth-child(2), :nth-child(3)),
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt.tpl-style-elite .receipt-items-header> :is(:nth-child(3), :nth-child(4)) {
   display: none !important;
 }
 
@@ -6038,12 +6083,12 @@ body.is-native-app .public-footer,
 
 /* Label/value rows in the Pro, Classic and Elite info boxes: keep a gap between the two, and on
    narrow rolls let a long value (e.g. the date) drop to its own right-aligned line instead of touching */
-.realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid) > div {
+.realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid)>div {
   flex-wrap: wrap;
   column-gap: 6px;
 }
 
-.realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid) > div > b {
+.realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid)>div>b {
   margin-left: auto;
 }
 
@@ -7758,10 +7803,12 @@ body.is-native-app .public-footer,
     display: flex !important;
     justify-content: space-around;
     align-items: center;
-    padding: 0.5rem 0.5rem env(safe-area-inset-bottom);
+    padding: 0.4rem 0.25rem calc(0.5rem + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px)));
     z-index: 100;
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
-    height: 68px;
+    min-height: calc(64px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px)));
+    height: auto;
+    box-sizing: border-box;
     backdrop-filter: blur(12px);
     background: rgba(255, 255, 255, 0.95);
   }
@@ -7836,7 +7883,7 @@ body.is-native-app .public-footer,
 
   /* Ensure content doesn't get hidden under bottom nav on mobile */
   .main-content-scroll {
-    padding-bottom: 60px !important;
+    padding-bottom: calc(78px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
     margin-bottom: 0 !important;
   }
 
@@ -7853,7 +7900,9 @@ body.is-native-app .public-footer,
 /* For devices with notch/gesture bar */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .mobile-bottom-nav {
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    min-height: calc(64px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px)));
+    height: auto;
+    padding-bottom: calc(0.5rem + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px)));
   }
 }
 
@@ -8077,25 +8126,43 @@ body.is-native-app .public-footer,
   pointer-events: none;
 }
 
+/* Phones: messages drop in at the top of the screen, just under the status bar (not in the middle,
+   where they covered the form being filled in) */
 @media (max-width: 768px) {
   .toast-container {
-    top: 50% !important;
+    top: calc(var(--toast-visible-top, 0px) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 12px) !important;
     left: 50% !important;
     bottom: auto !important;
     right: auto !important;
-    transform: translate(-50%, -50%) !important;
-    max-width: 340px !important;
-    width: calc(100vw - 2.5rem) !important;
-    align-items: center !important;
+    transform: translateX(-50%) !important;
+    max-width: 420px !important;
+    width: calc(100vw - 1.5rem) !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
   }
 
   .toast-item {
     width: 100% !important;
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-    border-radius: 16px !important;
-    padding: 1rem 1.25rem !important;
-    font-size: 0.95rem !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    border-radius: 14px !important;
+    padding: 0.8rem 1rem !important;
+    font-size: 0.9rem !important;
     font-weight: 600 !important;
+    line-height: 1.4 !important;
+    animation: toastDropIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes toastDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -9914,8 +9981,13 @@ body.is-native-app .public-footer,
 }
 
 @keyframes modalFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .template-modal-card {
@@ -9932,8 +10004,15 @@ body.is-native-app .public-footer,
 }
 
 @keyframes modalSlideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .template-modal-header {
@@ -10023,13 +10102,13 @@ body.is-native-app .public-footer,
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
   }
-  
+
   .templates-hero-badges-col {
     grid-column: span 2;
     flex-direction: row;
     justify-content: space-between;
   }
-  
+
   .hero-feature-badge-card {
     flex: 1;
   }
@@ -10417,6 +10496,7 @@ body.is-native-app .public-footer,
     opacity: 0;
     transform: translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -10424,28 +10504,37 @@ body.is-native-app .public-footer,
 }
 
 @keyframes badgePopularFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(-50%) translateY(0);
   }
+
   50% {
     transform: translateX(-50%) translateY(-3px);
   }
 }
 
 @keyframes badgePulseGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
   }
+
   50% {
     box-shadow: 0 6px 18px rgba(2, 132, 199, 0.55);
   }
 }
 
 @keyframes percentBadgePulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1) rotate(0deg);
     box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
   }
+
   50% {
     transform: scale(1.08) rotate(6deg);
     box-shadow: 0 8px 22px rgba(2, 132, 199, 0.6);
@@ -10453,9 +10542,12 @@ body.is-native-app .public-footer,
 }
 
 @keyframes iconSoftFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-4px);
   }
@@ -12386,6 +12478,7 @@ body.is-native-app .public-footer,
     opacity: 0;
     transform: scale(0.96) translateY(8px);
   }
+
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -12993,6 +13086,7 @@ body.is-native-app .public-footer,
     opacity: 0;
     transform: translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -13000,18 +13094,24 @@ body.is-native-app .public-footer,
 }
 
 @keyframes contactHeroArtFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
   }
+
   50% {
     transform: translateY(-7px) rotate(0.8deg);
   }
 }
 
 @keyframes contactPrinterFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
   }
+
   50% {
     transform: translateY(-6px) rotate(-1deg);
   }
@@ -13022,6 +13122,7 @@ body.is-native-app .public-footer,
     opacity: 0;
     transform: translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -13920,6 +14021,7 @@ body.is-native-app .public-footer,
 
 /* Media Queries */
 @media (max-width: 1024px) {
+
   .specs-grid,
   .channels-grid,
   .contact-methods-grid {
@@ -13947,6 +14049,7 @@ body.is-native-app .public-footer,
 }
 
 @media (max-width: 768px) {
+
   .templates-header h1,
   .product-hero h1 {
     font-size: 2.25rem;
@@ -15267,7 +15370,7 @@ body,
 /* Touch Target Minimum (44px) & Input Font Zoom Prevention (< 768px) */
 @media (max-width: 768px) {
 
-  button,
+  button:not([class*="mic"]):not([class*="clear"]):not(.voice-mic-icon-btn):not(.search-voice-btn),
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   .primary-button,
@@ -15547,8 +15650,7 @@ body,
 /* Safe Area Inset Support for Modern Phones & Standalone PWA */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
 
-  .public-footer,
-  .mobile-bottom-nav {
+  .public-footer {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
   }
 }
@@ -17170,6 +17272,7 @@ body,
   .products-desktop-layout {
     display: none !important;
   }
+
   .products-mobile-layout {
     display: block !important;
   }
@@ -17576,9 +17679,12 @@ body,
 }
 
 @keyframes heroIconFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-3px);
   }
@@ -17751,10 +17857,10 @@ body,
   white-space: nowrap;
   cursor: pointer;
   transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-              background 0.15s ease,
-              border-color 0.15s ease,
-              box-shadow 0.15s ease,
-              color 0.15s ease;
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
@@ -17786,18 +17892,36 @@ body,
 }
 
 /* Staggered entrance animation for mobile product cards */
-.products-mobile-layout .products-cards-grid > *:nth-child(1) { animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both; }
-.products-mobile-layout .products-cards-grid > *:nth-child(2) { animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both; }
-.products-mobile-layout .products-cards-grid > *:nth-child(3) { animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both; }
-.products-mobile-layout .products-cards-grid > *:nth-child(4) { animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both; }
-.products-mobile-layout .products-cards-grid > *:nth-child(5) { animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both; }
-.products-mobile-layout .products-cards-grid > *:nth-child(6) { animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.36s both; }
+.products-mobile-layout .products-cards-grid>*:nth-child(1) {
+  animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
+}
+
+.products-mobile-layout .products-cards-grid>*:nth-child(2) {
+  animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+}
+
+.products-mobile-layout .products-cards-grid>*:nth-child(3) {
+  animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+
+.products-mobile-layout .products-cards-grid>*:nth-child(4) {
+  animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
+}
+
+.products-mobile-layout .products-cards-grid>*:nth-child(5) {
+  animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
+}
+
+.products-mobile-layout .products-cards-grid>*:nth-child(6) {
+  animation: mobileCardSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.36s both;
+}
 
 @keyframes mobileHeroSlideIn {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -17809,6 +17933,7 @@ body,
     opacity: 0;
     transform: translateY(14px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -17828,8 +17953,8 @@ body,
   position: relative;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s ease,
-              border-color 0.2s ease;
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
   box-sizing: border-box;
   width: 100%;
 }
@@ -17897,8 +18022,8 @@ body,
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s ease,
-              border-color 0.2s ease;
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
   box-sizing: border-box;
   width: 100%;
 }
@@ -17950,9 +18075,12 @@ body,
 }
 
 @keyframes bestSellerShine {
-  0%, 70% {
+
+  0%,
+  70% {
     left: -100%;
   }
+
   100% {
     left: 200%;
   }
@@ -17962,7 +18090,8 @@ body,
   margin-bottom: 1px;
 }
 
-.badge-line-1, .badge-line-2 {
+.badge-line-1,
+.badge-line-2 {
   font-size: 0.52rem;
   font-weight: 900;
 }
@@ -18021,9 +18150,11 @@ body,
   0% {
     transform: scale(0.8);
   }
+
   50% {
     transform: scale(1.3);
   }
+
   100% {
     transform: scale(1);
   }
@@ -18085,10 +18216,13 @@ body,
 }
 
 @keyframes inStockPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.15);
     opacity: 0.7;
@@ -18127,8 +18261,8 @@ body,
   width: 100%;
   cursor: pointer;
   transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-              background 0.15s ease,
-              box-shadow 0.15s ease;
+    background 0.15s ease,
+    box-shadow 0.15s ease;
   box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
   position: relative;
   overflow: hidden;
@@ -18147,9 +18281,12 @@ body,
 }
 
 @keyframes buyNowGleam {
-  0%, 80% {
+
+  0%,
+  80% {
     left: -100%;
   }
+
   100% {
     left: 200%;
   }
@@ -19576,6 +19713,7 @@ body,
 }
 
 @media (max-width: 380px) {
+
   .items-table-labels,
   .item-card-row {
     grid-template-columns: minmax(0, 1fr) 50px 38px 24px !important;
@@ -19645,11 +19783,11 @@ button,
 .save-button,
 .cancel-button {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.2s ease,
-              border-color 0.2s ease,
-              color 0.2s ease,
-              filter 0.2s ease !important;
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    filter 0.2s ease !important;
   will-change: transform, box-shadow;
   position: relative;
   overflow: hidden;
@@ -19750,10 +19888,10 @@ button:hover:not(:disabled) svg:last-child,
 .menu-search-clear-btn,
 .nb-search-clear-btn {
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.18s ease,
-              border-color 0.18s ease,
-              box-shadow 0.18s ease,
-              color 0.18s ease !important;
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    color 0.18s ease !important;
 }
 
 .icon-button:hover:not(:disabled),
@@ -19812,9 +19950,9 @@ button:hover:not(:disabled) svg:last-child,
 .sp-card,
 .brand-loader-card {
   transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.24s ease,
-              background-color 0.24s ease !important;
+    box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.24s ease,
+    background-color 0.24s ease !important;
   will-change: transform, box-shadow;
 }
 
@@ -19875,10 +20013,10 @@ button:hover:not(:disabled) svg:last-child,
 .menu-items-count-badge,
 .nb-item-category {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.2s ease,
-              border-color 0.2s ease,
-              color 0.2s ease !important;
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease !important;
 }
 
 .filter-chip:hover,
@@ -19914,13 +20052,13 @@ textarea,
 .menu-search-wrapper,
 .nb-search-bar {
   transition: border-color 0.2s ease,
-              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.2s ease,
-              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease,
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 input[type="text"]:not(.search-input):not(.nb-search-input):not(.menu-search-input):not(.slipzo-search-input):not(.products-search-input):not(.products-search-input-field):not(.templates-search-input-field):not(.home-search-input):not(.tables-search-input):not([class*="search"] input):focus,
-input[type="number"]:focus,
+input[type="number"]:not(.amm-price-input):focus,
 input[type="email"]:focus,
 input[type="tel"]:focus,
 input[type="url"]:focus,
@@ -19960,6 +20098,7 @@ textarea:focus {
     opacity: 0;
     backdrop-filter: blur(0px);
   }
+
   to {
     opacity: 1;
     backdrop-filter: blur(8px);
@@ -19971,6 +20110,7 @@ textarea:focus {
     opacity: 0;
     transform: scale(0.93) translateY(14px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -19984,15 +20124,19 @@ textarea:focus {
   0% {
     transform: translateX(-120%) skewX(-20deg);
   }
+
   100% {
     transform: translateX(220%) skewX(-20deg);
   }
 }
 
 @keyframes pulseGleam {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
   }
+
   50% {
     box-shadow: 0 4px 16px rgba(2, 132, 199, 0.45), 0 0 0 3px rgba(2, 132, 199, 0.18);
   }
@@ -20003,6 +20147,7 @@ textarea:focus {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -20010,39 +20155,39 @@ textarea:focus {
 }
 
 /* Staggered entrance for list rows */
-.home-bills-list > *:nth-child(1),
-.menu-cards-grid > *:nth-child(1),
-.dashboard-templates-grid > *:nth-child(1) {
+.home-bills-list>*:nth-child(1),
+.menu-cards-grid>*:nth-child(1),
+.dashboard-templates-grid>*:nth-child(1) {
   animation: cardStaggerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) 0.02s both;
 }
 
-.home-bills-list > *:nth-child(2),
-.menu-cards-grid > *:nth-child(2),
-.dashboard-templates-grid > *:nth-child(2) {
+.home-bills-list>*:nth-child(2),
+.menu-cards-grid>*:nth-child(2),
+.dashboard-templates-grid>*:nth-child(2) {
   animation: cardStaggerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
 }
 
-.home-bills-list > *:nth-child(3),
-.menu-cards-grid > *:nth-child(3),
-.dashboard-templates-grid > *:nth-child(3) {
+.home-bills-list>*:nth-child(3),
+.menu-cards-grid>*:nth-child(3),
+.dashboard-templates-grid>*:nth-child(3) {
   animation: cardStaggerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
 }
 
-.home-bills-list > *:nth-child(4),
-.menu-cards-grid > *:nth-child(4),
-.dashboard-templates-grid > *:nth-child(4) {
+.home-bills-list>*:nth-child(4),
+.menu-cards-grid>*:nth-child(4),
+.dashboard-templates-grid>*:nth-child(4) {
   animation: cardStaggerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) 0.11s both;
 }
 
-.home-bills-list > *:nth-child(5),
-.menu-cards-grid > *:nth-child(5),
-.dashboard-templates-grid > *:nth-child(5) {
+.home-bills-list>*:nth-child(5),
+.menu-cards-grid>*:nth-child(5),
+.dashboard-templates-grid>*:nth-child(5) {
   animation: cardStaggerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
 }
 
-.home-bills-list > *:nth-child(6),
-.menu-cards-grid > *:nth-child(6),
-.dashboard-templates-grid > *:nth-child(6) {
+.home-bills-list>*:nth-child(6),
+.menu-cards-grid>*:nth-child(6),
+.dashboard-templates-grid>*:nth-child(6) {
   animation: cardStaggerIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) 0.17s both;
 }
 
@@ -20068,7 +20213,9 @@ textarea,
   -webkit-tap-highlight-color: transparent !important;
 }
 
-@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+@media (max-width: 768px),
+(hover: none) and (pointer: coarse) {
+
   /* Mobile Smooth Inertial Scrolling */
   .menu-category-pills-row,
   .nb-category-chips-row,
@@ -20094,8 +20241,8 @@ textarea,
   .sp-card,
   .history-card {
     transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.15s ease,
-                border-color 0.15s ease !important;
+      box-shadow 0.15s ease,
+      border-color 0.15s ease !important;
   }
 
   .catalog-item-card:active,
@@ -20176,7 +20323,7 @@ textarea,
 
   /* Mobile Form & Search Input Focus Response */
   input[type="text"]:focus,
-  input[type="number"]:focus,
+  input[type="number"]:not(.amm-price-input):focus,
   select:focus,
   textarea:focus,
   .search-input-wrapper:focus-within,
@@ -20208,6 +20355,7 @@ textarea,
       opacity: 0;
       transform: translateY(8px);
     }
+
     100% {
       opacity: 1;
       transform: none;
@@ -20251,9 +20399,11 @@ textarea,
     0% {
       transform: scale(0.85);
     }
+
     55% {
       transform: scale(1.2);
     }
+
     100% {
       transform: scale(1);
     }
@@ -20276,7 +20426,7 @@ textarea,
   }
 
   /* Mobile 2-Column Grid Card Entrance Animation */
-  .menu-cards-grid > * {
+  .menu-cards-grid>* {
     animation: mobileCardPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
@@ -20285,6 +20435,7 @@ textarea,
       opacity: 0;
       transform: translateY(8px) scale(0.97);
     }
+
     to {
       opacity: 1;
       transform: translateY(0) scale(1);
@@ -20296,6 +20447,7 @@ textarea,
    8. Accessibility & Reduced Motion Support
    -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -21058,6 +21210,7 @@ textarea,
   .templates-gallery-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+
   .specs-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -21067,19 +21220,168 @@ textarea,
   .templates-header {
     padding: 3rem 1rem 2.5rem;
   }
+
   .templates-header h1 {
     font-size: 2rem !important;
   }
+
   .templates-gallery-grid {
     grid-template-columns: repeat(1, 1fr) !important;
   }
+
   .specs-grid {
     grid-template-columns: repeat(1, 1fr);
   }
+
   .templates-grid-section {
     padding: 2rem 1rem 3rem;
   }
 }
 
+/* Pricing: "Self-price custom pack" card in light blue (same colours as the landing page hero) */
+.pricing-calculator-box {
+  background:
+    radial-gradient(700px 360px at 100% 0%, rgba(125, 211, 252, 0.45), transparent 70%),
+    linear-gradient(135deg, #e0f2fe 0%, #eff6ff 50%, #dbeafe 100%) !important;
+  border: 1px solid #bae6fd;
+  color: #0c1f41 !important;
+  box-shadow: 0 24px 50px -30px rgba(2, 132, 199, 0.45) !important;
+}
+.pricing-calculator-box:hover { box-shadow: 0 28px 56px -30px rgba(2, 132, 199, 0.55) !important; }
+.pricing-calculator-box .calc-eyebrow-pill { background: #ffffff; border-color: #bae6fd; color: #0369a1; }
+.pricing-calculator-box .calc-heading { color: #0c1f41 !important; }
+.pricing-calculator-box .calc-subtext { color: #475569 !important; }
+.pricing-calculator-box .quick-presets-label { color: #64748b !important; }
+.pricing-calculator-box .preset-pill-btn { background: #ffffff; border-color: #dbeafe; color: #334155; }
+.pricing-calculator-box .preset-pill-btn:hover { background: #f0f9ff; border-color: #7dd3fc; color: #0369a1; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15); }
+.pricing-calculator-box .preset-pill-btn.active-preset { background: #0284c7; border-color: #0284c7; color: #ffffff; }
+.pricing-calculator-box .adjust-prints-box { background: rgba(255, 255, 255, 0.75); border-color: #dbeafe; }
+.pricing-calculator-box .adjust-prints-box:hover { border-color: #7dd3fc; }
+.pricing-calculator-box .adjust-prints-label { color: #0c1f41 !important; }
+.pricing-calculator-box .slider-number-input { border: 1.5px solid #bae6fd !important; background: #ffffff !important; color: #0c1f41 !important; }
+.pricing-calculator-box .slider-prints-unit,
+.pricing-calculator-box .slider-marks-row { color: #64748b !important; }
+.pricing-calculator-box .custom-range-slider { accent-color: #0284c7; }
+.pricing-calculator-box .calc-output-card { background: #ffffff; border-color: #bae6fd; box-shadow: 0 18px 40px -26px rgba(12, 31, 65, 0.35); }
+.pricing-calculator-box .calc-output-card:hover { border-color: #7dd3fc; }
+.pricing-calculator-box .self-price-sublabel { color: #0284c7 !important; }
+.pricing-calculator-box .self-price-figure { color: #0c1f41 !important; }
+.pricing-calculator-box .calc-rate-text { color: #475569 !important; }
+.pricing-calculator-box .calc-strikethrough-base { color: #94a3b8 !important; }
+.pricing-calculator-box .self-price-savings-pill { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+.pricing-calculator-box .self-price-hint-pill { background: #f1f5f9; color: #475569; }
+.pricing-calculator-box .calc-security-note { color: #64748b !important; }
 
-
+/* Shop setup popup: the whole card scrolls as one (title, form, preview and the save bar move together),
+   instead of a pinned title and button bar with only the middle scrolling */
+.modal-card.shop-onboarding-card {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.modal-card.shop-onboarding-card .onboarding-body,
+.modal-card.shop-onboarding-card .onboarding-form,
+.modal-card.shop-onboarding-card .onboarding-preview-col {
+  overflow: visible !important;
+  flex: none !important;
+  max-height: none !important;
+}
+.modal-card.shop-onboarding-card .onboarding-header,
+.modal-card.shop-onboarding-card .onboarding-footer {
+  position: static !important;
+  flex-shrink: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Shop setup popup: details already given at sign-up are shown read-only */
+.shop-onboarding-card .setup-locked-input,
+.shop-onboarding-card .setup-locked-input:focus {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+  cursor: default;
+}
+.shop-onboarding-card .setup-lock-icon {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.shop-onboarding-card .setup-locked-note {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+.shop-onboarding-card button[data-testid^="setup-category-"]:disabled { color: inherit; }
+
+/* Shop setup popup: light preview column (was black) with the template and bill numbering above the receipt */
+.modal-card.shop-onboarding-card .onboarding-preview-col {
+  background:
+    radial-gradient(360px 220px at 100% 0%, rgba(125, 211, 252, 0.35), transparent 70%),
+    linear-gradient(180deg, #f0f9ff 0%, #f8fafc 100%) !important;
+  border-left: 1px solid #e0f2fe;
+}
+.shop-onboarding-card .setup-preview-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+  padding: 0.9rem;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e0f2fe;
+  box-shadow: 0 6px 18px -14px rgba(12, 31, 65, 0.35);
+}
+.shop-onboarding-card .setup-preview-controls .onboarding-field { margin: 0 !important; }
+.shop-onboarding-card .setup-preview-controls .onboarding-grid-two { margin: 0 !important; }
+.shop-onboarding-card .preview-pill-header .pill-title { color: #0369a1 !important; }
+.shop-onboarding-card .preview-pill-header .paper-pill {
+  color: #0369a1 !important;
+  background: #ffffff !important;
+  border-color: #bae6fd !important;
+}
+.shop-onboarding-card .onboarding-receipt-box .realistic-thermal-receipt {
+  box-shadow: 0 16px 34px -18px rgba(12, 31, 65, 0.4);
+  border: 1px solid #e2e8f0;
+}
+
+/* Shop setup popup: the address box, full width like the other fields, with the mic inside its top-right corner */
+.shop-onboarding-card textarea.onboarding-textarea {
+  display: block;
+  width: 100% !important;
+  min-height: 96px;
+  padding: 0.7rem 2.75rem 0.7rem 0.85rem !important;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #0f172a;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.shop-onboarding-card textarea.onboarding-textarea::placeholder { color: #94a3b8; }
+.shop-onboarding-card textarea.onboarding-textarea:focus {
+  outline: none;
+  border-color: #0ea5e9 !important;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12) !important;
+}
+.shop-onboarding-card textarea.onboarding-textarea.input-error { border-color: #ef4444 !important; }
+
+/* Shop setup popup: a shorter bill preview (same receipt, drawn smaller) */
+.modal-card.shop-onboarding-card .onboarding-receipt-box { zoom: 0.8; }
+.modal-card.shop-onboarding-card .onboarding-preview-col { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+.shop-onboarding-card .setup-preview-controls { margin-bottom: 0.75rem; padding: 0.75rem; gap: 0.6rem; }
+.shop-onboarding-card .preview-pill-header { margin-bottom: 0.6rem !important; }
+
+/* Shop setup popup: slimmer save bar and less empty space under it */
+.modal-card.shop-onboarding-card { padding-bottom: 0.6rem !important; }
+.modal-card.shop-onboarding-card .onboarding-footer { padding-top: 0.6rem !important; padding-bottom: 0.6rem !important; }

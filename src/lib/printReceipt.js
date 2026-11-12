@@ -1,15 +1,93 @@
 import Swal from "sweetalert2"
 
+const HTML2PDF_CDNS = [
+  "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js",
+  "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js",
+  "https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"
+]
+
+let html2pdfLoadPromise = null
+
 const loadHtml2Pdf = () => {
-  return new Promise((resolve) => {
-    if (window.html2pdf) return resolve(window.html2pdf)
-    const script = document.createElement("script")
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-    script.onload = () => resolve(window.html2pdf)
-    script.onerror = () => resolve(null)
-    document.body.appendChild(script)
-  })
+  if (typeof window === "undefined") return Promise.resolve(null)
+  if (window.html2pdf) return Promise.resolve(window.html2pdf)
+  if (html2pdfLoadPromise) return html2pdfLoadPromise
+
+  html2pdfLoadPromise = (async () => {
+    for (const src of HTML2PDF_CDNS) {
+      if (window.html2pdf) return window.html2pdf
+      const loaded = await new Promise((resolve) => {
+        const script = document.createElement("script")
+        script.src = src
+        script.async = true
+        script.onload = () => resolve(window.html2pdf || null)
+        script.onerror = () => {
+          script.remove()
+          resolve(null)
+        }
+        document.body.appendChild(script)
+      })
+      if (loaded) return loaded
+    }
+    html2pdfLoadPromise = null
+    return null
+  })()
+
+  return html2pdfLoadPromise
 }
+
+const sanitizePdfFilename = (raw) => {
+  const fallback = `Slipzo_Receipt_${Date.now()}.pdf`
+  if (!raw || typeof raw !== "string") return fallback
+  const cleaned = raw.trim().replace(/[^a-zA-Z0-9._-]/g, "_")
+  if (!cleaned) return fallback
+  return cleaned.toLowerCase().endsWith(".pdf") ? cleaned : `${cleaned}.pdf`
+}
+
+const waitForMediaReady = async (root) => {
+  try {
+    if (document.fonts && document.fonts.ready) {
+      await Promise.race([
+        document.fonts.ready,
+        new Promise((r) => setTimeout(r, 1200))
+      ])
+    }
+  } catch {
+    // ignore font wait errors
+  }
+
+  const imgs = Array.from(root?.querySelectorAll?.("img") || [])
+  if (imgs.length === 0) return
+
+  await Promise.race([
+    Promise.all(
+      imgs.map((img) => {
+        if (img.complete) return Promise.resolve()
+        return new Promise((res) => {
+          img.addEventListener("load", res, { once: true })
+          img.addEventListener("error", res, { once: true })
+        })
+      })
+    ),
+    new Promise((r) => setTimeout(r, 3000))
+  ])
+}
+
+const blobToBase64 = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const dataUrl = typeof reader.result === "string" ? reader.result : ""
+      const base64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl
+      if (!base64) {
+        reject(new Error("Could not encode generated PDF"))
+        return
+      }
+      resolve(base64)
+    }
+    reader.onerror = () => reject(reader.error || new Error("Failed reading generated PDF"))
+    reader.readAsDataURL(blob)
+  })
 
 // Preload html2pdf library in background for instantaneous PDF downloads
 if (typeof window !== "undefined") {
@@ -364,7 +442,7 @@ export async function saveReceiptAsPdf(elementId = "receipt-to-print", options =
       icon: "error",
       confirmButtonColor: "#0284c7"
     })
-    return
+    return { saved: false }
   }
 
   Swal.fire({
@@ -378,13 +456,18 @@ export async function saveReceiptAsPdf(elementId = "receipt-to-print", options =
 
   try {
     const html2pdf = await loadHtml2Pdf()
+    if (!html2pdf) {
+      throw new Error("Could not load the PDF generator. Please check your internet connection and try again.")
+    }
+
     const config = typeof options === "string" ? { pageWidth: options } : (options || {})
     const rawWidth = (config.pageWidth || "80mm").trim().toLowerCase()
     const isA4 = rawWidth === "a4" || rawWidth === "full"
     const is55 = rawWidth === "55mm" || rawWidth === "55"
     const is58 = rawWidth === "58mm" || rawWidth === "58"
     const rollMm = isA4 ? 210 : (is55 ? 55 : (is58 ? 58 : 80))
-    const filename = `Slipzo_Receipt_${Date.now()}.pdf`
+    const formatLabel = isA4 ? "A4" : `${rollMm}mm`
+    const filename = sanitizePdfFilename(config.filename)
 
     const clone = el.cloneNode(true)
     clone.removeAttribute("id")
@@ -411,50 +494,143 @@ export async function saveReceiptAsPdf(elementId = "receipt-to-print", options =
     measureWrap.style.top = "0"
     measureWrap.style.width = isA4 ? "190mm" : `${rollMm}mm`
     measureWrap.style.background = "#ffffff"
+    measureWrap.style.pointerEvents = "none"
     measureWrap.style.zIndex = "-9999"
     measureWrap.appendChild(wrapper)
     document.body.appendChild(measureWrap)
 
-    const measuredPx = Math.ceil(wrapper.getBoundingClientRect().height || wrapper.offsetHeight)
-    const calculatedHeightMm = isA4 ? 297 : Math.max(65, Math.ceil(measuredPx * (25.4 / 96)) + 4)
+    let pdfBlob = null
+    try {
+      await waitForMediaReady(wrapper)
 
-    if (html2pdf) {
+      const measuredPx = Math.ceil(wrapper.getBoundingClientRect().height || wrapper.offsetHeight)
+      const calculatedHeightMm = isA4 ? 297 : Math.max(65, Math.ceil(measuredPx * (25.4 / 96)) + 4)
+      const captureScale = measuredPx > 4000 ? 1.5 : 2.5
+
       const pdfOpt = {
         margin: isA4 ? [10, 10, 10, 10] : [0, 0, 0, 0],
-        filename: filename,
+        filename,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2.5, useCORS: true, logging: false, scrollY: 0 },
+        html2canvas: {
+          scale: captureScale,
+          useCORS: true,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          backgroundColor: "#ffffff"
+        },
         jsPDF: {
           unit: "mm",
           format: isA4 ? "a4" : [rollMm, calculatedHeightMm],
           orientation: "portrait"
         }
       }
-      try {
-        await html2pdf().set(pdfOpt).from(wrapper).save()
-        Swal.fire({
-          title: "PDF Saved! 📄",
-          text: `Receipt (${isA4 ? "A4" : rollMm + "mm"}) has been downloaded successfully.`,
-          icon: "success",
-          timer: 2000,
-          showConfirmButton: false
-        })
-      } finally {
-        if (measureWrap && measureWrap.parentNode) {
-          measureWrap.parentNode.removeChild(measureWrap)
-        }
+
+      const worker = html2pdf().set(pdfOpt).from(wrapper)
+      const rawBlob = typeof worker.outputPdf === "function"
+        ? await worker.outputPdf("blob")
+        : await worker.toPdf().get("pdf").then((doc) => doc?.output?.("blob"))
+
+      if (rawBlob instanceof Blob && rawBlob.size >= 100) {
+        pdfBlob = new Blob([rawBlob], { type: "application/pdf" })
+      } else {
+        throw new Error("Generated PDF file was empty.")
       }
-    } else {
+    } finally {
       if (measureWrap && measureWrap.parentNode) {
         measureWrap.parentNode.removeChild(measureWrap)
       }
-      Swal.close()
-      printReceiptElement(elementId, options)
     }
+
+    const cap = typeof window !== "undefined" ? window.Capacitor : null
+    const isCapacitorNative = Boolean(cap?.isNativePlatform?.() || cap?.isNative)
+    const nativeSaver = cap?.Plugins?.NativeFileSaver
+
+    if (isCapacitorNative) {
+      if (nativeSaver?.savePdf) {
+        const base64Data = await blobToBase64(pdfBlob)
+        const nativeRes = await nativeSaver.savePdf({
+          filename,
+          base64Data,
+          mimeType: "application/pdf"
+        })
+        if (!nativeRes?.saved || !nativeRes?.uri) {
+          throw new Error("Device storage did not confirm saving the PDF.")
+        }
+
+        const swalResult = await Swal.fire({
+          title: "PDF Saved!",
+          text: `${filename} (${formatLabel}) saved to ${nativeRes.location || "Downloads/Slipzen"}.`,
+          icon: "success",
+          showCancelButton: Boolean(nativeSaver?.openPdf),
+          confirmButtonText: nativeSaver?.openPdf ? "Open PDF" : "OK",
+          cancelButtonText: "Done",
+          confirmButtonColor: "#0284c7"
+        })
+
+        if (swalResult.isConfirmed && nativeSaver?.openPdf) {
+          try {
+            await nativeSaver.openPdf({ uri: nativeRes.uri, mimeType: "application/pdf" })
+          } catch (openErr) {
+            Swal.fire({
+              title: "Saved to Downloads",
+              text: `${nativeRes.location || filename} was saved, but no PDF viewer app could be opened (${openErr?.message || "no viewer found"}).`,
+              icon: "info",
+              confirmButtonColor: "#0284c7"
+            })
+          }
+        }
+        return { saved: true, filename, uri: nativeRes.uri, location: nativeRes.location }
+      }
+
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof File !== "undefined") {
+        const file = new File([pdfBlob], filename, { type: "application/pdf" })
+        if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+          Swal.close()
+          await navigator.share({ title: filename, files: [file] })
+          return { saved: true, filename }
+        }
+      }
+
+      throw new Error("Direct PDF download requires the latest Android app build.")
+    }
+
+    // Standard desktop / mobile web browser download
+    if (typeof window.navigator?.msSaveOrOpenBlob === "function") {
+      window.navigator.msSaveOrOpenBlob(pdfBlob, filename)
+    } else {
+      const blobUrl = URL.createObjectURL(pdfBlob)
+      const link = document.createElement("a")
+      link.href = blobUrl
+      link.download = filename
+      link.rel = "noopener noreferrer"
+      link.style.display = "none"
+      document.body.appendChild(link)
+      link.click()
+      setTimeout(() => {
+        if (link.parentNode) link.parentNode.removeChild(link)
+      }, 1000)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+    }
+
+    Swal.fire({
+      title: "PDF Saved!",
+      text: `${filename} (${formatLabel}) has been downloaded.`,
+      icon: "success",
+      timer: 2500,
+      showConfirmButton: false
+    })
+    return { saved: true, filename }
   } catch (err) {
     console.error("[saveReceiptAsPdf] error:", err)
-    Swal.close()
-    printReceiptElement(elementId, options)
+    const msg = err?.message || "Could not generate or download the receipt PDF."
+    Swal.fire({
+      title: "PDF Download Failed",
+      text: msg,
+      icon: "error",
+      confirmButtonColor: "#0284c7"
+    })
+    return { saved: false, error: msg }
   }
 }
 

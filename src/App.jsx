@@ -134,6 +134,18 @@ const pathToView = (pathname) => {
   return "dashboard"
 }
 
+const isLoginPath = (pathname) => {
+  const clean = String(pathname || "").toLowerCase()
+  return clean === "/login" || clean === "/signin"
+}
+
+const isRegisterPath = (pathname) => {
+  const clean = String(pathname || "").toLowerCase()
+  return clean === "/signup" || clean === "/register"
+}
+
+const isAuthPath = (pathname) => isLoginPath(pathname) || isRegisterPath(pathname)
+
 // The pages a visitor who is not signed in can open on their own URL (a reload keeps them there)
 const publicViewFromPath = () => {
   if (typeof window === "undefined") return "dashboard"
@@ -179,24 +191,12 @@ function AppContent() {
     query.addEventListener("change", update)
     return () => query.removeEventListener("change", update)
   }, [])
-  const [showAuth, setShowAuth] = useState(() => {
-    if (typeof window !== "undefined") {
-      const p = window.location.pathname.toLowerCase()
-      if (p === "/login" || p === "/signin" || p === "/signup" || p === "/register") {
-        return true
-      }
-    }
-    return false
-  })
-  const [isRegister, setIsRegister] = useState(() => {
-    if (typeof window !== "undefined") {
-      const p = window.location.pathname.toLowerCase()
-      if (p === "/signup" || p === "/register") {
-        return true
-      }
-    }
-    return false
-  })
+  const [showAuth, setShowAuth] = useState(() => (
+    typeof window !== "undefined" && isAuthPath(window.location.pathname)
+  ))
+  const [isRegister, setIsRegister] = useState(() => (
+    typeof window !== "undefined" && isRegisterPath(window.location.pathname)
+  ))
   const [showShopOnboarding, setShowShopOnboarding] = useState(false)
   // New accounts must buy a print pack before the shop and item setup
   const [showPlanGate, setShowPlanGate] = useState(false)
@@ -302,6 +302,13 @@ function AppContent() {
     setShowAuth(true)
   }
 
+  const handleCloseAuth = () => {
+    setShowAuth(false)
+    if (typeof window !== "undefined" && isAuthPath(window.location.pathname)) {
+      window.history.replaceState({ view: currentViewRef.current || "dashboard" }, "", "/" + window.location.search)
+    }
+  }
+
   const checkShopSetupNeeded = async (userData) => {
     const userKey = userData?.email || userData?.id
     if (!userKey) return
@@ -405,12 +412,36 @@ function AppContent() {
   }
 
   const checkUserAuth = async () => {
+    const clearUnauthSession = () => {
+      localStorage.removeItem("slipzo_user_info")
+      setUser(null)
+      const nextView = publicViewFromPath()
+      if (typeof window !== "undefined" && isAuthPath(window.location.pathname)) {
+        setViewState(nextView)
+      } else {
+        setView(nextView)
+      }
+    }
+
     try {
       console.log('🔐 Checking user authentication...')
-      const userData = await call("/auth/me")
+      const userData = await call("/auth/me", { noCache: true })
       console.log('✅ User authenticated:', userData)
       if (userData && (userData.id || userData.email)) {
+        let prevUser = null
+        try {
+          const prevRaw = localStorage.getItem("slipzo_user_info")
+          if (prevRaw) prevUser = JSON.parse(prevRaw)
+        } catch (_) {}
+        const prevStaffName = prevUser?.staff_of?.shop_name || null
+        const nextStaffName = userData?.staff_of?.shop_name || null
+        if (prevUser && (String(prevUser.id || "") !== String(userData.id || "") || prevStaffName !== nextStaffName)) {
+          clearApiCache()
+        }
         localStorage.setItem("slipzo_user_info", JSON.stringify(userData))
+        if (prevUser && prevStaffName !== nextStaffName && typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("slipzo_staff_changed", { detail: userData }))
+        }
         // Remove legacy un-scoped keys if present from previous builds
         localStorage.removeItem("slipzo_active_plan")
         localStorage.removeItem("slipzo_free_print_count")
@@ -438,15 +469,11 @@ function AppContent() {
         await withTimeout(checkShopSetupNeeded(userData), 8000)
       } else {
         console.log('❌ Invalid user data returned:', userData)
-        localStorage.removeItem("slipzo_user_info")
-        setUser(null)
-        setView(publicViewFromPath())
+        clearUnauthSession()
       }
     } catch (err) {
       console.log('❌ Not authenticated:', err.message)
-      localStorage.removeItem("slipzo_user_info")
-      setUser(null)
-      setView(publicViewFromPath())
+      clearUnauthSession()
     } finally {
       setChecking(false)
     }
@@ -486,6 +513,19 @@ function AppContent() {
     const handlePopState = () => {
       const p = window.location.pathname
       if (!p.startsWith("/admin")) {
+        if (!userRef.current) {
+          if (isLoginPath(p)) {
+            setIsRegister(false)
+            setShowAuth(true)
+            return
+          }
+          if (isRegisterPath(p)) {
+            setIsRegister(true)
+            setShowAuth(true)
+            return
+          }
+          setShowAuth(false)
+        }
         const matched = pathToView(p)
         if (matched) {
           if (navigationHistoryRef.current.length > 0) {
@@ -564,7 +604,7 @@ function AppContent() {
 
           // 1. Close top-level App modals if open
           if (authOpen) {
-            setShowAuth(false)
+            handleCloseAuth()
             return
           }
           // The plan step cannot be backed out of
@@ -661,7 +701,8 @@ function AppContent() {
     } catch (e) {}
 
     setUser(null)
-    setShowAuth(false)
+    setIsRegister(false)
+    setShowAuth(true)
     setShowPlanGate(false)
     setShowShopOnboarding(false)
     setShowAddItemsModal(false)
@@ -669,8 +710,12 @@ function AppContent() {
     setResolvingSetup(false)
     setSelectedBillId(null)
     setCachedShop({})
-    setView("dashboard")
+    navigationHistoryRef.current = []
+    setViewState("dashboard")
     if (typeof window !== "undefined") {
+      if (window.location.pathname.toLowerCase() !== "/login") {
+        window.history.replaceState({ view: "dashboard" }, "", "/login" + window.location.search)
+      }
       window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
     }
 
@@ -678,6 +723,13 @@ function AppContent() {
   }
 
   const handleLogin = async (userData, isNewUser = false) => {
+    clearApiCache()
+    setCachedShop({})
+    try {
+      const { token: _ignoredToken, ...userWithoutToken } = userData || {}
+      localStorage.setItem("slipzo_user_info", JSON.stringify(userWithoutToken))
+    } catch (_) {}
+
     // A new account goes straight to the plan step, before anything else is awaited, so the dashboard never shows first.
     // A returning account sees the loader while we check whether it still has the plan or setup to finish.
     if (isNewUser) {
@@ -693,7 +745,7 @@ function AppContent() {
     const userKey = userData?.email || userData?.id
 
     try {
-      const subRes = await call("/subscriptions/my")
+      const subRes = await call("/subscriptions/my", { noCache: true })
       if (subRes && subRes.quota) {
         syncUserQuota(subRes.quota, userKey)
       }
@@ -707,7 +759,7 @@ function AppContent() {
         localStorage.removeItem(`slipzo_first_time_onboarding_${userKey}`)
       }
       // Plan first, then the shop profile and the items
-      call("/shop").then((shop) => { if (shop) setCachedShop(shop) }).catch(() => {})
+      call("/shop", { noCache: true }).then((shop) => { if (shop) setCachedShop(shop) }).catch(() => {})
     } else {
       setShowPlanGate(false)
       setShowShopOnboarding(false)
@@ -770,10 +822,10 @@ function AppContent() {
   if (!user) {
     if (showAuth) {
       return (
-        <ErrorBoundary onGoHome={() => setView("dashboard")}>
+        <ErrorBoundary onGoHome={() => { handleCloseAuth(); setView("dashboard") }}>
           <Auth 
             onLogin={handleLogin} 
-            onCancel={() => setShowAuth(false)}
+            onCancel={handleCloseAuth}
             initialRegister={isRegister}
           />
           <PwaInstallPrompt />
@@ -786,7 +838,7 @@ function AppContent() {
       if (target === "pricing" || target === "contact" || target === "dashboard") setView(target)
       else handleOpenAuth(true)
     }
-    const publicSetShowAuth = (open) => (open ? handleOpenAuth(true) : setShowAuth(false))
+    const publicSetShowAuth = (open) => (open ? handleOpenAuth(true) : handleCloseAuth())
 
     if (view === "pricing") {
       return (
