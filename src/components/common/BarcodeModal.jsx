@@ -5,7 +5,7 @@ import { Code128Barcode } from "../../lib/code128"
 import { printBarcodeLabel, LABEL_FORMATS } from "../../lib/printBarcodeLabel"
 import { useToast } from "./Toast"
 
-export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZO POS" }) {
+export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZEN POS" }) {
   const { t } = useTranslation()
   const [labelSize, setLabelSize] = useState("50x25mm")
   const [copies, setCopies] = useState(1)

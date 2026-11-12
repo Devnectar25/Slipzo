@@ -183,7 +183,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       category: "Modern",
       badge: "Trendy",
       paperSize: "58mm Thermal",
-      description: "Contemporary aesthetic for boutiques, cafes, and modern shops with clean typography and spacing.",
+      description: "Contemporary design for boutiques, cafés, and salons, featuring pill badges, stylish spacing, and an Instagram handle.",
       gradient: "#0284c7",
       accentColor: "#0284c7",
       features: ["Modern typography", "Clean item list with rates", "Clear amount due card", "Custom footer note"],
@@ -270,7 +270,7 @@ export function PublicTemplates({ setView, setShowAuth, user, requireAuth }) {
       {/* Header */}
       <section className="templates-header">
         <div className="templates-header-content">
-          <p className="eyebrow">{t("templates.eyebrow", "SLIPZO TEMPLATES")}</p>
+          <p className="eyebrow">{t("templates.eyebrow", "SLIPZEN TEMPLATES")}</p>
           <h1>{t("templates.heroTitle", "Professional Receipt Templates for Every Type of Shop")}</h1>
           <p className="header-description">
             {t("templates.heroSub", "Tailored for 58mm & 80mm thermal receipt printers, mobile Bluetooth devices, and standard bills. Pick a template, add your logo and shop details, and print in seconds.")}

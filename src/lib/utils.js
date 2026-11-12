@@ -323,7 +323,7 @@ const performFetch = async (cleanPath, options = {}) => {
     const contentType = response.headers.get("content-type") || ""
     if (contentType.includes("text/html")) {
       console.warn(`⚠️ API returned HTML instead of JSON for ${url}`)
-      const htmlError = new Error("Unable to connect to Slipzo backend API server. Please check deployment URL.")
+      const htmlError = new Error("Unable to connect to Slipzen backend API server. Please check deployment URL.")
       htmlError.code = "HTML_RESPONSE"
       htmlError.status = response.status
       throw htmlError
@@ -968,6 +968,28 @@ export const isHotelRestaurant = (shopOrCategory) => {
          clean === "hotel or food restaurant" ||
          clean.includes("hotel") ||
          clean.includes("restaurant")
+}
+
+// Small-business and hotel/restaurant categories call their catalog "Menu";
+// clothing/garments and kirana/grocery categories call it "Item".
+export const isMenuCategory = (shopOrCategory) => {
+  if (!shopOrCategory) return true
+  const cat = typeof shopOrCategory === "string"
+    ? shopOrCategory
+    : (shopOrCategory.business_type || shopOrCategory.category || "")
+  const clean = String(cat).trim().toLowerCase()
+  if (!clean) return true
+  if (
+    clean === "clothing_garments" ||
+    clean === "kirana_grocery" ||
+    clean.includes("cloth") ||
+    clean.includes("garment") ||
+    clean.includes("kirana") ||
+    clean.includes("grocer")
+  ) {
+    return false
+  }
+  return true
 }
 
 export const getStoredTables = (user) => {

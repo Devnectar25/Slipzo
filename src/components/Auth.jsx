@@ -42,6 +42,14 @@ const normalizeMobile = (value) => {
   else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1)
   return /^[6-9]\d{9}$/.test(digits) ? digits : null
 }
+
+// Strip non-digits and leading country/trunk prefix while typing or pasting a 10-digit mobile number
+const sanitizeMobileInput = (value) => {
+  let raw = String(value || "").replace(/\D/g, "")
+  if (raw.length === 12 && raw.startsWith("91")) raw = raw.slice(2)
+  else if (raw.length === 11 && raw.startsWith("0")) raw = raw.slice(1)
+  return raw.slice(0, 10)
+}
 // name@domain.tld: no spaces, a dot in the domain, a 2+ letter ending, no ".." anywhere
 const EMAIL_RE = /^(?!.*\.\.)[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/
 
@@ -73,16 +81,6 @@ const mobileProblem = (value) => {
   if (digits.length !== 10) return ["auth.err_mobile_length", "A mobile number has 10 digits. You entered {{n}}.", { n: digits.length }]
   if (!/^[6-9]/.test(digits)) return ["auth.err_mobile_start", "An Indian mobile number starts with 6, 7, 8 or 9"]
   return null
-}
-
-// Sign in also accepts the email an older account was made with
-const loginIdProblem = (value) => {
-  const v = String(value || "").trim()
-  if (!v) return ["auth.err_mobile_required", "Please enter your mobile number"]
-  if (v.includes("@") || /[a-zA-Z]/.test(v)) {
-    return EMAIL_RE.test(v) ? null : ["auth.err_login_id", "Enter your 10-digit mobile number (or the email you signed up with)"]
-  }
-  return mobileProblem(v)
 }
 // Same four categories as the shop profile (components/common/ChangeCategoryModal.jsx)
 const SHOP_CATEGORIES = [
@@ -130,7 +128,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     switch (name) {
       case "shopName": return shopProblem(f.shopName)
       case "category": return categoryProblem(f.category)
-      case "phone": return isRegister ? mobileProblem(f.phone) : loginIdProblem(f.phone)
+      case "phone": return mobileProblem(f.phone)
       case "email": return emailProblem(f.email)
       case "password":
         if (!f.password) return ["auth.err_password_required", "Please enter your password"]
@@ -311,9 +309,8 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           ...(form.email.trim() ? { email: form.email.trim() } : {})
         }
       } else {
-        const legacyEmail = form.phone.includes("@") && EMAIL_RE.test(form.phone.trim())
         body = {
-          ...(legacyEmail ? { email: form.phone.trim() } : { phone: normalizeMobile(form.phone) }),
+          phone: normalizeMobile(form.phone),
           password: form.password
         }
       }
@@ -368,8 +365,8 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
 
 
   return (
-    <div className="auth-overlay" onClick={onCancel ? onCancel : undefined}>
-      <div className="auth-modal-box" onClick={(e) => e.stopPropagation()}>
+    <div className="auth-overlay">
+      <div className="auth-modal-box">
         {onCancel && (
           <button className="auth-close" onClick={onCancel} aria-label={t("auth.close", "Close authentication")}>
             <X size={18} />
@@ -494,15 +491,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                       maxLength={16}
                       placeholder={t("auth.mobilePlaceholder", "10-digit mobile number")}
                       value={form.phone}
-                      onChange={(e) => {
-                        let raw = e.target.value.replace(/\D/g, "")
-                        if (raw.length === 12 && raw.startsWith("91")) {
-                          raw = raw.slice(2)
-                        } else if (raw.length === 11 && raw.startsWith("0")) {
-                          raw = raw.slice(1)
-                        }
-                        set({ phone: raw.slice(0, 10) })
-                      }}
+                      onChange={(e) => set({ phone: sanitizeMobileInput(e.target.value) })}
                       className={fieldErrors.phone ? "input-error" : ""}
                     />
                   </div>
@@ -652,26 +641,13 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                     data-field="phone"
                     onBlur={() => checkField("phone")}
                     type="tel"
-                    inputMode={/[a-zA-Z@]/.test(form.phone) ? "email" : "numeric"}
+                    inputMode="numeric"
                     required
                     autoComplete="tel"
-                    maxLength={/[a-zA-Z@]/.test(form.phone) ? 64 : 16}
+                    maxLength={16}
                     placeholder={t("auth.mobilePlaceholder", "10-digit mobile number")}
                     value={form.phone}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      if (val.includes("@") || /[a-zA-Z]/.test(val)) {
-                        set({ phone: val.slice(0, 64) })
-                      } else {
-                        let raw = val.replace(/\D/g, "")
-                        if (raw.length === 12 && raw.startsWith("91")) {
-                          raw = raw.slice(2)
-                        } else if (raw.length === 11 && raw.startsWith("0")) {
-                          raw = raw.slice(1)
-                        }
-                        set({ phone: raw.slice(0, 10) })
-                      }
-                    }}
+                    onChange={(e) => set({ phone: sanitizeMobileInput(e.target.value) })}
                     className={fieldErrors.phone ? "input-error" : ""}
                   />
                 </div>

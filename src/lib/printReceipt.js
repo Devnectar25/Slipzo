@@ -37,7 +37,7 @@ const loadHtml2Pdf = () => {
 }
 
 const sanitizePdfFilename = (raw) => {
-  const fallback = `Slipzo_Receipt_${Date.now()}.pdf`
+  const fallback = `Slipzen_Receipt_${Date.now()}.pdf`
   if (!raw || typeof raw !== "string") return fallback
   const cleaned = raw.trim().replace(/[^a-zA-Z0-9._-]/g, "_")
   if (!cleaned) return fallback

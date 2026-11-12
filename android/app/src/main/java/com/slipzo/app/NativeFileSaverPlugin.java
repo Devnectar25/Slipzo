@@ -180,7 +180,7 @@ public class NativeFileSaverPlugin extends Plugin {
 
     private String sanitizePdfFilename(String raw) {
         String base = (raw == null || raw.trim().isEmpty())
-            ? ("Slipzo_Receipt_" + System.currentTimeMillis() + ".pdf")
+            ? ("Slipzen_Receipt_" + System.currentTimeMillis() + ".pdf")
             : raw.trim().replaceAll("[^a-zA-Z0-9._-]", "_");
         if (!base.toLowerCase().endsWith(".pdf")) {
             base = base + ".pdf";

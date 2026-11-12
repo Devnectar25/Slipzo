@@ -362,7 +362,7 @@ export function History({ setView, setSelectedBillId, user }) {
             <Banknote size={13} /> {t("history.eyebrow", "YOUR RECEIPTS")}
           </span>
           <h1 className="menu-main-title">{t("history.title", "Bill history.")}</h1>
-          <p className="menu-sub-title">{t("history.subtitle", "Every saved receipt, ready to find and reprint again.")}</p>
+          <p className="menu-sub-title">{t("history.subtitle", "Find and reprint any saved receipt.")}</p>
         </div>
       </div>
 
@@ -448,7 +448,7 @@ export function History({ setView, setSelectedBillId, user }) {
                 }}
                 className="option-select filter-select"
               >
-                <option value="All">{t("history.allPayments", "All Payments")}</option>
+                <option value="All">{t("history.allPayments", "All Payments Methods")}</option>
                 <option value="Cash">{t("history.cash", "Cash")}</option>
                 <option value="UPI">{t("history.upi", "UPI")}</option>
                 <option value="Card">{t("history.card", "Card")}</option>
@@ -608,7 +608,7 @@ export function History({ setView, setSelectedBillId, user }) {
             {/* Pagination Navigation Bar */}
             <div className="pagination-bar">
               <div className="pagination-info">
-                {t("history.showing", { start: totalRecords > 0 ? startRecord : 0, end: endRecord, total: totalRecords, defaultValue: `Showing ${totalRecords > 0 ? startRecord : 0} to ${endRecord} of ${totalRecords} receipts` })}
+                {t(totalRecords === 1 ? "history.showingOne" : "history.showing", { start: totalRecords > 0 ? startRecord : 0, end: endRecord, total: totalRecords, defaultValue: `Showing ${totalRecords > 0 ? startRecord : 0} to ${endRecord} of ${totalRecords} ${totalRecords === 1 ? "receipt" : "receipts"}` })}
               </div>
 
               <div className="pagination-controls">
@@ -1326,11 +1326,12 @@ export function History({ setView, setSelectedBillId, user }) {
         }
 
         .page.history-page .filter-select {
+          width: auto !important;
           height: 48px !important;
           background: #ffffff !important;
           border: 1px solid #d5e0eb !important;
           border-radius: 12px !important;
-          padding: 0 2rem 0 0.9rem !important;
+          padding: 0 0.65rem 0 0.8rem !important;
           font-size: 14px !important;
           font-weight: 600 !important;
           color: #0C1F41 !important;

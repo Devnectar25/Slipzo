@@ -1,6 +1,6 @@
-# Slipzo - POS & Digital Receipt Management
+# Slipzen - POS & Digital Receipt Management
 
-Slipzo is a modern web application for billing, table management, POS printing, and digital receipt tracking.
+Slipzen is a modern web application for billing, table management, POS printing, and digital receipt tracking.
 
 
 Currently, two official plugins are available:

@@ -211,7 +211,7 @@ export function Pricing({ setView, setShowAuth, user }) {
       <section className="pricing-hero-banner">
         <div className="pricing-hero-grid">
           <div className="pricing-hero-left">
-            <span className="pricing-eyebrow">{t("pricing.eyebrow", "SLIPZO PRICING")}</span>
+            <span className="pricing-eyebrow">{t("pricing.eyebrow", "SLIPZEN PRICING")}</span>
             <h1 className="pricing-hero-heading">
               {t("pricing.payOnlyFor", "Pay only for")}<br />
               <span className="pricing-hero-accent">{t("pricing.whatYouPrint", "what you print")}</span>
@@ -415,7 +415,7 @@ export function Pricing({ setView, setShowAuth, user }) {
           {/* Top Eyebrow */}
           <div className="calc-eyebrow-row">
             <span className="calc-eyebrow-pill">
-              <Calculator size={13} /> {t("pricing.selfPriceEyebrow", "SELF-PRICE CUSTOM PACK")}
+              <Calculator size={13} /> {t("pricing.selfPriceEyebrow", "CUSTOM PRINT PACK")}
             </span>
           </div>
 
@@ -493,7 +493,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               </div>
 
               <p className="self-price-sublabel">
-                {t("pricing.yourSelfPrice", "YOUR SELF PRICE")}
+                {t("pricing.yourSelfPrice", "YOUR CUSTOM PRICE")}
               </p>
               
               <div className="self-price-figure">
@@ -591,7 +591,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                 </tr>
                 <tr>
                   <td className="td-label">{t("pricing.rowSavings", "Discount & Savings")}</td>
-                  <td className="td-val standard-base-text">{t("pricing.standardBase", "Standard Base")}</td>
+                  <td className="td-val standard-base-text">{t("pricing.standardBase", "Standard Rate")}</td>
                   <td className="td-val savings-pro-text">{t("pricing.save50", "Save ₹50 (10% OFF)")}</td>
                   <td className="td-val savings-biz-text">{t("pricing.save250", "Save ₹250 (20% OFF)")}</td>
                 </tr>
@@ -681,7 +681,7 @@ export function Pricing({ setView, setShowAuth, user }) {
               </div>
               <div className="mm-block-values-grid">
                 <div className="mm-val-cell mm-val-starter standard-base-text">
-                  <span>{t("pricing.standardBase", "Standard Base")}</span>
+                  <span>{t("pricing.standardBase", "Standard Rate")}</span>
                 </div>
                 <div className="mm-val-cell mm-val-pro savings-pro-text">
                   <span>{t("pricing.save50", "Save ₹50 (10% OFF)")}</span>
@@ -698,7 +698,7 @@ export function Pricing({ setView, setShowAuth, user }) {
             <span className="pro-tip-bulb">💡</span>
             <div className="pro-tip-content">
               <strong>{t("pricing.proTipPrefix", "Pro Tip:")}</strong>{" "}
-              <span>{t("pricing.proTip", "Buy larger packs or use our Self-Price Calculator above for up to 28% volume discounts on high-volume print orders!").replace(/^💡\s*(Pro\s*Tip|टीप|सुझाव)[\s*:]*\s*/i, "")}</span>
+              <span>{t("pricing.proTip", "Buy larger packs or use our Custom Pricing Calculator above to get volume discounts of up to 28% on bulk print orders!").replace(/^💡\s*(Pro\s*Tip|टीप|सुझाव)[\s*:]*\s*/i, "")}</span>
             </div>
           </div>
         </div>
@@ -717,7 +717,7 @@ export function Pricing({ setView, setShowAuth, user }) {
 
           <div className="cta-center-content">
             <h2 className="cta-heading">{t("pricing.ctaHeading", "Start billing with Slipzen today")}</h2>
-            <p className="cta-subtext">{t("pricing.ctaSub", "Join thousands of retail shop owners across India. Quick 1-minute setup.")}</p>
+            <p className="cta-subtext">{t("pricing.ctaSub", "Join thousands of retail shop owners across India with a quick, 1-minute setup.")}</p>
             <button 
               className="cta-get-started-btn" 
               onClick={() => user ? setView?.("bills") : (setShowAuth ? setShowAuth(true) : setView?.("bills"))}

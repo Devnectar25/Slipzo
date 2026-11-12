@@ -13,7 +13,7 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   if (import.meta.env.PROD) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
-        .then((reg) => console.log('📱 Slipzo PWA Service Worker active:', reg.scope))
+        .then((reg) => console.log('📱 Slipzen PWA Service Worker active:', reg.scope))
         .catch((err) => console.warn('PWA registration info:', err));
     });
   } else {

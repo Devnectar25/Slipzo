@@ -605,7 +605,7 @@ export function PrintModal({
                   ) : (
                     <div className="thermal-preview-mock">
                       <div className="thermal-mock-shop">
-                        <h4>SLIPZO MART</h4>
+                        <h4>SLIPZEN MART</h4>
                         {showShopDetails && (
                           <>
                             <p>123 Commercial Street, Indiranagar</p>

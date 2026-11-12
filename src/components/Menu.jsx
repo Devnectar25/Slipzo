@@ -34,7 +34,7 @@ import {
   Image as ImageIcon,
   Barcode as BarcodeIcon
 } from "lucide-react"
-import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory } from "../lib/utils"
+import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { Spinner, ButtonLoader, CardSkeleton } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
@@ -163,6 +163,7 @@ export function Menu({ setView, requireAuth, user }) {
   const [selectedBusinessType, setSelectedBusinessType] = useState(defaultBusinessType)
   // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
   const showBarcode = useShowBarcode(selectedBusinessType)
+  const isMenu = isMenuCategory(selectedBusinessType)
 
   const isDefaultBarcodeActiveForBusinessType = (bType, catItem) => {
     if (catItem) {
@@ -950,8 +951,7 @@ export function Menu({ setView, requireAuth, user }) {
 
     const itemName = userItem?.name || "item"
 
-    // Step 1: First SweetAlert2 confirmation
-    const firstResult = await Swal.fire({
+    const confirmResult = await Swal.fire({
       title: t("menu.removeTitle", "Remove menu item?"),
       text: t("menu.removeAsk", "Remove \"{{name}}\" from your menu?", { name: itemName }),
       icon: "warning",
@@ -964,23 +964,7 @@ export function Menu({ setView, requireAuth, user }) {
       focusCancel: true
     })
 
-    if (!firstResult.isConfirmed) return
-
-    // Step 2: Second SweetAlert2 confirmation
-    const secondResult = await Swal.fire({
-      title: t("menu.confirmTitle", "Confirm to remove?"),
-      text: t("menu.confirmText", "Are you sure you want to remove this menu item?"),
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#64748b",
-      confirmButtonText: t("menu.confirmBtn", "Confirm"),
-      cancelButtonText: t("common.cancel", "Cancel"),
-      reverseButtons: true,
-      focusCancel: true
-    })
-
-    if (!secondResult.isConfirmed) return
+    if (!confirmResult.isConfirmed) return
 
     setDeletingId(userItem.id)
     try {
@@ -1049,10 +1033,10 @@ export function Menu({ setView, requireAuth, user }) {
                   setCurrentView("add_items")
                   setCatalogSearch("")
                 }}
-                title={t("menu.addItems", "Add Items")}
+                title={isMenu ? t("menu.addMenu", "Add Menu") : t("menu.addItem", "Add Item")}
               >
                 <Plus size={15} />
-                <span className="mob-btn-text-full">{t("menu.addItem", "Add Item")}</span>
+                <span className="mob-btn-text-full">{isMenu ? t("menu.addMenu", "Add Menu") : t("menu.addItem", "Add Item")}</span>
                 <span className="mob-btn-text-short">{t("menu.add", "Add")}</span>
               </button>
 
@@ -1060,11 +1044,11 @@ export function Menu({ setView, requireAuth, user }) {
                 type="button"
                 className="mob-menu-btn mob-menu-custom-btn"
                 onClick={handleOpenCustomModal}
-                title={tDb("Create Custom Item")}
+                title={isMenu ? tDb("Create Custom Menu") : tDb("Create Custom Item")}
               >
                 <Sparkles size={14} />
-                <span className="mob-btn-text-full">{tDb("Custom Item")}</span>
-                <span className="mob-btn-text-short">{tDb("Custom Item")}</span>
+                <span className="mob-btn-text-full">{isMenu ? tDb("Custom Menu") : tDb("Custom Item")}</span>
+                <span className="mob-btn-text-short">{isMenu ? tDb("Custom Menu") : tDb("Custom Item")}</span>
               </button>
             </div>
 
@@ -1074,7 +1058,9 @@ export function Menu({ setView, requireAuth, user }) {
             <input
               type="text"
               className="menu-search-input"
-              placeholder={isListening ? t("menu.listeningSpeak", "Listening... Speak the item name") : t("menu.searchUserMenu", "Search or speak to find in My Menu...")}
+              placeholder={isListening
+                ? (isMenu ? t("menu.listeningSpeakMenu", "Listening... Speak menu name") : t("menu.listeningSpeak", "Listening... Speak the item name"))
+                : (isMenu ? t("menu.searchUserMenu", "Search or speak to find in My Menu...") : t("menu.searchUserItems", "Search or speak to find in My Items..."))}
               value={isListening && transcript ? transcript : search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -1100,7 +1086,7 @@ export function Menu({ setView, requireAuth, user }) {
           {/* Section Subheader: My Menu count & Sort */}
             <div className="mob-menu-subheader">
               <div className="mob-menu-count-wrap">
-                <h3 className="mob-menu-heading">{t("menu.myMenu", "My Menu")}</h3>
+                <h3 className="mob-menu-heading">{isMenu ? t("menu.myMenu", "My Menu") : t("menu.myItems", "My Items")}</h3>
                 <span className="mob-menu-count-badge">
                   {filteredUserItems.length} {filteredUserItems.length === 1 ? "item" : "items"}
                 </span>
@@ -1145,10 +1131,14 @@ export function Menu({ setView, requireAuth, user }) {
                 <div className="mob-menu-empty-card">
                   <Utensils size={32} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
                   <h4 style={{ fontSize: "1rem", fontWeight: "700", color: "#0C1F41", margin: "0 0 0.25rem" }}>
-                    {search ? "No matching items found" : "Your menu is empty"}
+                    {search
+                      ? t("menu.noMatchingItems", "No matching items found")
+                      : (isMenu ? t("menu.emptyTitle", "Your menu is empty") : t("menu.emptyItemsTitle", "Your item list is empty"))}
                   </h4>
                   <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "0 0 0.75rem", textAlign: "center" }}>
-                    {search ? "Try another search term or reset filters." : "Tap \"Add Item\" to choose items from the catalog."}
+                    {search
+                      ? t("menu.tryAnotherSearch", "Try another search term or reset filters.")
+                      : (isMenu ? t("menu.tapAddMenuHint", "Tap \"Add Menu\" to choose from the catalog.") : t("menu.tapAddItemHint", "Tap \"Add Item\" to choose items from the catalog."))}
                   </p>
                   {search ? (
                     <button
@@ -1164,7 +1154,7 @@ export function Menu({ setView, requireAuth, user }) {
                       className="mob-menu-reset-btn"
                       onClick={() => setCurrentView("add_items")}
                     >
-                      <Plus size={14} style={{ marginRight: "4px" }} /> {t("menu.addItems", "Add Items")}
+                      <Plus size={14} style={{ marginRight: "4px" }} /> {isMenu ? t("menu.addMenu", "Add Menu") : t("menu.addItem", "Add Item")}
                     </button>
                   )}
                 </div>
@@ -1503,11 +1493,11 @@ export function Menu({ setView, requireAuth, user }) {
             <div className="menu-header-bar">
               <div className="menu-header-titles">
                 <span className="menu-eyebrow">
-                  <Utensils size={13} /> {t("menu.eyebrow", "Slipzen Menu")}
+                  <Utensils size={13} /> {isMenu ? t("menu.eyebrow", "SHOP MENU") : t("menu.eyebrowItem", "SHOP ITEM")}
                 </span>
-                <h1 className="menu-main-title">{t("menu.title", "Menu")}</h1>
+                <h1 className="menu-main-title">{isMenu ? t("menu.title", "Menu") : t("menu.titleItem", "Item")}</h1>
                 <p className="menu-sub-title">
-                  {t("menu.subtitle", "Manage the items you use for billing")}
+                  {isMenu ? t("menu.subtitleMenu", "Manage the menu you use for billing") : t("menu.subtitle", "Manage products and services sold by your shop for fast billing")}
                 </p>
               </div>
 
@@ -1519,7 +1509,7 @@ export function Menu({ setView, requireAuth, user }) {
                     setCatalogSearch("")
                   }}
                 >
-                  <Plus size={18} /> {t("menu.addItems", "Add Items")}
+                  <Plus size={18} /> {isMenu ? t("menu.addMenu", "Add Menu") : t("menu.addItem", "Add Item")}
                 </button>
 
                 <button
@@ -1528,7 +1518,7 @@ export function Menu({ setView, requireAuth, user }) {
                   onClick={handleOpenCustomModal}
                   style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
                 >
-                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{tDb("Custom Item")}</span>
+                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{isMenu ? tDb("Custom Menu") : tDb("Custom Item")}</span>
                 </button>
               </div>
             </div>
@@ -1539,7 +1529,9 @@ export function Menu({ setView, requireAuth, user }) {
               <input
                 type="text"
                 className="menu-search-input"
-                placeholder={isListening ? t("menu.listeningSpeak", "Listening... Speak item name") : t("menu.searchUserMenu", "Search or speak to find in My Menu...")}
+                placeholder={isListening
+                  ? (isMenu ? t("menu.listeningSpeakMenu", "Listening... Speak menu name") : t("menu.listeningSpeak", "Listening... Speak item name"))
+                  : (isMenu ? t("menu.searchUserMenu", "Search or speak to find in My Menu...") : t("menu.searchUserItems", "Search or speak to find in My Items..."))}
                 value={isListening && transcript ? transcript : search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -1573,9 +1565,9 @@ export function Menu({ setView, requireAuth, user }) {
                 <div className="menu-empty-icon-circle">
                   <Utensils size={32} />
                 </div>
-                <h2 className="menu-empty-title">{t("menu.emptyTitle", "Your menu is empty")}</h2>
+                <h2 className="menu-empty-title">{isMenu ? t("menu.emptyTitle", "Your menu is empty") : t("menu.emptyItemsTitle", "Your item list is empty")}</h2>
                 <p className="menu-empty-desc">
-                  {t("menu.emptyDesc", "Add the items you use regularly to create bills faster without manual entry.")}
+                  {isMenu ? t("menu.emptyDesc", "Add the items you use regularly to create bills faster without manual entry.") : t("menu.emptyItemsDesc", "Add the items you sell regularly to create bills faster without manual entry.")}
                 </p>
 
                 <div className="menu-empty-actions-row">
@@ -1586,7 +1578,7 @@ export function Menu({ setView, requireAuth, user }) {
                       setCatalogSearch("")
                     }}
                   >
-                    <Plus size={18} /> {t("menu.addItems", "Add Items")}
+                    <Plus size={18} /> {isMenu ? t("menu.addMenu", "Add Menu") : t("menu.addItem", "Add Item")}
                   </button>
                 </div>
 
@@ -1620,7 +1612,7 @@ export function Menu({ setView, requireAuth, user }) {
               <>
                 <div className="menu-section-subheader">
                   <h3 className="menu-section-title">
-                    {t("menu.myMenu", "My Menu")}
+                    {isMenu ? t("menu.myMenu", "My Menu") : t("menu.myItems", "My Items")}
                     <span className="menu-items-count-badge">
                       {formatNum(filteredUserItems.length)} {filteredUserItems.length === 1 ? t("history.item", "item") : t("history.items", "items")}
                     </span>
@@ -1783,13 +1775,13 @@ export function Menu({ setView, requireAuth, user }) {
               <button
                 className="add-items-back-btn"
                 onClick={() => setCurrentView("my_menu")}
-                title={t("menu.returnToMenu", "Return to My Menu")}
+                title={isMenu ? t("menu.returnToMenu", "Return to My Menu") : t("menu.returnToItems", "Return to My Items")}
               >
                 <ArrowLeft size={18} />
               </button>
               <div>
-                <h2 className="add-items-header-title">{t("menu.addItems", "Add Items")}</h2>
-                <p className="menu-sub-title">{t("menu.catalogSubtitle", "Select your catalog and add products to your menu")}</p>
+                <h2 className="add-items-header-title">{isMenu ? t("menu.addMenu", "Add Menu") : t("menu.addItem", "Add Item")}</h2>
+                <p className="menu-sub-title">{isMenu ? t("menu.catalogSubtitle", "Select your catalog and add products to your menu") : t("menu.catalogSubtitleItem", "Select your catalog and add products to your items")}</p>
               </div>
             </div>
             <button
@@ -1798,7 +1790,7 @@ export function Menu({ setView, requireAuth, user }) {
               onClick={handleOpenCustomModal}
               style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", fontSize: "0.85rem" }}
             >
-              <Plus size={16} /> <span>{tDb("Create Custom Item")}</span>
+              <Plus size={16} /> <span>{isMenu ? tDb("Create Custom Menu") : tDb("Create Custom Item")}</span>
             </button>
           </div>
 
@@ -2010,7 +2002,7 @@ export function Menu({ setView, requireAuth, user }) {
         <div className="menu-modal-backdrop" onClick={handleCloseAddModal}>
           <div className="menu-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="menu-modal-header">
-              <h3 className="menu-modal-title">{t("menu.addToMyMenu", "Add to My Menu")}</h3>
+              <h3 className="menu-modal-title">{isMenu ? t("menu.addToMyMenu", "Add to My Menu") : t("menu.addToMyItems", "Add to My Items")}</h3>
               <button className="menu-modal-close-btn" onClick={handleCloseAddModal}>
                 <X size={18} />
               </button>
@@ -2145,7 +2137,7 @@ export function Menu({ setView, requireAuth, user }) {
                   className="menu-primary-btn"
                   disabled={isSubmittingAdd}
                 >
-                  {isSubmittingAdd ? <ButtonLoader text={t("menu.adding", "Adding...")} /> : t("menu.addToMenu", "Add to Menu")}
+                  {isSubmittingAdd ? <ButtonLoader text={t("menu.adding", "Adding...")} /> : (isMenu ? t("menu.addToMenu", "Add to Menu") : t("menu.addToItemList", "Add to Items"))}
                 </button>
               </div>
             </form>
@@ -2317,7 +2309,7 @@ export function Menu({ setView, requireAuth, user }) {
         <div className="menu-modal-backdrop" onClick={handleCloseCustomModal}>
           <div className="menu-modal-card custom-product-card" onClick={(e) => e.stopPropagation()}>
             <div className="menu-modal-header">
-              <h3 className="menu-modal-title">{tDb("Create Custom Product")}</h3>
+              <h3 className="menu-modal-title">{isMenu ? tDb("Create Custom Menu") : tDb("Create Custom Item")}</h3>
               <button className="menu-modal-close-btn" onClick={handleCloseCustomModal}>
                 <X size={18} />
               </button>

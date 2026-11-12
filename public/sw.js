@@ -51,6 +51,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const isAssetResponseValid = (request, response) => {
+    if (!response || response.status !== 200 || response.type !== 'basic') {
+      return false;
+    }
+    const contentType = response.headers.get('content-type') || '';
+    const isScriptOrStyle = /\.(js|mjs|css)(\?|$)/i.test(new URL(request.url).pathname);
+    if (isScriptOrStyle && contentType.includes('text/html')) {
+      return false;
+    }
+    return true;
+  };
+
   // Handle static assets
   if (event.request.method === 'GET') {
     event.respondWith(
@@ -58,7 +70,7 @@ self.addEventListener('fetch', (event) => {
         if (cachedResponse) {
           // Return cached and update in background
           fetch(event.request).then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
+            if (isAssetResponseValid(event.request, networkResponse)) {
               caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
             }
           }).catch(() => {});
@@ -66,7 +78,7 @@ self.addEventListener('fetch', (event) => {
         }
 
         return fetch(event.request).then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          if (!isAssetResponseValid(event.request, networkResponse)) {
             return networkResponse;
           }
           const responseToCache = networkResponse.clone();
@@ -74,11 +86,6 @@ self.addEventListener('fetch', (event) => {
             cache.put(event.request, responseToCache);
           });
           return networkResponse;
-        }).catch(() => {
-          // Fallback to index.html for navigation requests when offline
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
         });
       })
     );

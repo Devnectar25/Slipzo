@@ -18,7 +18,15 @@ import "./styles/print.css"
 const pageLoaders = []
 const lazyNamed = (loader, name) => {
   pageLoaders.push(loader)
-  return lazy(() => loader().then((m) => ({ default: m[name] })))
+  return lazy(() =>
+    loader().then((m) => {
+      const Component = m?.[name]
+      if (!Component) {
+        throw new Error(`Failed to load "${name}" view. Please reload the app.`)
+      }
+      return { default: Component }
+    })
+  )
 }
 
 const Auth = lazyNamed(() => import("./components/Auth"), "Auth")
@@ -810,24 +818,38 @@ function AppContent() {
 
   if (view === "admin_login" || view === "admin") {
     if (adminUser && adminToken) {
-      return <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
+        </Suspense>
+      )
     }
-    return <AdminLogin onLoginSuccess={handleAdminLoginSuccess} onCancel={() => setView("dashboard")} />
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <AdminLogin onLoginSuccess={handleAdminLoginSuccess} onCancel={() => setView("dashboard")} />
+      </Suspense>
+    )
   }
 
   if (view === "admin_dashboard") {
-    return <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
+      </Suspense>
+    )
   }
 
   if (!user) {
     if (showAuth) {
       return (
         <ErrorBoundary onGoHome={() => { handleCloseAuth(); setView("dashboard") }}>
-          <Auth 
-            onLogin={handleLogin} 
-            onCancel={handleCloseAuth}
-            initialRegister={isRegister}
-          />
+          <Suspense fallback={<PageLoader />}>
+            <Auth 
+              onLogin={handleLogin} 
+              onCancel={handleCloseAuth}
+              initialRegister={isRegister}
+            />
+          </Suspense>
           <PwaInstallPrompt />
         </ErrorBoundary>
       )
@@ -878,19 +900,21 @@ function AppContent() {
 
     return (
       <ErrorBoundary onGoHome={() => setView("dashboard")}>
-        {desktopWeb ? (
-          <DesktopLanding
-            onLogin={() => handleOpenAuth(false)}
-            onSignUp={() => handleOpenAuth(true)}
-            onNavigate={setView}
-          />
-        ) : (
-          <WelcomeOnboarding
-            onLogin={() => handleOpenAuth(false)}
-            onSignUp={() => handleOpenAuth(true)}
-            onNavigate={setView}
-          />
-        )}
+        <Suspense fallback={<PageLoader />}>
+          {desktopWeb ? (
+            <DesktopLanding
+              onLogin={() => handleOpenAuth(false)}
+              onSignUp={() => handleOpenAuth(true)}
+              onNavigate={setView}
+            />
+          ) : (
+            <WelcomeOnboarding
+              onLogin={() => handleOpenAuth(false)}
+              onSignUp={() => handleOpenAuth(true)}
+              onNavigate={setView}
+            />
+          )}
+        </Suspense>
         <PwaInstallPrompt />
       </ErrorBoundary>
     )

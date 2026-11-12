@@ -46,7 +46,8 @@ import {
   getActivePlanDetails,
   getStoredMenuItems,
   saveStoredMenuItems,
-  getCurrentUserKey
+  getCurrentUserKey,
+  isMenuCategory
 } from "../lib/utils"
 import { Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -92,6 +93,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [shop, setShopState] = useState(initialShop || {})
   // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
   const showBarcode = useShowBarcode(shop?.business_type ? shop : null)
+  const isMenu = isMenuCategory(shop)
 
   const setShop = (updater) => {
     setShopState((prev) => {
@@ -513,18 +515,27 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
   const handleUpdateQuantity = (itemId, delta) => {
     setItems((prev) =>
-      prev.map((it) => {
-        if (it.id === itemId) {
-          const newQty = Math.max(1, (Number(it.quantity) || 1) + delta)
-          return { ...it, quantity: newQty }
+      prev.reduce((acc, it) => {
+        if (it.id !== itemId) {
+          acc.push(it)
+          return acc
         }
-        return it
-      })
+        const newQty = (Number(it.quantity) || 1) + delta
+        if (newQty > 0) acc.push({ ...it, quantity: newQty })
+        return acc
+      }, [])
     )
   }
 
-  const handleDeleteItem = (itemId) => {
-    setItems((prev) => prev.filter((it) => it.id !== itemId))
+  const handleDeleteItem = (itemIdOrName) => {
+    const targetName = typeof itemIdOrName === "string" ? itemIdOrName.trim().toLowerCase() : null
+    setItems((prev) =>
+      prev.filter((it) =>
+        targetName
+          ? (it.name || "").trim().toLowerCase() !== targetName
+          : it.id !== itemIdOrName
+      )
+    )
   }
 
   const handleClearAll = async () => {
@@ -1054,7 +1065,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           </div>
           <div className="nb-header-titles">
             <h1 className="nb-page-title">{t("bills.newBillTitle", "New Bill")}</h1>
-            <p className="nb-page-subtitle">{t("bills.newBillSubtitle", "Add items from your menu and create a bill")}</p>
+            <p className="nb-page-subtitle">
+              {isMenu ? t("bills.newBillMenuSubtitle", "Select from your menu and create a bill") : t("bills.newBillSubtitle", "Add items and create a bill")}
+            </p>
           </div>
         </div>
       </header>
@@ -1241,7 +1254,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
             <div className="nb-left-col">
               <div className="nb-menu-card-container">
                 <div className="nb-menu-card-header">
-                  <h3 className="nb-menu-card-title">{t("bills.myMenuItems", "My Menu Items")}</h3>
+                  <h3 className="nb-menu-card-title">{isMenu ? t("bills.myMenuTitle", "My Menu") : t("bills.myItemsTitle", "My Items")}</h3>
                   <span className="nb-menu-items-count">
                     {formatNum(filteredMenuItems.length)} {filteredMenuItems.length === 1 ? t("bills.item", "item") : t("bills.items", "items")}
                   </span>
@@ -1346,7 +1359,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                   <button
                                     type="button"
                                     className="nb-item-del-btn"
-                                    onClick={() => handleDeleteItem(addedItem.id)}
+                                    onClick={() => handleDeleteItem(addedItem.name || addedItem.id)}
                                     title={t("bills.removeFromBill", "Remove from bill")}
                                     aria-label={t("bills.removeFromBill", "Remove from bill")}
                                   >
@@ -1379,10 +1392,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                 type="button"
                 className="nb-add-more-items-summary-btn"
                 onClick={handleAddMoreItemsClick}
-                title={t("bills.addMoreItems", "Add More Items")}
+                title={isMenu ? t("bills.addMoreMenu", "Add More Menu") : t("bills.addMoreItems", "Add More Items")}
               >
                 <Plus size={16} />
-                <span>{t("bills.addMoreItems", "Add More Items")}</span>
+                <span>{isMenu ? t("bills.addMoreMenu", "Add More Menu") : t("bills.addMoreItems", "Add More Items")}</span>
               </button>
 
               <div className="nb-summary-card">

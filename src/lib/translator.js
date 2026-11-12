@@ -158,6 +158,8 @@ export const DICTIONARY = {
   "In the Bill History and Products sections, look for the 'Export to CSV / Excel' button to download comprehensive spreadsheets for your accountant or tax filings.": { mr: "बिल इतिहास आणि प्रोडक्ट विभागांत 'Export to CSV / Excel' बटण पहा, ज्याने तुम्ही तुमच्या अकाउंटंट किंवा कर भरण्यासाठी संपूर्ण स्प्रेडशीट डाउनलोड करू शकता.", hi: "बिल इतिहास और प्रोडक्ट सेक्शन में 'Export to CSV / Excel' बटन देखें, जिससे आप अपने अकाउंटेंट या टैक्स फ़ाइलिंग के लिए पूरी स्प्रेडशीट डाउनलोड कर सकते हैं।" },
 
   // Custom Item UI & Modal Translations
+  "Custom Menu": { mr: "कस्टम मेनू", hi: "कस्टम मेनू" },
+  "Create Custom Menu": { mr: "कस्टम मेनू तयार करा", hi: "कस्टम मेनू बनाएं" },
   "Custom Item": { mr: "कस्टम वस्तू", hi: "कस्टम आइटम" },
   "Create Custom Item": { mr: "कस्टम वस्तू तयार करा", hi: "कस्टम आइटम बनाएं" },
   "Create Custom Product": { mr: "कस्टम उत्पादन तयार करा", hi: "कस्टम उत्पाद बनाएं" },
@@ -334,6 +336,10 @@ export const DICTIONARY = {
     mr: "रिचार्ज करण्यायोग्य बॅटरीसह अँड्रॉइड आणि आयओएससाठी पोर्टेबल ८०मिमी वायरलेस थर्मल प्रिंटर",
     hi: "रिचार्जेबल बैटरी के साथ एंड्रॉइड और आईओएस के लिए पोर्टेबल 80मिमी वायरलेस थर्मल प्रिंटर"
   },
+  "Premium-grade Hansol SUPERMAX smooth, jam-free thermal receipt rolls for clear, dark prints.": {
+    mr: "स्पष्ट, गडद प्रिंट्ससाठी प्रीमियम दर्जाचे हान्सोल सुपरमॅक्स गुळगुळीत, जाम-मुक्त थर्मल पावती रोल्स.",
+    hi: "स्पष्ट, गहरे प्रिंट के लिए प्रीमियम-ग्रेड हैनसोल सुपरमैक्स स्मूद, जाम-मुक्त थर्मल रसीद रोल्स।"
+  },
   "Premium grade Hansol SUPERMAX smooth, jam-free thermal receipt rolls for clear dark printing": {
     mr: "स्पष्ट गडद प्रिंटिंगसाठी प्रीमियम दर्जाचे हान्सोल सुपरमॅक्स गुळगुळीत, जाम-मुक्त थर्मल पावती रोल्स",
     hi: "स्पष्ट डार्क प्रिंटिंग के लिए प्रीमियम ग्रेड हैनसोल सुपरमैक्स चिकने, जाम-मुक्त थर्मल रसीद रोल्स"
@@ -368,11 +374,13 @@ export const DICTIONARY = {
   "Streamlined layout engineered to reduce paper roll consumption while maintaining clarity.": { mr: "स्पष्टता कायम ठेवून कागदी रोलचा वापर कमी करण्यासाठी तयार केलेली सुटसुटीत मांडणी.", hi: "स्पष्टता बनाए रखते हुए कागज़ रोल की खपत घटाने के लिए बनाया गया सरल लेआउट।" },
   "Ultra-compact monospace thermal bill layout engineered specifically to maximize speed and save paper.": { mr: "वेग वाढवण्यासाठी आणि कागद वाचवण्यासाठी खास तयार केलेली अतिशय कॉम्पॅक्ट मोनोस्पेस थर्मल बिल मांडणी.", hi: "गति बढ़ाने और कागज़ बचाने के लिए खास तौर पर बनाया गया अति-कॉम्पैक्ट मोनोस्पेस थर्मल बिल लेआउट।" },
   "Ultra compact monospace thermal bill layout engineered specifically to maximize speed and minimize roll paper consumption.": { mr: "वेग वाढवण्यासाठी आणि रोल कागदाचा वापर कमी करण्यासाठी खास तयार केलेली अतिशय कॉम्पॅक्ट मोनोस्पेस थर्मल बिल मांडणी.", hi: "गति बढ़ाने और रोल कागज़ की खपत घटाने के लिए खास तौर पर बनाया गया अति-कॉम्पैक्ट मोनोस्पेस थर्मल बिल लेआउट।" },
+  "Contemporary design for boutiques, cafés, and salons, featuring pill badges, stylish spacing, and an Instagram handle.": { mr: "बुटीक, कॅफे आणि सलूनसाठी पिल बॅज, आकर्षक अंतर आणि इन्स्टाग्राम हँडलसह आधुनिक डिझाइन.", hi: "बुटीक, कैफ़े और सैलून के लिए पिल बैज, आकर्षक स्पेसिंग और इंस्टाग्राम हैंडल वाला आधुनिक डिज़ाइन।" },
   "Contemporary aesthetic for boutiques, cafes, and salons with pill badges, stylish spacing, and Instagram-style layout.": { mr: "बुटीक, कॅफे आणि सलूनसाठी पिल बॅज, आकर्षक अंतर आणि इन्स्टाग्राम-शैलीच्या मांडणीसह आधुनिक सौंदर्य.", hi: "बुटीक, कैफ़े और सैलून के लिए पिल बैज, आकर्षक स्पेसिंग और इंस्टाग्राम-शैली लेआउट वाला आधुनिक डिज़ाइन।" },
   "Contemporary aesthetic for boutiques, cafes, and modern shops with clean typography and spacing.": { mr: "बुटीक, कॅफे आणि आधुनिक दुकानांसाठी स्वच्छ टायपोग्राफी आणि अंतरासह आधुनिक सौंदर्य.", hi: "बुटीक, कैफ़े और आधुनिक दुकानों के लिए साफ़ टाइपोग्राफ़ी और स्पेसिंग वाला आधुनिक डिज़ाइन।" },
   "Formal business invoice template designed for retail and services with clear totals, signatory, and terms.": { mr: "स्पष्ट एकूण रक्कम, स्वाक्षरी आणि अटींसह रिटेल आणि सेवांसाठी तयार केलेले औपचारिक व्यवसाय इनव्हॉइस टेम्पलेट.", hi: "स्पष्ट कुल राशि, हस्ताक्षर और शर्तों के साथ रिटेल और सेवाओं के लिए बनाया गया औपचारिक व्यवसाय इनवॉइस टेम्पलेट।" },
   "Formal retail invoice template designed for businesses requiring clean itemized totals and formal terms.": { mr: "स्वच्छ आयटमनिहाय एकूण रक्कम आणि औपचारिक अटी आवश्यक असलेल्या व्यवसायांसाठी औपचारिक रिटेल इनव्हॉइस टेम्पलेट.", hi: "साफ़ आइटम-वार कुल राशि और औपचारिक शर्तें चाहने वाले व्यवसायों के लिए औपचारिक रिटेल इनवॉइस टेम्पलेट।" },
   "High quality thermal paper roll for smooth printing.": { mr: "सुरळीत प्रिंटिंगसाठी उच्च दर्जाचा थर्मल पेपर रोल.", hi: "सुचारू प्रिंटिंग के लिए उच्च गुणवत्ता वाला थर्मल पेपर रोल।" },
+  "Portable 80mm wireless thermal printer for Android & iOS with rechargeable battery.": { mr: "रिचार्जेबल बॅटरीसह Android आणि iOS साठी पोर्टेबल 80mm वायरलेस थर्मल प्रिंटर.", hi: "रिचार्जेबल बैटरी के साथ Android और iOS के लिए पोर्टेबल 80mm वायरलेस थर्मल प्रिंटर।" },
   "Portable 58mm wireless thermal printer for Android & iOS with rechargeable battery.": { mr: "रिचार्जेबल बॅटरीसह Android आणि iOS साठी पोर्टेबल 58mm वायरलेस थर्मल प्रिंटर.", hi: "रिचार्जेबल बैटरी के साथ Android और iOS के लिए पोर्टेबल 58mm वायरलेस थर्मल प्रिंटर।" },
   "ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals.": { mr: "POS टर्मिनलसाठी ATPOS प्रीमियम गुळगुळीत थर्मल पेपर रोल, जॅम-मुक्त गडद प्रिंटिंग.", hi: "POS टर्मिनल के लिए ATPOS प्रीमियम स्मूद थर्मल पेपर रोल, जाम-मुक्त गहरी प्रिंटिंग।" },
 
@@ -491,7 +499,7 @@ export const DICTIONARY = {
   "Techno Corp": { mr: "टेक्नो कॉर्प", hi: "टेक्नो कॉर्प" },
   "HYDRABADI BIRYANI , CHOPDA": { mr: "हैद्राबादी बिर्याणी, चोपडा", hi: "हैदराबादी बिरयानी, चोपड़ा" },
   "Hydrabadi Biryani , Chopda": { mr: "हैद्राबादी बिर्याणी, चोपडा", hi: "हैदराबादी बिरयानी, चोपड़ा" },
-  "Slipzo Mart": { mr: "स्लिपझो मार्ट", hi: "स्लिपज़ो मार्ट" },
+  "Slipzen Mart": { mr: "स्लिपझेन मार्ट", hi: "स्लिपज़ेन मार्ट" },
   "NEHA'S SHOP": { mr: "नेहाचे दुकान", hi: "नेहा की दुकान" },
 
   // User Guide Topics & Headings

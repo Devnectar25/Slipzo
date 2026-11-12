@@ -929,9 +929,75 @@
 .nb-empty-desc {
   font-size: 0.88rem;
   color: #74788A;
-  max-width: 380px;
+  max-width: 420px;
   margin: 0 auto 1.25rem;
   line-height: 1.45;
+}
+
+.nb-empty-guide-box {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 1.05rem 1.25rem;
+  text-align: left;
+  max-width: 520px;
+  margin: 0 auto 1.25rem;
+}
+
+.nb-empty-guide-header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0284c7;
+  margin-bottom: 0.7rem;
+}
+
+.nb-empty-guide-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.nb-empty-guide-steps li {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #475569;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.nb-empty-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: #0284c7;
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.nb-empty-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.nb-empty-primary-cta {
+  padding: 0.6rem 1.35rem;
+  font-size: 0.9rem;
 }
 
 .nb-add-more-btn {
