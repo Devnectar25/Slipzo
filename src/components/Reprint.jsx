@@ -151,7 +151,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
       width: printFormat === "a4" ? "a4" : (printFormat === "55mm" ? "55mm" : "80mm"),
       footer: bill.footer || matched.footer || "Thank you for shopping with us! Please come again.",
       previewData: {
-        shopName: bill.shop_name || "Slipzo Mart",
+        shopName: bill.shop_name || "Slipzen Mart",
         address: bill.shop_address || "",
         phone: bill.shop_phone || "",
         gst: bill.gst || bill.gstin || "",

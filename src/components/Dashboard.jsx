@@ -20,7 +20,7 @@ import {
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
-import { call, money, getCachedData, isHotelRestaurant, getTableDisplayName } from "../lib/utils"
+import { call, money, getCachedData, isHotelRestaurant, isMenuCategory, getTableDisplayName } from "../lib/utils"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 
 export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
@@ -30,6 +30,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
 
   const [shop, setShop] = useState(() => getCachedData("/shop") || {})
   const isHotel = isHotelRestaurant(shop)
+  const isMenu = isMenuCategory(shop)
 
   useEffect(() => {
     const handleShopUpdate = (e) => {
@@ -264,8 +265,8 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     },
     {
       id: "add-item",
-      title: t("home.addItem", "Add Item"),
-      subtitle: t("home.quickAddItem", "Quick add item"),
+      title: isMenu ? t("home.addMenu", "Add Menu") : t("home.addItem", "Add Item"),
+      subtitle: isMenu ? t("home.quickAddMenu", "Quick add menu") : t("home.quickAddItem", "Quick add item"),
       icon: ShoppingCart,
       targetView: "menu"
     },

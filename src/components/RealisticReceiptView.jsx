@@ -39,7 +39,7 @@ export function RealisticReceiptView({ template }) {
     p = "classic"
   }
   const data = template.previewData || {
-    shopName: template.name || "Slipzo Mart",
+    shopName: template.name || "Slipzen Mart",
     address: "Shop 14, Main Market, Connaught Place, New Delhi",
     phone: "+91 98765 43210",
     gst: "",

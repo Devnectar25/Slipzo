@@ -183,7 +183,7 @@ export const BUILTIN_TEMPLATES = [
     topBarColor: "#0284c7",
     accentColor: "#0284c7",
     btnClass: "template-btn-blue",
-    description: "Contemporary aesthetic for boutiques, cafes, and salons with pill badges, stylish spacing, and Instagram-style layout.",
+    description: "Contemporary design for boutiques, cafés, and salons, featuring pill badges, stylish spacing, and an Instagram handle.",
     features: [
       "Modern typography",
       "Clean item list with rates",

@@ -234,7 +234,7 @@ export function StaffAccessCard({ user }) {
           </div>
         ) : (
           <p style={{ fontSize: "0.74rem", color: "#64748b", margin: "0.35rem 0 0" }}>
-            {t("profile.workerEmailHelper", "The worker must already have a Slipzo account. You will get an invite code to give them.")}
+            {t("profile.workerEmailHelper", "The worker must already have a Slipzen account. You will get an invite code to give them.")}
           </p>
         )}
       </div>
@@ -252,7 +252,7 @@ export function StaffAccessCard({ user }) {
             </button>
           </div>
           <ol style={{ listStyle: "decimal", margin: "0.3rem 0 0.2rem", paddingLeft: "1.1rem", fontSize: "0.74rem", color: "#334155", lineHeight: 1.5 }}>
-            <li>{t("profile.staffStep1", "Your worker logs in to Slipzo with this mobile number.")}</li>
+            <li>{t("profile.staffStep1", "Your worker logs in to Slipzen with this mobile number.")}</li>
             <li>{t("profile.staffStep2", "They open Shop Profile and enter this code under \"Joining a shop?\".")}</li>
           </ol>
           <p style={{ fontSize: "0.72rem", color: "#92400e", margin: "0.3rem 0 0", fontWeight: 600 }}>

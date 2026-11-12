@@ -81,7 +81,7 @@ export function printBarcodeLabel(item, options = {}) {
 
   const {
     labelSize = "50x25mm",
-    shopName = "SLIPZO POS",
+    shopName = "SLIPZEN POS",
     copies = 1
   } = options
 
@@ -93,7 +93,7 @@ export function printBarcodeLabel(item, options = {}) {
 
   const cleanBarcode = String(item.barcode).trim()
   const cleanName = String(item.name || "Product Item").trim()
-  const cleanShop = String(shopName || "SLIPZO POS").trim()
+  const cleanShop = String(shopName || "SLIPZEN POS").trim()
 
   // 2. Compute Code 128 barcode bars
   const encoded = encodeCode128(cleanBarcode)

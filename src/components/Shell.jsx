@@ -29,7 +29,7 @@ import Swal from "sweetalert2"
 import "../styles/ConfirmDialog.css"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
-import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, getCachedData } from "../lib/utils"
+import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, isMenuCategory, getCachedData } from "../lib/utils"
 
 // Sign-out confirmation in the app's own look instead of the stock dialog (styles: ConfirmDialog.css)
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
@@ -72,6 +72,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
 
   const [shop, setShop] = useState(() => getCachedData("/shop") || {})
   const isHotel = isHotelRestaurant(shop)
+  const isMenu = isMenuCategory(shop)
 
   useEffect(() => {
     const handleShopUpdate = (e) => {
@@ -81,6 +82,20 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
     return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
   }, [])
 
+  // Ensure shop business_type is hydrated right after login/reload even before opening Shop
+  useEffect(() => {
+    if (!user || shop?.business_type) return
+    let alive = true
+    call("/shop")
+      .then((s) => {
+        if (!alive || !s || typeof s !== "object") return
+        setShop(s)
+        window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: s }))
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [user, shop?.business_type])
+
   const navItems = [
     { id: "dashboard", label: t("nav.home", "Home"), icon: LayoutDashboard, protected: false },
     {
@@ -89,7 +104,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
       icon: isHotel ? Utensils : Receipt,
       protected: true
     },
-    { id: "menu", label: t("nav.menu", "Menu"), icon: List, protected: true },
+    { id: "menu", label: isMenu ? t("nav.menu", "Menu") : t("nav.items", "Item"), icon: List, protected: true },
     { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
     { id: "products", label: t("nav.products", "Printers & Rolls"), icon: Package, protected: true },
     { id: "history", label: t("nav.history", "History"), icon: History, protected: true },
@@ -107,7 +122,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
       label: isHotel ? t("nav.tables", "Tables") : t("nav.newBill", "New Bill"),
       icon: isHotel ? Utensils : PlusCircle
     },
-    { id: "menu", label: t("nav.menu", "Menu"), icon: List },
+    { id: "menu", label: isMenu ? t("nav.menu", "Menu") : t("nav.items", "Item"), icon: List },
     { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
     { id: "history", label: t("nav.history", "History"), icon: History }
   ]

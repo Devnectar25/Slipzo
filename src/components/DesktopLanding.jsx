@@ -51,7 +51,7 @@ const FEATURE_DEFS = [
     titleKey: "landing.featDeviceTitle",
     defaultTitle: "Works on any device",
     textKey: "landing.featDeviceDesc",
-    defaultText: "Bill on Android phones, counter PCs and thermal printers. Offline billing keeps your store running non-stop.",
+    defaultText: "Create bills on Android phones and use thermal printers for quick and easy billing.",
   },
 ]
 
