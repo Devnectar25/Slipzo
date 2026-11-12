@@ -45,6 +45,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [shake, setShake] = useState(false)
+  // filled in at sign-up: shown read-only here (they can be changed later in Shop profile)
+  const [locked, setLocked] = useState({ name: false, phone: false, category: false })
 
   const { success, error: toastError, warning: toastWarning } = useToast()
 
@@ -63,11 +65,20 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
 
         setTemplates(tplList)
 
+        const accountPhone = String(user?.phone || "").replace(/\D/g, "").slice(-10)
+        const savedPhone = String(data?.phone || "").replace(/\D/g, "").slice(-10)
+        const knownPhone = savedPhone || accountPhone
+        if (knownPhone.length === 10) setPhone(knownPhone)
+        setLocked({
+          name: Boolean(data?.name && data.name.trim() && !data.name.endsWith("'s Shop")),
+          phone: knownPhone.length === 10,
+          category: Boolean(data?.business_type)
+        })
+
         if (data) {
           if (data.name && !data.name.endsWith("'s Shop")) setName(data.name)
           if (data.business_type) setBusinessType(data.business_type)
           if (data.logo_url) setLogoUrl(data.logo_url)
-          if (data.phone) setPhone(data.phone)
           if (data.address) setAddress(data.address)
           if (data.invoice_prefix) setPrefix(data.invoice_prefix)
           if (data.invoice_sequence) setSequence(data.invoice_sequence)
@@ -391,11 +402,11 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 label={t("shopSetup.voiceFill", "Voice Fill All Details")}
                 placeholder={t("shopSetup.voiceAll", "Speak shop name, phone and address")}
                 onParsedResult={(parsed) => {
-                  if (parsed.name) {
+                  if (parsed.name && !locked.name) {
                     setName(parsed.name)
                     setErrors((prev) => ({ ...prev, name: validateField("name", parsed.name) }))
                   }
-                  if (parsed.phone) {
+                  if (parsed.phone && !locked.phone) {
                     let digits = String(parsed.phone).replace(/[^0-9]/g, "")
                     if (digits.length === 12 && digits.startsWith("91")) {
                       digits = digits.slice(2)
@@ -422,20 +433,23 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <input
                   type="text"
-                  autoFocus
+                  autoFocus={!locked.name}
+                  readOnly={locked.name}
+                  data-testid="setup-name-input"
                   placeholder={t("shopSetup.shopNamePh", "e.g. Krishna Supermarket & Cafe")}
                   value={name}
                   onChange={(e) => {
+                    if (locked.name) return
                     setName(e.target.value)
                     if (touched.name) {
                       setErrors((prev) => ({ ...prev, name: validateField("name", e.target.value) }))
                     }
                   }}
                   onBlur={() => handleBlur("name")}
-                  className={`onboarding-input ${touched.name && errors.name ? "input-error" : ""}`}
+                  className={`onboarding-input ${locked.name ? "setup-locked-input" : ""} ${touched.name && errors.name ? "input-error" : ""}`}
                   style={{ paddingRight: "2.5rem" }}
                 />
-                <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 2 }}>
+                <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: locked.name ? "none" : "flex", alignItems: "center", zIndex: 2 }}>
                   <VoiceInputButton
                     size="sm"
                     placeholder={t("shopSetup.voiceName", "Speak shop name")}
@@ -457,12 +471,15 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                 <Store size={14} className="field-icon" />
                 <span>{t("profile.shopCategory", "Shop Category / Business Type")} <b className="req-star">*</b></span>
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.5rem" }}>
-                {categories.map(cat => (
+              <div style={{ display: "grid", gridTemplateColumns: locked.category ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.5rem" }}>
+                {(locked.category ? categories.filter((cat) => cat.id === businessType) : categories).map(cat => (
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setBusinessType(cat.id)}
+                    data-testid={`setup-category-${cat.id}`}
+                    disabled={locked.category}
+                    aria-disabled={locked.category}
+                    onClick={() => { if (!locked.category) setBusinessType(cat.id) }}
                     style={{
                       display: "flex",
                       alignItems: "flex-start",
@@ -472,9 +489,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                       border: businessType === cat.id ? "2px solid #0284c7" : "1.5px solid #e2e8f0",
                       background: businessType === cat.id ? "#f0f9ff" : "#ffffff",
                       boxShadow: businessType === cat.id ? "0 2px 8px rgba(2,132,199,0.12)" : "none",
-                      cursor: "pointer",
+                      cursor: locked.category ? "default" : "pointer",
                       textAlign: "left",
-                      transition: "all 0.15s ease"
+                      transition: "all 0.15s ease",
+                      opacity: 1
                     }}
                   >
                     <span style={{ fontSize: "1.35rem", lineHeight: 1 }}>{cat.icon}</span>
@@ -485,6 +503,9 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                   </button>
                 ))}
               </div>
+              {locked.category && (
+                <span className="setup-locked-note">{t("shopSetup.lockedNote", "Chosen at sign-up. You can change it later in Shop profile.")}</span>
+              )}
             </div>
 
             {/* Shop Logo (Optional) */}
@@ -639,7 +660,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                   maxLength={10}
                   placeholder="e.g. 9876543210"
                   value={phone}
+                  readOnly={locked.phone}
+                  data-testid="setup-phone-input"
                   onChange={(e) => {
+                    if (locked.phone) return
                     let raw = e.target.value.replace(/[^0-9]/g, "")
                     if (raw.length === 12 && raw.startsWith("91")) {
                       raw = raw.slice(2)
@@ -650,10 +674,10 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
                     setErrors((prev) => ({ ...prev, phone: validateField("phone", clean) }))
                   }}
                   onBlur={() => handleBlur("phone")}
-                  className={`onboarding-input ${touched.phone && errors.phone ? "input-error" : ""}`}
+                  className={`onboarding-input ${locked.phone ? "setup-locked-input" : ""} ${touched.phone && errors.phone ? "input-error" : ""}`}
                   style={{ paddingRight: "2.5rem" }}
                 />
-                <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", zIndex: 2 }}>
+                <div style={{ position: "absolute", right: "0.5rem", top: "50%", transform: "translateY(-50%)", display: locked.phone ? "none" : "flex", alignItems: "center", zIndex: 2 }}>
                   <VoiceInputButton
                     size="sm"
                     placeholder={t("shopSetup.voicePhone", "Speak phone number")}
@@ -683,7 +707,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               </label>
               <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <textarea
-                  rows={2}
+                  rows={3}
+                  data-testid="setup-address-input"
                   placeholder={t("shopSetup.addressPh", "e.g. Shop #14, Main Commercial Street, Indiranagar, Bengaluru")}
                   value={address}
                   onChange={(e) => {
@@ -713,6 +738,37 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               )}
             </div>
 
+          </form>
+
+          {/* Live Thermal Receipt Preview Column */}
+          <div className="onboarding-preview-col">
+            {/* receipt look and bill numbering, right above the receipt they change */}
+            <div className="setup-preview-controls">
+            <div className="onboarding-field">
+              <label className="onboarding-label">
+                <span>{t("shopSetup.template", "Receipt Template")}</span>
+              </label>
+              <select
+                value={defaultTemplateId}
+                onChange={(e) => setDefaultTemplateId(e.target.value)}
+                className="onboarding-input"
+                style={{ background: "#ffffff" }}
+              >
+                {Array.isArray(templates) && templates.length > 0 ? (
+                  templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.width || "58mm"})
+                    </option>
+                  ))
+                ) : (
+                  BUILTIN_TEMPLATES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.width || "58mm"})
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
             {/* Invoice Prefix & Starting Sequence */}
             <div className="onboarding-grid-two">
               <div className="onboarding-field">
@@ -765,35 +821,8 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
               </div>
             </div>
 
-            <div className="onboarding-field">
-              <label className="onboarding-label">
-                <span>{t("shopSetup.template", "Receipt Template")}</span>
-              </label>
-              <select
-                value={defaultTemplateId}
-                onChange={(e) => setDefaultTemplateId(e.target.value)}
-                className="onboarding-input"
-                style={{ background: "#ffffff" }}
-              >
-                {Array.isArray(templates) && templates.length > 0 ? (
-                  templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.width || "58mm"})
-                    </option>
-                  ))
-                ) : (
-                  BUILTIN_TEMPLATES.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.width || "58mm"})
-                    </option>
-                  ))
-                )}
-              </select>
             </div>
-          </form>
 
-          {/* Live Thermal Receipt Preview Column */}
-          <div className="onboarding-preview-col">
             <div className="preview-pill-header">
               <span className="pill-title">{t("shopSetup.preview", "LIVE RECEIPT PREVIEW")}</span>
               <span className="paper-pill">{t("shopSetup.thermal", "{{size}} Thermal", { size: selectedTemplate?.width || "58mm" })}</span>

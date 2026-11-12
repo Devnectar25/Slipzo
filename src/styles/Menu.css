@@ -121,10 +121,11 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: 0.45rem;
   background: #ffffff;
   border: 1px solid #d5e0eb;
   border-radius: 12px;
-  padding: 0 0.85rem;
+  padding: 0 0.5rem 0 0.85rem;
   height: 48px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -142,7 +143,7 @@
 
 .menu-search-icon {
   color: #8F93A5;
-  margin-right: 0.6rem;
+  margin-right: 0.15rem;
   flex-shrink: 0;
 }
 
@@ -156,7 +157,8 @@
   color: #0C1F41;
   background: transparent !important;
   padding: 0;
-  min-width: 80px;
+  min-width: 0;
+  text-overflow: ellipsis;
 }
 
 .menu-search-input:focus,
@@ -177,14 +179,18 @@
 .menu-search-clear-btn {
   background: none;
   border: none;
-  padding: 0.35rem;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
   color: #8F93A5;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  margin-right: 0.35rem;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .menu-search-clear-btn:hover {
@@ -193,15 +199,19 @@
 }
 
 .menu-search-mic-btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
   background: transparent;
-  border: none;
-  padding: 0.35rem;
+  border: 1px solid transparent;
+  padding: 0 !important;
   color: #0284c7;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 50% !important;
   transition: all 0.15s ease;
   flex-shrink: 0;
 }
@@ -1284,6 +1294,8 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   /* Compact User Menu & Catalog Cards (Square Box) */
   .catalog-item-card,
   .user-menu-card {
+    /* the desktop cards have a fixed height; on phones the taller picture needs the card to grow */
+    height: auto !important;
     padding: 0.5rem !important;
     border-radius: 12px !important;
     gap: 0.4rem !important;
@@ -1310,9 +1322,10 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     border-radius: 8px !important;
   }
 
+  /* never shorter than the name + price, or the Add button covers the price */
   .menu-card-details {
     min-width: 0 !important;
-    flex: 1 !important;
+    flex: 1 0 auto !important;
     overflow: hidden !important;
     padding: 0.1rem 0 0 !important;
   }
@@ -1565,7 +1578,9 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    overflow-x: hidden !important;
+    /* clip (not hidden): stops sideways scrolling without clipping dropdowns that hang below the list */
+    overflow-x: clip !important;
+    overflow-y: visible !important;
   }
 
   .menu-page-container {
@@ -1574,7 +1589,8 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     box-sizing: border-box !important;
     width: 100% !important;
     max-width: 100% !important;
-    overflow-x: hidden !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
   }
 
   /* -------------------------------------------------------------------------
@@ -1589,10 +1605,28 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 
   .mob-shop-menu-view .menu-search-wrapper {
     margin: 0 !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    padding: 0 0.65rem !important;
-    border-radius: 10px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 0.4rem 0 0.75rem !important;
+    gap: 0.45rem !important;
+    border-radius: 14px !important;
+  }
+
+  .mob-shop-menu-view .menu-search-mic-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+
+  .mob-shop-menu-view .menu-search-clear-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
   }
 
   .mob-shop-menu-view .menu-category-pills-row {
@@ -1762,6 +1796,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     width: 36px !important;
     height: 36px !important;
     min-width: 36px !important;
+    min-height: 36px !important;
     max-width: 36px !important;
     border-radius: 50% !important;
     background: #0284c7 !important;
@@ -2239,6 +2274,8 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     cursor: pointer !important;
     width: 32px !important;
     height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -2724,6 +2761,28 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   font-weight: 700;
 }
 
+.custom-product-card .cp-name-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.custom-product-card .cp-name-input-wrap .menu-modal-input {
+  width: 100%;
+  padding-right: 2.4rem;
+}
+
+.custom-product-card .cp-name-voice-wrap {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
 @media (max-width: 640px) {
   /* Bottom sheet: within thumb reach, with the actions always in view */
   .menu-modal-backdrop:has(.custom-product-card) {
@@ -2786,6 +2845,14 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     border-radius: 11px !important;
     font-size: 16px !important;
     background-color: #ffffff;
+  }
+
+  .custom-product-card .cp-name-input-wrap .menu-modal-input {
+    padding-right: 2.75rem !important;
+  }
+
+  .custom-product-card .cp-name-voice-wrap {
+    right: 6px;
   }
 
   /* Leaves room for the link icon */
@@ -3007,6 +3074,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 .amm-price {
   display: flex;
   align-items: center;
+  width: 100%;
   height: 50px;
   border: 1.5px solid #cbd5e1;
   border-radius: 12px;
@@ -3031,30 +3099,37 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   font-weight: 800;
   color: #0369a1;
 }
-/* !important: the app's global input styles would draw a second box inside the field */
-.amm-price input.amm-price-input,
-.amm-price input.amm-price-input:focus {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  height: 100%;
+/* !important + #root/#amm-price: global input:not(...):focus rules must not draw a second box or shift the input */
+#root .amm-price input.amm-price-input,
+#root .amm-price input.amm-price-input:focus,
+#root .amm-price input.amm-price-input:focus-visible,
+#root .amm-price #amm-price,
+#root .amm-price #amm-price:focus,
+#root .amm-price #amm-price:focus-visible {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  width: 0 !important;
+  height: 100% !important;
   margin: 0 !important;
-  padding: 0 0 0 14px !important;
+  padding: 0 14px !important;
   border: none !important;
   border-radius: 0 !important;
   outline: none !important;
   box-shadow: none !important;
+  transform: none !important;
   background: transparent !important;
   font-size: 1.05rem !important;
-  font-weight: 700;
-  color: #0c1f41;
-  -moz-appearance: textfield;
-  appearance: textfield;
+  font-weight: 700 !important;
+  color: #0c1f41 !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
 }
 .amm-price input.amm-price-input::-webkit-outer-spin-button,
 .amm-price input.amm-price-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  display: none !important;
+  -webkit-appearance: none !important;
+  margin: 0 !important;
 }
 .amm-note {
   display: block;

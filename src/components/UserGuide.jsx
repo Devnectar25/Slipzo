@@ -29,7 +29,8 @@ export function UserGuide({ setView, user }) {
       title: "Add Products & Inventory",
       desc: "Add your items with prices, stock levels, and barcodes, or bulk import via CSV.",
       actionLabel: "Manage Items",
-      targetView: "products"
+      // items live on the Menu page ("products" is the printer and paper store)
+      targetView: "menu"
     },
     {
       num: 3,
@@ -102,7 +103,7 @@ export function UserGuide({ setView, user }) {
       ],
       proTip: "Keep your barcode scanner in auto-sensing mode so you can simply wave products under the beam for frictionless counter billing.",
       actionText: "Manage Products Now",
-      actionView: "products"
+      actionView: "menu"
     },
     {
       id: "restaurant",

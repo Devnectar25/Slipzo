@@ -71,6 +71,29 @@ const memoryCache = new Map()
 const CACHE_FRESH_MS = 30 * 1000 // 30 seconds fresh
 const CACHE_STALE_MS = 5 * 60 * 1000 // 5 minutes stale (can serve while revalidating)
 
+const getApiCacheScope = () => {
+  if (typeof window === 'undefined') return 'ssr'
+  try {
+    const userRaw = localStorage.getItem('slipzo_user_info')
+    if (userRaw) {
+      const u = JSON.parse(userRaw)
+      const idPart = u?.id || u?.email
+      if (idPart) {
+        const staffPart = u?.staff_of?.shop_name ? `staff:${u.staff_of.shop_name}` : 'self'
+        return `${String(idPart).trim().toLowerCase()}:${staffPart}`
+      }
+    }
+    const token = localStorage.getItem('slipzo_token')
+    if (token) return `tok:${token.slice(-12)}`
+  } catch (e) {}
+  return 'guest'
+}
+
+const getScopedCacheKey = (path) => {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  return `${getApiCacheScope()}::${cleanPath}`
+}
+
 export const clearApiCache = () => {
   memoryCache.clear()
   try {
@@ -108,18 +131,18 @@ export const invalidateApiCache = (pattern) => {
 }
 
 export const getCachedData = (path) => {
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
-  const mem = memoryCache.get(cleanPath)
+  const cacheKey = getScopedCacheKey(path)
+  const mem = memoryCache.get(cacheKey)
   if (mem && (Date.now() - mem.timestamp < CACHE_STALE_MS)) {
     return mem.data
   }
   try {
-    const raw = sessionStorage.getItem(`slipzo_cache_${cleanPath}`) || localStorage.getItem(`slipzo_cache_${cleanPath}`)
+    const raw = sessionStorage.getItem(`slipzo_cache_${cacheKey}`) || localStorage.getItem(`slipzo_cache_${cacheKey}`)
     if (raw) {
       const parsed = JSON.parse(raw)
       // Allow up to 30 minutes stale window for instant initial render while revalidating
       if (Date.now() - parsed.timestamp < CACHE_STALE_MS * 6) {
-        memoryCache.set(cleanPath, parsed)
+        memoryCache.set(cacheKey, parsed)
         return parsed.data
       }
     }
@@ -129,32 +152,32 @@ export const getCachedData = (path) => {
 
 export const setCachedData = (path, data) => {
   if (!path) return
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  const cacheKey = getScopedCacheKey(path)
   if (data === null || data === undefined) {
-    memoryCache.delete(cleanPath)
+    memoryCache.delete(cacheKey)
     try {
-      sessionStorage.removeItem(`slipzo_cache_${cleanPath}`)
-      localStorage.removeItem(`slipzo_cache_${cleanPath}`)
+      sessionStorage.removeItem(`slipzo_cache_${cacheKey}`)
+      localStorage.removeItem(`slipzo_cache_${cacheKey}`)
     } catch (e) {}
     return
   }
   const cacheItem = { data, timestamp: Date.now() }
-  memoryCache.set(cleanPath, cacheItem)
+  memoryCache.set(cacheKey, cacheItem)
   try {
-    sessionStorage.setItem(`slipzo_cache_${cleanPath}`, JSON.stringify(cacheItem))
+    sessionStorage.setItem(`slipzo_cache_${cacheKey}`, JSON.stringify(cacheItem))
   } catch (e) {}
   try {
-    localStorage.setItem(`slipzo_cache_${cleanPath}`, JSON.stringify(cacheItem))
+    localStorage.setItem(`slipzo_cache_${cacheKey}`, JSON.stringify(cacheItem))
   } catch (e) {}
 }
 
 export const removeCachedData = (path) => {
   if (!path) return
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
-  memoryCache.delete(cleanPath)
+  const cacheKey = getScopedCacheKey(path)
+  memoryCache.delete(cacheKey)
   try {
-    sessionStorage.removeItem(`slipzo_cache_${cleanPath}`)
-    localStorage.removeItem(`slipzo_cache_${cleanPath}`)
+    sessionStorage.removeItem(`slipzo_cache_${cacheKey}`)
+    localStorage.removeItem(`slipzo_cache_${cacheKey}`)
   } catch (e) {}
 }
 
@@ -170,7 +193,7 @@ export const call = async (path, options = {}) => {
   
   const method = (options.method || 'GET').toUpperCase()
   const isGet = method === 'GET'
-  const cacheKey = cleanPath
+  const cacheKey = getScopedCacheKey(cleanPath)
 
   // Invalidate cache on mutations
   if (!isGet) {
@@ -189,6 +212,9 @@ export const call = async (path, options = {}) => {
     else if (cleanPath.startsWith('/restaurant') || cleanPath.startsWith('/tables')) {
       invalidateApiCache('/restaurant')
       invalidateApiCache('/tables')
+    }
+    else if (cleanPath.startsWith('/staff/join') || cleanPath.startsWith('/staff/leave')) {
+      clearApiCache()
     }
     else if (cleanPath.startsWith('/auth/logout')) clearApiCache()
   }
@@ -326,6 +352,7 @@ const performFetch = async (cleanPath, options = {}) => {
           localStorage.removeItem('slipzo_user_info')
           localStorage.removeItem('slipzo_admin_token')
           sessionStorage.clear()
+          clearApiCache()
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('slipzo_auth_unauthorized'))
           }
@@ -342,16 +369,24 @@ const performFetch = async (cleanPath, options = {}) => {
 
     if (data && data.token) {
       try {
+        if (cleanPath.startsWith('/auth/login') || cleanPath.startsWith('/auth/register')) {
+          clearApiCache()
+          if (data.id || data.email) {
+            const { token: _ignoredToken, ...userWithoutToken } = data
+            localStorage.setItem('slipzo_user_info', JSON.stringify(userWithoutToken))
+          }
+        }
         localStorage.setItem('slipzo_token', data.token)
       } catch (e) {}
     }
 
     // Store successful GET responses in cache
     if (isGet && !options.noCache && response.ok) {
+      const cacheKey = getScopedCacheKey(cleanPath)
       const cacheItem = { data, timestamp: Date.now() }
-      memoryCache.set(cleanPath, cacheItem)
+      memoryCache.set(cacheKey, cacheItem)
       try {
-        sessionStorage.setItem(`slipzo_cache_${cleanPath}`, JSON.stringify(cacheItem))
+        sessionStorage.setItem(`slipzo_cache_${cacheKey}`, JSON.stringify(cacheItem))
       } catch (e) {}
     }
     

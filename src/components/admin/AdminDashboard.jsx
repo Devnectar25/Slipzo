@@ -190,7 +190,7 @@ export function AdminDashboard({ admin, onLogout }) {
   const handleGrantCredits = async (user) => {
     const { value: printCount } = await Swal.fire({
       title: `Grant Print Credits`,
-      text: `Enter print credits to add for ${user.user_name || user.name || user.email}:`,
+      text: `Enter print credits to add for ${user.user_name || user.name || user.email}${user.prints_remaining !== undefined ? ` (currently ${Number(user.prints_remaining).toLocaleString('en-IN')} prints left)` : ''}:`,
       input: 'number',
       inputValue: 1000,
       showCancelButton: true,
@@ -222,7 +222,7 @@ export function AdminDashboard({ admin, onLogout }) {
           icon: 'success',
           confirmButtonColor: '#0284c7'
         })
-        loadAdminData()
+        loadAdminData(true)
       } catch (err) {
         Swal.fire('Error', err?.detail || err?.message || 'Failed to grant prints', 'error')
       }
@@ -1098,6 +1098,7 @@ export function AdminDashboard({ admin, onLogout }) {
                       <th>Shop Profile</th>
                       <th>Shop Name</th>
                       <th>Phone</th>
+                      <th>Credits</th>
                       <th>Bills</th>
                       <th>Products</th>
                       <th>Joined</th>
@@ -1159,6 +1160,14 @@ export function AdminDashboard({ admin, onLogout }) {
                           )}
                         </td>
                         <td>{u.shop_phone || "N/A"}</td>
+                        <td>
+                          <div style={{ fontWeight: 800, color: Number(u.prints_remaining || 0) > 0 ? "#0284c7" : "#dc2626", whiteSpace: "nowrap" }}>
+                            {Number(u.prints_remaining || 0).toLocaleString("en-IN")} left
+                          </div>
+                          <div style={{ fontSize: "0.72rem", color: "#74788A", whiteSpace: "nowrap" }}>
+                            {Number(u.prints_used || 0).toLocaleString("en-IN")} used of {Number(u.prints_total || 0).toLocaleString("en-IN")}
+                          </div>
+                        </td>
                         <td>
                           <span className="admin-tag admin-tag-green">{u.bill_count || 0} bills</span>
                         </td>

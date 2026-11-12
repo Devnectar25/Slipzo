@@ -116,3 +116,34 @@ body,
   color: #ffffff;
   z-index: 99999;
 }
+
+/* Signed-in app on desktop: drawn 10% larger, so 100% browser zoom looks the way 110% did.
+   Only on wide windows (1300px+), where the layout still has room after scaling. */
+@media (min-width: 1300px) {
+  html:has(.app-shell) {
+    zoom: 1.1;
+    /* window-height units are scaled by the zoom too, so "full height" is divided back down */
+    --zoom-vh: calc(100vh / 1.1);
+    --zoom-dvh: calc(100dvh / 1.1);
+  }
+
+  html:has(.app-shell) .app-shell,
+  html:has(.app-shell) .app-shell .main {
+    min-height: var(--zoom-vh) !important;
+  }
+
+  /* full-screen popup backdrops: exactly the window, not 10% taller */
+  html:has(.app-shell) :is(.modal-backdrop, .menu-modal-backdrop, .add-menu-modal-backdrop, .template-modal-overlay,
+    .print-modal-backdrop, .shop-onboarding-backdrop, .table-modal-backdrop, .new-bill-popup-backdrop,
+    .set-price-backdrop, .modal-overlay, .validation-popup-overlay, .pwa-overlay, .sidebar-backdrop) {
+    height: var(--zoom-dvh) !important;
+    min-height: 0 !important;
+    max-height: var(--zoom-dvh) !important;
+  }
+
+  /* popup cards never taller than the window */
+  html:has(.app-shell) :is(.menu-modal-card, .add-menu-modal-card, .modal-card, .print-modal-card, .table-modal-card,
+    .template-modal-card, .expiry-modal-card, .swal2-popup) {
+    max-height: calc(var(--zoom-dvh) - 2rem) !important;
+  }
+}

@@ -425,31 +425,64 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           </div>
         )}
 
-        <div 
-          id="receipt-to-print" 
-          data-receipt-print-area="true"
-          className={`receipt-preview-content receipt-print-area format-${printFormat}`}
-          style={{
-            background: "#ffffff",
-            border: "1px solid #cbd5e1",
-            borderRadius: "4px",
-            boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04)",
-            padding: 0,
-            width: printFormat === "a4" ? "100%" : (printFormat === "55mm" ? "55mm" : "80mm"),
-            maxWidth: printFormat === "a4" ? "600px" : (printFormat === "55mm" ? "55mm" : "80mm"),
-            minWidth: 0,
-            margin: "0 auto",
-            display: "block",
-            boxSizing: "border-box",
-            height: "auto",
-            overflow: "visible"
-          }}
-        >
-          <RealisticReceiptView template={templateForView} />
+        <div className="reprint-receipt-scale-box">
+          <div 
+            id="receipt-to-print" 
+            data-receipt-print-area="true"
+            className={`receipt-preview-content receipt-print-area format-${printFormat}`}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: "4px",
+              boxShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04)",
+              padding: 0,
+              width: printFormat === "a4" ? "100%" : (printFormat === "55mm" ? "55mm" : "80mm"),
+              maxWidth: printFormat === "a4" ? "600px" : (printFormat === "55mm" ? "55mm" : "80mm"),
+              minWidth: 0,
+              margin: "0 auto",
+              display: "block",
+              boxSizing: "border-box",
+              height: "auto",
+              overflow: "visible"
+            }}
+          >
+            <RealisticReceiptView template={templateForView} />
+          </div>
         </div>
       </div>
 
       <style>{`
+        @media screen {
+          .reprint-page .page-intro {
+            margin-bottom: 0.75rem;
+          }
+
+          .reprint-page .preview-header {
+            margin-bottom: 0.5rem !important;
+          }
+
+          .reprint-page .reprint-tip-box {
+            margin-bottom: 0.55rem !important;
+          }
+
+          .reprint-page .reprint-receipt-scale-box {
+            width: 100%;
+            display: block;
+          }
+
+          .reprint-page .reprint-receipt-scale-box > .receipt-preview-content.format-55mm {
+            zoom: 0.76;
+          }
+
+          .reprint-page .reprint-receipt-scale-box > .receipt-preview-content.format-80mm {
+            zoom: 0.72;
+          }
+
+          .reprint-page .reprint-receipt-scale-box > .receipt-preview-content.format-a4 {
+            zoom: 0.68;
+          }
+        }
+
         @media (max-width: 640px) {
           .reprint-page {
             width: 100% !important;

@@ -21,6 +21,7 @@ import {
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { call, money, getCachedData, isHotelRestaurant, getTableDisplayName } from "../lib/utils"
+import { VoiceInputButton } from "./common/VoiceInputButton"
 
 export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   const { t } = useTranslation()
@@ -143,13 +144,25 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
       loadRecentBills(true)
     }
 
+    const handleVisibleSync = () => {
+      if (typeof document === "undefined" || document.visibilityState === "visible") {
+        loadRecentBills(true)
+      }
+    }
+
     window.addEventListener("slipzo_bill_saved", handleBillSaved)
     window.addEventListener("slipzo_bill_printed", handleBillPrinted)
+    window.addEventListener("slipzo_staff_changed", handleVisibleSync)
+    window.addEventListener("focus", handleVisibleSync)
+    document.addEventListener("visibilitychange", handleVisibleSync)
     return () => {
       window.removeEventListener("slipzo_bill_saved", handleBillSaved)
       window.removeEventListener("slipzo_bill_printed", handleBillPrinted)
+      window.removeEventListener("slipzo_staff_changed", handleVisibleSync)
+      window.removeEventListener("focus", handleVisibleSync)
+      document.removeEventListener("visibilitychange", handleVisibleSync)
     }
-  }, [user?.id])
+  }, [user?.id, user?.staff_of?.shop_name])
 
   const handleReprint = (billId) => {
     setSelectedBillId?.(billId)
@@ -265,8 +278,8 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     },
     {
       id: "products",
-      title: t("home.products", tDb("Products")),
-      subtitle: t("home.addToInventory", tDb("Add to inventory")),
+      title: t("home.products", "Printers & Rolls"),
+      subtitle: t("home.addToInventory", "Suggested billing gear"),
       icon: Package,
       targetView: "products"
     },
@@ -305,8 +318,8 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
           border: 1px solid #d5e0eb;
           border-radius: 12px;
           height: 48px;
-          padding: 0 0.85rem;
-          gap: 10px;
+          padding: 0 0.5rem 0 0.85rem;
+          gap: 8px;
           box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
           margin-bottom: 20px;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -358,6 +371,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
           justify-content: center;
           padding: 2px;
           border-radius: 50%;
+          flex-shrink: 0;
         }
 
         .home-search-clear:hover {
@@ -775,7 +789,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
           }
 
           .home-search-bar {
-            padding: 7px 10px;
+            padding: 0 8px 0 10px;
             margin-bottom: 12px;
             border-radius: 10px;
           }
@@ -911,6 +925,13 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
             <X size={14} />
           </button>
         )}
+        <VoiceInputButton
+          mode="raw"
+          variant="icon-only"
+          onSpeechResult={(text) => setSearch(text)}
+          placeholder={t("menu.voiceSearch", "Speak to search")}
+          className="search-voice-btn"
+        />
       </div>
 
       {/* 2. SIX QUICK-ACTION CARDS */}

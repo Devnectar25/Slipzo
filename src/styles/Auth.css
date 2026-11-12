@@ -441,15 +441,24 @@
   line-height: 1.4 !important;
 }
 
+.auth-overlay .auth-form .auth-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.65rem !important;
+  margin-top: 0.4rem !important;
+}
+
 .auth-overlay .auth-form button.primary.full {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 0.5rem !important;
-  width: 100% !important;
+  flex: 1 !important;
+  width: auto !important;
+  min-width: 0 !important;
   height: 48px !important;
   min-height: 48px !important;
-  margin-top: 0.4rem !important;
+  margin-top: 0 !important;
   padding: 0 1rem !important;
   border: none !important;
   border-radius: 12px !important;
@@ -993,29 +1002,40 @@
 }
 
 .auth-overlay .auth-form .auth-step-back {
-  position: absolute !important;
-  top: 1.1rem !important;
-  left: 1.5rem !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 0.3rem !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  flex-shrink: 0 !important;
   width: auto !important;
+  height: 48px !important;
+  min-height: 48px !important;
   margin: 0 !important;
-  padding: 0.4rem 0.7rem !important;
-  border: none !important;
-  border-radius: 10px !important;
-  background: transparent !important;
-  font-size: 0.84rem !important;
+  padding: 0 1.05rem !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  font-size: 0.92rem !important;
   font-weight: 600 !important;
-  color: #64748b !important;
+  color: #334155 !important;
   cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease !important;
 }
 
-.auth-overlay .auth-form .auth-step-back:hover { background: #f1f5f9 !important; color: #0C1F41 !important; }
+.auth-overlay .auth-form .auth-step-back:hover:not(:disabled) {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #0C1F41 !important;
+}
+
+.auth-overlay .auth-form .auth-step-back:disabled {
+  opacity: 0.65;
+  cursor: not-allowed !important;
+}
 
 @media (max-width: 768px) {
   .auth-overlay .auth-form .auth-steps { justify-content: center !important; }
-  .auth-overlay .auth-form .auth-step-back { top: 0.85rem !important; left: 0.9rem !important; }
 }
 
 /* printer pictures that open the product's buy page */
@@ -1069,3 +1089,113 @@
 }
 
 .auth-overlay .auth-form .auth-error-action:hover { background: #991b1b !important; }
+
+/* required-field star and the message shown under a field */
+.auth-overlay .auth-required {
+  color: #dc2626 !important;
+  font-weight: 800 !important;
+  margin-left: 2px;
+}
+.auth-overlay .auth-field-error {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 5px;
+  margin: 6px 0 0 2px !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  color: #dc2626 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+.auth-overlay .auth-field-error::before {
+  content: "!";
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+/* ---------- Light-blue brand panel (same colours as the landing page hero) ---------- */
+.auth-overlay .auth-art {
+  background:
+    radial-gradient(520px 360px at 100% 0%, rgba(125, 211, 252, 0.45), transparent 70%),
+    radial-gradient(420px 320px at 0% 100%, rgba(191, 219, 254, 0.6), transparent 70%),
+    linear-gradient(160deg, #e0f2fe 0%, #eff6ff 50%, #dbeafe 100%) !important;
+  color: #0c1f41 !important;
+  border-right: 1px solid #dbeafe !important;
+}
+.auth-overlay .auth-art::before { background: radial-gradient(closest-side, rgba(56, 189, 248, 0.25) 0%, transparent 100%); }
+.auth-overlay .auth-art::after { background-image: radial-gradient(rgba(2, 132, 199, 0.12) 1px, transparent 1px); }
+.auth-overlay .auth-art .eyebrow { color: #0369a1 !important; }
+.auth-overlay .auth-art .eyebrow::before { background: linear-gradient(90deg, #0284c7, #0ea5e9); }
+.auth-overlay .auth-art h1 { color: #0c1f41 !important; }
+.auth-overlay .auth-art h1 em {
+  background: linear-gradient(90deg, #0284c7, #0ea5e9 60%, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: #0284c7 !important;
+}
+.auth-overlay .auth-art .art-note { color: #475569 !important; }
+.auth-overlay .auth-benefits {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: #dbeafe;
+  box-shadow: 0 8px 22px -16px rgba(12, 31, 65, 0.35);
+}
+.auth-overlay .auth-benefits li { color: #0c1f41; }
+.auth-overlay .auth-benefits li + li { border-top-color: #e0f2fe; }
+.auth-overlay .auth-benefits li > span { background: #e0f2fe; border-color: #bae6fd; color: #0284c7; }
+.auth-overlay .auth-art .art-footer { border-top-color: #cfe6f8; }
+.auth-overlay .auth-art .art-footer-label { color: #475569; }
+.auth-overlay .auth-art .art-footer-label svg { color: #0284c7; }
+.auth-overlay .auth-art .art-sizes i { background: #ffffff; border-color: #bae6fd; color: #0369a1; }
+
+/* ---- "Yes, I have one": the same square picture tiles as "No, not yet", tappable ---- */
+.auth-overlay .auth-form .auth-printer-option {
+  position: relative !important;
+  padding: 0 !important;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.auth-overlay .auth-form .auth-printer-option:hover { border-color: #7dd3fc !important; }
+.auth-overlay .auth-form .auth-printer-option.active {
+  border: 2px solid #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+}
+.auth-overlay .auth-form .auth-printer-option-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #ffffff;
+}
+.auth-overlay .auth-form .auth-printer-name-field { margin-top: 0.75rem !important; display: block; }
+
+/* "No, not yet": what to do next (there is no Continue button in this case) */
+.auth-overlay .auth-form .auth-printer-next {
+  margin: 0.75rem 0 0 !important;
+  padding: 0.6rem 0.75rem !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  border: 1px dashed #7dd3fc !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  color: #0369a1 !important;
+  text-align: center;
+}

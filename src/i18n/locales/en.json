@@ -49,7 +49,7 @@
     "tables": "Tables",
     "menu": "Menu",
     "templates": "Templates",
-    "products": "Products",
+    "products": "Printers & Rolls",
     "history": "History",
     "pricing": "Pricing",
     "shopProfile": "Shop profile",
@@ -394,12 +394,21 @@
     "savedMsg": "Your bill has been saved. You can print it now using your selected receipt template",
     "cancelNew": "Cancel / New Bill",
     "loadingMenu": "Loading your menu items...",
-    "menuEmptyText": "Add items to your personal menu first to start creating bills with fast 1-click adding.",
+    "menuEmptyText": "You haven't added any items yet. First add items from the Menu so they appear here for fast billing.",
+    "quickGuide": "Quick Guide for New Users",
+    "guideStep1": "Go to the Menu tab and tap Add Items (or create a Custom Item)",
+    "guideStep2": "Pick your items, set your selling price, and save them to My Menu",
+    "guideStep3": "Come back to New Bill and tap + Add (or search) to add items to the bill",
+    "guideStep4": "Adjust quantities or payment mode, then tap Print or Save Bill",
+    "addItemsFromMenu": "Add Items from Menu",
     "goMenu": "Go to Menu",
     "noItems": "No items found",
     "tryAnother": "Try another item name or category.",
     "decrease": "Decrease quantity",
-    "increase": "Increase quantity"
+    "increase": "Increase quantity",
+    "downloadPdf": "Download PDF",
+    "savedNotPrinted": "The bill is saved but was not printed. Add print credits and press Print again.",
+    "billPreview": "Bill Preview"
   },
   "contact": {
     "eyebrow": "CONTACT US",
@@ -486,7 +495,7 @@
     "ctaButton": "Start Billing"
   },
   "products": {
-    "storeTitle": "Hardware & Products Store",
+    "storeTitle": "Printers, Rolls & Billing Gear",
     "storeSubtitle": "Buy thermal receipt printers, paper rolls & accessories, or add custom products for billing.",
     "catalogTab": "Products Catalog",
     "specsTab": "Printer Compatibility & Specs",
@@ -755,7 +764,7 @@
     "manageTables": "Manage & bill tables",
     "createInvoice": "Create invoice",
     "newProduct": "New Product",
-    "addToInventory": "Add to inventory",
+    "addToInventory": "Suggested billing gear",
     "addItem": "Add Item",
     "quickAddItem": "Quick add item",
     "templates": "Templates",
@@ -775,7 +784,7 @@
     "pending": "Pending",
     "draft": "Draft",
     "overdue": "Overdue",
-    "products": "Products"
+    "products": "Printers & Rolls"
   },
   "tables": {
     "orderKept": "Order kept for {{tableName}}",
@@ -843,7 +852,9 @@
     "err_setup": "Failed to save table setup. Please try again.",
     "decrease": "Decrease tables",
     "increase": "Increase tables",
-    "orderSavedSuccess": "Bill saved for {{tableName}}!"
+    "orderSavedSuccess": "Bill saved for {{tableName}}!",
+    "savedNotPrinted": "The bill is saved but was not printed. Add print credits and press Print again.",
+    "previewEmpty": "Add items to see the bill preview."
   },
   "landing": {
     "features": "Features",
@@ -1150,7 +1161,16 @@
     "err_mobile_length": "A mobile number has 10 digits. You entered {{n}}.",
     "err_mobile_start": "An Indian mobile number starts with 6, 7, 8 or 9",
     "err_login_id": "Enter your 10-digit mobile number (or the email you signed up with)",
-    "signInInstead": "Sign in instead"
+    "signInInstead": "Sign in instead",
+    "err_shop_letters": "Shop name must contain letters or numbers",
+    "printerPickTitle": "Which printer do you have? Tap it, or type its name below.",
+    "printerNameLabel": "Printer name (if not in the list)",
+    "printerNamePlaceholder": "e.g. Epson TM-T82, TVS RP 3160",
+    "err_printer_pick": "Please choose your printer or type its name",
+    "err_printer_name": "Please enter the full printer name",
+    "printerSuggestBuy": "These printers work with Slipzen. Tap one to buy it.",
+    "printerBuyNext": "Once you have a printer, choose \"Yes, I have one\" above to continue.",
+    "err_printer_buy": "Buy a printer first, then choose \"Yes, I have one\" to continue"
   },
   "planGate": {
     "back": "Back",
@@ -1201,7 +1221,15 @@
     "close": "Close",
     "noSecondCharge": "You do not need to pay again. Press Try again to confirm this same payment.",
     "cannotStart": "Could not start the payment",
-    "serverOutdated": "The Slipzen server has not been updated for in-app payments yet. Please update the server and try again."
+    "serverOutdated": "The Slipzen server has not been updated for in-app payments yet. Please update the server and try again.",
+    "successTitleClean": "Payment successful!",
+    "successSub": "Your prints are ready. Happy billing!",
+    "planLabel": "Plan",
+    "printsAdded": "Prints added",
+    "paymentIdShort": "Payment ID",
+    "copy": "Copy",
+    "copied": "Copied",
+    "neverExpire": "Prints never expire. Keep the payment ID for your records."
   },
   "apiErrors": {
     "invalidCredentials": "Invalid credentials",
@@ -1330,7 +1358,8 @@
     "toastFailed": "Failed to save shop details.",
     "logoTooBig": "Logo size must be 2 MB or less.",
     "logoType": "Please upload a PNG, JPG, or WEBP image.",
-    "logoBad": "Unable to use this image. Please select a valid image."
+    "logoBad": "Unable to use this image. Please select a valid image.",
+    "lockedNote": "Chosen at sign-up. You can change it later in Shop profile."
   },
   "addItems": {
     "title": "Add Menu Items",

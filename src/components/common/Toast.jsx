@@ -1,11 +1,33 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from "react"
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from "lucide-react"
 import i18n from "../../i18n/i18n"
 
 const ToastContext = createContext(null)
 
+// Where the visible part of the screen starts. On a phone the keyboard can shift what is visible inside
+// the page (the Android app especially), and a message pinned to the page's top then showed up halfway
+// down the screen. Following the visible area keeps it just under the status bar.
+function useVisibleTop() {
+  const [top, setTop] = useState(0)
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null
+    if (!vv) return undefined
+    const update = () => setTop(Math.max(0, Math.round(vv.offsetTop)))
+    update()
+    vv.addEventListener("resize", update)
+    vv.addEventListener("scroll", update)
+    return () => {
+      vv.removeEventListener("resize", update)
+      vv.removeEventListener("scroll", update)
+    }
+  }, [])
+  return top
+}
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
+  const visibleTop = useVisibleTop()
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -47,7 +69,9 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      <div className="toast-container" aria-live="polite">
+      {/* Rendered straight into <body>, so nothing on the page can change where it sits */}
+      {typeof document !== "undefined" && createPortal(
+      <div className="toast-container" aria-live="polite" style={{ "--toast-visible-top": `${visibleTop}px` }}>
         {toasts.map((toast) => (
           <div
             key={toast.id}
@@ -69,7 +93,9 @@ export function ToastProvider({ children }) {
             </button>
           </div>
         ))}
-      </div>
+      </div>,
+      document.body
+      )}
     </ToastContext.Provider>
   )
 }

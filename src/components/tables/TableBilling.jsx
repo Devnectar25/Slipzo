@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react"
 import {
   ArrowLeft,
+  Download,
   Utensils,
   Search,
   Plus,
@@ -32,6 +33,8 @@ import {
   getTableDisplayName
 } from "../../lib/utils"
 import { BUILTIN_TEMPLATES } from "../Templates"
+import { RealisticReceiptView } from "../RealisticReceiptView"
+import { chargeAndPrint, downloadReceiptPdf, printWidthOf } from "../../lib/directPrint"
 import { TableResetModal } from "./TableResetModal"
 // Loaded on demand: the scanner library is large and only needed once the camera is opened
 const CameraScannerModal = lazy(() => import("../common/CameraScannerModal").then((m) => ({ default: m.CameraScannerModal })))
@@ -43,6 +46,7 @@ import { useToast } from "../common/Toast"
 import Swal from "sweetalert2"
 import { Spinner } from "../common/Skeleton"
 import "../../styles/NewBillFlow.css"
+import { EmptyMenuGuide } from "../common/EmptyMenuGuide"
 
 export function TableBilling({
   table,
@@ -58,7 +62,18 @@ export function TableBilling({
   const { tDb, formatNum } = useDbTranslation()
   const { success: toastSuccess, error: toastError } = useToast()
   // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
-  const showBarcode = useShowBarcode(shop?.business_type ? shop : null)
+  // Up-to-date shop details: the prop can be a snapshot taken before the shop loaded, which made the bill
+  // preview and printed bills fall back to the Classic template and lose the shop name
+  const [shopInfo, setShopInfo] = useState(() => ({ ...(getCachedData("/shop") || {}), ...(shop || {}) }))
+  useEffect(() => {
+    let alive = true
+    setShopInfo((prev) => ({ ...prev, ...(getCachedData("/shop") || {}), ...(shop || {}) }))
+    call("/shop").then((fresh) => { if (alive && fresh && typeof fresh === "object") setShopInfo((prev) => ({ ...prev, ...fresh })) }).catch(() => {})
+    const onShop = (e) => { if (e?.detail) setShopInfo((prev) => ({ ...prev, ...e.detail })) }
+    window.addEventListener("slipzo_shop_updated", onShop)
+    return () => { alive = false; window.removeEventListener("slipzo_shop_updated", onShop) }
+  }, [shop])
+  const showBarcode = useShowBarcode(shopInfo?.business_type ? shopInfo : null)
 
   // Helper to extract image from item object supporting various schemas
   const resolveItemImage = (item) => {
@@ -119,6 +134,9 @@ export function TableBilling({
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [paymentMode, setPaymentMode] = useState("Cash")
   const [isSaving, setIsSaving] = useState(false)
+  const [busyAction, setBusyAction] = useState(null) // "save" | "print" while a request is running
+  const [printedNumber, setPrintedNumber] = useState("") // real bill number once saved, shown on the receipt being printed
+  const printBillIdRef = useRef(null) // bill saved by a print attempt that could not print (no credits): reused, not saved twice
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
   const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false)
 
@@ -388,6 +406,43 @@ export function TableBilling({
   // ==========================================
   // SAVE BILL / PERSIST ACTIVE TABLE ORDER & RECORD BILL
   // ==========================================
+  // The receipt as it will print, in the template the shop picked (same view as the New Bill screen)
+  const previewTemplate = useMemo(() => {
+    const list = getCachedData("/templates") || BUILTIN_TEMPLATES
+    const matched = findTemplateMatch(list, shopInfo?.default_template_id) || list[0] || BUILTIN_TEMPLATES[0]
+    const rawWidth = String(matched?.width || shopInfo?.receipt_width || "80mm").toLowerCase()
+    const width = rawWidth === "a4" || rawWidth === "full" ? "a4" : (rawWidth.startsWith("55") || rawWidth.startsWith("58") ? "55mm" : "80mm")
+    const lines = items
+      .filter((it) => it.name && Number(it.quantity) > 0)
+      .map((it) => {
+        const qty = Number(it.quantity) || 1
+        const rate = Number(it.rate) || 0
+        return { name: it.name, qty, rate, total: qty * rate }
+      })
+    const sequence = shopInfo?.invoice_sequence || shopInfo?.next_invoice_number || 1001
+    return {
+      ...matched,
+      width,
+      previewData: {
+        shopName: shopInfo?.name || shopInfo?.shop_name || t("bills.yourShop", "Your Shop"),
+        address: shopInfo?.address || "",
+        phone: shopInfo?.phone || "",
+        gst: shopInfo?.gstin || "",
+        logo_url: shopInfo?.logo_url || "",
+        invoiceNo: printedNumber || table.editing_bill_number || `${shopInfo?.invoice_prefix || "SLP"}-${sequence}`,
+        date: new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+        tableNumber: table.name || table.table_number || "",
+        items: lines,
+        subtotal,
+        discount: 0,
+        tax: 0,
+        total,
+        payment: paymentMode,
+        footer: matched?.footer || shopInfo?.receipt_footer || "Thank you for visiting! Please come again."
+      }
+    }
+  }, [items, shopInfo, table, subtotal, total, paymentMode, printedNumber, t])
+
   const handleSaveBill = async () => {
     if (!user) {
       requireAuth?.("dashboard")
@@ -400,15 +455,16 @@ export function TableBilling({
       return
     }
 
+    setBusyAction("save")
     setIsSaving(true)
     try {
       const cachedTemplates = getCachedData("/templates") || BUILTIN_TEMPLATES
-      const matchedTemplate = findTemplateMatch(cachedTemplates, shop?.default_template_id) || cachedTemplates[0] || BUILTIN_TEMPLATES[0]
+      const matchedTemplate = findTemplateMatch(cachedTemplates, shopInfo?.default_template_id) || cachedTemplates[0] || BUILTIN_TEMPLATES[0]
 
       const billData = {
         template_id: matchedTemplate.id || "classic",
         template_name: matchedTemplate.name || "Classic Receipt",
-        template_width: matchedTemplate.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.receipt_width === "55mm" ? "55mm" : (shop?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm"))),
+        template_width: matchedTemplate.width || (shopInfo?.receipt_width === "58mm" ? "58mm" : (shopInfo?.receipt_width === "55mm" ? "55mm" : (shopInfo?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm"))),
         table_number: table.name || `Table ${table.table_number}`,
         table: table.name || `Table ${table.table_number}`,
         items: validItems.map((it) => ({
@@ -491,6 +547,7 @@ export function TableBilling({
       toastError(err.detail || err.message || "Failed to save bill.")
     } finally {
       setIsSaving(false)
+      setBusyAction(null)
     }
   }
 
@@ -511,15 +568,16 @@ export function TableBilling({
       return
     }
 
+    setBusyAction("print")
     setIsSaving(true)
     try {
       const cachedTemplates = getCachedData("/templates") || BUILTIN_TEMPLATES
-      const matchedTemplate = findTemplateMatch(cachedTemplates, shop?.default_template_id) || cachedTemplates[0] || BUILTIN_TEMPLATES[0]
+      const matchedTemplate = findTemplateMatch(cachedTemplates, shopInfo?.default_template_id) || cachedTemplates[0] || BUILTIN_TEMPLATES[0]
 
       const billData = {
         template_id: matchedTemplate.id || "classic",
         template_name: matchedTemplate.name || "Classic Receipt",
-        template_width: matchedTemplate.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.receipt_width === "55mm" ? "55mm" : (shop?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm"))),
+        template_width: matchedTemplate.width || (shopInfo?.receipt_width === "58mm" ? "58mm" : (shopInfo?.receipt_width === "55mm" ? "55mm" : (shopInfo?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm"))),
         table_number: table.name || `Table ${table.table_number}`,
         table: table.name || `Table ${table.table_number}`,
         items: validItems.map((it) => ({
@@ -538,24 +596,40 @@ export function TableBilling({
         is_saved: false
       }
 
-      if (table.editing_bill_id) {
-        await call(`/bills/${table.editing_bill_id}`, {
-          method: "PUT",
-          body: JSON.stringify(billData)
-        }).catch(() => {})
-        call(`/bills/${table.editing_bill_id}/print`, { method: "POST" }).catch(() => {})
+      // an existing bill for this table is updated (it used to be updated AND saved again as a second bill)
+      const existingId = table.editing_bill_id || printBillIdRef.current
+      let savedBill = null
+      if (existingId) {
+        savedBill = await call(`/bills/${existingId}`, { method: "PUT", body: JSON.stringify(billData) }).catch(() => null)
+        if (savedBill && !savedBill.id) savedBill = { ...savedBill, id: existingId }
       }
+      if (!savedBill) {
+        savedBill = await call("/bills", { method: "POST", body: JSON.stringify(billData) })
+      }
+      printBillIdRef.current = savedBill?.id || null
 
-      const savedBill = await call("/bills", {
-        method: "POST",
-        body: JSON.stringify(billData)
+      // print straight from this screen: the receipt shown here, with the real bill number
+      if (savedBill?.number) setPrintedNumber(savedBill.number)
+      await new Promise((resolve) => setTimeout(resolve, 120))
+      const printed = await chargeAndPrint({
+        user,
+        elementId: "table-receipt-to-print",
+        pageWidth: printWidthOf(previewTemplate?.width),
+        onNeedPlan: () => setView?.("pricing")
       })
+      if (!printed) {
+        toastError(t("tables.savedNotPrinted", "The bill is saved but was not printed. Add print credits and press Print again."))
+        return
+      }
+      if (savedBill?.id) call(`/bills/${savedBill.id}/print`, { method: "POST" }).catch(() => {})
 
       // If this table had an active saved bill in saved_bills, mark as printed in backend so it's removed from Home screen
       const tableLabel = getTableDisplayName(table, t, formatNum)
       call(`/bills/print-table/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => {})
 
-      // Clear table and route directly to reprint
+      // Printed: clear the table
+      printBillIdRef.current = null
+      setPrintedNumber("")
       setItems([])
       itemsRef.current = [] // a printed order is finished; leaving must not store it again
       const tableIdOrNum = table.id || table.table_number
@@ -587,15 +661,14 @@ export function TableBilling({
         })
       )
 
-      setSelectedBillId?.(savedBill.id)
-      sessionStorage.setItem("slipzo-reprint-id", savedBill.id)
-      sessionStorage.setItem("slipzo-print-origin", "bills")
-      setView?.("reprint")
+      toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
+      onBack?.()
     } catch (err) {
       console.error("Failed to print table bill:", err)
       toastError(err.detail || err.message || "Failed to process print.")
     } finally {
       setIsSaving(false)
+      setBusyAction(null)
     }
   }
 
@@ -675,20 +748,6 @@ export function TableBilling({
             )}
           </div>
 
-          {/* Categories Horizontal Scroll */}
-          <div className="table-categories-scroll" style={{ marginBottom: "0.85rem" }}>
-            {menuCategories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                className={`table-cat-chip ${selectedCategory === cat ? "active" : ""}`}
-                onClick={() => setSelectedCategory(cat)}
-              >
-                {cat === "all" ? t("menu.allCategories", "All Categories") : tDb(cat)}
-              </button>
-            ))}
-          </div>
-
           {/* My Menu Items Container */}
           <div className="nb-menu-card-container">
             <div className="nb-menu-card-header">
@@ -702,6 +761,14 @@ export function TableBilling({
               <div style={{ textAlign: "center", padding: "2.5rem 1rem", color: "#64748b" }}>
                 {t("common.loading", "Loading menu items...")}
               </div>
+            ) : userMenuItems.length === 0 ? (
+              <EmptyMenuGuide
+                businessType={shopInfo?.business_type || "hotel"}
+                onAddItems={() => {
+                  sessionStorage.setItem("slipzo_menu_initial_tab", "add_items")
+                  setView?.("menu")
+                }}
+              />
             ) : filteredMenuItems.length === 0 ? (
               <div style={{ textAlign: "center", padding: "3rem 1rem", color: "#64748b" }}>
                 <p style={{ margin: 0, fontWeight: "600" }}>{t("menu.noItemsFound", "No matching menu items found.")}</p>
@@ -823,34 +890,19 @@ export function TableBilling({
 
           {/* Bill Summary Card */}
           <div className="nb-summary-card">
-            <div className="nb-summary-header-row">
-              <div className="nb-summary-icon-box">
-                <FileText className="nb-summary-icon" size={18} />
-              </div>
-              <h3 className="nb-summary-header">{t("bills.billSummary", "Bill Summary")}</h3>
-              <span style={{ marginLeft: "auto", fontSize: "0.82rem", background: "#f0f9ff", color: "#0369a1", padding: "2px 8px", borderRadius: "10px", fontWeight: "700" }}>
-                {getTableDisplayName(table, t, formatNum)}
-              </span>
+            <div className="tb-preview-head">
+              <span className="tb-preview-title">{t("bills.billPreview", "Bill Preview")}</span>
+              <span className="tb-preview-template">{tDb(previewTemplate?.name || "Classic Receipt")}</span>
             </div>
+            {items.length === 0 ? (
+              <p className="tb-preview-empty">{t("tables.previewEmpty", "Add items to see the bill preview.")}</p>
+            ) : (
+              <div id="table-receipt-to-print" className={`receipt-preview-content tb-preview-paper format-${previewTemplate.width === "a4" ? "a4" : previewTemplate.width}`}>
+                <RealisticReceiptView template={previewTemplate} />
+              </div>
+            )}
 
             <div className="nb-summary-details">
-              <div className="nb-summary-row">
-                <span className="nb-summary-label">{t("bills.itemsInBill", "Items in Bill")}</span>
-                <span className="nb-summary-val">{formatNum(totalItemsCount)}</span>
-              </div>
-
-              <div className="nb-summary-row">
-                <span className="nb-summary-label">{t("common.subtotal", "Subtotal")}</span>
-                <span className="nb-summary-val">{money(subtotal)}</span>
-              </div>
-
-              <div className="nb-summary-divider" />
-
-              <div className="nb-summary-row total-row">
-                <span className="nb-total-label">{t("bills.totalAmount", "Total Amount")}</span>
-                <span className="nb-summary-val-total">{money(total)}</span>
-              </div>
-
               {/* PAYMENT MODE */}
               <div className="nb-payment-section">
                 <label className="nb-payment-label">
@@ -869,7 +921,7 @@ export function TableBilling({
               </div>
 
               {/* Billing Action Buttons */}
-              <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
+              <div className="nb-action-row" style={{ display: "flex", gap: "0.6rem", marginTop: "0.85rem" }}>
                 <button
                   type="button"
                   className="nb-save-bill-btn"
@@ -890,8 +942,8 @@ export function TableBilling({
                     boxShadow: "0 2px 6px rgba(2, 132, 199, 0.25)"
                   }}
                 >
-                  {isSaving ? <Spinner size={16} /> : <Printer size={16} />}
-                  <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.print", "Print")}</span>
+                  {busyAction === "print" ? <Spinner size={16} /> : <Printer size={16} />}
+                  <span>{busyAction === "print" ? t("bills.printing", "Printing...") : t("bills.print", "Print")}</span>
                 </button>
 
                 <button
@@ -914,17 +966,27 @@ export function TableBilling({
                     boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)"
                   }}
                 >
-                  {isSaving ? <Spinner size={16} /> : <Save size={16} />}
-                  <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.saveBill", "Save Bill")}</span>
+                  {busyAction === "save" ? <Spinner size={16} /> : <Save size={16} />}
+                  <span>{busyAction === "save" ? t("bills.saving", "Saving...") : t("bills.saveBill", "Save Bill")}</span>
                 </button>
               </div>
+
+              <button
+                type="button"
+                className="tb-pdf-btn"
+                data-testid="table-pdf-button"
+                disabled={isSaving || items.length === 0}
+                onClick={() => downloadReceiptPdf({ elementId: "table-receipt-to-print", pageWidth: printWidthOf(previewTemplate?.width), billNumber: previewTemplate?.previewData?.invoiceNo })}
+              >
+                <Download size={15} /> {t("bills.downloadPdf", "Download PDF")}
+              </button>
 
               {items.length > 0 && (
                 <button
                   type="button"
                   onClick={() => setIsResetModalOpen(true)}
                   disabled={isSaving}
-                  style={{ width: "100%", marginTop: "0.65rem", padding: "0.45rem", background: "transparent", border: "none", color: "#ef4444", fontSize: "0.82rem", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}
+                  style={{ width: "100%", marginTop: 0, padding: "0.2rem", background: "transparent", border: "none", color: "#ef4444", fontSize: "0.82rem", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}
                 >
                   <RotateCcw size={13} /> {t("tables.resetTable", t("common.resetTable", "Reset Table"))}
                 </button>

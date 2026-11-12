@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef } from "react"
 import {
   Receipt,
   Printer,
@@ -29,11 +29,12 @@ import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
+import { VoiceInputButton } from "./common/VoiceInputButton"
 
 export function History({ setView, setSelectedBillId, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum, lang } = useDbTranslation()
-  const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10")
+  const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=true")
   const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
 
   const filter10Days = (list) => {
@@ -93,9 +94,16 @@ export function History({ setView, setSelectedBillId, user }) {
     { id: "10", number: "SLP-20260009-1010", created_at: "2026-09-09T10:10:00Z", payment_mode: "UPI", itemsCount: 7, total: 980 }
   ]
 
-  const loadBills = async () => {
+  const loadRequestRef = useRef(0)
+  const searchMountedRef = useRef(false)
+  const loadBillsRef = useRef(null)
+  const pageRef = useRef(page)
+  pageRef.current = page
+
+  const loadBills = async ({ silent = false } = {}) => {
+    const requestId = ++loadRequestRef.current
     try {
-      if (!Array.isArray(bills) || bills.length === 0) setLoading(true)
+      if (!silent && (!Array.isArray(bills) || bills.length === 0)) setLoading(true)
       const isSavedVal = activeTab === "saved" ? "true" : "false"
       const queryParams = new URLSearchParams({
         page: String(page),
@@ -108,9 +116,11 @@ export function History({ setView, setSelectedBillId, user }) {
 
       const oppositeIsSaved = activeTab === "saved" ? "false" : "true"
       const [data, oppositeData] = await Promise.all([
-        call(`/bills?${queryParams.toString()}`),
-        call(`/bills?page=1&limit=1&days_limit=10&is_saved=${oppositeIsSaved}`).catch(() => ({}))
+        call(`/bills?${queryParams.toString()}`, { noCache: true }),
+        call(`/bills?page=1&limit=1&days_limit=10&is_saved=${oppositeIsSaved}`, { noCache: true }).catch(() => ({}))
       ])
+
+      if (requestId !== loadRequestRef.current) return
 
       const curTotal = (data && typeof data === "object" && data.total !== undefined)
         ? Number(data.total)
@@ -140,26 +150,75 @@ export function History({ setView, setSelectedBillId, user }) {
         setTotalPages(1)
       }
     } catch (err) {
+      if (requestId !== loadRequestRef.current) return
       console.error("Failed to load bills:", err)
-      toastError(t("history.err_loadFailed", "Failed to load bill history"))
-      setBills([])
+      if (!silent) {
+        toastError(t("history.err_loadFailed", "Failed to load bill history"))
+        setBills([])
+      }
     } finally {
-      setLoading(false)
+      if (requestId === loadRequestRef.current) {
+        setLoading(false)
+      }
     }
   }
 
+  loadBillsRef.current = loadBills
+
   useEffect(() => {
     loadBills()
-  }, [page, limit, paymentMode, activeTab, user?.id])
+  }, [page, limit, paymentMode, activeTab, user?.id, user?.staff_of?.shop_name])
 
   // Debounced search
   useEffect(() => {
+    if (!searchMountedRef.current) {
+      searchMountedRef.current = true
+      return
+    }
     const timer = setTimeout(() => {
-      setPage(1)
-      loadBills()
+      if (pageRef.current !== 1) {
+        setPage(1)
+        return
+      }
+      loadBillsRef.current?.()
     }, 300)
     return () => clearTimeout(timer)
   }, [search])
+
+  // Keep owner & worker bill history synchronized when bills/staff change or focus returns
+  useEffect(() => {
+    const handleBillSync = () => {
+      loadBillsRef.current?.({ silent: true })
+    }
+    const handleVisibilityOrFocus = () => {
+      if (typeof document === "undefined" || document.visibilityState === "visible") {
+        loadBillsRef.current?.({ silent: true })
+      }
+    }
+
+    window.addEventListener("slipzo_bill_saved", handleBillSync)
+    window.addEventListener("slipzo_bill_printed", handleBillSync)
+    window.addEventListener("slipzo_staff_changed", handleBillSync)
+    window.addEventListener("focus", handleVisibilityOrFocus)
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus)
+
+    const intervalId = user
+      ? setInterval(() => {
+          if (typeof document === "undefined" || document.visibilityState === "visible") {
+            loadBillsRef.current?.({ silent: true })
+          }
+        }, 15000)
+      : null
+
+    return () => {
+      window.removeEventListener("slipzo_bill_saved", handleBillSync)
+      window.removeEventListener("slipzo_bill_printed", handleBillSync)
+      window.removeEventListener("slipzo_staff_changed", handleBillSync)
+      window.removeEventListener("focus", handleVisibilityOrFocus)
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus)
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [Boolean(user)])
 
   const handleVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -361,10 +420,22 @@ export function History({ setView, setSelectedBillId, user }) {
               className="search-input"
             />
             {search && (
-              <button className="search-clear-btn" onClick={() => setSearch("")}>
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearch("")}
+                title={t("bills.clearSearch", "Clear search")}
+              >
                 <X size={14} />
               </button>
             )}
+            <VoiceInputButton
+              mode="raw"
+              variant="icon-only"
+              onSpeechResult={(text) => setSearch(text)}
+              placeholder={t("menu.voiceSearch", "Speak to search")}
+              className="search-voice-btn"
+            />
           </div>
 
           <div className="filter-controls-group">
@@ -1227,6 +1298,24 @@ export function History({ setView, setSelectedBillId, user }) {
           background: #ffffff !important;
           border: 1px solid #d5e0eb !important;
           border-radius: 12px !important;
+          padding: 0 0.5rem 0 0.85rem !important;
+          gap: 0.45rem !important;
+        }
+
+        .page.history-page .search-input {
+          min-width: 0 !important;
+        }
+
+        .page.history-page .search-clear-btn {
+          position: static !important;
+          right: auto !important;
+          width: 26px !important;
+          height: 26px !important;
+          min-width: 26px !important;
+          min-height: 26px !important;
+          padding: 0 !important;
+          border-radius: 50% !important;
+          flex-shrink: 0 !important;
         }
 
         .page.history-page .filter-controls-group {

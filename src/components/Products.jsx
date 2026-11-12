@@ -584,7 +584,7 @@ export function Products({ setView, requireAuth, user }) {
                 <Package size={22} />
               </div>
               <h1 className="products-title">
-                {t("products.storeTitle", "Hardware & Products Store")}
+                {t("products.storeTitle", "Printers, Rolls & Billing Gear")}
               </h1>
             </div>
             <p className="products-description">
@@ -794,7 +794,7 @@ export function Products({ setView, requireAuth, user }) {
           </div>
           <div className="products-hero-text">
             <h1 className="products-hero-title">
-              {t("products.storeTitle", "Hardware & Products Store")}
+              {t("products.storeTitle", "Printers, Rolls & Billing Gear")}
             </h1>
             <p className="products-hero-subtitle">
               {t("products.storeSubtitle", "Buy thermal receipt printers, paper rolls & accessories, or add custom products for billing.")}

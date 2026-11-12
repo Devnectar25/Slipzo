@@ -1,5 +1,6 @@
 import Swal from "sweetalert2"
 import i18n from "../i18n/i18n"
+import "../styles/PaymentSuccess.css"
 import { activatePlan, syncUserQuota, call, isNativeApp } from "./utils"
 
 // Plan names are stored in English on the server; the screen shows them in the chosen language
@@ -74,23 +75,59 @@ async function confirmPurchase(pending, user) {
 
 const successPopup = ({ paymentId, planName, printCount }) => {
   const planLabel = PLAN_LABEL_KEYS[planName] ? tr(PLAN_LABEL_KEYS[planName], planName) : planName
+  const prints = Number(printCount || 0).toLocaleString("en-IN")
   return Swal.fire({
-    title: tr("pay.successTitle", "🎉 Payment Successful!"),
     html: `
-      <div style="text-align: center; font-size: 0.95rem; line-height: 1.6; color: #0C1F41; padding: 0.5rem 0;">
-        <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
-          <strong>${tr("pay.paymentId", "Payment ID:")}</strong> <code style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${escapeHtml(paymentId)}</code>
-        </p>
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.85rem 1rem; border-radius: 12px; color: #166534; font-weight: 600;">
-          ${tr("pay.activated", "Your <strong>{{prints}} print quota</strong> has been activated for <strong>{{plan}}</strong>!", { prints: printCount.toLocaleString(), plan: escapeHtml(planLabel) })}
+      <div class="ps-hero">
+        <div class="ps-confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="ps-check" aria-hidden="true">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
+        <h2 class="ps-title">${escapeHtml(tr("pay.successTitleClean", "Payment successful!"))}</h2>
+        <p class="ps-sub">${escapeHtml(tr("pay.successSub", "Your prints are ready. Happy billing!"))}</p>
+      </div>
+      <div class="ps-body">
+        <div class="ps-summary">
+          <div class="ps-stat">
+            <span>${escapeHtml(tr("pay.planLabel", "Plan"))}</span>
+            <b>${escapeHtml(planLabel)}</b>
+          </div>
+          <div class="ps-stat">
+            <span>${escapeHtml(tr("pay.printsAdded", "Prints added"))}</span>
+            <b class="ps-big">+${escapeHtml(prints)}</b>
+          </div>
+        </div>
+        <div class="ps-payid">
+          <span>${escapeHtml(tr("pay.paymentIdShort", "Payment ID"))}</span>
+          <code id="ps-payid-value">${escapeHtml(paymentId)}</code>
+          <button type="button" class="ps-copy" id="ps-copy-btn">${escapeHtml(tr("pay.copy", "Copy"))}</button>
+        </div>
+        <p class="ps-note">${escapeHtml(tr("pay.neverExpire", "Prints never expire. Keep the payment ID for your records."))}</p>
       </div>
     `,
-    icon: "success",
+    showConfirmButton: true,
     confirmButtonText: tr("pay.great", "Great, Let's Print!"),
-    confirmButtonColor: "#0284c7",
-    background: "#ffffff",
-    borderRadius: "20px"
+    buttonsStyling: false,
+    customClass: {
+      container: "ps-container",
+      popup: "ps-popup",
+      htmlContainer: "ps-html",
+      confirmButton: "ps-cta"
+    },
+    didOpen: (popup) => {
+      const btn = popup.querySelector("#ps-copy-btn")
+      if (!btn) return
+      btn.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(String(paymentId || ""))
+          btn.textContent = tr("pay.copied", "Copied")
+        } catch (_) {
+          const range = document.createRange()
+          range.selectNodeContents(popup.querySelector("#ps-payid-value"))
+          const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range)
+        }
+      })
+    }
   })
 }
 
