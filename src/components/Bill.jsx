@@ -28,7 +28,6 @@ import {
   AlertCircle,
   FileText,
   Save,
-  Lightbulb,
   Pencil,
   Barcode as BarcodeIcon,
   Download
@@ -47,8 +46,12 @@ import {
   getStoredMenuItems,
   saveStoredMenuItems,
   getCurrentUserKey,
-  isMenuCategory
+  isMenuCategory,
+  isInventoryShop,
+  stockInfo,
+  formatQty
 } from "../lib/utils"
+import { StockBadge } from "./common/StockModal"
 import { Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { VoiceInputButton } from "./common/VoiceInputButton"
@@ -162,9 +165,11 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [tax, setTax] = useState("0")
   const [payment, setPayment] = useState("Cash")
   const [saved, setSaved] = useState(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const [busyAction, setBusyAction] = useState(null) // "print" | "save" | null
+  const isSaving = busyAction !== null
   const [saveError, setSaveError] = useState(null)
   const [editingBillId, setEditingBillId] = useState(null)
+  const editBaseQtyRef = useRef(new Map()) // name -> quantity on the bill being edited
   const [editingBillNumber, setEditingBillNumber] = useState(null)
 
   // Invoice Number
@@ -198,6 +203,13 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           let rawItems = editBill.items
           if (typeof rawItems === "string") {
             try { rawItems = JSON.parse(rawItems) } catch (_) {}
+          }
+          editBaseQtyRef.current = new Map()
+          if (Array.isArray(rawItems)) {
+            rawItems.forEach((it) => {
+              const k = String(it.name || "").trim().toLowerCase()
+              editBaseQtyRef.current.set(k, (editBaseQtyRef.current.get(k) || 0) + (Number(it.quantity) || 0))
+            })
           }
           if (Array.isArray(rawItems) && rawItems.length > 0) {
             setItems(rawItems.map((it, idx) => ({
@@ -469,8 +481,45 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   // ==========================================
   // HANDLERS: ADD / MANAGE ITEMS
   // ==========================================
+  // ---------- stock (kirana / grocery and cloth shops) ----------
+  const isInventory = isInventoryShop(shop?.business_type)
+  const findMenuItemFor = (line) => {
+    const code = String(line?.barcode || "").trim().toLowerCase()
+    const name = String(line?.name || "").trim().toLowerCase()
+    return (code && userMenuItems.find((m) => String(m.barcode || "").trim().toLowerCase() === code)) ||
+      userMenuItems.find((m) => String(m.name || "").trim().toLowerCase() === name) || null
+  }
+  // most pieces of an item this bill may hold (Infinity when the item has no stock count)
+  const maxQtyFor = (menuItem) => {
+    if (!isInventory || !menuItem) return Infinity
+    const info = stockInfo(menuItem)
+    if (!info.tracked) return Infinity
+    const onThisBill = editingBillId ? (editBaseQtyRef.current.get(String(menuItem.name || "").trim().toLowerCase()) || 0) : 0
+    return Math.max(0, info.qty + onThisBill)
+  }
+  // the bill cannot take more than is in stock: says why and returns true when the change is refused
+  const refuseIfShort = (menuItem, wantedQty) => {
+    const max = maxQtyFor(menuItem)
+    if (wantedQty <= max) return false
+    playScanErrorBeep()
+    toastError(max <= 0
+      ? t("stock.warnOut", "\"{{name}}\" is out of stock", { name: menuItem.name })
+      : t("stock.warnShort", "Only {{n}} of \"{{name}}\" left in stock", { n: formatQty(max), name: menuItem.name }))
+    return true
+  }
+  // after a bill is saved the server has taken the sold pieces out of stock: show the new counts
+  const refreshMenuStock = () => {
+    if (!isInventory) return
+    call("/menu", { noCache: true }).then((res) => {
+      if (Array.isArray(res)) {
+        setUserMenuItems(res)
+        saveStoredMenuItems(res, user)
+      }
+    }).catch(() => {})
+  }
+
   const handleAddItemFromMenu = (menuItem) => {
-    if (!menuItem) return
+    if (!menuItem) return false
 
     // Verify active status and master catalog availability
     if (menuItem.is_active === false || menuItem.is_available === false) {
@@ -482,11 +531,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         confirmButtonColor: "#0284c7",
         confirmButtonText: "OK"
       })
-      return
+      return false
     }
 
     const cleanName = (menuItem.name || "").trim()
     const rate = getItemRate(menuItem)
+
+    const inCart = items.find((i) => (i.name || "").trim().toLowerCase() === cleanName.toLowerCase())
+    if (refuseIfShort(findMenuItemFor(menuItem) || menuItem, Number(inCart?.quantity || 0) + 1)) return false
 
     setItems((prev) => {
       const existingIdx = prev.findIndex((i) => (i.name || "").trim().toLowerCase() === cleanName.toLowerCase())
@@ -511,9 +563,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         ]
       }
     })
+    return true
   }
 
   const handleUpdateQuantity = (itemId, delta) => {
+    if (delta > 0) {
+      const line = items.find((it) => it.id === itemId)
+      if (line && refuseIfShort(findMenuItemFor(line), (Number(line.quantity) || 1) + delta)) return
+    }
     setItems((prev) =>
       prev.reduce((acc, it) => {
         if (it.id !== itemId) {
@@ -626,7 +683,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         })
         return false
       }
-      handleAddItemFromMenu(localMatch)
+      if (!handleAddItemFromMenu(localMatch)) return false
       playScanSuccessBeep()
       return true
     }
@@ -647,7 +704,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           })
           return false
         }
-        handleAddItemFromMenu(res.item)
+        if (!handleAddItemFromMenu(res.item)) return false
         playScanSuccessBeep()
         return true
       }
@@ -740,6 +797,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   // HANDLERS: SAVE BILL (0 PRINT CREDITS)
   // ==========================================
   const handleSaveBill = async () => {
+    if (isSaving) return
+
     if (!user) {
       requireAuth?.("dashboard")
       return
@@ -751,7 +810,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       return
     }
 
-    setIsSaving(true)
+    setBusyAction("save")
     setSaveError(null)
 
     try {
@@ -793,6 +852,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       }
 
       setSaved(bill)
+      refreshMenuStock()
       window.dispatchEvent(new CustomEvent("slipzo_bill_saved", { detail: bill }))
       if (bill?.number) {
         setCustomBillNumber(bill.number)
@@ -805,7 +865,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       setSaveError(msg)
       toastError(msg)
     } finally {
-      setIsSaving(false)
+      setBusyAction(null)
     }
   }
 
@@ -851,12 +911,12 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
     // Already saved: print it straight away
     if (saved?.id) {
-      setIsSaving(true)
-      try { await printNow(saved) } finally { setIsSaving(false) }
+      setBusyAction("print")
+      try { await printNow(saved) } finally { setBusyAction(null) }
       return
     }
 
-    setIsSaving(true)
+    setBusyAction("print")
     setSaveError(null)
 
     try {
@@ -899,6 +959,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       }
 
       setSaved(bill)
+      refreshMenuStock()
       if (bill?.number) {
         setCustomBillNumber(bill.number)
       }
@@ -913,7 +974,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       setSaveError(msg)
       toastError(msg)
     } finally {
-      setIsSaving(false)
+      setBusyAction(null)
     }
   }
 
@@ -1327,6 +1388,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                 <div className="nb-item-price nb-item-price-desktop">
                                   {money(getItemRate(menuItem))}
                                 </div>
+                                {isInventory && stockInfo(menuItem).tracked && (
+                                  <div className="nb-item-stock"><StockBadge item={menuItem} /></div>
+                                )}
                               </div>
                             </div>
 
@@ -1349,9 +1413,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                   <span className="nb-qty-value">{formatNum(addedItem.quantity)}</span>
                                   <button
                                     type="button"
-                                    className="nb-qty-btn"
+                                    className={`nb-qty-btn ${Number(addedItem.quantity) >= maxQtyFor(menuItem) ? "at-max" : ""}`}
                                     onClick={() => handleUpdateQuantity(addedItem.id, 1)}
-                                    title={t("bills.increase", "Increase quantity")}
+                                    title={Number(addedItem.quantity) >= maxQtyFor(menuItem) ? t("stock.noMore", "No more in stock") : t("bills.increase", "Increase quantity")}
                                     aria-label={t("bills.increase", "Increase quantity")}
                                   >
                                     +
@@ -1366,6 +1430,15 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                     <Trash2 size={14} />
                                   </button>
                                 </div>
+                              ) : maxQtyFor(menuItem) <= 0 ? (
+                                <button
+                                  type="button"
+                                  className="nb-add-btn nb-add-btn-out"
+                                  onClick={() => refuseIfShort(menuItem, 1)}
+                                  title={t("stock.outOfStock", "Out of stock")}
+                                >
+                                  {t("stock.outOfStock", "Out of stock")}
+                                </button>
                               ) : (
                                 <button
                                   type="button"
@@ -1381,56 +1454,40 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                         )
                       })}
                     </div>
+
+                    {/* after the last item: go to the Menu page to add more items */}
+                    <button
+                      type="button"
+                      className="nb-add-more-items-summary-btn nb-add-more-after-list"
+                      onClick={handleAddMoreItemsClick}
+                      title={isMenu ? t("bills.addMoreMenu", "Add More Menu") : t("bills.addMoreItems", "Add More Items")}
+                    >
+                      <Plus size={16} />
+                      <span>{isMenu ? t("bills.addMoreMenu", "Add More Menu") : t("bills.addMoreItems", "Add More Items")}</span>
+                    </button>
                   </>
                 )}
               </div>
             </div>
 
-            {/* RIGHT COLUMN: Bill Summary & Tip Card */}
+            {/* RIGHT COLUMN: Bill Preview */}
             <div className="nb-right-col">
-              <button
-                type="button"
-                className="nb-add-more-items-summary-btn"
-                onClick={handleAddMoreItemsClick}
-                title={isMenu ? t("bills.addMoreMenu", "Add More Menu") : t("bills.addMoreItems", "Add More Items")}
-              >
-                <Plus size={16} />
-                <span>{isMenu ? t("bills.addMoreMenu", "Add More Menu") : t("bills.addMoreItems", "Add More Items")}</span>
-              </button>
-
+              {/* Live bill preview in the shop's chosen template (in place of the old summary) */}
               <div className="nb-summary-card">
-                <div className="nb-summary-header-row">
-                  <div className="nb-summary-icon-box">
-                    <FileText size={18} className="nb-summary-icon" />
-                  </div>
-                  <h4 className="nb-summary-header">{t("bills.billSummary", "Bill Summary")}</h4>
+                <div className="tb-preview-head">
+                  <span className="tb-preview-title">{t("bills.billPreview", "Bill Preview")}</span>
+                  <span className="tb-preview-template">{tDb(templateForPrint?.name || "Classic Receipt")}</span>
                 </div>
-
-                <div className="nb-summary-details">
-                  <div className="nb-summary-row">
-                    <span className="nb-summary-label">{t("bills.itemsInBill", "Items in Bill")}</span>
-                    <span className="nb-summary-val">{formatNum(totalItemsInBill)}</span>
+                {items.length === 0 ? (
+                  <p className="tb-preview-empty">{t("tables.previewEmpty", "Add items to see the bill preview.")}</p>
+                ) : (
+                  <div
+                    className={`receipt-preview-content tb-preview-paper nb-preview-paper format-${String(templateForPrint?.width || "80mm").toLowerCase() === "55mm" ? "55mm" : (String(templateForPrint?.width || "").toLowerCase() === "a4" ? "a4" : "80mm")}`}
+                    aria-label={t("bills.billPreview", "Bill Preview")}
+                  >
+                    <RealisticReceiptView template={templateForPrint} />
                   </div>
-
-                  <div className="nb-summary-row">
-                    <span className="nb-summary-label">{t("common.subtotal", "Subtotal")}</span>
-                    <span className="nb-summary-val">{money(subtotal)}</span>
-                  </div>
-
-                  {discountAmount > 0 && (
-                    <div className="nb-summary-row discount-row" style={{ color: "#16a34a" }}>
-                      <span className="nb-summary-label">{t("common.discount", "Discount")}</span>
-                      <span className="nb-summary-val">-{money(discountAmount)}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="nb-summary-divider" />
-
-                <div className="nb-summary-row total-row">
-                  <span className="nb-total-label">{t("bills.totalAmount", "Total Amount")}</span>
-                  <span className="nb-summary-val-total">{money(total)}</span>
-                </div>
+                )}
 
                 {/* Payment Mode */}
                 <div className="nb-payment-section">
@@ -1482,8 +1539,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       boxShadow: "0 1px 3px rgba(2, 132, 199, 0.25)"
                     }}
                   >
-                    {isSaving ? <Spinner size={18} /> : <Printer size={18} />}
-                    <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.print", "Print Bill")}</span>
+                    {busyAction === "print" ? <Spinner size={18} /> : <Printer size={18} />}
+                    <span>{busyAction === "print" ? t("bills.printing", "Printing...") : t("bills.print", "Print Bill")}</span>
                   </button>
                   <button
                     type="button"
@@ -1499,8 +1556,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       fontSize: "0.88rem"
                     }}
                   >
-                    {isSaving ? <Spinner size={18} /> : <Save size={18} />}
-                    <span>{isSaving ? t("bills.saving", "Saving...") : t("bills.saveBill", "Save Bill")}</span>
+                    {busyAction === "save" ? <Spinner size={18} /> : <Save size={18} />}
+                    <span>{busyAction === "save" ? t("bills.saving", "Saving...") : t("bills.saveBill", "Save Bill")}</span>
                   </button>
                 </div>
                 <button
@@ -1512,17 +1569,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                 >
                   <Download size={15} /> {t("bills.downloadPdf", "Download PDF")}
                 </button>
-              </div>
-
-              {/* Tip Card directly below Bill Summary */}
-              <div className="nb-tip-card">
-                <Lightbulb size={20} className="nb-tip-icon" />
-                <div className="nb-tip-content">
-                  <h4 className="nb-tip-title">{t("bills.tipTitle", "Tip")}</h4>
-                  <p className="nb-tip-desc">
-                    {t("bills.tipDesc", "Search and add items from your menu. Adjust quantity using + / - or remove items anytime.")}
-                  </p>
-                </div>
               </div>
             </div>
           </div>

@@ -291,9 +291,11 @@ export function Shop({ user, setView } = {}) {
             tax_rate: data.tax_rate !== undefined ? data.tax_rate : 0,
             logo_url: data.logo_url || "",
             business_type: data.business_type || "small_business",
+            table_count: data.table_count !== undefined ? data.table_count : 10,
           }
           setShop(loadedShop)
           setCachedData("/shop", loadedShop)
+          window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: loadedShop }))
         }
       } catch (err) {
         console.error("Failed to load shop:", err)

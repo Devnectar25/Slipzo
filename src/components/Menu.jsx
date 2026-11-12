@@ -34,7 +34,7 @@ import {
   Image as ImageIcon,
   Barcode as BarcodeIcon
 } from "lucide-react"
-import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory } from "../lib/utils"
+import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { Spinner, ButtonLoader, CardSkeleton } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
@@ -43,6 +43,7 @@ import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useSpeechInput } from "../hooks/useSpeechInput"
 import { BarcodeModal } from "./common/BarcodeModal"
 import { useShowBarcode } from "../hooks/useShowBarcode"
+import { StockModal, StockBadge, InventorySummary } from "./common/StockModal"
 import Swal from "sweetalert2"
 import "../styles/Menu.css"
 
@@ -164,6 +165,46 @@ export function Menu({ setView, requireAuth, user }) {
   // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
   const showBarcode = useShowBarcode(selectedBusinessType)
   const isMenu = isMenuCategory(selectedBusinessType)
+  // Kirana / grocery and cloth shops keep stock for every item
+  const isInventory = isInventoryShop(selectedBusinessType)
+  const [stockItem, setStockItem] = useState(null) // item whose stock popup is open
+  const [stockFilter, setStockFilter] = useState("all") // "all" | "low" | "out" | "untracked"
+  const [addStockQty, setAddStockQty] = useState("")
+  const [addLowAlert, setAddLowAlert] = useState("5")
+  const [customStockQty, setCustomStockQty] = useState("")
+  const [customLowAlert, setCustomLowAlert] = useState("5")
+
+  // reads the two opening-stock inputs; returns { error } or { fields } to send with POST /menu
+  const readOpeningStock = (qtyText, alertText) => {
+    if (!isInventory) return { fields: {} }
+    const fields = {}
+    if (String(qtyText).trim() !== "") {
+      const q = Number(qtyText)
+      if (!Number.isFinite(q) || q < 0) return { error: t("stock.errOpening", "Opening stock must be 0 or more.") }
+      fields.stock_qty = q
+    }
+    if (String(alertText).trim() !== "") {
+      const a = Number(alertText)
+      if (!Number.isFinite(a) || a < 0) return { error: t("stock.errAlert", "Low-stock alert must be 0 or more.") }
+      fields.low_stock_alert = a
+    }
+    return { fields }
+  }
+  // stock fields for the item kept on screen after it is added
+  const localStockFields = (res, fields) => ({
+    track_stock: res?.track_stock ?? (fields.stock_qty !== undefined),
+    stock_qty: res?.stock_qty ?? (fields.stock_qty !== undefined ? fields.stock_qty : null),
+    low_stock_alert: res?.low_stock_alert ?? (fields.low_stock_alert !== undefined ? fields.low_stock_alert : 5)
+  })
+  const handleStockSaved = (result) => {
+    if (!result?.id) return
+    setItems((prev) => {
+      const next = prev.map((it) => (it.id === result.id ? { ...it, stock_qty: result.stock_qty, track_stock: result.track_stock, low_stock_alert: result.low_stock_alert } : it))
+      saveStoredMenuItems(next, user)
+      return next
+    })
+    toastSuccess(t("stock.saved", "Stock updated"))
+  }
 
   const isDefaultBarcodeActiveForBusinessType = (bType, catItem) => {
     if (catItem) {
@@ -304,8 +345,9 @@ export function Menu({ setView, requireAuth, user }) {
 
   useEffect(() => {
     const handleBack = (e) => {
-      if (isCustomModalOpen || selectedCatalogItem || editingItem || barcodeModalItem) {
+      if (isCustomModalOpen || selectedCatalogItem || editingItem || barcodeModalItem || stockItem) {
         e.preventDefault()
+        setStockItem(null)
         setIsCustomModalOpen(false)
         setSelectedCatalogItem(null)
         setEditingItem(null)
@@ -320,7 +362,7 @@ export function Menu({ setView, requireAuth, user }) {
     }
     window.addEventListener("slipzo_handle_back_button", handleBack)
     return () => window.removeEventListener("slipzo_handle_back_button", handleBack)
-  }, [isCustomModalOpen, selectedCatalogItem, editingItem, barcodeModalItem, currentView])
+  }, [isCustomModalOpen, selectedCatalogItem, editingItem, barcodeModalItem, stockItem, currentView])
 
   const handleOpenCustomModal = () => {
     setCustomName("")
@@ -331,6 +373,8 @@ export function Menu({ setView, requireAuth, user }) {
     setCustomImageUrl("")
     setCustomImagePreview("")
     setCustomFormError("")
+    setCustomStockQty("")
+    setCustomLowAlert("5")
     setIsCustomModalOpen(true)
   }
 
@@ -405,6 +449,12 @@ export function Menu({ setView, requireAuth, user }) {
       return
     }
 
+    const customStock = readOpeningStock(customStockQty, customLowAlert)
+    if (customStock.error) {
+      setCustomFormError(customStock.error)
+      return
+    }
+
     const isCatalogDuplicate = catalogItems.some(
       (it) => (it.name || "").trim().toLowerCase() === trimmedName.toLowerCase()
     )
@@ -425,7 +475,8 @@ export function Menu({ setView, requireAuth, user }) {
         image_url: finalImage,
         barcode: customBarcode.trim() || undefined,
         barcode_active: customBarcodeActive,
-        is_custom: true
+        is_custom: true,
+        ...customStock.fields
       }
 
       const res = await call("/menu", {
@@ -443,7 +494,8 @@ export function Menu({ setView, requireAuth, user }) {
         is_active: true,
         image_url: finalImage,
         barcode: customBarcode.trim() || res?.barcode || `BC${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-        barcode_active: customBarcodeActive
+        barcode_active: customBarcodeActive,
+        ...localStockFields(res, customStock.fields)
       }
 
       setItems((prev) => {
@@ -689,7 +741,12 @@ export function Menu({ setView, requireAuth, user }) {
         (it.category || "").toLowerCase().includes(q)
       const matchesCat = selectedCategory === "all" ||
         (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
-      return matchesSearch && matchesCat
+      let matchesStock = true
+      if (isInventory && stockFilter !== "all") {
+        const level = stockInfo(it).level
+        matchesStock = stockFilter === "untracked" ? level === "none" : level === stockFilter
+      }
+      return matchesSearch && matchesCat && matchesStock
     })
 
     if (myMenuSort === "Price: Low to High") {
@@ -700,7 +757,7 @@ export function Menu({ setView, requireAuth, user }) {
       res = [...res].sort((a, b) => (a.name || "").localeCompare(b.name || ""))
     }
     return res
-  }, [items, search, selectedCategory, myMenuSort])
+  }, [items, search, selectedCategory, myMenuSort, isInventory, stockFilter])
 
   const totalMyMenuPages = useMemo(() => {
     return Math.ceil(filteredUserItems.length / myMenuPageSize) || 1
@@ -815,6 +872,8 @@ export function Menu({ setView, requireAuth, user }) {
     const defaultBActive = isDefaultBarcodeActiveForBusinessType(selectedBusinessType, catalogItem)
     setAddBarcodeActive(defaultBActive)
     setAddFormError("")
+    setAddStockQty("")
+    setAddLowAlert("5")
   }
 
   const handleCloseAddModal = () => {
@@ -842,6 +901,12 @@ export function Menu({ setView, requireAuth, user }) {
       return
     }
 
+    const addStock = readOpeningStock(addStockQty, addLowAlert)
+    if (addStock.error) {
+      setAddFormError(addStock.error)
+      return
+    }
+
     setIsSubmittingAdd(true)
     try {
       const added = await call("/menu", {
@@ -852,7 +917,8 @@ export function Menu({ setView, requireAuth, user }) {
           category: selectedCatalogItem.category,
           custom_price: numPrice,
           image_url: selectedCatalogItem.image_url || "",
-          barcode_active: addBarcodeActive
+          barcode_active: addBarcodeActive,
+          ...addStock.fields
         })
       })
 
@@ -865,7 +931,9 @@ export function Menu({ setView, requireAuth, user }) {
         custom_price: numPrice,
         is_active: true,
         barcode_active: addBarcodeActive,
-        image_url: selectedCatalogItem.image_url || ""
+        barcode: added?.barcode || selectedCatalogItem.barcode,
+        image_url: selectedCatalogItem.image_url || "",
+        ...localStockFields(added, addStock.fields)
       }
 
       setItems((prev) => {
@@ -1083,6 +1151,16 @@ export function Menu({ setView, requireAuth, user }) {
             </button>
           </div>
 
+          {isInventory && items.length > 0 && (
+            <InventorySummary items={items} filter={stockFilter} onFilter={(f) => { setStockFilter(f); setMyMenuPage(1) }} formatMoney={money} />
+          )}
+            {isInventory && stockFilter !== "all" && (
+              <div className="inv-filter-note">
+                <span>{stockFilter === "low" ? t("stock.showingLow", "Showing items with low stock") : stockFilter === "out" ? t("stock.showingOut", "Showing items that are out of stock") : t("stock.showingUntracked", "Showing items without stock")}</span>
+                <button type="button" onClick={() => setStockFilter("all")}>{t("stock.showAll", "Show all")}</button>
+              </div>
+            )}
+
           {/* Section Subheader: My Menu count & Sort */}
             <div className="mob-menu-subheader">
               <div className="mob-menu-count-wrap">
@@ -1131,20 +1209,20 @@ export function Menu({ setView, requireAuth, user }) {
                 <div className="mob-menu-empty-card">
                   <Utensils size={32} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
                   <h4 style={{ fontSize: "1rem", fontWeight: "700", color: "#0C1F41", margin: "0 0 0.25rem" }}>
-                    {search
+                    {(search || stockFilter !== "all")
                       ? t("menu.noMatchingItems", "No matching items found")
                       : (isMenu ? t("menu.emptyTitle", "Your menu is empty") : t("menu.emptyItemsTitle", "Your item list is empty"))}
                   </h4>
                   <p style={{ fontSize: "0.82rem", color: "#64748b", margin: "0 0 0.75rem", textAlign: "center" }}>
-                    {search
+                    {(search || stockFilter !== "all")
                       ? t("menu.tryAnotherSearch", "Try another search term or reset filters.")
                       : (isMenu ? t("menu.tapAddMenuHint", "Tap \"Add Menu\" to choose from the catalog.") : t("menu.tapAddItemHint", "Tap \"Add Item\" to choose items from the catalog."))}
                   </p>
-                  {search ? (
+                  {(search || stockFilter !== "all") ? (
                     <button
                       type="button"
                       className="mob-menu-reset-btn"
-                      onClick={() => { setSearch(""); setSelectedCategory("all"); }}
+                      onClick={() => { setSearch(""); setSelectedCategory("all"); setStockFilter("all"); }}
                     >
                       {t("menu.resetSearch", "Reset Search")}
                     </button>
@@ -1185,6 +1263,11 @@ export function Menu({ setView, requireAuth, user }) {
                               </span>
                             )}
                           </div>
+                          {isInventory && (
+                            <div className="mob-item-stock-row">
+                              <StockBadge item={item} onClick={() => setStockItem(item)} />
+                            </div>
+                          )}
                         </div>
 
                         <div className="mob-item-actions">
@@ -1610,6 +1693,15 @@ export function Menu({ setView, requireAuth, user }) {
                  PHASE 12: USER MENU CARDS (My Menu List)
                  ================================================================ */
               <>
+                {isInventory && (
+                  <InventorySummary items={items} filter={stockFilter} onFilter={(f) => { setStockFilter(f); setMyMenuPage(1) }} formatMoney={money} />
+                )}
+                {isInventory && stockFilter !== "all" && (
+              <div className="inv-filter-note">
+                <span>{stockFilter === "low" ? t("stock.showingLow", "Showing items with low stock") : stockFilter === "out" ? t("stock.showingOut", "Showing items that are out of stock") : t("stock.showingUntracked", "Showing items without stock")}</span>
+                <button type="button" onClick={() => setStockFilter("all")}>{t("stock.showAll", "Show all")}</button>
+              </div>
+            )}
                 <div className="menu-section-subheader">
                   <h3 className="menu-section-title">
                     {isMenu ? t("menu.myMenu", "My Menu") : t("menu.myItems", "My Items")}
@@ -1619,7 +1711,7 @@ export function Menu({ setView, requireAuth, user }) {
                   </h3>
                 </div>
 
-                {filteredUserItems.length === 0 && search.trim() ? (
+                {filteredUserItems.length === 0 && (search.trim() || stockFilter !== "all") ? (
                   <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#ffffff", borderRadius: "12px", border: "1px dashed #cbd5e1", marginTop: "1rem" }}>
                     <AlertCircle size={32} style={{ color: "#94a3b8", margin: "0 auto 0.5rem" }} />
                     <h4 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#0f172a", margin: "0 0 0.25rem" }}>
@@ -1673,6 +1765,11 @@ export function Menu({ setView, requireAuth, user }) {
                           <div className="menu-card-price-row">
                             <span className="menu-card-selling-price">{money(item.price)}</span>
                           </div>
+                          {isInventory && (
+                            <div className="menu-card-stock-row">
+                              <StockBadge item={item} onClick={() => setStockItem(item)} />
+                            </div>
+                          )}
                         </div>
 
                         <div className="user-menu-card-actions">
@@ -2056,6 +2153,41 @@ export function Menu({ setView, requireAuth, user }) {
                     {t("menu.pricePersonalNote", "This price is personal to your shop and will appear on your customer receipts.")}
                   </span>
                 </div>
+
+                {isInventory && (
+                <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
+                  <div className="stock-open-row">
+                    <div>
+                      <label className="menu-modal-label" htmlFor="amm-stock">{t("stock.openingLabel", "Opening stock")}</label>
+                      <input
+                        id="amm-stock"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="any"
+                        className="menu-modal-input"
+                        placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                        value={addStockQty}
+                        onChange={(e) => setAddStockQty(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="menu-modal-label" htmlFor="amm-alert">{t("stock.alertLabel", "Low-stock alert at")}</label>
+                      <input
+                        id="amm-alert"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="any"
+                        className="menu-modal-input"
+                        value={addLowAlert}
+                        onChange={(e) => setAddLowAlert(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <span className="stock-open-hint">{t("stock.openingHint", "Each bill takes sold pieces out of stock. Leave blank to skip stock for this item.")}</span>
+                </div>
+                )}
 
                 {showBarcode && (
 <>
@@ -2569,6 +2701,41 @@ export function Menu({ setView, requireAuth, user }) {
                   </div>
                 </div>
 
+                {isInventory && (
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  <div className="stock-open-row">
+                    <div>
+                      <label className="menu-modal-label" htmlFor="cp-stock">{t("stock.openingLabel", "Opening stock")}</label>
+                      <input
+                        id="cp-stock"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="any"
+                        className="menu-modal-input"
+                        placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                        value={customStockQty}
+                        onChange={(e) => setCustomStockQty(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="menu-modal-label" htmlFor="cp-alert">{t("stock.alertLabel", "Low-stock alert at")}</label>
+                      <input
+                        id="cp-alert"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="any"
+                        className="menu-modal-input"
+                        value={customLowAlert}
+                        onChange={(e) => setCustomLowAlert(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <span className="stock-open-hint">{t("stock.openingHint", "Each bill takes sold pieces out of stock. Leave blank to skip stock for this item.")}</span>
+                </div>
+                )}
+
                 {showBarcode && (
 <>
 {/* 5. Barcode / SKU */}
@@ -2666,6 +2833,14 @@ export function Menu({ setView, requireAuth, user }) {
         </div>,
         document.body
       )}
+
+      {/* Stock popup (kirana / grocery and cloth shops) */}
+      <StockModal
+        item={stockItem}
+        isOpen={Boolean(stockItem)}
+        onClose={() => setStockItem(null)}
+        onSaved={handleStockSaved}
+      />
 
       {/* Barcode View & Print Modal */}
       <BarcodeModal

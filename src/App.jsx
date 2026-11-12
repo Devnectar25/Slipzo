@@ -5,7 +5,7 @@ import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider, useToast } from "./components/common/Toast"
 import { TopProgressBar } from "./components/common/TopProgressBar"
-import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData } from "./lib/utils"
+import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData, setCachedData } from "./lib/utils"
 import i18n from "./i18n/i18n"
 import PolicyGate from "./components/PolicyGate"
 import { hasAcceptedPolicy } from "./lib/legalContent"
@@ -217,6 +217,31 @@ function AppContent() {
   const [showFreeRewardExpiredModal, setShowFreeRewardExpiredModal] = useState(false)
   const [cachedShop, setCachedShop] = useState(() => getCachedData("/shop") || {})
   const isHotel = isHotelRestaurant(cachedShop)
+
+  const applyShopContext = (shopData) => {
+    if (!shopData || typeof shopData !== "object") return
+    setCachedShop(shopData)
+    setCachedData("/shop", shopData)
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: shopData }))
+    }
+  }
+
+  const syncShopContext = async (userData) => {
+    if (!userData?.staff_of && userData?.shop?.business_type) {
+      applyShopContext(userData.shop)
+    }
+    try {
+      const shopData = await withTimeout(call("/shop", { noCache: true }), 5000)
+      if (shopData && typeof shopData === "object") {
+        applyShopContext(shopData)
+        return shopData
+      }
+    } catch (err) {
+      console.warn("Could not sync shop context:", err)
+    }
+    return null
+  }
 
   useEffect(() => {
     const handleShopUpdate = (e) => {
@@ -474,7 +499,10 @@ function AppContent() {
           setView("dashboard")
         }
         // Wait for the answer (the loader stays up) so the dashboard never flashes before the plan or setup screen
-        await withTimeout(checkShopSetupNeeded(userData), 8000)
+        await Promise.all([
+          syncShopContext(userData),
+          withTimeout(checkShopSetupNeeded(userData), 8000)
+        ])
       } else {
         console.log('❌ Invalid user data returned:', userData)
         clearUnauthSession()
@@ -738,6 +766,10 @@ function AppContent() {
       localStorage.setItem("slipzo_user_info", JSON.stringify(userWithoutToken))
     } catch (_) {}
 
+    if (!userData?.staff_of && userData?.shop?.business_type) {
+      applyShopContext(userData.shop)
+    }
+
     // A new account goes straight to the plan step, before anything else is awaited, so the dashboard never shows first.
     // A returning account sees the loader while we check whether it still has the plan or setup to finish.
     if (isNewUser) {
@@ -767,7 +799,7 @@ function AppContent() {
         localStorage.removeItem(`slipzo_first_time_onboarding_${userKey}`)
       }
       // Plan first, then the shop profile and the items
-      call("/shop", { noCache: true }).then((shop) => { if (shop) setCachedShop(shop) }).catch(() => {})
+      syncShopContext(userData)
     } else {
       setShowPlanGate(false)
       setShowShopOnboarding(false)
@@ -777,7 +809,10 @@ function AppContent() {
       }
       // Someone who signed up but never paid or finished setup picks up where they stopped (same check as a page reload)
       try {
-        await withTimeout(checkShopSetupNeeded(userData), 8000)
+        await Promise.all([
+          syncShopContext(userData),
+          withTimeout(checkShopSetupNeeded(userData), 8000)
+        ])
       } finally {
         setResolvingSetup(false)
       }
@@ -926,6 +961,7 @@ function AppContent() {
     <>
       <Shell
       user={user}
+      shop={cachedShop}
       view={view}
       setView={setView}
       onLogout={handleLogout}

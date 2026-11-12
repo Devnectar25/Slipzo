@@ -201,6 +201,7 @@ export const call = async (path, options = {}) => {
     else if (cleanPath.startsWith('/bills')) {
       invalidateApiCache('/bills')
       invalidateApiCache('/bills/stats')
+      invalidateApiCache('/menu') // bills change stock counts
     }
     else if (cleanPath.startsWith('/products') || cleanPath.startsWith('/admin/products') || cleanPath.startsWith('/menu')) {
       invalidateApiCache('/products')
@@ -1126,4 +1127,33 @@ export const getTableDisplayName = (tableOrName, t, formatNum) => {
 export const getDateLocale = () => {
   const lang = getAppLanguage().slice(0, 2)
   return lang === "hi" ? "hi-IN" : lang === "mr" ? "mr-IN" : "en-IN"
+}
+
+// ---------------- Inventory (kirana / grocery and cloth shops keep stock) ----------------
+export const isInventoryShop = (shopOrType) => {
+  const raw = typeof shopOrType === "string"
+    ? shopOrType
+    : (shopOrType && (shopOrType.business_type || shopOrType.category)) || ""
+  const t = String(raw).toLowerCase()
+  return t.includes("kirana") || t.includes("grocery") || t.includes("cloth") || t.includes("garment")
+}
+
+const truthy = (v) => v === true || v === 1 || v === "1" || v === "t" || v === "true"
+
+// Stock state of one menu item: { tracked, qty, alert, level: "none" | "ok" | "low" | "out" }
+export const stockInfo = (item) => {
+  const tracked = Boolean(item) && truthy(item.track_stock) && item.stock_qty !== null && item.stock_qty !== undefined
+  const qty = tracked ? Number(item.stock_qty) || 0 : null
+  const alert = item && item.low_stock_alert !== null && item.low_stock_alert !== undefined && item.low_stock_alert !== ""
+    ? Number(item.low_stock_alert) || 0
+    : 5
+  let level = "none"
+  if (tracked) level = qty <= 0 ? "out" : qty <= alert ? "low" : "ok"
+  return { tracked, qty, alert, level }
+}
+
+// 12 -> "12", 2.5 -> "2.5"
+export const formatQty = (n) => {
+  const v = Number(n) || 0
+  return Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100)
 }

@@ -3138,3 +3138,10 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   line-height: 1.45;
   color: #64748b;
 }
+
+/* stock pill under the price (kirana / grocery and cloth shops) */
+.menu-card-stock-row { margin-top: 6px; display: flex; }
+.mob-item-stock-row { margin-top: 5px; display: flex; }
+@media (min-width: 769px) {
+  .custom-product-card .stock-open-row .menu-modal-input { height: 35px; font-size: 0.85rem; }
+}
