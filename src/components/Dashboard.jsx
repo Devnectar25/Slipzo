@@ -33,6 +33,10 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   const isMenu = isMenuCategory(shop)
 
   useEffect(() => {
+    setShop(getCachedData("/shop") || {})
+  }, [user?.id, user?.staff_of?.shop_name])
+
+  useEffect(() => {
     const handleShopUpdate = (e) => {
       if (e?.detail) setShop(e.detail)
     }
@@ -279,7 +283,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     },
     {
       id: "products",
-      title: t("home.products", "Printers & Rolls"),
+      title: t("home.products", "Supplies"),
       subtitle: t("home.addToInventory", "Suggested billing gear"),
       icon: Package,
       targetView: "products"
@@ -1171,7 +1175,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
               type="button"
               data-testid="home-empty-create-bill"
               className="home-empty-btn"
-              onClick={() => setView("bills")}
+              onClick={() => setView(isHotel ? "tables" : "bills")}
             >
               <Plus size={15} />
               <span>{t("home.createBill", "Create Bill")}</span>

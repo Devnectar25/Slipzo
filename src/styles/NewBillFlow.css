@@ -1462,3 +1462,62 @@
 .nb-summary-details > .tb-pdf-btn { margin-top: 0; }
 .nb-action-row + .tb-pdf-btn { margin-top: 0.5rem; }
 .nb-summary-details > .nb-action-row + .tb-pdf-btn { margin-top: 0; }
+
+
+/* stock pill on New Bill item cards (kirana / grocery and cloth shops) */
+.nb-item-stock { margin-top: 3px; display: flex; }
+.nb-item-stock .stock-badge { font-size: 0.66rem; padding: 2px 7px; }
+
+/* stock limit reached: + looks unavailable; out-of-stock items cannot be added */
+.nb-qty-btn.at-max { opacity: 0.4; cursor: not-allowed; }
+.nb-add-btn.nb-add-btn-out,
+.nb-add-btn.nb-add-btn-out:hover {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+}
+
+/* Bill preview (New Bill and table billing): drawn smaller so the whole bill fits in less height */
+.tb-preview-paper {
+  zoom: 0.72;
+}
+.tb-preview-paper.format-a4 {
+  zoom: 0.62;
+}
+@media (max-width: 768px) {
+  .tb-preview-paper { zoom: 0.8; }
+}
+
+/* Bill preview fills the card width (shorter: info rows and item lines no longer wrap) */
+.nb-summary-card .tb-preview-paper.receipt-preview-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  zoom: 0.8;
+  margin: 0 0 0.75rem !important;
+}
+.nb-summary-card .tb-preview-paper.receipt-preview-content .realistic-thermal-receipt {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* the barcode is shorter on screen (the printed bill keeps its full size) */
+.nb-summary-card .tb-preview-paper .receipt-barcode-bars svg {
+  height: 22px !important;
+  max-width: 70% !important;
+}
+.nb-summary-card .tb-preview-paper .receipt-barcode-wrap { margin: 0.3rem 0 0.1rem !important; }
+.nb-summary-card .tb-preview-paper .realistic-thermal-receipt { padding-bottom: 0.5rem !important; min-height: 0 !important; }
+/* tighter card around the preview */
+.nb-right-col .nb-summary-card:has(.tb-preview-head) { padding-top: 0.85rem !important; }
+.nb-summary-card .tb-preview-head { margin-bottom: 0.55rem; }
+
+/* "Add More Items" sits under the last item of the list */
+.nb-add-more-after-list { margin-top: 0.75rem; }
+.nb-add-more-after-list {
+  width: auto;
+  min-width: 200px;
+  margin: 0.75rem auto 0;
+  padding: 0.6rem 1.4rem;
+}

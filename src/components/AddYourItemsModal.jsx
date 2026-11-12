@@ -15,7 +15,7 @@ import {
   Edit2
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { call, money, getStoredMenuItems, saveStoredMenuItems } from "../lib/utils"
+import { call, money, getStoredMenuItems, saveStoredMenuItems, isInventoryShop, formatQty } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { ButtonLoader } from "./common/Skeleton"
 import { VoiceInputButton } from "./common/VoiceInputButton"
@@ -339,19 +339,185 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   }, [catalog, search, selectedCategory])
 
   // Set of selected item IDs for instant lookup
+  const [flyingItem, setFlyingItem] = useState(null) // added, still flying: joins the list when it lands
   const selectedIdsSet = useMemo(() => {
-    return new Set(selectedItems.map((it) => it.id))
-  }, [selectedItems])
+    const ids = new Set(selectedItems.map((it) => it.id))
+    if (flyingItem) ids.add(flyingItem.id)
+    return ids
+  }, [selectedItems, flyingItem])
 
   // Set Price popup state for adding an item from master catalog
   const [settingPriceProduct, setSettingPriceProduct] = useState(null)
   const [sellingPriceInput, setSellingPriceInput] = useState("")
   const [priceModalError, setPriceModalError] = useState("")
+  // kirana / grocery and cloth shops: pieces in hand when the item is added
+  const isInventory = isInventoryShop(currentBType)
+  const [stockInput, setStockInput] = useState("")
 
   // Inline price editing state for items in Selected Items list
   const [editingItemId, setEditingItemId] = useState(null)
   const [editingItemPrice, setEditingItemPrice] = useState("")
   const [editItemError, setEditItemError] = useState("")
+
+  // "Fly to Selected Items" animation: the item's picture is thrown into Selected Items like a real object
+  // (steady sideways speed, gravity up-and-down, tilting along its path, a faint trail) and squashes as it lands.
+  // The item only joins the list (and gets its card) once it has landed, so no empty box appears before the drop.
+  const flySourceRef = useRef(null)
+  const [justAddedId, setJustAddedId] = useState(null)
+
+  useEffect(() => {
+    if (!flyingItem) return undefined
+    const item = flyingItem
+    const source = flySourceRef.current
+    flySourceRef.current = null
+    const reduceMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    let ghost = null
+    let startTimer = null
+    let landTimer = null
+    let landed = false
+
+    // the item joins Selected Items now
+    const commit = () => {
+      if (landed) return
+      landed = true
+      setSelectedItems((prev) => (prev.some((it) => it.id === item.id) ? prev : [...prev, item]))
+      setFlyingItem((cur) => (cur && cur.id === item.id ? null : cur))
+      setJustAddedId(item.id)
+    }
+
+    const run = () => {
+      if (reduceMotion || !source || !source.isConnected) { commit(); return }
+
+      // where it lands: just below the last selected item (where its card will appear),
+      // the empty list, or on a phone the "Selected" tab
+      const thumbSel = ".selected-item-thumb, .selected-item-thumb-fallback"
+      const list = document.querySelector(".selected-items-scroll")
+      const listRect = list?.getBoundingClientRect()
+      const listVisible = Boolean(listRect && listRect.width > 0 && listRect.height > 0)
+      let to = null
+      if (listVisible) {
+        const cards = [...list.querySelectorAll(".selected-item-card")]
+        if (cards.length) {
+          list.scrollTop = list.scrollHeight
+          const last = cards[cards.length - 1]
+          const lr = last.getBoundingClientRect()
+          const lt = (last.querySelector(thumbSel) || last).getBoundingClientRect()
+          const gap = parseFloat(getComputedStyle(list).rowGap) || 8
+          const top = Math.min(lt.top + lr.height + gap, listRect.bottom - lt.height - 4)
+          to = { left: lt.left, top, width: lt.width, height: lt.height }
+        } else {
+          to = { left: listRect.left + 14, top: listRect.top + 14, width: 46, height: 46 }
+        }
+      } else {
+        const tab = document.querySelector(".mobile-tab-btn:last-of-type")
+        const tr = tab?.getBoundingClientRect()
+        if (tr && tr.width > 0) to = tr
+      }
+      const thumb = source.querySelector(".product-thumbnail, .product-thumbnail-fallback")
+      const startEl = thumb && thumb.offsetParent !== null ? thumb
+        : source.querySelector(".product-thumbnail-fallback, .product-thumbnail") || source
+      if (!to) { commit(); return }
+
+      const from = startEl.getBoundingClientRect()
+      const size = Math.max(40, Math.min(56, from.width || 48))
+
+      const x0 = from.left + from.width / 2 - size / 2
+      const y0 = from.top + from.height / 2 - size / 2
+      const x2 = to.left + to.width / 2 - size / 2
+      const y2 = to.top + to.height / 2 - size / 2
+      const dist = Math.hypot(x2 - x0, y2 - y0)
+      const duration = Math.round(Math.max(650, Math.min(950, 520 + dist * 0.45)))
+      const apex = Math.max(70, Math.min(170, dist * 0.32)) // how high it is thrown above the straight line
+      const endScale = Math.max(0.6, Math.min(1, (to.width || size) / size))
+
+      // position at time t (0..1): steady sideways speed, gravity on the way up and down (a true parabola)
+      const at = (t) => ({
+        x: x0 + (x2 - x0) * t,
+        y: y0 + (y2 - y0) * t - 4 * apex * t * (1 - t)
+      })
+      const frames = []
+      const N = 36
+      for (let i = 0; i <= N; i++) {
+        const t = i / N
+        const { x, y } = at(t)
+        const ahead = at(Math.min(1, t + 0.02))
+        const tilt = Math.max(-18, Math.min(18, Math.atan2(ahead.y - y, ahead.x - x) * (180 / Math.PI) * 0.35))
+        const scale = t < 0.12 ? 1 + 0.14 * (t / 0.12) : 1.14 - (1.14 - endScale) * ((t - 0.12) / 0.88)
+        frames.push({ transform: `translate3d(${x}px, ${y}px, 0) rotate(${tilt}deg) scale(${scale})`, offset: t })
+      }
+
+      const makeFlyer = (extraClass) => {
+        const el = document.createElement("div")
+        el.className = `fly-thumb ${extraClass || ""}`
+        const pic = startEl.cloneNode(true)
+        pic.removeAttribute("style")
+        pic.className = "fly-thumb-pic"
+        el.appendChild(pic)
+        Object.assign(el.style, { width: `${size}px`, height: `${size}px`, left: "0px", top: "0px" })
+        document.body.appendChild(el)
+        return el
+      }
+
+      // a faint trail of copies following a moment behind
+      const trail = [0.32, 0.18, 0.08].map((opacity, i) => {
+        const el = makeFlyer("fly-thumb-trail")
+        el.style.opacity = String(opacity)
+        el.animate(frames, { duration, delay: (i + 1) * 34, easing: "linear", fill: "both" })
+          .finished.then(() => el.remove()).catch(() => el.remove())
+        return el
+      })
+      ghost = makeFlyer()
+      ghost._trail = trail
+
+      // the picture left behind in the row gives a little "pick up" pop
+      startEl.animate?.([{ transform: "scale(1)" }, { transform: "scale(0.86)" }, { transform: "scale(1)" }], { duration: 260, easing: "ease-out" })
+
+      const anim = ghost.animate(frames, { duration, easing: "linear", fill: "forwards" })
+      anim.onfinish = () => {
+        const g = ghost
+        ghost = null
+        const end = `translate3d(${x2}px, ${y2}px, 0)`
+        // squash on impact; the card appears under it
+        g.animate([
+          { transform: `${end} scale(${endScale})`, opacity: 1 },
+          { transform: `${end} scale(${endScale * 1.18}, ${endScale * 0.8})`, opacity: 1, offset: 0.45 },
+          { transform: `${end} scale(${endScale * 0.92}, ${endScale * 1.06})`, opacity: 0.6, offset: 0.8 },
+          { transform: `${end} scale(${endScale})`, opacity: 0 }
+        ], { duration: 220, easing: "ease-out", fill: "forwards" }).finished.then(() => g.remove()).catch(() => g.remove())
+        landTimer = setTimeout(commit, 70)
+      }
+    }
+
+    // let the price popup close first so the row is in plain view when it lifts off
+    startTimer = setTimeout(() => requestAnimationFrame(run), 140)
+    return () => {
+      clearTimeout(startTimer)
+      clearTimeout(landTimer)
+      ghost?._trail?.forEach((el) => el.remove())
+      ghost?.remove()
+      commit() // never lose an item, even if the popup closes mid-flight
+    }
+  }, [flyingItem])
+
+  // once the card exists: bring it into view, let it pop in, and bump the count
+  useEffect(() => {
+    if (!justAddedId) return undefined
+    let settle = null
+    const frame = requestAnimationFrame(() => {
+      const card = document.querySelector(`[data-selected-id="${CSS.escape(String(justAddedId))}"]`)
+      if (card) {
+        card.scrollIntoView({ block: "nearest" })
+        card.classList.add("just-added")
+        settle = setTimeout(() => card.classList.remove("just-added"), 700)
+      }
+      document.querySelector(".selected-count-title")?.animate?.(
+        [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }],
+        { duration: 320, easing: "ease-out" }
+      )
+      setJustAddedId(null)
+    })
+    return () => { cancelAnimationFrame(frame); clearTimeout(settle) }
+  }, [justAddedId])
 
   // Open small Set Price popup when clicking "+ Add"
   const handleOpenSetPrice = (product) => {
@@ -362,6 +528,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
     setSettingPriceProduct(product)
     setSellingPriceInput(String(defaultPrice))
+    setStockInput("")
     setPriceModalError("")
   }
 
@@ -383,13 +550,18 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
       return
     }
 
-    setSelectedItems((prev) => [
-      ...prev,
-      {
-        ...settingPriceProduct,
-        customPrice: num
+    let openingStock
+    if (isInventory && stockInput.trim() !== "") {
+      openingStock = Number(stockInput)
+      if (!Number.isFinite(openingStock) || openingStock < 0) {
+        setPriceModalError(t("stock.errOpening", "Opening stock must be 0 or more."))
+        return
       }
-    ])
+    }
+
+    // an item still in flight from a previous add lands straight away
+    if (flyingItem) setSelectedItems((prev) => (prev.some((it) => it.id === flyingItem.id) ? prev : [...prev, flyingItem]))
+    setFlyingItem({ ...settingPriceProduct, customPrice: num, openingStock })
 
     handleCloseSetPrice()
   }
@@ -455,7 +627,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               category: item.category || "General",
               price: sellingPrice,
               custom_price: sellingPrice,
-              image_url: item.image_url || ""
+              image_url: item.image_url || "",
+              ...(isInventory && item.openingStock !== undefined ? { stock_qty: item.openingStock } : {})
             })
           }).catch((err) => {
             console.warn(`Could not sync item "${item.name}":`, err.message)
@@ -683,7 +856,11 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                         <button
                           type="button"
                           className={`product-add-btn ${isAdded ? "added" : ""}`}
-                          onClick={() => !isAdded && handleOpenSetPrice(product)}
+                          onClick={(e) => {
+                            if (isAdded) return
+                            flySourceRef.current = e.currentTarget.closest(".add-menu-product-row")
+                            handleOpenSetPrice(product)
+                          }}
                           disabled={isAdded}
                         >
                           {isAdded ? t("menu.added", "Added") : `+ ${t("menu.add", "Add")}`}
@@ -748,7 +925,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                 </div>
               ) : (
                 selectedItems.map((item) => (
-                  <div key={item.id} className="selected-item-card">
+                  <div key={item.id} className="selected-item-card" data-selected-id={item.id}>
                     <div className="selected-item-main">
                       {item.image_url ? (
                         <img
@@ -824,6 +1001,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                         ) : (
                           <span className="selected-readonly-price">
                             ₹{Number(item.customPrice !== undefined ? item.customPrice : item.price).toFixed(2)}
+                            {isInventory && item.openingStock !== undefined && (
+                              <span className="selected-stock-note"> · {t("stock.countShort", "{{n}} in stock", { n: formatQty(item.openingStock) })}</span>
+                            )}
                           </span>
                         )}
                       </div>
@@ -981,6 +1161,31 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                     <span className="set-price-error-msg">{priceModalError}</span>
                   )}
                 </div>
+
+                {isInventory && (
+                  <div className="set-price-field-wrap">
+                    <label className="set-price-label" htmlFor="user-opening-stock-input">
+                      {t("stock.openingOptional", "Opening stock (optional)")}
+                    </label>
+                    <div className="set-price-input-container">
+                      <input
+                        id="user-opening-stock-input"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="any"
+                        value={stockInput}
+                        onChange={(e) => {
+                          setStockInput(e.target.value)
+                          if (priceModalError) setPriceModalError("")
+                        }}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleConfirmAddPrice(e) }}
+                        placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                        className="set-price-input set-price-stock-input"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -1006,6 +1211,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
         {/* Modal Scoped Styles matching reference UI */}
         <style>{`
+          .set-price-stock-input { padding-left: 0.85rem !important; }
+          .selected-stock-note { font-size: 0.78em; font-weight: 600; color: #15803d; }
           .add-menu-modal-backdrop {
             position: fixed;
             top: 0;
@@ -1044,6 +1251,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             justify-content: space-between;
             gap: 1rem;
             background: #ffffff;
+            flex-shrink: 0;
           }
 
           .add-menu-header-left {
@@ -1100,12 +1308,13 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           /* Main Body (2 Columns) */
           .add-menu-body {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            padding: 0 1.75rem 1.25rem;
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow: hidden;
+            padding: 4px 1.75rem 0.5rem;
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(330px, 360px);
+            grid-template-rows: minmax(0, 1fr);
             gap: 1.5rem;
             box-sizing: border-box;
           }
@@ -1114,11 +1323,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           .add-menu-catalog-col {
             display: flex;
             flex-direction: column;
+            min-width: 0;
+            min-height: 0;
           }
 
           /* Search Bar */
           .add-menu-search-bar {
             position: relative;
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             border: 1.5px solid #cbd5e1;
@@ -1214,7 +1426,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           /* Section Header */
           .add-menu-section-head {
-            margin-bottom: 0.75rem;
+            flex-shrink: 0;
+            margin: 0.65rem 0 0.75rem;
           }
 
           .add-menu-section-head h4 {
@@ -1230,8 +1443,11 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 360px;
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: none;
             overflow-y: auto;
+            overscroll-behavior: contain;
             padding-right: 4px;
           }
 
@@ -1363,13 +1579,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .product-add-btn.added {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            animation: addedPop 0.42s cubic-bezier(0.2, 1.6, 0.4, 1);
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
             color: #ffffff;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
           }
 
           .product-add-btn.added:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
           }
 
           /* Right Column */
@@ -1377,12 +1594,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             display: flex;
             flex-direction: column;
             min-width: 0;
+            min-height: 0;
             width: 100%;
             box-sizing: border-box;
           }
 
           /* Tip Card */
           .add-menu-tip-card {
+            flex-shrink: 0;
             background: #f0f9ff;
             border: 1px solid #bae6fd;
             border-radius: 14px;
@@ -1413,6 +1632,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
           /* Selected Items Header */
           .selected-items-head {
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -1445,9 +1665,12 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 290px;
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: none;
             overflow-y: auto;
             overflow-x: hidden;
+            overscroll-behavior: contain;
             padding-right: 2px;
             box-sizing: border-box;
             width: 100%;
@@ -1544,11 +1767,20 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             display: block;
           }
 
+          .selected-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+          }
+
           .selected-edit-btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 4px;
-            padding: 4px 9px;
+            height: 30px;
+            padding: 0 9px;
             border-radius: 6px;
             border: 1px solid #D9DDE4;
             background: #ffffff;
@@ -1556,6 +1788,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             font-size: 0.76rem;
             font-weight: 600;
             cursor: pointer;
+            box-sizing: border-box;
             transition: all 0.15s ease;
           }
 
@@ -1899,26 +2132,32 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .item-trash-btn {
-            background: transparent;
-            border: none;
-            padding: 4px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border-radius: 6px;
+            border: 1px solid #fecaca;
+            background: #fff5f5;
             color: #ef4444;
+            cursor: pointer;
             flex-shrink: 0;
-            transition: background 0.15s;
+            box-sizing: border-box;
+            transition: all 0.15s ease;
           }
 
           .item-trash-btn:hover {
             background: #fee2e2;
+            border-color: #ef4444;
+            color: #dc2626;
           }
 
           /* Footer */
           .add-menu-footer {
-            padding: 1rem 1.75rem;
+            flex-shrink: 0;
+            padding: 0.4rem calc(1.75rem + 50px) 0.45rem 1.75rem;
             background: #ffffff;
             display: flex;
             align-items: center;
@@ -1928,13 +2167,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .add-menu-skip-btn {
+            min-height: 38px;
             background: #f0f9ff;
             border: 1px solid #bae6fd;
             color: #0C1F41;
             font-weight: 600;
             font-size: 0.86rem;
             border-radius: 10px;
-            padding: 10px 22px;
+            padding: 7px 20px;
             cursor: pointer;
             transition: all 0.15s ease;
           }
@@ -1950,7 +2190,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             font-weight: 600;
             font-size: 0.86rem;
             border-radius: 10px;
-            padding: 10px 26px;
+            padding: 7px 24px;
             border: none;
             cursor: pointer;
             display: inline-flex;
@@ -2063,8 +2303,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               flex-direction: column !important;
               flex: 1 1 auto !important;
               min-height: 0 !important;
-              overflow-y: auto !important;
-              -webkit-overflow-scrolling: touch !important;
+              overflow: hidden !important;
               padding: 0.75rem 1rem !important;
               gap: 0 !important;
             }
@@ -2079,6 +2318,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               flex-direction: column !important;
               gap: 0.65rem !important;
               flex: 1 1 auto !important;
+              min-height: 0 !important;
             }
 
             .add-menu-selected-col {
@@ -2086,23 +2326,33 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               flex-direction: column !important;
               gap: 0.65rem !important;
               flex: 1 1 auto !important;
+              min-height: 0 !important;
             }
 
             .add-menu-products-list {
+              flex: 1 1 auto !important;
+              min-height: 0 !important;
               max-height: none !important;
-              overflow-y: visible !important;
+              overflow-y: auto !important;
+              -webkit-overflow-scrolling: touch !important;
+              overscroll-behavior: contain !important;
               padding-right: 0 !important;
               gap: 6px !important;
             }
 
             .selected-items-scroll {
+              flex: 1 1 auto !important;
+              min-height: 0 !important;
               max-height: none !important;
-              overflow-y: visible !important;
+              overflow-y: auto !important;
+              -webkit-overflow-scrolling: touch !important;
+              overscroll-behavior: contain !important;
               padding-right: 0 !important;
               gap: 8px !important;
             }
 
             .mobile-view-selected-banner {
+              flex-shrink: 0 !important;
               display: flex !important;
               align-items: center !important;
               justify-content: space-between !important;

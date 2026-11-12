@@ -63,16 +63,24 @@ const confirmSignOut = (t, user) => {
   })
 }
 
-export function Shell({ user, view, setView, onLogout, children, requireAuth }) {
+export function Shell({ user, shop: parentShop, view, setView, onLogout, children, requireAuth }) {
   const { t, i18n } = useTranslation()
   const { tDb } = useDbTranslation()
   const currentLang = i18n.language || "en"
   const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0]
   const [langOpen, setLangOpen] = useState(false)
 
-  const [shop, setShop] = useState(() => getCachedData("/shop") || {})
+  const [shop, setShop] = useState(() => (parentShop && Object.keys(parentShop).length > 0 ? parentShop : getCachedData("/shop")) || {})
   const isHotel = isHotelRestaurant(shop)
   const isMenu = isMenuCategory(shop)
+
+  useEffect(() => {
+    if (parentShop && Object.keys(parentShop).length > 0) {
+      setShop(parentShop)
+    } else {
+      setShop(getCachedData("/shop") || {})
+    }
+  }, [parentShop, user?.id, user?.staff_of?.shop_name])
 
   useEffect(() => {
     const handleShopUpdate = (e) => {
@@ -106,7 +114,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
     },
     { id: "menu", label: isMenu ? t("nav.menu", "Menu") : t("nav.items", "Item"), icon: List, protected: true },
     { id: "templates", label: t("nav.templates", "Templates"), icon: FileText, protected: true },
-    { id: "products", label: t("nav.products", "Printers & Rolls"), icon: Package, protected: true },
+    { id: "products", label: t("nav.products", "Supplies"), icon: Package, protected: true },
     { id: "history", label: t("nav.history", "History"), icon: History, protected: true },
     { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
     { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings, protected: true },
@@ -129,7 +137,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   // desktop header: the main pages (Templates lives in the profile menu here; the phone bar keeps it)
   const headerNavItems = [
     ...mobileNavItems.filter((item) => item.id !== "templates"),
-    { id: "products", label: t("nav.products", "Printers & Rolls"), extra: true },
+    { id: "products", label: t("nav.products", "Supplies"), extra: true },
     { id: "pricing", label: t("nav.pricing", "Pricing"), extra: true },
     { id: "contact", label: t("nav.contact", "Contact us"), extra: true },
   ].filter((item) => !(user?.staff_of && item.id === "pricing"))
@@ -138,7 +146,7 @@ export function Shell({ user, view, setView, onLogout, children, requireAuth }) 
   const profileMenuItems = [
     { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings },
     { id: "templates", label: t("nav.templates", "Templates"), icon: LayoutTemplate },
-    { id: "products", label: t("nav.products", "Printers & Rolls"), icon: Package, narrow: true },
+    { id: "products", label: t("nav.products", "Supplies"), icon: Package, narrow: true },
     { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, badge: t("nav.plans", "Plans"), narrow: true },
     { id: "guide", label: t("nav.guide", "User Guide"), icon: BookOpen, badge: t("sidebar.help", tDb("Help")) },
     { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, narrow: true },

@@ -30,6 +30,7 @@ import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { VoiceInputButton } from "./common/VoiceInputButton"
+import { TodayAnalytics } from "./TodayAnalytics"
 
 export function History({ setView, setSelectedBillId, user }) {
   const { t } = useTranslation()
@@ -365,6 +366,9 @@ export function History({ setView, setSelectedBillId, user }) {
           <p className="menu-sub-title">{t("history.subtitle", "Find and reprint any saved receipt.")}</p>
         </div>
       </div>
+
+      {/* Today's sales: counts from midnight, so it starts again every day */}
+      <TodayAnalytics user={user} />
 
       {/* 2-Part Tab Switcher: Saved Bills & Print Bills */}
       <div className="history-tab-switcher-wrapper">

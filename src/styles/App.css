@@ -21385,3 +21385,46 @@ textarea,
 /* Shop setup popup: slimmer save bar and less empty space under it */
 .modal-card.shop-onboarding-card { padding-bottom: 0.6rem !important; }
 .modal-card.shop-onboarding-card .onboarding-footer { padding-top: 0.6rem !important; padding-bottom: 0.6rem !important; }
+
+
+/* Add Menu Items: the item picture flies in an arc into Selected Items ("add to cart" style) */
+.fly-thumb {
+  position: fixed;
+  z-index: 100001;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 14px 30px -8px rgba(2, 132, 199, 0.55), 0 0 0 1px rgba(56, 189, 248, 0.5);
+  pointer-events: none;
+  will-change: transform;
+  transform-origin: center;
+}
+.fly-thumb-pic {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  object-fit: cover;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-radius: 10px;
+}
+.selected-item-card.fly-pending { visibility: hidden; }
+/* the new card drops into place with a spring */
+.selected-item-card.just-added { animation: selectedDropIn 0.6s cubic-bezier(0.2, 1.5, 0.35, 1); }
+@keyframes selectedDropIn {
+  0% { transform: translateY(-10px) scale(0.94); opacity: 0.4; background: #e0f2fe; box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.25); }
+  60% { transform: translateY(2px) scale(1.01); opacity: 1; }
+  100% { transform: none; box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+}
+@keyframes addedPop {
+  0% { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .selected-item-card.just-added { animation: none; }
+}
+/* the faint copies that trail the flying picture */
+.fly-thumb.fly-thumb-trail { box-shadow: none; border-color: rgba(255, 255, 255, 0.6); z-index: 100000; }

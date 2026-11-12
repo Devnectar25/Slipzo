@@ -457,21 +457,26 @@ export function Templates({ setView, user }) {
             onChange={(e) => setSearch(e.target.value)}
             className="templates-search-input-field"
           />
-          {search ? (
-            <button className="templates-search-clear-btn" onClick={() => setSearch("")}>
+          {search && (
+            <button
+              type="button"
+              className="templates-search-clear-btn"
+              onClick={() => setSearch("")}
+              title={t("bills.clearSearch", "Clear search")}
+              aria-label={t("bills.clearSearch", "Clear search")}
+            >
               <X size={15} />
             </button>
-          ) : (
-            <div className="search-voice-wrap">
-              <VoiceInputButton
-                mode="raw"
-                variant="icon-only"
-                size="sm"
-                onSpeechResult={(text) => setSearch(text)}
-                className="search-voice-btn"
-              />
-            </div>
           )}
+          <div className="search-voice-wrap">
+            <VoiceInputButton
+              mode="raw"
+              variant="icon-only"
+              size="sm"
+              onSpeechResult={(text) => setSearch(text)}
+              className="search-voice-btn"
+            />
+          </div>
         </div>
       </section>
 
