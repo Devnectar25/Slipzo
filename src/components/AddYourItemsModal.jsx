@@ -20,6 +20,7 @@ import { useToast } from "./common/Toast"
 import { ButtonLoader } from "./common/Skeleton"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useDbTranslation } from "../lib/translator"
+import { matchesItemFuzzy, cleanVoiceQuery } from "../lib/fuzzySearch"
 
 // Default sample master Kirana products
 const FALLBACK_CATALOG = [
@@ -235,7 +236,7 @@ function isVegItem(item) {
 
 export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   const { t } = useTranslation()
-  const { tDb, formatNum } = useDbTranslation()
+  const { tDb, formatNum, lang } = useDbTranslation()
   const currentBType = (shop?.business_type || user?.shopCategory || "").toLowerCase()
   const isClothShop = currentBType.includes("clothing") || currentBType.includes("garment")
   const isFoodShop = currentBType.includes("hotel") || currentBType.includes("food") || currentBType.includes("cafe") || currentBType.includes("small_business")
@@ -309,20 +310,11 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
   // Filter master catalog products based on search & category chip
   const filteredProducts = useMemo(() => {
-    // Strip trailing dots and punctuation that speech engines or typing may introduce
-    const cleanSearch = search.trim().replace(/\s*[.,!?;:]+$/, "").trim()
-    const q = cleanSearch.toLowerCase()
-    const searchWords = q.split(/\s+/).filter(Boolean)
+    const cleanSearch = cleanVoiceQuery(search)
 
     return catalog.filter((item) => {
-      const name = String(item.name || "").toLowerCase()
       const cat = String(item.category || "").toLowerCase()
-
-      const matchesSearch =
-        !q ||
-        name.includes(q) ||
-        cat.includes(q) ||
-        (searchWords.length > 1 && searchWords.every((w) => name.includes(w) || cat.includes(w)))
+      const matchesSearch = !cleanSearch || matchesItemFuzzy(item, cleanSearch, { tDb, lang })
 
       let matchesCat = true
       if (selectedCategory !== "all") {
@@ -336,7 +328,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
       return matchesSearch && matchesCat
     })
-  }, [catalog, search, selectedCategory])
+  }, [catalog, search, selectedCategory, tDb, lang])
 
   // Set of selected item IDs for instant lookup
   const [flyingItem, setFlyingItem] = useState(null) // added, still flying: joins the list when it lands
@@ -350,6 +342,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   const [settingPriceProduct, setSettingPriceProduct] = useState(null)
   const [sellingPriceInput, setSellingPriceInput] = useState("")
   const [priceModalError, setPriceModalError] = useState("")
+  const [stockModalError, setStockModalError] = useState("")
   // kirana / grocery and cloth shops: pieces in hand when the item is added
   const isInventory = isInventoryShop(currentBType)
   const [stockInput, setStockInput] = useState("")
@@ -530,13 +523,16 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     setSellingPriceInput(String(defaultPrice))
     setStockInput("")
     setPriceModalError("")
+    setStockModalError("")
   }
 
   // Close small Set Price popup
   const handleCloseSetPrice = () => {
     setSettingPriceProduct(null)
     setSellingPriceInput("")
+    setStockInput("")
     setPriceModalError("")
+    setStockModalError("")
   }
 
   // Confirm price and add product to Selected Items
@@ -544,20 +540,32 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     e?.preventDefault()
     if (!settingPriceProduct) return
 
+    let hasError = false
     const num = parseFloat(sellingPriceInput)
     if (sellingPriceInput === "" || isNaN(num) || num < 0) {
       setPriceModalError("Please enter a valid price.")
-      return
+      hasError = true
+    } else {
+      setPriceModalError("")
     }
 
     let openingStock
-    if (isInventory && stockInput.trim() !== "") {
-      openingStock = Number(stockInput)
-      if (!Number.isFinite(openingStock) || openingStock < 0) {
-        setPriceModalError(t("stock.errOpening", "Opening stock must be 0 or more."))
-        return
+    if (isInventory) {
+      if (stockInput.trim() === "") {
+        setStockModalError(t("stock.errOpeningRequired", "Please enter opening stock."))
+        hasError = true
+      } else {
+        openingStock = Number(stockInput)
+        if (!Number.isFinite(openingStock) || openingStock < 0) {
+          setStockModalError(t("stock.errOpening", "Opening stock must be 0 or more."))
+          hasError = true
+        } else {
+          setStockModalError("")
+        }
       }
     }
+
+    if (hasError) return
 
     // an item still in flight from a previous add lands straight away
     if (flyingItem) setSelectedItems((prev) => (prev.some((it) => it.id === flyingItem.id) ? prev : [...prev, flyingItem]))
@@ -628,7 +636,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               price: sellingPrice,
               custom_price: sellingPrice,
               image_url: item.image_url || "",
-              ...(isInventory && item.openingStock !== undefined ? { stock_qty: item.openingStock } : {})
+              ...(isInventory ? { stock_qty: item.openingStock !== undefined ? item.openingStock : 0 } : {})
             })
           }).catch((err) => {
             console.warn(`Could not sync item "${item.name}":`, err.message)
@@ -773,8 +781,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               <div className="add-menu-mic-wrap">
                 <VoiceInputButton
                   onSpeechResult={(text) => {
-                    const cleanText = (text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim()
-                    setSearch(cleanText)
+                    setSearch(cleanVoiceQuery(text))
                   }}
                   variant="icon-only"
                   size="sm"
@@ -1165,25 +1172,29 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                 {isInventory && (
                   <div className="set-price-field-wrap">
                     <label className="set-price-label" htmlFor="user-opening-stock-input">
-                      {t("stock.openingOptional", "Opening stock (optional)")}
+                      {t("stock.openingRequired", "Opening stock *")}
                     </label>
-                    <div className="set-price-input-container">
+                    <div className={`set-price-input-container ${stockModalError ? "error" : ""}`}>
                       <input
                         id="user-opening-stock-input"
                         type="number"
                         inputMode="decimal"
                         min="0"
                         step="any"
+                        required
                         value={stockInput}
                         onChange={(e) => {
                           setStockInput(e.target.value)
-                          if (priceModalError) setPriceModalError("")
+                          if (stockModalError) setStockModalError("")
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") handleConfirmAddPrice(e) }}
                         placeholder={t("stock.openingPlaceholder", "Pieces you have")}
                         className="set-price-input set-price-stock-input"
                       />
                     </div>
+                    {stockModalError && (
+                      <span className="set-price-error-msg">{stockModalError}</span>
+                    )}
                   </div>
                 )}
               </div>

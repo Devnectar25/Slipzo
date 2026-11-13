@@ -3145,3 +3145,25 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 @media (min-width: 769px) {
   .custom-product-card .stock-open-row .menu-modal-input { height: 35px; font-size: 0.85rem; }
 }
+
+/* Custom item: the shop's own category, not changeable */
+.cp-category-fixed {
+  display: flex !important;
+  align-items: center !important;
+  height: 35px !important;
+  padding: 0 0.75rem !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #0c1f41 !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  cursor: default !important;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+@media (max-width: 768px) {
+  .custom-product-card .cp-category-fixed { height: 46px !important; font-size: 1rem !important; border-radius: 11px !important; }
+}

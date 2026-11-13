@@ -37,6 +37,15 @@ const API_MESSAGES = {
   "Could not start the payment. Please try again.": "apiErrors.payStart",
   "Please choose a plan before finishing setup.": "apiErrors.planRequired",
   "You already started signing up with this mobile number. Sign in with the password you chose to continue.": "apiErrors.signupInProgress",
+  "No account found with this mobile number.": "otp.errNoAccount",
+  "Please verify your mobile number with the code we sent.": "apiErrors.verifyPhone",
+  "Your verification has expired. Please start again.": "otp.errRequired",
+  "Your password was changed. Please sign in again.": "apiErrors.passwordChanged",
+  "Enter the 6-digit code.": "otp.errFormat",
+  "This code has expired. Please ask for a new one.": "otp.errExpired",
+  "Too many wrong tries. Please ask for a new code.": "otp.errLocked",
+  "Too many codes asked for this number. Please try again in an hour.": "otp.errTooMany",
+  "Please choose a password you have not used for this account.": "forgot.errSame",
   "Something went wrong": "apiErrors.generic"
 }
 

@@ -192,7 +192,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
     const fetchFreshQuota = async () => {
       if (!user) return
       try {
-        const subRes = await call("/subscriptions/my")
+        const subRes = await call("/subscriptions/my", { noCache: true })
         if (subRes && subRes.quota && isMounted) {
           const synced = syncUserQuota(subRes.quota, currentKey)
           if (synced) setActivePlan(synced)

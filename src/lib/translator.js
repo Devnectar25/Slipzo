@@ -2,8 +2,8 @@
 // Bridges database content to the UI in the selected app language (English, Marathi, Hindi)
 
 import { useState, useEffect } from "react";
-import i18n from "../i18n/i18n";
-import { toDevanagariNumerals, formatNumberByLang } from "./utils";
+import i18n from "../i18n/i18n.js";
+import { toDevanagariNumerals, formatNumberByLang } from "./utils.js";
 
 // Local storage key for cached dynamic translations
 const CACHE_KEY = "slipzo_db_translations_v1";
@@ -557,20 +557,217 @@ export const DICTIONARY = {
   "Open Guide": { mr: "मार्गदर्शक उघडा", hi: "गाइड खोलें" },
   "Help": { mr: "मदत", hi: "मदद" },
   "Saved Bills": { mr: "जतन केलेली बिले", hi: "सहेजे गए बिल" },
-  "Print Bills": { mr: "प्रिंट बिले", hi: "प्रिंट बिल" }
+  "Print Bills": { mr: "प्रिंट बिले", hi: "प्रिंट बिल" },
+
+  // Sort & Filter Options
+  "Latest": { mr: "नवीनतम", hi: "नवीनतम" },
+  "Popular": { mr: "लोकप्रिय", hi: "लोकप्रिय" },
+  "Name": { mr: "नाव", hi: "नाम" },
+  "Price: Low to High": { mr: "किंमत: कमी ते जास्त", hi: "कीमत: कम से ज्यादा" },
+  "Price: High to Low": { mr: "किंमत: जास्त ते कमी", hi: "कीमत: ज्यादा से कम" },
+
+  // Business Types & Store Categories
+  "General": { mr: "सामान्य", hi: "सामान्य" },
+  "Tea & Chai Tapri": { mr: "चहा आणि चहा टपरी", hi: "चाय और चाय टपरी" },
+  "Kirana / Grocery Shop": { mr: "किराणा / ग्रॉसरी दुकान", hi: "किराना / ग्रॉसरी दुकान" },
+  "Small Business / Cafe & Tea": { mr: "लहान व्यवसाय / कॅफे आणि चहा", hi: "छोटा व्यवसाय / कैफे और चाय" },
+  "Hotel or Food Restaurant": { mr: "हॉटेल किंवा रेस्टॉरंट", hi: "होटल या रेस्टोरेंट" },
+  "Cloth & Garments Shop": { mr: "कापड आणि कपड्यांचे दुकान", hi: "कपड़ा और वस्त्र दुकान" },
+  "Coffee & Cafe Drinks": { mr: "कॉफी आणि कॅफे पेये", hi: "कॉफ़ी और कैफे ड्रिंक्स" },
+  "South Indian Tiffin": { mr: "दक्षिण भारतीय नाश्ता", hi: "दक्षिण भारतीय नाश्ता" },
+  "Snacks & Pakoras": { mr: "स्नॅक्स आणि भजी", hi: "स्नैक्स और पकौड़े" },
+  "Street Food & Chaat": { mr: "स्ट्रीट फूड आणि चाट", hi: "स्ट्रीट फूड और चाट" },
+  "Thalis & Meals": { mr: "थाळी आणि जेवण", hi: "थाली और भोजन" },
+  "Biryani & Rice": { mr: "बिर्याणी आणि भात", hi: "बिरयानी और चावल" },
+  "Breads & Tandoor": { mr: "रोटी आणि तंदूर", hi: "रोटी और तंदूर" },
+  "Essentials & Active": { mr: "जीवनावश्यक वस्तू", hi: "दैनिक आवश्यक सामान" },
+  "Starters & Appetizers": { mr: "स्टार्टर्स आणि अ‍ॅपिटायझर्स", hi: "स्टार्टर्स और ऐपेटाइज़र" },
+  "Desserts & Drinks": { mr: "मिठाई आणि पेये", hi: "मिठाई और पेय" },
+  "Main Course": { mr: "मुख्य जेवण", hi: "मुख्य भोजन" },
+
+  // Catalog Products (All Store Types)
+  "Salt": { mr: "मीठ", hi: "नमक" },
+  "Pani puri": { mr: "पाणीपुरी", hi: "पानी पूरी" },
+  "Pani Puri / Golgappe (6 pcs)": { mr: "पाणीपुरी / गोलगप्पा (६ नग)", hi: "पानी पूरी / गोलगप्पे (६ पीस)" },
+  "Sabudana vada": { mr: "साबुदाणा वडा", hi: "साबूदाना वड़ा" },
+  "Adrak Elaichi Chai": { mr: "आले वेलची चहा", hi: "अदरक इलायची चाय" },
+  "Masala Chai Special": { mr: "मसाला चहा स्पेशल", hi: "मसाला चाय स्पेशल" },
+  "Special Masala Chai (Kulhad)": { mr: "स्पेशल मसाला चहा (कुल्हड)", hi: "स्पेशल मसाला चाय (कुल्हड़)" },
+  "Hot coffee": { mr: "हॉट कॉफी", hi: "हॉट कॉफ़ी" },
+  "Masala Utappa": { mr: "मसाला उत्तप्पा", hi: "मसाला उत्तपम" },
+  "Masala Omlette": { mr: "मसाला ऑम्लेट", hi: "मसाला ऑमलेट" },
+  "Double Egg Maska Omelette": { mr: "डबल एग मस्का ऑम्लेट", hi: "डबल एग मस्का ऑमलेट" },
+  "Cheese Vada Pav": { mr: "चीज वडा पाव", hi: "चीज़ वड़ा पाव" },
+  "Mumbai Vada Pav": { mr: "मुंबई वडा पाव", hi: "मुंबई वड़ा पाव" },
+  "vada pav": { mr: "वडा पाव", hi: "वड़ा पाव" },
+  "Pizza": { mr: "पिझ्झा", hi: "पिज़्ज़ा" },
+  "full chizz pizza": { mr: "फुल चीज पिझ्झा", hi: "फुल ची़ज़ पिज़्ज़ा" },
+  "hot brownie": { mr: "हॉट ब्राउनी", hi: "हॉट ब्राउनी" },
+  "Bhel Puri": { mr: "भेळपुरी", hi: "भेल पूरी" },
+  "Sev Puri": { mr: "शेवपुरी", hi: "सेव पूरी" },
+  "Dahi Batata Puri": { mr: "दही बटाटा पुरी", hi: "दही बटाटा पूरी" },
+  "Dahi Bhalla Plate": { mr: "दही भल्ला प्लेट", hi: "दही भल्ला प्लेट" },
+  "Dahi Papdi Chaat": { mr: "दही पापडी चाट", hi: "दही पापड़ी चाट" },
+  "Aloo Tikki Chole Chaat": { mr: "आलू टिक्की छोले चाट", hi: "आलू टिक्की छोले चाट" },
+  "Samosa Chaat Plate": { mr: "समोसा चाट प्लेट", hi: "समोसा चाट प्लेट" },
+  "Royal Raj Kachori": { mr: "रॉयल राज कचोरी", hi: "रॉयल राज कचौरी" },
+  "Ragda Pattice (2 pcs)": { mr: "रगडा पॅटीस (२ नग)", hi: "रगड़ा पैटीस (२ पीस)" },
+  "Punjabi Samosa (2 pcs)": { mr: "पंजाबी समोसा (२ नग)", hi: "पंजाबी समोसा (२ पीस)" },
+  "Crispy Masala Dosa": { mr: "कुरकुरीत मसाला डोसा", hi: "क्रिस्पी मसाला डोसा" },
+  "Plain Butter Dosa": { mr: "साधा बटर डोसा", hi: "सादा बटर डोसा" },
+  "Mysore Masala Dosa": { mr: "म्हैसूर मसाला डोसा", hi: "मैसूर मसाला डोसा" },
+  "Onion Rava Masala Dosa": { mr: "कांदा रवा मसाला डोसा", hi: "प्याज रवा मसाला डोसा" },
+  "Ghee Roast Paper Dosa": { mr: "तूप रोस्ट पेपर डोसा", hi: "घी रोस्ट पेपर डोसा" },
+  "Onion Tomato Uttapam": { mr: "कांदा टोमॅटो उत्तपम", hi: "प्याज टमाटर उत्तपम" },
+  "Steamed Idli (2 pcs)": { mr: "इडली (२ नग)", hi: "इडली (२ पीस)" },
+  "Crispy Medu Vada (2 pcs)": { mr: "मेदू वडा (२ नग)", hi: "मेदू वड़ा (२ पीस)" },
+  "Idli Vada Combo": { mr: "इडली वडा कॉम्बो", hi: "इडली वड़ा कॉम्बो" },
+  "Ghee Ven Pongal": { mr: "तूप पोंगल", hi: "घी पोंगल" },
+  "Rava Upma with Cashews": { mr: "काजू रवा उपमा", hi: "काजू रवा उपमा" },
+  "Poori Bhaji (3 pcs)": { mr: "पुरी भाजी (३ नग)", hi: "पूरी भाजी (३ पीस)" },
+  "Special Butter Pav Bhaji": { mr: "स्पेशल बटर पाव भाजी", hi: "स्पेशल बटर पाव भाजी" },
+  "Extra Butter Pav (Pair)": { mr: "एक्स्ट्रा बटर पाव (जोडी)", hi: "अतिरिक्त बटर पाव (जोड़ी)" },
+  "Classic Bun Maska": { mr: "क्लासिक बन मस्का", hi: "क्लासिक बन मस्का" },
+  "Bun Maska with Mixed Jam": { mr: "मिक्स्ड जॅमसह बन मस्का", hi: "मिक्स्ड जैम के साथ बन मस्का" },
+  "Cutting Chai": { mr: "कटिंग चहा", hi: "कटिंग चाय" },
+  "Irani Chai": { mr: "इराणी चहा", hi: "ईरानी चाय" },
+  "Kashmiri Kahwa Tea": { mr: "काश्मिरी कहवा चहा", hi: "कश्मीरी कहवा चाय" },
+  "Sulaimani Black Tea": { mr: "सुलेमानी काळा चहा", hi: "सुलेमानी ब्लैक टी" },
+  "Fresh Lemon Honey Tea": { mr: "लिंबू मध चहा", hi: "नींबू शहद चाय" },
+  "Green Tea with Mint": { mr: "पुदिना ग्रीन टी", hi: "पुदीना ग्रीन टी" },
+  "South Indian Filter Coffee": { mr: "साउथ इंडियन फिल्टर कॉफी", hi: "साउथ इंडियन फ़िल्टर कॉफ़ी" },
+  "Creamy Cafe Latte": { mr: "क्रीमी कॅफे लाटे", hi: "क्रीमी कैफे लाते" },
+  "Hot Cappuccino": { mr: "हॉट कॅप्युचिनो", hi: "हॉट कैपुचीनो" },
+  "Dark Chocolate Mocha": { mr: "डार्क चॉकलेट मोका", hi: "डार्क चॉकलेट मोका" },
+  "Iced Black Americano": { mr: "आईस्ड ब्लॅक अमेरिकानो", hi: "आइस ब्लैक अमेरिकानो" },
+  "Cold Coffee with Vanilla Scoop": { mr: "व्हॅनिला आईस्क्रीमसह कोल्ड कॉफी", hi: "वैनिला स्कूप के साथ कोल्ड कॉफी" },
+  "Badam Kesar Milk": { mr: "बदाम केशर दूध", hi: "बादाम केसर दूध" },
+  "Hot Chocolate with Cream": { mr: "हॉट चॉकलेट आणि क्रीम", hi: "हॉट चॉकलेट और क्रीम" },
+  "Fresh Mint Lime Soda (Sweet & Salt)": { mr: "पुदिना लिंबू सोडा (गोड आणि खारट)", hi: "पुदीना नींबू सोडा (मीठा और नमकीन)" },
+  "Masala Chaas / Spiced Buttermilk": { mr: "मसाला ताक", hi: "मसाला छाछ" },
+  "Crispy Cheese Garlic Bread (4 pcs)": { mr: "चीज गार्लिक ब्रेड (४ नग)", hi: "चीज़ गार्लिक ब्रेड (४ पीस)" },
+  "Crispy Kanda Bhaji / Onion Pakora": { mr: "कांदा भजी", hi: "प्याज के पकौड़े" },
+  "Paneer Pakora (6 pcs)": { mr: "पनीर पकोडा (६ नग)", hi: "पनीर पकौड़ा (६ पीस)" },
+  "Stuffed Bread Pakora": { mr: "स्टफ्ड ब्रेड पकोडा", hi: "स्टफ़्ड ब्रेड पकौड़ा" },
+  "Osmania Biscuits (4 pcs)": { mr: "उस्मानिया बिस्किटे (४ नग)", hi: "उस्मानिया बिस्कुट (४ पीस)" },
+  "Hyderabadi Veg Dum Biryani with Raita": { mr: "हैद्राबादी व्हेज दम बिर्याणी आणि रायता", hi: "हैदराबादी वेज दम बिरयानी और रायता" },
+  "Jeera Basmati Rice": { mr: "जिरा बासमती राईस", hi: "जीरा बासमती राइस" },
+  "Special Punjabi Thali": { mr: "स्पेशल पंजाबी थाळी", hi: "स्पेशल पंजाबी थाली" },
+  "Executive Royal Deluxe Thali": { mr: "रॉयल डिलक्स थाळी", hi: "रॉयल डीलक्स थाली" },
+  "Butter Naan (Tandoori)": { mr: "बटर नान (तंदूर)", hi: "बटर नान (तंदूरी)" },
+  "Garlic Butter Naan": { mr: "गार्लिक बटर नान", hi: "गार्लिक बटर नान" },
+  "Tandoori Butter Roti": { mr: "तंदुरी बटर रोटी", hi: "तंदूरी बटर रोटी" },
+  "Laccha Paratha": { mr: "लच्छा पराठा", hi: "लच्छा पराठा" },
+  "Shahi Malai Kofta": { mr: "शाही मलाई कोफ्ता", hi: "शाही मलाई कोफ़्ता" },
+  "Kadhai Paneer Special": { mr: "कढाई पनीर स्पेशल", hi: "कड़ाही पनीर स्पेशल" },
+  "Yellow Dal Tadka": { mr: "पिवळी दाल तडका", hi: "पीली दाल तड़का" },
+  "Dal Makhani (Slow Cooked)": { mr: "दाल मखनी", hi: "दाल मखनी" },
+  "Crispy Veg Spring Rolls (6 pcs)": { mr: "व्हेज स्प्रिंग रोल्स (६ नग)", hi: "वेज स्प्रिंग रोल्स (६ पीस)" },
+  "Hara Bhara Kabab (6 pcs)": { mr: "हरा भरा कबाब (६ नग)", hi: "हरा भरा कबाब (६ पीस)" },
+  "Paneer Tikka (Tandoori Platter)": { mr: "पनीर टिक्का (तंदुरी प्लॅटर)", hi: "पनीर टिक्का (तंदूरी प्लैटर)" },
+  "Chilli Paneer Dry": { mr: "चिली पनीर ड्राय", hi: "चिली पनीर ड्राई" },
+  "Hot Gulab Jamun with Vanilla Ice Cream": { mr: "व्हॅनिला आईस्क्रीमसह गरम गुलाब जामुन", hi: "वैनिला आइसक्रीम के साथ गरम गुलाब जामुन" },
+  "Sizzling Chocolate Brownie with Ice Cream": { mr: "आईस्क्रीमसह सिझलिंग चॉकलेट ब्राउनी", hi: "आइसक्रीम के साथ सिज़लिंग चॉकलेट ब्राउनी" },
+
+  // Kirana & FMCG Products
+  "Aashirvaad Iodized Salt (1kg)": { mr: "आशीर्वाद मीठ (१ किलो)", hi: "आशीर्वाद नमक (1 किलो)" },
+  "Tata Salt Vacuum Evaporated Iodized Salt (1kg)": { mr: "टाटा मीठ (१ किलो)", hi: "टाटा नमक (1 किलो)" },
+  "Fortune Chakki Fresh Atta (5kg)": { mr: "फॉर्च्यून चक्की फ्रेश आटा (५ किलो)", hi: "फॉर्च्यून चक्की फ्रेश आटा (5 किलो)" },
+  "Aashirvaad Superior MP Atta (5kg)": { mr: "आशीर्वाद सुपीरियर एमपी आटा (५ किलो)", hi: "आशीर्वाद सुपीरियर एमपी आटा (5 किलो)" },
+  "Pillsbury Chakki Fresh Atta (5kg)": { mr: "पिल्सबरी चक्की फ्रेश आटा (५ किलो)", hi: "पिल्सबरी चक्की फ्रेश आटा (5 किलो)" },
+  "Rajdhani Besan (500g)": { mr: "राजधानी बेसन (५०० ग्रॅम)", hi: "राजधानी बेसन (500 ग्राम)" },
+  "Rajdhani Sooji (500g)": { mr: "राजधानी सुजी (५०० ग्रॅम)", hi: "राजधानी सूजी (500 ग्राम)" },
+  "Rajdhani Kabuli Chana (500g)": { mr: "राजधानी काबुली चणा (५०० ग्रॅम)", hi: "राजधानी काबुली चना (500 ग्राम)" },
+  "Rajdhani Rajma Chitra (500g)": { mr: "राजधानी राजमा चित्रा (५०० ग्रॅम)", hi: "राजधानी राजमा चित्रा (500 ग्राम)" },
+  "Tata Sampann Unpolished Toor Dal (1kg)": { mr: "टाटा संपन्न तूर डाळ (१ किलो)", hi: "टाटा संपन्न अरहर दाल (1 किलो)" },
+  "Tata Sampann Unpolished Chana Dal (1kg)": { mr: "टाटा संपन्न चणा डाळ (१ किलो)", hi: "टाटा संपन्न चना दाल (1 किलो)" },
+  "Tata Sampann Unpolished Moong Dal (1kg)": { mr: "टाटा संपन्न मूग डाळ (१ किलो)", hi: "टाटा संपन्न मूंग दाल (1 किलो)" },
+  "Tata Sampann Unpolished Masoor Dal (1kg)": { mr: "टाटा संपन्न मसूर डाळ (१ किलो)", hi: "टाटा संपन्न मसूर दाल (1 किलो)" },
+  "Tata Sampann Unpolished Urad Dal Whole (1kg)": { mr: "टाटा संपन्न उडीद डाळ (१ किलो)", hi: "टाटा संपन्न उड़द दाल (1 किलो)" },
+  "India Gate Basmati Rice Feast Rozzana (5kg)": { mr: "इंडिया गेट बासमती राईस (५ किलो)", hi: "इंडिया गेट बासमती चावल (5 किलो)" },
+  "Daawat Super Basmati Rice (1kg)": { mr: "दावत सुपर बासमती राईस (१ किलो)", hi: "दावत सुपर बासमती चावल (1 किलो)" },
+  "Fortune Rozana Basmati Rice (1kg)": { mr: "फॉर्च्यून रोझाना बासमती राईस (१ किलो)", hi: "फॉर्च्यून रोज़ाना बासमती चावल (1 किलो)" },
+  "Fortune Special Biryani Basmati Rice (1kg)": { mr: "फॉर्च्यून स्पेशल बिर्याणी बासमती राईस (१ किलो)", hi: "फॉर्च्यून स्पेशल बिरयानी बासमती चावल (1 किलो)" },
+  "Kohinoor Super Silver Basmati Rice (1kg)": { mr: "कोहिनूर सुपर सिल्वर बासमती राईस (१ किलो)", hi: "कोहिनूर सुपर सिल्वर बासमती चावल (1 किलो)" },
+  "Lal Qilla Traditional Basmati Rice (1kg)": { mr: "लाल किल्ला बासमती राईस (१ किलो)", hi: "लाल किला बासमती चावल (1 किलो)" },
+  "Fortune Sunlite Refined Sunflower Oil (1L)": { mr: "फॉर्च्यून सूर्यफूल तेल (१ लिटर)", hi: "फॉर्च्यून सनफ्लावर तेल (1 लीटर)" },
+  "Fortune Filtered Groundnut Oil (1L)": { mr: "फॉर्च्यून शेंगदाणा तेल (१ लिटर)", hi: "फॉर्च्यून मूंगफली तेल (1 लीटर)" },
+  "Dhara Kachi Ghani Mustard Oil (1L)": { mr: "धारा मोहरीचे तेल (१ लिटर)", hi: "धारा सरसों का तेल (1 लीटर)" },
+  "Saffola Gold Pro Healthy Lifestyle Oil (1L)": { mr: "सॅफोला गोल्ड तेल (१ लिटर)", hi: "सफ़ोला गोल्ड तेल (1 लीटर)" },
+  "Amul Pure Ghee Pouch (1L)": { mr: "अमूल शुद्ध तूप (१ लिटर)", hi: "अमूल शुद्ध घी (1 लीटर)" },
+  "Mother Dairy Pure Cow Ghee (500ml)": { mr: "मदर डेअरी गायीचे तूप (५०० मिली)", hi: "मदर डेयरी गाय का घी (500 मिली)" },
+  "Madhur Pure & Hygienic Sugar (1kg)": { mr: "मधुर साखर (१ किलो)", hi: "मधुर चीनी (1 किलो)" },
+  "Trust Classic Sulphurless Sugar (1kg)": { mr: "ट्रस्ट सल्फरलेस साखर (१ किलो)", hi: "ट्रस्ट सल्फरलेस चीनी (1 किलो)" },
+  "Everest Turmeric Powder (200g)": { mr: "एव्हरेस्ट हळद पावडर (२०० ग्रॅम)", hi: "एवरेस्ट हल्दी पाउडर (200 ग्राम)" },
+  "Everest Coriander Powder (200g)": { mr: "एव्हरेस्ट धने पावडर (२०० ग्रॅम)", hi: "एवरेस्ट धनिया पाउडर (200 ग्राम)" },
+  "Everest Kasuri Methi (100g)": { mr: "एव्हरेस्ट कसुरी मेथी (१०० ग्रॅम)", hi: "एवरेस्ट कसूरी मेथी (100 ग्राम)" },
+  "MDH Garam Masala (100g)": { mr: "एमडीएच गरम मसाला (१०० ग्रॅम)", hi: "एमडीएच गरम मसाला (100 ग्राम)" },
+  "MDH Deggi Mirch Powder (100g)": { mr: "एमडीएच देगी मिर्च (१०० ग्रॅम)", hi: "एमडीएच देगी मिर्च (100 ग्राम)" },
+  "MDH Chana Masala (100g)": { mr: "एमडीएच चणा मसाला (१०० ग्रॅम)", hi: "एमडीएच चना मसाला (100 ग्राम)" },
+  "MDH Kitchen King Masala (100g)": { mr: "एमडीएच किचन किंग मसाला (१०० ग्रॅम)", hi: "एमडीएच किचन किंग मसाला (100 ग्राम)" },
+  "Catch Black Pepper Powder (100g)": { mr: "कॅच काळी मिरी पावडर (१०० ग्रॅम)", hi: "कैच काली मिर्च पाउडर (100 ग्राम)" },
+  "Britannia Good Day Cashew Cookies (200g)": { mr: "ब्रिटानिया गुड डे काजू कुकीज (२०० ग्रॅम)", hi: "ब्रिटानिया गुड डे काजू कुकीज़ (200 ग्राम)" },
+  "Britannia Marie Gold Biscuits (300g)": { mr: "ब्रिटानिया मारी गोल्ड बिस्किटे (३०० ग्रॅम)", hi: "ब्रिटानिया मैरी गोल्ड बिस्कुट (300 ग्राम)" },
+  "Britannia 50-50 Maska Chaska Biscuits (200g)": { mr: "ब्रिटानिया ५०-५० मस्का चस्का (२०० ग्रॅम)", hi: "ब्रिटानिया 50-50 मस्का चस्का (200 ग्राम)" },
+  "Britannia Bourbon Chocolate Cream Biscuits (150g)": { mr: "ब्रिटानिया बॉर्बन चॉकलेट बिस्किटे (१५० ग्रॅम)", hi: "ब्रिटानिया बॉर्बन चॉकलेट बिस्कुट (150 ग्राम)" },
+  "Parle-G Original Glucose Biscuits (250g)": { mr: "पार्ले-जी बिस्किटे (२५० ग्रॅम)", hi: "पारले-जी बिस्कुट (250 ग्राम)" },
+  "Parle Monaco Salted Crackers (200g)": { mr: "पार्ले मोनाको बिस्किटे (२०० ग्रॅम)", hi: "पारले मोनाको बिस्कुट (200 ग्राम)" },
+  "Parle Hide & Seek Chocolate Chip Cookies (120g)": { mr: "पार्ले हाईड अँड सीक (१२० ग्रॅम)", hi: "पारले हाइड एंड सीक (120 ग्राम)" },
+  "Sunfeast Dark Fantasy Choco Fills (300g)": { mr: "सनफीस्ट डार्क फॅन्टसी (३०० ग्रॅम)", hi: "सनफ़ीस्ट डार्क फैंटेसी (300 ग्राम)" },
+  "Bikaji Classic Bhujia (400g)": { mr: "बिकाजी क्लासिक भुजिया (४०० ग्रॅम)", hi: "बीकाजी क्लासिक भुजिया (400 ग्राम)" },
+  "Haldiram's Nagpur Bhujia Sev (400g)": { mr: "हल्दीराम नागपूर भुजिया शेव (४०० ग्रॅम)", hi: "हल्दीराम नागपुर भुजिया सेव (400 ग्राम)" },
+  "Haldiram's Khatta Meetha (400g)": { mr: "हल्दीराम खट्टा मिठा (४०० ग्रॅम)", hi: "हल्दीराम खट्टा मीठा (400 ग्राम)" },
+  "Haldiram's All in One Mixture (400g)": { mr: "हल्दीराम ऑल इन वन मिक्स्चर (४०० ग्रॅम)", hi: "हल्दीराम ऑल इन वन मिक्स्चर (400 ग्राम)" },
+  "Kurkure Masala Munch (90g)": { mr: "कुरकुरे मसाला मंच (९० ग्रॅम)", hi: "कुरकुरे मसाला मंच (90 ग्राम)" },
+  "Lay's India's Magic Masala Potato Chips (50g)": { mr: "लेज मॅजिक मसाला (५० ग्रॅम)", hi: "लेज़ मैजिक मसाला (50 ग्राम)" },
+  "Colgate": { mr: "कोलगेट", hi: "कोलगेट" },
+  "Colgate maxfresh": { mr: "कोलगेट मॅक्सफ्रेश", hi: "कोलगेट मैक्सफ्रेश" },
+
+  // Clothing & Garments Products
+  "Men's Casual Checked Shirt": { mr: "पुरुषांचा चेक्स शर्ट", hi: "पुरुषों की चेक शर्ट" },
+  "Men's Classic Linen Casual Shirt": { mr: "पुरुषांचा लिनन शर्ट", hi: "पुरुषों की लिनन शर्ट" },
+  "Men's Pure Cotton Slim Fit Shirt": { mr: "पुरुषांचा कॉटन स्लिम फिट शर्ट", hi: "पुरुषों की कॉटन स्लिम फिट शर्ट" },
+  "Men's Round Neck Graphic T-Shirt": { mr: "पुरुषांचा ग्राफिक टी-शर्ट", hi: "पुरुषों की ग्राफिक टी-शर्ट" },
+  "Men's Solid Polo T-Shirt": { mr: "पुरुषांचा पोलो टी-शर्ट", hi: "पुरुषों की पोलो टी-शर्ट" },
+  "Men's Regular Fit Denim Jeans": { mr: "पुरुषांची डेनिम जीन्स", hi: "पुरुषों की डेनिम जींस" },
+  "Men's Cotton Chino Trousers": { mr: "पुरुषांची चिनो पॅन्ट", hi: "पुरुषों की चीनो पैंट" },
+  "Men's Formal Trousers (Black)": { mr: "पुरुषांची फॉर्मल पॅन्ट (काळी)", hi: "पुरुषों की फॉर्मल पैंट (काली)" },
+  "Men's Athletic Track Pants / Joggers": { mr: "पुरुषांचे ट्रॅक पँट्स / जॉगर्स", hi: "पुरुषों की ट्रैक पैंट / जॉगर्स" },
+  "Men's Lightweight Windbreaker Jacket": { mr: "पुरुषांचे विंडब्रेकर जॅकेट", hi: "पुरुषों की विंडब्रेकर जैकेट" },
+  "Men's Cotton Vests / Banyan (Pack of 2)": { mr: "पुरुषांचे कॉटन बनियान (२ नग)", hi: "पुरुषों की कॉटन बनियान (2 पीस)" },
+  "Combed Cotton Boxer Shorts (Pack of 2)": { mr: "कॉटन बॉक्सर शॉर्ट्स (२ नग)", hi: "कॉटन बॉक्सर शॉर्ट्स (2 पीस)" },
+  "Cotton Ankle Socks (Pack of 3 Pairs)": { mr: "कॉटन सॉक्स (३ जोड्या)", hi: "कॉटन मोज़े (3 जोड़ी)" },
+  "Classic Blue Denim Jacket": { mr: "ब्लू डेनिम जॅकेट", hi: "ब्लू डेनिम जैकेट" },
+  "Unisex Cotton Fleece Hoodie": { mr: "कॉटन फ्लीस हुडी", hi: "कॉटन फ्लीस हुडी" },
+  "Women's Printed Cotton Kurti": { mr: "महिलांची प्रिंटेड कॉटन कुर्ती", hi: "महिलाओं की प्रिंटेड कॉटन कुर्ती" },
+  "Women's Anarkali Kurta with Dupatta Set": { mr: "महिलांचा अनारकली कुर्ता दुपट्टा सेट", hi: "महिलाओं का अनारकली कुर्ता दुपट्टा सेट" },
+  "Anarkali Kurti": { mr: "अनारकली कुर्ती", hi: "अनारकली कुर्ती" },
+  "Women's Floral Rayon Maxi Dress": { mr: "महिलांचा फ्लोरल मॅक्सी ड्रेस", hi: "महिलाओं की फ्लोरल मैक्सी ड्रेस" },
+  "Women's High-Waist Denim Jeans": { mr: "महिलांची हाय-वेस्ट जीन्स", hi: "महिलाओं की हाई-वेस्ट जींस" },
+  "Women's Cotton Palazzo Pants": { mr: "महिलांचे कॉटन पलाझो", hi: "महिलाओं का कॉटन प्लाज़ो" },
+  "Traditional Kanjeevaram Silk Saree": { mr: "पारंपारिक कांजीवरम सिल्क साडी", hi: "पारंपरिक कांजीवरम सिल्क साड़ी" },
+  "Embroidered Chiffon Dupatta": { mr: "एम्ब्रॉयडरी शिफॉन दुपट्टा", hi: "एम्ब्रॉयडरी शिफॉन दुपट्टा" },
+  "Women's Knitted Woolen Cardigan": { mr: "महिलांचे वूलन कार्डिगन", hi: "महिलाओं का वूलन कार्डिगन" },
+  "Women's Night Suit Set (Top & Pajama)": { mr: "महिलांचा नाईट सूट सेट", hi: "महिलाओं का नाइट सूट सेट" },
+  "Baby Cotton Rompers (Pack of 3)": { mr: "बेबी कॉटन रॉमपर्स (३ नग)", hi: "बेबी कॉटन रॉमपर्स (3 पीस)" },
+  "Boys Cotton T-Shirt & Shorts Set": { mr: "मुलांचा टी-शर्ट आणि शॉर्ट्स सेट", hi: "लड़कों का टी-शर्ट और शॉर्ट्स सेट" },
+  "Girls Floral Party Frock Dress": { mr: "मुलींचा फ्लोरल फ्रॉक ड्रेस", hi: "लड़कियों का फ्लोरल फ्रॉक ड्रेस" },
+  "Kids Denim Dungarees Set": { mr: "लहान मुलांचा डेनिम डंगरी सेट", hi: "बच्चों का डेनिम डंगरी सेट" }
 };
 
 /**
  * Fetch dynamic translation for unfamiliar text via public translation service
  */
 async function fetchOnlineTranslation(text, lang) {
-  const cacheKey = `${lang}_${text.trim().toLowerCase()}`;
+  const normLang = lang.startsWith("hi") ? "hi" : lang.startsWith("mr") ? "mr" : "en";
+  if (normLang === "en") return;
+  const cacheKey = `${normLang}_${text.trim().toLowerCase()}`;
   if (pendingRequests.has(cacheKey)) return;
   pendingRequests.add(cacheKey);
 
   try {
     const encoded = encodeURIComponent(text.trim());
-    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|${lang}`);
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|${normLang}`);
     if (res.ok) {
       const data = await res.json();
       if (data?.responseData?.translatedText && !data.responseData.translatedText.includes("MYMEMORY WARNING")) {
@@ -595,10 +792,11 @@ async function fetchOnlineTranslation(text, lang) {
  */
 export function translateDbText(text, targetLang) {
   if (!text || typeof text !== "string") return text;
-  const lang = (targetLang || i18n.language || "en").toLowerCase();
+  const rawLang = (targetLang || i18n.language || "en").toLowerCase();
+  const lang = rawLang.startsWith("hi") ? "hi" : rawLang.startsWith("mr") ? "mr" : "en";
 
   // If English, return original directly
-  if (lang === "en" || lang.startsWith("en-")) {
+  if (lang === "en") {
     return text;
   }
 
@@ -606,15 +804,21 @@ export function translateDbText(text, targetLang) {
   if (!trimmed) return text;
 
   // 1. Direct dictionary lookup (exact match)
-  if (DICTIONARY[trimmed] && DICTIONARY[trimmed][lang]) {
-    return toDevanagariNumerals(DICTIONARY[trimmed][lang]);
+  if (DICTIONARY[trimmed]) {
+    const direct = DICTIONARY[trimmed][lang] || DICTIONARY[trimmed][rawLang];
+    if (direct) {
+      return toDevanagariNumerals(direct);
+    }
   }
 
   // 2. Case-insensitive dictionary lookup
   const lowerKey = trimmed.toLowerCase();
   for (const [key, val] of Object.entries(DICTIONARY)) {
-    if (key.toLowerCase() === lowerKey && val[lang]) {
-      return toDevanagariNumerals(val[lang]);
+    if (key.toLowerCase() === lowerKey) {
+      const matched = val[lang] || val[rawLang];
+      if (matched) {
+        return toDevanagariNumerals(matched);
+      }
     }
   }
 
@@ -637,14 +841,22 @@ export function translateDbText(text, targetLang) {
  * React hook that connects components to the database translation layer
  */
 export function useDbTranslation() {
-  const currentLang = (i18n.language || "en").toLowerCase();
   const [, setTick] = useState(0);
 
   useEffect(() => {
     const handleUpdate = () => setTick((t) => t + 1);
     listeners.add(handleUpdate);
-    return () => listeners.delete(handleUpdate);
+    i18n.on("languageChanged", handleUpdate);
+    window.addEventListener("slipzo-language-changed", handleUpdate);
+    return () => {
+      listeners.delete(handleUpdate);
+      i18n.off("languageChanged", handleUpdate);
+      window.removeEventListener("slipzo-language-changed", handleUpdate);
+    };
   }, []);
+
+  const rawLang = (i18n.language || "en").toLowerCase();
+  const currentLang = rawLang.startsWith("hi") ? "hi" : rawLang.startsWith("mr") ? "mr" : "en";
 
   const tDb = (text) => translateDbText(text, currentLang);
   const formatNum = (val) => formatNumberByLang(val, currentLang);

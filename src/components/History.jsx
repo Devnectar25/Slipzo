@@ -35,7 +35,8 @@ import { TodayAnalytics } from "./TodayAnalytics"
 export function History({ setView, setSelectedBillId, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum, lang } = useDbTranslation()
-  const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=true")
+  const cachedSaved = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=true")
+  const cachedPrinted = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=false")
   const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
 
   const filter10Days = (list) => {
@@ -45,17 +46,17 @@ export function History({ setView, setSelectedBillId, user }) {
   }
 
   const [activeTab, setActiveTab] = useState("saved") // "saved" | "printed"
-  const [savedCount, setSavedCount] = useState(0)
-  const [printedCount, setPrintedCount] = useState(0)
+  const [savedCount, setSavedCount] = useState(() => (cachedSaved && typeof cachedSaved.total !== "undefined" ? Number(cachedSaved.total) : 0))
+  const [printedCount, setPrintedCount] = useState(() => (cachedPrinted && typeof cachedPrinted.total !== "undefined" ? Number(cachedPrinted.total) : 0))
 
   const [bills, setBills] = useState(() => {
-    if (cachedData?.bills && Array.isArray(cachedData.bills)) return filter10Days(cachedData.bills)
-    if (Array.isArray(cachedData)) return filter10Days(cachedData)
+    if (cachedSaved?.bills && Array.isArray(cachedSaved.bills)) return filter10Days(cachedSaved.bills)
+    if (Array.isArray(cachedSaved)) return filter10Days(cachedSaved)
     return []
   })
-  const [loading, setLoading] = useState(() => !cachedData)
-  const [totalRecords, setTotalRecords] = useState(() => cachedData?.total || (Array.isArray(cachedData) ? filter10Days(cachedData).length : 0))
-  const [totalPages, setTotalPages] = useState(() => cachedData?.totalPages || 1)
+  const [loading, setLoading] = useState(() => !cachedSaved)
+  const [totalRecords, setTotalRecords] = useState(() => cachedSaved?.total || (Array.isArray(cachedSaved) ? filter10Days(cachedSaved).length : 0))
+  const [totalPages, setTotalPages] = useState(() => cachedSaved?.totalPages || 1)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
   const [search, setSearch] = useState("")
@@ -116,10 +117,12 @@ export function History({ setView, setSelectedBillId, user }) {
       if (paymentMode !== "All") queryParams.append("payment_mode", paymentMode)
 
       const oppositeIsSaved = activeTab === "saved" ? "false" : "true"
-      const [data, oppositeData] = await Promise.all([
-        call(`/bills?${queryParams.toString()}`, { noCache: true }),
-        call(`/bills?page=1&limit=1&days_limit=10&is_saved=${oppositeIsSaved}`, { noCache: true }).catch(() => ({}))
-      ])
+
+      // Primary bills request with SWR caching
+      const primaryPromise = call(`/bills?${queryParams.toString()}`)
+      const oppositePromise = call(`/bills?page=1&limit=1&days_limit=10&is_saved=${oppositeIsSaved}`).catch(() => ({}))
+
+      const data = await primaryPromise
 
       if (requestId !== loadRequestRef.current) return
 
@@ -127,16 +130,10 @@ export function History({ setView, setSelectedBillId, user }) {
         ? Number(data.total)
         : (Array.isArray(data?.bills) ? data.bills.length : (Array.isArray(data) ? data.length : 0))
 
-      const otherTotal = (oppositeData && typeof oppositeData === "object" && oppositeData.total !== undefined)
-        ? Number(oppositeData.total)
-        : 0
-
       if (activeTab === "saved") {
         setSavedCount(curTotal)
-        setPrintedCount(otherTotal)
       } else {
         setPrintedCount(curTotal)
-        setSavedCount(otherTotal)
       }
 
       if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.bills)) {
@@ -150,6 +147,19 @@ export function History({ setView, setSelectedBillId, user }) {
         setTotalRecords(billsList.length)
         setTotalPages(1)
       }
+
+      // Update the other tab's count asynchronously without delaying bill display
+      oppositePromise.then((oppositeData) => {
+        if (requestId !== loadRequestRef.current || !oppositeData) return
+        const otherTotal = (typeof oppositeData === "object" && oppositeData.total !== undefined)
+          ? Number(oppositeData.total)
+          : 0
+        if (activeTab === "saved") {
+          setPrintedCount(otherTotal)
+        } else {
+          setSavedCount(otherTotal)
+        }
+      }).catch(() => {})
     } catch (err) {
       if (requestId !== loadRequestRef.current) return
       console.error("Failed to load bills:", err)
@@ -383,6 +393,13 @@ export function History({ setView, setSelectedBillId, user }) {
               if (activeTab !== "saved") {
                 setActiveTab("saved")
                 setPage(1)
+                const c = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=true")
+                if (c && (Array.isArray(c.bills) || Array.isArray(c))) {
+                  const list = filter10Days(Array.isArray(c.bills) ? c.bills : c)
+                  setBills(list)
+                  setTotalRecords(c.total !== undefined ? c.total : list.length)
+                  setTotalPages(c.totalPages || 1)
+                }
               }
             }}
           >
@@ -401,6 +418,13 @@ export function History({ setView, setSelectedBillId, user }) {
               if (activeTab !== "printed") {
                 setActiveTab("printed")
                 setPage(1)
+                const c = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=false")
+                if (c && (Array.isArray(c.bills) || Array.isArray(c))) {
+                  const list = filter10Days(Array.isArray(c.bills) ? c.bills : c)
+                  setBills(list)
+                  setTotalRecords(c.total !== undefined ? c.total : list.length)
+                  setTotalPages(c.totalPages || 1)
+                }
               }
             }}
           >

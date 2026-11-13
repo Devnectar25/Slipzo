@@ -209,6 +209,7 @@ export const call = async (path, options = {}) => {
       invalidateApiCache('/menu')
     }
     else if (cleanPath.startsWith('/shop')) invalidateApiCache('/shop')
+    else if (cleanPath.startsWith('/subscriptions')) invalidateApiCache('/subscriptions')
     else if (cleanPath.startsWith('/customers')) invalidateApiCache('/customers')
     else if (cleanPath.startsWith('/restaurant') || cleanPath.startsWith('/tables')) {
       invalidateApiCache('/restaurant')
@@ -365,6 +366,7 @@ const performFetch = async (cleanPath, options = {}) => {
       apiError.rawMessage = errorMsg
       apiError.status = response.status
       apiError.code = data && data.code
+      apiError.data = data // e.g. tries_left / retry_after for phone codes
       throw apiError
     }
 

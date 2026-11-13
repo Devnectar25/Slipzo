@@ -7,12 +7,17 @@ import {
 } from "lucide-react"
 import { PublicNavbar, PUBLIC_NAV_LINKS } from "./PublicNavbar"
 import { RealisticReceiptView } from "./RealisticReceiptView"
+import { FEATURE_PAGES } from "../lib/featurePages"
+import { FeatureArt } from "./landing/FeatureArt"
 import "../styles/DesktopLanding.css"
+import "../styles/FeaturePages.css"
 import "../styles/LandingPage.css"
 
 const FEATURE_DEFS = [
   {
     icon: Printer,
+    art: "print",
+    tone: "blue",
     titleKey: "landing.featPrintTitle",
     defaultTitle: "Print anywhere",
     textKey: "landing.featPrintDesc",
@@ -20,6 +25,8 @@ const FEATURE_DEFS = [
   },
   {
     icon: ScanBarcode,
+    art: "barcode",
+    tone: "blue",
     titleKey: "landing.featBarcodeTitle",
     defaultTitle: "Barcode & inventory",
     textKey: "landing.featBarcodeDesc",
@@ -27,6 +34,8 @@ const FEATURE_DEFS = [
   },
   {
     icon: UtensilsCrossed,
+    art: "tables",
+    tone: "blue",
     titleKey: "landing.featTablesTitle",
     defaultTitle: "Tables & kitchen orders",
     textKey: "landing.featTablesDesc",
@@ -34,6 +43,8 @@ const FEATURE_DEFS = [
   },
   {
     icon: BarChart3,
+    art: "sales",
+    tone: "blue",
     titleKey: "landing.featSalesTitle",
     defaultTitle: "Know your sales",
     textKey: "landing.featSalesDesc",
@@ -41,6 +52,8 @@ const FEATURE_DEFS = [
   },
   {
     icon: Users,
+    art: "staff",
+    tone: "blue",
     titleKey: "landing.featStaffTitle",
     defaultTitle: "Share with your staff",
     textKey: "landing.featStaffDesc",
@@ -48,6 +61,8 @@ const FEATURE_DEFS = [
   },
   {
     icon: MonitorSmartphone,
+    art: "device",
+    tone: "blue",
     titleKey: "landing.featDeviceTitle",
     defaultTitle: "Works on any device",
     textKey: "landing.featDeviceDesc",
@@ -164,12 +179,8 @@ const STEP_DEFS = [
   },
 ]
 
-// What the app covers, shown under the hero text
-const MODULES = [
-  { icon: Ticket, key: "landing.modToken", label: "Token system" },
-  { icon: Boxes, key: "landing.modInventory", label: "Inventory management" },
-  { icon: MonitorCheck, key: "landing.modPos", label: "Point of Sale" },
-]
+// The three product cards under the hero, each opening its own page
+const MODULE_ICONS = { token: Ticket, inventory: Boxes, pos: MonitorCheck }
 
 // The hero advertisement: a different printer prints a sample bill for each kind of shop, one after another.
 // [quantity, translation key, English name, line amount in rupees]
@@ -561,16 +572,35 @@ export function DesktopLanding({ onLogin, onSignUp, onNavigate }) {
                   </li>
                 ))}
               </ul>
-              <ul className="lp-mini-steps lp-modules">
-                {MODULES.map(({ icon: Icon, key, label }) => (
-                  <li key={key}>
-                    <span><Icon size={14} /></span>
-                    <b>{t(key, label)}</b>
-                  </li>
-                ))}
-              </ul>
             </div>
             <PrinterShowcase />
+          </div>
+        </section>
+
+        {/* ---------- Token system / Inventory management / Point of Sale ---------- */}
+        <section className="lp-modules-section" id="dl-modules">
+          <div className="dl-container">
+            <div className="lp-module-grid">
+              {FEATURE_PAGES.map((p, i) => {
+                const Icon = MODULE_ICONS[p.id]
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`lp-module-card fp-tone-${p.tone}`}
+                    data-reveal
+                    data-testid={`landing-module-${p.id}`}
+                    style={{ "--lp-delay": `${i * 90}ms` }}
+                    onClick={() => onNavigate?.(p.view)}
+                  >
+                    <span className="lp-module-icon"><Icon size={24} /></span>
+                    <h3>{t(`featurePages.${p.id}.cardTitle`, p.card.title)}</h3>
+                    <p>{t(`featurePages.${p.id}.cardText`, p.card.text)}</p>
+                    <span className="lp-module-more">{t("featurePages.learnMore", "Learn more")} <ArrowRight size={16} /></span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </section>
 
@@ -583,14 +613,19 @@ export function DesktopLanding({ onLogin, onSignUp, onNavigate }) {
               <p>{t("landing.featuresSub", "From the first bill to the end-of-day sales, in one simple app.")}</p>
             </div>
             <div className="lp-feature-grid">
-              {FEATURE_DEFS.map(({ icon: Icon, titleKey, defaultTitle, textKey, defaultText }, i) => (
-                <article key={titleKey} className="lp-feature" data-reveal style={{ "--lp-delay": `${(i % 3) * 80}ms` }}>
-                  <div className="lp-feature-top">
-                    <span className="lp-feature-icon"><Icon size={22} /></span>
-                    <span className="lp-feature-num">{String(i + 1).padStart(2, "0")}</span>
+              {FEATURE_DEFS.map(({ icon: Icon, art, tone, titleKey, defaultTitle, textKey, defaultText }, i) => (
+                <article key={titleKey} className={`lp-feature lp-feature-art tone-${tone}`} data-reveal data-testid={`landing-feature-${art}`} style={{ "--lp-delay": `${(i % 3) * 80}ms` }}>
+                  <div className="lp-feature-panel">
+                    <span className="lp-feature-num-badge">{String(i + 1).padStart(2, "0")}</span>
+                    <FeatureArt kind={art} />
                   </div>
-                  <h3>{t(titleKey, defaultTitle)}</h3>
-                  <p>{t(textKey, defaultText)}</p>
+                  <div className="lp-feature-body">
+                    <div className="lp-feature-title-row">
+                      <span className="lp-feature-chip"><Icon size={17} /></span>
+                      <h3>{t(titleKey, defaultTitle)}</h3>
+                    </div>
+                    <p>{t(textKey, defaultText)}</p>
+                  </div>
                 </article>
               ))}
             </div>
