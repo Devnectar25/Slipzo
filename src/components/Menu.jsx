@@ -48,6 +48,23 @@ import { StockModal, StockBadge, InventorySummary } from "./common/StockModal"
 import Swal from "sweetalert2"
 import "../styles/Menu.css"
 
+const CUSTOM_CATEGORY_OPTIONS = [
+  { value: "Small Business / Cafe & Tea", labelKey: "Small Business / Cafe & Tea", icon: "☕" },
+  { value: "Kirana / Grocery Shop", labelKey: "Kirana / Grocery Shop", icon: "🛒" },
+  { value: "Cloth & Garments Shop", labelKey: "Cloth & Garments Shop", icon: "👗" },
+  { value: "Hotel or Food Restaurant", labelKey: "Hotel or Food Restaurant", icon: "🍽️" },
+  { value: "General", labelKey: "General", icon: "📦" }
+]
+
+const getCustomItemCategoryIcon = (category) => {
+  const c = String(category || "").toLowerCase()
+  if (c.includes("cafe") || c.includes("tea") || c.includes("small")) return "☕"
+  if (c.includes("kirana") || c.includes("grocery")) return "🛒"
+  if (c.includes("cloth") || c.includes("garment")) return "👗"
+  if (c.includes("hotel") || c.includes("restaurant") || c.includes("food")) return "🍽️"
+  return "📦"
+}
+
 const FALLBACK_MASTER_CATALOG = [
   ...DEFAULT_SHOP_MENU_ITEMS,
   {
@@ -350,7 +367,9 @@ export function Menu({ setView, requireAuth, user }) {
   // Custom Item Creation Modal State
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
   const [customName, setCustomName] = useState("")
-  const [customCat, setCustomCat] = useState(() => shopCategoryLabel(defaultBusinessType))
+  const [customCat, setCustomCat] = useState(() => shopCategoryLabel(defaultBusinessType) || "General")
+  const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false)
+  const catDropdownRef = useRef(null)
   const [customItemPrice, setCustomItemPrice] = useState("")
   const [customBarcode, setCustomBarcode] = useState("")
   const [customBarcodeActive, setCustomBarcodeActive] = useState(() => isDefaultBarcodeActiveForBusinessType(defaultBusinessType))
@@ -382,7 +401,28 @@ export function Menu({ setView, requireAuth, user }) {
     return () => window.removeEventListener("slipzo_handle_back_button", handleBack)
   }, [isCustomModalOpen, selectedCatalogItem, editingItem, barcodeModalItem, stockItem, currentView])
 
+  useEffect(() => {
+    if (!isCatDropdownOpen) return
+    const handleOutsideClick = (e) => {
+      if (catDropdownRef.current && !catDropdownRef.current.contains(e.target)) {
+        setIsCatDropdownOpen(false)
+      }
+    }
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") setIsCatDropdownOpen(false)
+    }
+    document.addEventListener("mousedown", handleOutsideClick)
+    document.addEventListener("touchstart", handleOutsideClick, { passive: true })
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick)
+      document.removeEventListener("touchstart", handleOutsideClick)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isCatDropdownOpen])
+
   const handleOpenCustomModal = () => {
+    setIsCatDropdownOpen(false)
     setCustomName("")
     setCustomCat(shopCategoryLabel(selectedBusinessType))
     setCustomItemPrice("")
@@ -398,6 +438,7 @@ export function Menu({ setView, requireAuth, user }) {
 
   const handleCloseCustomModal = () => {
     setIsCustomModalOpen(false)
+    setIsCatDropdownOpen(false)
     setCustomName("")
     setCustomCat(shopCategoryLabel(selectedBusinessType))
     setCustomItemPrice("")
@@ -2327,21 +2368,21 @@ export function Menu({ setView, requireAuth, user }) {
 
             <form onSubmit={handleSaveEditPrice}>
               <div className="menu-modal-body">
-                <div className="menu-modal-item-preview">
-                  {editingItem.image_url ? (
-                    <img
-                      src={editingItem.image_url}
-                      alt={editingItem.name}
-                      className="menu-modal-preview-img"
-                    />
-                  ) : (
-                    <div className="menu-card-image-placeholder" style={{ width: "52px", height: "52px" }}>
-                      {getItemPlaceholderIcon(editingItem.category, 20)}
-                    </div>
-                  )}
-                  <div className="menu-modal-preview-details">
-                    <h4 className="menu-modal-preview-name">{tDb(editingItem.name)}</h4>
-                    <span className="menu-card-cat-badge">{tDb(editingItem.category)}</span>
+                <div className="amm-item">
+                  <div className="amm-thumb">
+                    {editingItem.image_url ? (
+                      <img
+                        src={editingItem.image_url}
+                        alt={editingItem.name}
+                        onError={(e) => { e.currentTarget.style.display = "none" }}
+                      />
+                    ) : (
+                      getItemPlaceholderIcon(editingItem.category, 22)
+                    )}
+                  </div>
+                  <div className="amm-item-text">
+                    <h4 className="amm-item-name">{tDb(editingItem.name)}</h4>
+                    {editingItem.category && <span className="amm-item-cat">{tDb(editingItem.category)}</span>}
                   </div>
                 </div>
 
@@ -2697,13 +2738,47 @@ export function Menu({ setView, requireAuth, user }) {
                 {/* 3. Category */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <label className="menu-modal-label">{tDb("Category")}</label>
-                  <div
-                    className="menu-modal-input cp-category-fixed"
-                    data-testid="custom-item-category"
-                    aria-readonly="true"
-                    title={tDb(customCat)}
-                  >
-                    {tDb(customCat)}
+                  <div className="cp-category-dropdown-wrap" ref={catDropdownRef}>
+                    <button
+                      type="button"
+                      className={`cp-category-select-btn ${isCatDropdownOpen ? "open" : ""}`}
+                      onClick={() => setIsCatDropdownOpen((prev) => !prev)}
+                      aria-haspopup="listbox"
+                      aria-expanded={isCatDropdownOpen}
+                    >
+                      <div className="cp-category-selected-info">
+                        <span className="cp-category-icon">{getCustomItemCategoryIcon(customCat)}</span>
+                        <span className="cp-category-text">{tDb(customCat)}</span>
+                      </div>
+                      <ChevronDown size={16} className={`cp-category-chevron ${isCatDropdownOpen ? "open" : ""}`} />
+                    </button>
+
+                    {isCatDropdownOpen && (
+                      <div className="cp-category-dropdown-menu" role="listbox">
+                        {CUSTOM_CATEGORY_OPTIONS.map((cat) => {
+                          const isSelected = customCat === cat.value
+                          return (
+                            <button
+                              key={cat.value}
+                              type="button"
+                              className={`cp-category-option-item ${isSelected ? "selected" : ""}`}
+                              role="option"
+                              aria-selected={isSelected}
+                              onClick={() => {
+                                setCustomCat(cat.value)
+                                setIsCatDropdownOpen(false)
+                              }}
+                            >
+                              <div className="cp-category-option-left">
+                                <span className="cp-category-icon">{cat.icon}</span>
+                                <span className="cp-category-option-label">{tDb(cat.labelKey)}</span>
+                              </div>
+                              {isSelected && <Check size={16} className="cp-category-check-icon" strokeWidth={2.5} />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 

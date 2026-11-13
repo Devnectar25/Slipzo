@@ -237,7 +237,7 @@ export function UserGuide({ setView, user }) {
       a: "Click on the globe / language selector icon in the top header or sidebar. Slipzen supports English, Hindi (हिन्दी), and Marathi (मराठी) across the entire interface."
     },
     {
-      q: "Can I use a physical barcode scanner gun with Slipzen?",
+      q: "Can I use a handheld barcode scanner with Slipzen?",
       a: "Absolutely. Standard USB and wireless barcode scanners act as keyboard input. When you scan a product, Slipzen instantly detects the barcode number and adds the item to the bill."
     },
     {

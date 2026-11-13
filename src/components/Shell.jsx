@@ -189,7 +189,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
     let isMounted = true
     const currentKey = getCurrentUserKey(user)
 
-    const fetchFreshQuota = async () => {
+    const fetchFreshQuota = async (force = false) => {
       if (!user) return
       try {
         const subRes = await call("/subscriptions/my", { noCache: true })
@@ -204,8 +204,14 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
 
     fetchFreshQuota()
 
-    const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+    const handleUpdate = (e) => {
+      const direct = e?.detail?.quota || e?.detail?.plan
+      if (direct && typeof direct === 'object') {
+        setActivePlan(direct)
+      } else {
+        setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+      }
+      fetchFreshQuota(true)
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)

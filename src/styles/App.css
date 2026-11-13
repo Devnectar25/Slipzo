@@ -11183,37 +11183,19 @@ body.is-native-app .public-footer,
   transform: scale(0.98);
 }
 
-.btn-starter {
+.btn-starter,
+.btn-pro,
+.btn-business {
   background: #0284c7;
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
 }
 
-.btn-starter:hover {
+.btn-starter:hover,
+.btn-pro:hover,
+.btn-business:hover {
   background: #0369a1;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(2, 132, 199, 0.4);
-}
-
-.btn-pro {
-  background: #0284c7;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
-}
-
-.btn-pro:hover {
-  background: #0369a1;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.5);
-}
-
-.btn-business {
-  background: #6366f1;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
-}
-
-.btn-business:hover {
-  background: #4f46e5;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
 }
 
 /* 4. CUSTOM SELF-PRICING CALCULATOR */

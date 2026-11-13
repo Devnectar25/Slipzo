@@ -26,7 +26,7 @@ const persistCache = () => {
   saveTimer = setTimeout(() => {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(memoryCache));
-    } catch (_) {}
+    } catch (_) { }
   }, 1000);
 };
 
@@ -36,7 +36,7 @@ const notifyListeners = () => {
   listeners.forEach((fn) => {
     try {
       fn();
-    } catch (_) {}
+    } catch (_) { }
   });
 };
 
@@ -152,7 +152,7 @@ export const DICTIONARY = {
   "First, pair the Bluetooth printer in your phone's Android Bluetooth settings. Open Slipzen, create a bill, and tap 'Print'. Select your paired thermal printer from the available list.": { mr: "आधी तुमच्या फोनच्या Android ब्लूटूथ सेटिंगमध्ये प्रिंटर पेअर करा. नंतर Slipzen उघडा, बिल तयार करा आणि 'प्रिंट' दाबा. यादीतून तुमचा पेअर केलेला थर्मल प्रिंटर निवडा.", hi: "पहले अपने फ़ोन की Android ब्लूटूथ सेटिंग में प्रिंटर पेयर करें। फिर Slipzen खोलें, बिल बनाएं और 'प्रिंट' दबाएं। सूची से अपना पेयर किया हुआ थर्मल प्रिंटर चुनें।" },
   "How do I change the language of the application?": { mr: "अॅपची भाषा कशी बदलावी?", hi: "ऐप की भाषा कैसे बदलूं?" },
   "Click on the globe / language selector icon in the top header or sidebar. Slipzen supports English, Hindi (हिन्दी), and Marathi (मराठी) across the entire interface.": { mr: "वरच्या हेडर किंवा साइडबारमधील ग्लोब / भाषा निवडणाऱ्या आयकॉनवर क्लिक करा. Slipzen संपूर्ण इंटरफेसमध्ये इंग्रजी, हिंदी आणि मराठीला सपोर्ट करते.", hi: "ऊपर के हेडर या साइडबार में ग्लोब / भाषा चुनने वाले आइकन पर क्लिक करें। Slipzen पूरे इंटरफ़ेस में अंग्रेज़ी, हिन्दी और मराठी को सपोर्ट करता है।" },
-  "Can I use a physical barcode scanner gun with Slipzen?": { mr: "मी Slipzen सोबत प्रत्यक्ष बारकोड स्कॅनर गन वापरू शकतो का?", hi: "क्या मैं Slipzen के साथ असली बारकोड स्कैनर गन इस्तेमाल कर सकता हूं?" },
+  "Can I use a handheld barcode scanner with Slipzen?": { mr: "मी Slipzen सोबत हँडहेल्ड बारकोड स्कॅनर वापरू शकतो का?", hi: "क्या मैं Slipzen के साथ हैंडहेल्ड बारकोड स्कैनर इस्तेमाल कर सकता हूं?" },
   "Absolutely. Standard USB and wireless barcode scanners act as keyboard input. When you scan a product, Slipzen instantly detects the barcode number and adds the item to the bill.": { mr: "नक्कीच. सामान्य USB आणि वायरलेस बारकोड स्कॅनर कीबोर्डप्रमाणे काम करतात. प्रोडक्ट स्कॅन करताच Slipzen बारकोड क्रमांक ओळखून आयटम बिलमध्ये जोडते.", hi: "बिल्कुल। सामान्य USB और वायरलेस बारकोड स्कैनर कीबोर्ड की तरह काम करते हैं। प्रोडक्ट स्कैन करते ही Slipzen बारकोड नंबर पहचानकर आइटम को बिल में जोड़ देता है।" },
   "How do I export my sales or customer data?": { mr: "माझी विक्री किंवा ग्राहक डेटा कसा एक्सपोर्ट करावा?", hi: "अपनी बिक्री या ग्राहक का डेटा कैसे एक्सपोर्ट करूं?" },
   "In the Bill History and Products sections, look for the 'Export to CSV / Excel' button to download comprehensive spreadsheets for your accountant or tax filings.": { mr: "बिल इतिहास आणि प्रोडक्ट विभागांत 'Export to CSV / Excel' बटण पहा, ज्याने तुम्ही तुमच्या अकाउंटंट किंवा कर भरण्यासाठी संपूर्ण स्प्रेडशीट डाउनलोड करू शकता.", hi: "बिल इतिहास और प्रोडक्ट सेक्शन में 'Export to CSV / Excel' बटन देखें, जिससे आप अपने अकाउंटेंट या टैक्स फ़ाइलिंग के लिए पूरी स्प्रेडशीट डाउनलोड कर सकते हैं।" },

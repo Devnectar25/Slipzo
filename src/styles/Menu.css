@@ -1104,6 +1104,8 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   font-size: 1.05rem;
   font-weight: 700;
   color: #0284c7;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .menu-modal-input {
@@ -1476,12 +1478,24 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     padding: 0.55rem 0.65rem !important;
     gap: 0.65rem !important;
     margin-bottom: 0.85rem !important;
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
   }
 
+  .menu-modal-item-preview .menu-card-image-placeholder,
   .menu-modal-preview-img {
-    width: 44px !important;
-    height: 44px !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 48px !important;
     border-radius: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .menu-modal-preview-details {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
   }
 
   .menu-modal-preview-name {
@@ -1491,6 +1505,10 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   .menu-modal-input {
     padding: 0.55rem 0.75rem 0.55rem 1.8rem !important;
     font-size: 0.95rem !important;
+  }
+
+  .menu-modal-price-input-box .menu-modal-input {
+    padding-left: 2rem !important;
   }
 
   .menu-modal-footer {
@@ -2783,6 +2801,168 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   z-index: 2;
 }
 
+/* Custom Category Dropdown in Create Custom Product Modal */
+.cp-category-dropdown-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.cp-category-select-btn {
+  width: 100%;
+  height: 35px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.cp-category-select-btn:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.cp-category-select-btn:focus,
+.cp-category-select-btn.open {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  background: #ffffff;
+}
+
+.cp-category-selected-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-category-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cp-category-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.cp-category-chevron {
+  color: #64748b;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.cp-category-chevron.open {
+  transform: rotate(180deg);
+  color: #0284c7;
+}
+
+.cp-category-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(12, 31, 65, 0.18), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 80;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+  animation: cpDropdownFade 0.16s ease-out;
+}
+
+@keyframes cpDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cp-category-option-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.cp-category-option-item:hover,
+.cp-category-option-item:focus-visible {
+  background: #f1f5f9;
+  outline: none;
+}
+
+.cp-category-option-item.selected {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.cp-category-option-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.cp-category-option-left .cp-category-icon {
+  font-size: 1.05rem;
+}
+
+.cp-category-option-label {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-category-option-item.selected .cp-category-option-label {
+  font-weight: 700;
+  color: #0284c7;
+}
+
+.cp-category-check-icon {
+  color: #0284c7;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
 @media (max-width: 640px) {
   /* Bottom sheet: within thumb reach, with the actions always in view */
   .menu-modal-backdrop:has(.custom-product-card) {
@@ -2860,9 +3040,27 @@ body:has(.add-menu-modal-backdrop) .shell-main {
     padding-left: 2.1rem !important;
   }
 
-  /* A native select draws its own text inset on top of the padding */
-  .custom-product-card select.menu-modal-input {
-    padding-left: 0.6rem !important;
+  /* Custom Category Dropdown in Mobile Sheet */
+  .custom-product-card .cp-category-select-btn {
+    height: 46px !important;
+    border-radius: 11px !important;
+    padding: 0 0.85rem !important;
+    font-size: 15px !important;
+  }
+
+  .custom-product-card .cp-category-option-item {
+    padding: 11px 12px !important;
+    min-height: 42px !important;
+  }
+
+  .custom-product-card .cp-category-option-label {
+    font-size: 0.88rem !important;
+  }
+
+  .custom-product-card .cp-category-dropdown-menu {
+    border-radius: 14px !important;
+    box-shadow: 0 12px 30px -5px rgba(12, 31, 65, 0.22) !important;
+    max-height: 250px !important;
   }
 
   .custom-product-card .menu-modal-price-input-box .menu-modal-input {

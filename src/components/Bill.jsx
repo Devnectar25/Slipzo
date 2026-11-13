@@ -419,14 +419,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   // Map of added bill items by clean name (for card button and quantity controls)
   const addedItemMap = useMemo(() => {
     const map = new Map()
-    items.forEach((it) => {
-      map.set((it.name || "").trim().toLowerCase(), it)
+    items.forEach((it, idx) => {
+      map.set((it.name || "").trim().toLowerCase(), { ...it, billIndex: idx })
     })
     return map
   }, [items])
 
   // Filter and sort user menu items:
-  // Items in bill appear on TOP, sorted by maximum quantity in descending order
+  // Items in bill appear on TOP, preserving their stable addition order (never reordered by quantity)
   const filteredMenuItems = useMemo(() => {
     const q = search.trim()
     const filtered = userMenuItems.filter((it) => {
@@ -441,14 +441,19 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       const nameB = (b.name || "").trim().toLowerCase()
       const addedA = addedItemMap.get(nameA)
       const addedB = addedItemMap.get(nameB)
-      const qtyA = addedA ? Number(addedA.quantity) || 0 : 0
-      const qtyB = addedB ? Number(addedB.quantity) || 0 : 0
+      const inBillA = Boolean(addedA)
+      const inBillB = Boolean(addedB)
 
-      // If quantities differ, higher quantity comes first on top
-      if (qtyB !== qtyA) {
-        return qtyB - qtyA
+      // Items in the bill appear first
+      if (inBillA && !inBillB) return -1
+      if (!inBillA && inBillB) return 1
+
+      // If both are in the bill, preserve the order they were added to the bill
+      if (inBillA && inBillB) {
+        return (addedA.billIndex ?? 0) - (addedB.billIndex ?? 0)
       }
 
+      // If neither is in the bill, keep original menu order
       return 0
     })
   }, [userMenuItems, search, selectedCategory, addedItemMap])
@@ -984,7 +989,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     if (isPrintingRef.current) return
     isPrintingRef.current = true
 
-    const userAuthKey = user?.email || user?.id || userKey
+    const userAuthKey = getCurrentUserKey(user)
 
     // Check if user has available quota
     if (!canPrintFree(userAuthKey)) {

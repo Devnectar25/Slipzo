@@ -30,7 +30,7 @@ import {
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
-import { call, getCachedData, setCachedData, getActivePlanDetails, findTemplateMatch, isHotelRestaurant, getDateLocale } from "../lib/utils"
+import { call, getCachedData, setCachedData, getActivePlanDetails, getCurrentUserKey, findTemplateMatch, isHotelRestaurant, getDateLocale } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
@@ -100,7 +100,7 @@ export function Shop({ user, setView } = {}) {
   const { tDb } = useDbTranslation()
   const currentLang = i18n.language || "en"
 
-  const userKey = user?.email || user?.id
+  const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
   const [hasUnsaved, setHasUnsaved] = useState(false)
 
@@ -108,8 +108,13 @@ export function Shop({ user, setView } = {}) {
   const shopNameInputRef = useRef(null)
 
   useEffect(() => {
-    const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails(user?.email || user?.id))
+    const handleUpdate = (e) => {
+      const direct = e?.detail?.quota || e?.detail?.plan
+      if (direct && typeof direct === 'object') {
+        setActivePlan(direct)
+      } else {
+        setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+      }
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)
