@@ -402,7 +402,7 @@ button.inv-tile:hover { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.07); }
     max-height: 92vh;
     max-height: 92dvh;
   }
-  .stock-modal-body { padding-bottom: env(safe-area-inset-bottom, 0); }
+  .stock-modal-body { padding-bottom: var(--app-safe-bottom); }
 }
 
 /* phone: keep the stock pill compact (general mobile button rules give buttons a 44px tap height) */

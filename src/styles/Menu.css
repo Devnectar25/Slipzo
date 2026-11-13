@@ -384,7 +384,10 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  height: 248px;
+  /* grows when there is a stock line (kirana / cloth shops), so the buttons are never cut off;
+     cards in one row still line up because grid items stretch to the tallest card */
+  height: auto;
+  min-height: 248px;
   position: relative;
   overflow: hidden;
 }
@@ -2964,37 +2967,32 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 }
 
 @media (max-width: 640px) {
-  /* Bottom sheet: within thumb reach, with the actions always in view */
+  /* Center modal: displayed in the center of the screen */
   .menu-modal-backdrop:has(.custom-product-card) {
-    align-items: flex-end !important;
-    padding: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.5rem !important;
   }
 
   .custom-product-card {
-    max-width: 100% !important;
-    max-height: 92dvh !important;
-    margin: 0 !important;
-    border: none !important;
-    border-radius: 20px 20px 0 0 !important;
-    animation: cpSheetUp 0.22s ease-out !important;
+    width: 100% !important;
+    max-width: min(440px, calc(100vw - 1rem)) !important;
+    max-height: min(90vh, calc(100dvh - 1.5rem)) !important;
+    margin: auto !important;
+    border: 1px solid #bae6fd !important;
+    border-radius: 16px !important;
+    box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.08) !important;
+    animation: scaleUp 0.18s ease !important;
   }
 
   .custom-product-card .menu-modal-header {
     position: relative;
-    padding: 1.15rem 1.1rem 0.75rem !important;
+    padding: 0.85rem 1.1rem 0.75rem !important;
   }
 
-  /* Grab handle */
+  /* Grab handle removed for centered modal */
   .custom-product-card .menu-modal-header::before {
-    content: "";
-    position: absolute;
-    top: 0.45rem;
-    left: 50%;
-    width: 38px;
-    height: 4px;
-    margin-left: -19px;
-    border-radius: 4px;
-    background: #cbd5e1;
+    display: none !important;
   }
 
   .custom-product-card .menu-modal-title {
@@ -3159,7 +3157,7 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   }
 
   .custom-product-card .menu-modal-footer {
-    padding: 0.75rem 1.1rem calc(0.75rem + env(safe-area-inset-bottom)) !important;
+    padding: 0.75rem 1.1rem !important;
     box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.05);
   }
 
@@ -3364,4 +3362,93 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 }
 @media (max-width: 768px) {
   .custom-product-card .cp-category-fixed { height: 46px !important; font-size: 1rem !important; border-radius: 11px !important; }
+}
+
+/* ---------- Edit Selling Price popup: add stock (kirana / cloth shops) ---------- */
+.edit-stock-box {
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+.edit-stock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.55rem;
+}
+.edit-stock-chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.edit-stock-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 0.5rem;
+}
+.edit-stock-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0284c7;
+  cursor: pointer;
+}
+.edit-stock-step:hover:not(:disabled) { background: #e0f2fe; }
+.menu-modal .edit-stock-input,
+.edit-stock-input {
+  width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0c1f41;
+  outline: none;
+}
+.edit-stock-input:focus { border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15); }
+.edit-stock-quick {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.edit-stock-quick button {
+  flex: 1;
+  min-height: 34px;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0369a1;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.edit-stock-quick button:hover:not(:disabled) { background: #e0f2fe; }
+.edit-stock-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.55rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.82rem;
+}
+
+/* the button row keeps its full height and sits a little below the stock pill */
+.user-menu-card .user-menu-card-actions {
+  flex-shrink: 0;
+  padding-top: 8px;
 }

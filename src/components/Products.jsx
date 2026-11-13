@@ -112,6 +112,20 @@ export const DEFAULT_CATALOG_PRODUCTS = [
   }
 ]
 
+/**
+ * One place for an order's money, used by the order summary AND the payment, so the price on the product
+ * card is the price paid. Listed prices already include GST: the summary used to add 18% on top
+ * (₹420 -> ₹496) while the payment charged ₹420, so the buyer saw a jump that was never actually charged.
+ */
+export const orderPricing = (product, qty = 1) => {
+  const unit = Number(product?.price) || 0
+  const quantity = Math.max(1, Number(qty) || 1)
+  const gstRate = Number(product?.tax_rate) || 18
+  const total = Math.round(unit * quantity)
+  const gstIncluded = total - total / (1 + gstRate / 100)
+  return { unit, quantity, total, gstRate, gstIncluded }
+}
+
 export const getProductImage = (product) => {
   if (!product) return null
   if (product.image && typeof product.image === "string" && product.image.trim()) {
@@ -441,8 +455,8 @@ export function Products({ setView, requireAuth, user }) {
       return
     }
 
-    const basePrice = buyProduct.price * buyQty
-    const totalAmount = Math.round(basePrice)
+    // the same total the card and the order summary show (see orderPricing)
+    const { total: totalAmount } = orderPricing(buyProduct, buyQty)
     const orderId = `ORD-SLP-${Math.floor(100000 + Math.random() * 900000)}`
 
     if (paymentMethod === "Razorpay" || paymentMethod === "UPI") {
@@ -1022,7 +1036,7 @@ export function Products({ setView, requireAuth, user }) {
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <b style={{ display: 'block', fontSize: '0.88rem', color: '#0C1F41', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{buyProduct.name}</b>
-                    <small style={{ color: '#74788A', fontSize: '0.78rem' }}>₹{buyProduct.price} + {buyProduct.tax_rate || 18}% GST</small>
+                    <small style={{ color: '#74788A', fontSize: '0.78rem' }}>₹{buyProduct.price} {t("productsPage.eachInclGst", "each, GST included")}</small>
                   </div>
                 </div>
 
@@ -1101,13 +1115,26 @@ export function Products({ setView, requireAuth, user }) {
 
                 {/* Price Total Banner */}
                 {(() => {
-                  const base = buyProduct.price * buyQty
-                  const tax = (base * (buyProduct.tax_rate || 18)) / 100
-                  const total = Math.round(base + tax)
+                  const { total, gstRate, gstIncluded } = orderPricing(buyProduct, buyQty)
+                  const row = { display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#166534' }
                   return (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.65rem 0.85rem' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>{t("productsPage.totalGst", "Total Amount (incl. GST):")}</span>
-                      <span style={{ fontSize: '1.15rem', color: '#15803d', fontWeight: 800 }}>₹{total}</span>
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.65rem 0.85rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={row}>
+                        <span>₹{buyProduct.price} × {buyQty}</span>
+                        <span>₹{total}</span>
+                      </div>
+                      <div style={{ ...row, color: '#4d7c5f' }}>
+                        <span>{t("productsPage.gstIncludedLine", "Includes GST ({{rate}}%)", { rate: gstRate })}</span>
+                        <span>₹{gstIncluded.toFixed(2)}</span>
+                      </div>
+                      <div style={{ ...row, color: '#4d7c5f' }}>
+                        <span>{t("productsPage.delivery", "Delivery")}</span>
+                        <span>{t("products.freeDelivery", "Free Delivery")}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #bbf7d0', paddingTop: '0.35rem' }}>
+                        <span style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>{t("productsPage.totalToPay", "Total to pay:")}</span>
+                        <span style={{ fontSize: '1.15rem', color: '#15803d', fontWeight: 800 }}>₹{total}</span>
+                      </div>
                     </div>
                   )
                 })()}

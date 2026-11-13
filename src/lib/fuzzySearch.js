@@ -43,6 +43,93 @@ const FOOD_SYNONYMS = {
   fry: ['fries']
 }
 
+// ---------------------------------------------------------------------------
+// Devanagari -> Latin (rough, for matching only). With the app in Hindi/Marathi the speech engine writes
+// "मसाला उत्तपा"; menu items are usually typed in English ("Masala Utappa"), so both sides are compared
+// as Latin sounds.
+// ---------------------------------------------------------------------------
+const DEV_VOWELS = {
+  'अ': 'a', 'आ': 'aa', 'इ': 'i', 'ई': 'ii', 'उ': 'u', 'ऊ': 'uu', 'ऋ': 'ri', 'ए': 'e', 'ऐ': 'ai',
+  'ओ': 'o', 'औ': 'au', 'ऑ': 'o', 'ऍ': 'e'
+}
+const DEV_MATRAS = {
+  'ा': 'aa', 'ि': 'i', 'ी': 'ii', 'ु': 'u', 'ू': 'uu', 'ृ': 'ri', 'े': 'e', 'ै': 'ai', 'ो': 'o', 'ौ': 'au',
+  'ॉ': 'o', 'ॅ': 'e'
+}
+const DEV_CONSONANTS = {
+  'क': 'k', 'ख': 'kh', 'ग': 'g', 'घ': 'gh', 'ङ': 'n', 'च': 'ch', 'छ': 'chh', 'ज': 'j', 'झ': 'jh', 'ञ': 'n',
+  'ट': 't', 'ठ': 'th', 'ड': 'd', 'ढ': 'dh', 'ण': 'n', 'त': 't', 'थ': 'th', 'द': 'd', 'ध': 'dh', 'न': 'n',
+  'प': 'p', 'फ': 'ph', 'ब': 'b', 'भ': 'bh', 'म': 'm', 'य': 'y', 'र': 'r', 'ल': 'l', 'ळ': 'l', 'व': 'v',
+  'श': 'sh', 'ष': 'sh', 'स': 's', 'ह': 'h', 'क़': 'k', 'ख़': 'kh', 'ग़': 'g', 'ज़': 'z', 'ड़': 'd', 'ढ़': 'dh', 'फ़': 'f'
+}
+const DEV_DIGITS = '०१२३४५६७८९'
+
+export function transliterateDevanagari(text) {
+  const s = String(text || '')
+  if (!/[ऀ-ॿ]/.test(s)) return s
+  let out = ''
+  const chars = Array.from(s.normalize('NFC'))
+  for (let i = 0; i < chars.length; i++) {
+    let ch = chars[i]
+    if (chars[i + 1] === '़') { ch += '़'; i++ } // nukta
+    if (DEV_CONSONANTS[ch] !== undefined) {
+      out += DEV_CONSONANTS[ch]
+      const next = chars[i + 1]
+      if (next === '्') { i++; continue }            // virama: no vowel
+      if (DEV_MATRAS[next] !== undefined) { out += DEV_MATRAS[next]; i++; continue }
+      // inherent "a", dropped at the end of a word as Hindi/Marathi speakers do ("पनीर" -> "panir")
+      if (next && /[ऀ-ॿ]/.test(next)) out += 'a'
+      continue
+    }
+    if (DEV_VOWELS[ch] !== undefined) { out += DEV_VOWELS[ch]; continue }
+    if (DEV_MATRAS[ch] !== undefined) { out += DEV_MATRAS[ch]; continue }
+    if (ch === 'ं' || ch === 'ँ') { out += 'n'; continue } // anusvara / chandrabindu
+    if (ch === 'ः') { out += 'h'; continue }                    // visarga
+    const d = DEV_DIGITS.indexOf(ch)
+    if (d >= 0) { out += String(d); continue }
+    out += ch
+  }
+  return out
+}
+
+/**
+ * Sound-alike key for one word, so spellings a speech engine or a person may use for the same word
+ * end up equal: "uttapam" / "utappa" / "oothappa" -> "utapa", "paneer" / "panir" -> "panir",
+ * "sandwhich" / "sandvich" -> "sandvic".
+ */
+const keyCache = new Map()
+export function phoneticKey(word) {
+  const w = String(word || '').toLowerCase()
+  const hit = keyCache.get(w)
+  if (hit !== undefined) return hit
+  let k = transliterateDevanagari(w)
+  k = k
+    .replace(/ph/g, 'f')
+    .replace(/sh/g, 's')
+    .replace(/ck/g, 'k')
+    .replace(/q/g, 'k')
+    .replace(/x/g, 'ks')
+    .replace(/z/g, 'j')
+    .replace(/w/g, 'v')
+    .replace(/([kgcjtdpbr])h/g, '$1')  // aspirated sounds: th -> t, bh -> b, chh -> c
+    .replace(/ee|ii|ie|ea/g, 'i')
+    .replace(/oo|uu|ou/g, 'u')
+    .replace(/y$/, 'i')
+  k = collapseRepeats(k)
+  k = k.replace(/am$/, 'a')            // uttapam -> utapa, dosam -> dosa
+  if (keyCache.size > 5000) keyCache.clear()
+  keyCache.set(w, k)
+  return k
+}
+
+// Words people say around an item name ("2 masala utappa please", "एक प्लेट पोहा") that are not part of it
+const FILLER_WORDS = new Set([
+  'please', 'plz', 'pls', 'one', 'two', 'three', 'four', 'five', 'plate', 'plates', 'piece', 'pieces', 'pcs',
+  'order', 'add', 'give', 'me', 'a', 'an', 'the', 'and', 'with', 'of', 'search', 'find', 'show', 'want',
+  'ek', 'do', 'teen', 'char', 'paanch', 'aur', 'chahiye', 'dena', 'de', 'lao',
+  'एक', 'दो', 'तीन', 'चार', 'पांच', 'पाँच', 'प्लेट', 'और', 'चाहिए', 'दीजिए', 'दे', 'लाओ', 'हवे', 'पाहिजे'
+])
+
 /**
  * Remove duplicate consecutive characters for phonetic normalization
  * (e.g. "uttappa" -> "utapa", "coffee" -> "cofe", "paneer" -> "paner")
@@ -122,13 +209,23 @@ export function isWordFuzzyMatch(w1, w2) {
   if (c1.length >= 3 && (c2.startsWith(c1) || c1.startsWith(c2))) return true
   if (FOOD_SYNONYMS[c1]?.includes(c2) || FOOD_SYNONYMS[c2]?.includes(c1)) return true
 
-  // Levenshtein edit distance check on normalized skeletons
-  const maxLen = Math.max(c1.length, c2.length)
-  if (maxLen <= 3) return false // short words must match directly
+  // Sound-alike keys (also turns Devanagari into Latin, so "उत्तपा" meets "utappa")
+  const k1 = phoneticKey(w1)
+  const k2 = phoneticKey(w2)
+  if (k1 && k1 === k2) return true
+  if (k1.length >= 3 && k2.length >= 3 && (k2.startsWith(k1) || k1.startsWith(k2))) return true
+  const synonymSounds = (w) => (FOOD_SYNONYMS[w] || FOOD_SYNONYMS[c1 === w ? c1 : collapseRepeats(w)] || [])
+  if (synonymSounds(w1).some((s) => phoneticKey(s) === k2) || synonymSounds(w2).some((s) => phoneticKey(s) === k1)) return true
 
-  const allowedDistance = maxLen <= 5 ? 1 : maxLen <= 8 ? 2 : 3
-  const dist = levenshteinDistance(c1, c2)
-  return dist <= allowedDistance && (dist / maxLen) <= 0.38
+  // Levenshtein edit distance on the skeletons and on the sound-alike keys
+  const editOk = (a, b) => {
+    const maxLen = Math.max(a.length, b.length)
+    if (maxLen <= 3) return false // short words must match directly
+    const allowedDistance = maxLen <= 5 ? 1 : maxLen <= 8 ? 2 : 3
+    const dist = levenshteinDistance(a, b)
+    return dist <= allowedDistance && (dist / maxLen) <= 0.38
+  }
+  return editOk(c1, c2) || editOk(k1, k2)
 }
 
 /**
@@ -169,8 +266,11 @@ export function matchesItemFuzzy(item, query, options = {}) {
   }
 
   // 2. Tokenize query and compare word-by-word
-  const qWords = tokenizeText(cleanQ)
-  if (qWords.length === 0) return true
+  const rawWords = tokenizeText(cleanQ)
+  if (rawWords.length === 0) return true
+  // Drop spoken quantities and filler ("2", "plate", "please", "एक") when real words remain
+  const meaningful = rawWords.filter((w) => !FILLER_WORDS.has(w) && !/^\d+$/.test(w))
+  const qWords = meaningful.length ? meaningful : rawWords
 
   // Combine item name + category + translations into target token set
   const allTargetWords = []
@@ -178,28 +278,26 @@ export function matchesItemFuzzy(item, query, options = {}) {
     allTargetWords.push(...tokenizeText(candidate))
   }
 
-  // Every word in the query should match at least one word in the item
-  const allQueryWordsMatched = qWords.every((qw) =>
-    allTargetWords.some((tw) => isWordFuzzyMatch(qw, tw))
-  )
+  // Every word in the query should match a word in the item. In a longer spoken phrase one word may be
+  // misheard beyond repair ("masala utappa plate" -> "masala utappa blade"), so one miss is allowed there.
+  const matchedCount = qWords.filter((qw) => allTargetWords.some((tw) => isWordFuzzyMatch(qw, tw))).length
+  if (matchedCount === qWords.length) return true
+  if (qWords.length >= 3 && matchedCount >= qWords.length - 1) return true
 
-  if (allQueryWordsMatched) {
-    return true
-  }
-
-  // 3. Whole phrase collapsed match (for queries like "masalautappa" without spaces)
-  const collapsedQ = collapseRepeats(cleanQ.replace(/\s+/g, ''))
-  if (collapsedQ.length >= 4) {
-    for (const candidate of [itemName, translatedName].filter(Boolean)) {
-      const collapsedTarget = collapseRepeats(candidate.replace(/\s+/g, ''))
-      if (collapsedTarget.includes(collapsedQ)) {
-        return true
-      }
-      const dist = levenshteinDistance(collapsedQ, collapsedTarget)
-      const maxLen = Math.max(collapsedQ.length, collapsedTarget.length)
-      if (maxLen >= 5 && dist <= 2 && (dist / maxLen) <= 0.3) {
-        return true
-      }
+  // 3. Whole phrase match without spaces ("masalautappa", or a name split differently: "masala uth appa")
+  const joinedQ = qWords.join('')
+  const phrases = [collapseRepeats(joinedQ), phoneticKey(joinedQ)]
+  for (const candidate of [itemName, translatedName].filter(Boolean)) {
+    const joinedT = tokenizeText(candidate).join('')
+    const targets = [collapseRepeats(joinedT), phoneticKey(joinedT)]
+    for (let i = 0; i < 2; i++) {
+      const q = phrases[i]
+      const target = targets[i]
+      if (q.length < 4) continue
+      if (target.includes(q)) return true
+      const dist = levenshteinDistance(q, target)
+      const maxLen = Math.max(q.length, target.length)
+      if (maxLen >= 5 && dist <= 2 && (dist / maxLen) <= 0.3) return true
     }
   }
 

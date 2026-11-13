@@ -778,14 +778,14 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
           position: fixed !important;
           top: 0 !important;
           right: 0 !important;
-          height: calc(64px + env(safe-area-inset-top, 0px)) !important;
+          height: calc(64px + var(--app-safe-top)) !important;
           min-height: 64px !important;
           background: #ffffff !important;
           border-bottom: 1px solid #e2e8f0 !important;
           display: flex !important;
           align-items: center !important;
           justify-content: space-between !important;
-          padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important;
+          padding-top: calc(10px + var(--app-safe-top)) !important;
           padding-bottom: 6px !important;
           padding-left: 1.25rem !important;
           padding-right: 1.25rem !important;
@@ -1143,7 +1143,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
           .app-shell .main {
             margin-left: 280px !important;
             padding: 0 !important;
-            padding-top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+            padding-top: calc(64px + var(--app-safe-top)) !important;
             transition: margin-left 0.3s ease !important;
           }
 
@@ -1245,7 +1245,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
           .app-shell .main {
             margin-left: 0 !important;
             padding: 0 !important;
-            padding-top: calc(64px + env(safe-area-inset-top, 0px)) !important;
+            padding-top: calc(64px + var(--app-safe-top)) !important;
             overflow-x: clip !important;
           }
 
@@ -1255,9 +1255,9 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
-            height: calc(64px + env(safe-area-inset-top, 0px)) !important;
+            height: calc(64px + var(--app-safe-top)) !important;
             min-height: 64px !important;
-            padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important;
+            padding-top: calc(10px + var(--app-safe-top)) !important;
             padding-bottom: 6px !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
@@ -1266,7 +1266,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
           }
 
           .main-content-scroll {
-            padding: 0.25rem 0.65rem calc(78px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) 0.65rem !important;
+            padding: 0.25rem 0.65rem calc(78px + var(--app-safe-bottom)) 0.65rem !important;
             margin-bottom: 0 !important;
           }
           
@@ -1300,7 +1300,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             height: 100dvh !important;
             max-height: 100dvh !important;
             overflow: hidden !important;
-            padding: max(calc(env(safe-area-inset-top, 0px) + 28px), 32px) 1rem calc(max(0.65rem, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) + 0.5rem) 1rem !important;
+            padding: max(calc(var(--app-safe-top) + 28px), 32px) 1rem calc(max(0.65rem, var(--app-safe-bottom)) + 0.5rem) 1rem !important;
             box-shadow: -4px 0 24px rgba(12, 31, 65, 0.12) !important;
             width: 280px !important;
             max-width: 85vw !important;
@@ -1373,10 +1373,10 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             display: flex !important;
             justify-content: space-around;
             align-items: center;
-            padding: 0.4rem 0.25rem calc(0.5rem + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
+            padding: 0.4rem 0.25rem calc(0.5rem + var(--app-safe-bottom)) !important;
             z-index: 100;
             box-shadow: 0 -4px 16px rgba(12, 31, 65, 0.05);
-            min-height: calc(64px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
+            min-height: calc(64px + var(--app-safe-bottom)) !important;
             height: auto !important;
             box-sizing: border-box !important;
             backdrop-filter: blur(12px);
@@ -1477,9 +1477,9 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
         @supports (padding-bottom: env(safe-area-inset-bottom)) {
           @media (max-width: 768px) {
             .mobile-bottom-nav {
-              min-height: calc(64px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
+              min-height: calc(64px + var(--app-safe-bottom)) !important;
               height: auto !important;
-              padding-bottom: calc(0.5rem + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
+              padding-bottom: calc(0.5rem + var(--app-safe-bottom)) !important;
             }
 
             .side-bottom {
@@ -1488,7 +1488,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
 
             /* Room for the 64px bottom nav plus bottom inset, which only exists on mobile */
             .main-content-scroll {
-              padding-bottom: calc(78px + max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px))) !important;
+              padding-bottom: calc(78px + var(--app-safe-bottom)) !important;
             }
           }
         }

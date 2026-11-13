@@ -5,6 +5,7 @@ import {
   Shirt,
   ShoppingBag,
   Plus,
+  Minus,
   Search,
   Edit2,
   Trash2,
@@ -34,7 +35,7 @@ import {
   Image as ImageIcon,
   Barcode as BarcodeIcon
 } from "lucide-react"
-import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo } from "../lib/utils"
+import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo, formatQty } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { Spinner, ButtonLoader, CardSkeleton } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
@@ -335,6 +336,7 @@ export function Menu({ setView, requireAuth, user }) {
   const [editPrice, setEditPrice] = useState("")
   const [editActive, setEditActive] = useState(true)
   const [editBarcodeActive, setEditBarcodeActive] = useState(true)
+  const [editAddQty, setEditAddQty] = useState("") // stock to add while editing (kirana / cloth shops)
   const [isUpdatingPrice, setIsUpdatingPrice] = useState(false)
   const [editFormError, setEditFormError] = useState("")
 
@@ -771,10 +773,10 @@ export function Menu({ setView, requireAuth, user }) {
     return list
   }, [items])
 
-  // Extract categories dynamically from user's actual master catalog items
+  // Categories for the Add Menu screen: the catalog's, plus those of the shop's own custom items
   const catalogCategories = useMemo(() => {
     const set = new Set()
-    catalogItems.forEach((it) => {
+    ;[...catalogItems, ...items].forEach((it) => {
       if (it.category && typeof it.category === "string" && it.category.trim()) {
         set.add(it.category.trim())
       }
@@ -784,7 +786,7 @@ export function Menu({ setView, requireAuth, user }) {
       list.push({ id: cat, label: cat })
     })
     return list
-  }, [catalogItems])
+  }, [catalogItems, items])
 
   // Added item ids
   const addedMenuItemIds = useMemo(() => {
@@ -829,10 +831,29 @@ export function Menu({ setView, requireAuth, user }) {
     setMyMenuPage(1)
   }, [search, selectedCategory, myMenuSort])
 
-  // Filter & sort catalog items purely from authentic catalogItems
+  // The Add Menu screen lists the master catalog plus the shop's own custom items. A custom item is created
+  // from this screen ("Create Custom Menu") but lives only in My Menu, so searching for it here used to say
+  // "No matching items found" right after it was made. They show as "Added", like added catalog items.
+  const addMenuItems = useMemo(() => {
+    const catalogIds = new Set(catalogItems.map((c) => c.id))
+    const catalogNames = new Set(catalogItems.map((c) => (c.name || "").trim().toLowerCase()))
+    const own = items
+      .filter((it) => !catalogIds.has(it.menu_item_id) && !catalogIds.has(it.id) &&
+        !catalogNames.has((it.name || "").trim().toLowerCase()))
+      .map((it) => ({
+        ...it,
+        id: it.menu_item_id || it.id,
+        price: it.custom_price ?? it.price,
+        is_added: true,
+        is_own_item: true
+      }))
+    return own.length ? [...catalogItems, ...own] : catalogItems
+  }, [catalogItems, items])
+
+  // Filter & sort the Add Menu list (catalog + own custom items)
   const filteredCatalogItems = useMemo(() => {
     const q = catalogSearch.trim()
-    let res = catalogItems.filter((it) => {
+    let res = addMenuItems.filter((it) => {
       const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb, lang })
       const matchesCat = catalogCategory === "all" ||
         (it.category || "").toLowerCase() === catalogCategory.toLowerCase()
@@ -847,7 +868,7 @@ export function Menu({ setView, requireAuth, user }) {
       res = [...res].sort((a, b) => (favorites.has(b.id) ? 1 : 0) - (favorites.has(a.id) ? 1 : 0))
     }
     return res
-  }, [catalogItems, catalogSearch, catalogCategory, catalogSort, favorites, tDb, lang])
+  }, [addMenuItems, catalogSearch, catalogCategory, catalogSort, favorites, tDb, lang])
 
   const totalCatalogPages = useMemo(() => {
     return Math.ceil(filteredCatalogItems.length / catalogPageSize) || 1
@@ -1012,6 +1033,7 @@ export function Menu({ setView, requireAuth, user }) {
     setEditActive(userItem?.is_active !== undefined ? Boolean(userItem.is_active) : true)
     const isBActive = userItem?.barcode_active !== false && userItem?.barcode_active !== 0 && userItem?.barcode_active !== "0" && userItem?.barcode_active !== "false"
     setEditBarcodeActive(isBActive)
+    setEditAddQty("")
     setEditFormError("")
   }
 
@@ -1020,6 +1042,7 @@ export function Menu({ setView, requireAuth, user }) {
     setEditName("")
     setEditPrice("")
     setEditBarcodeActive(true)
+    setEditAddQty("")
     setEditFormError("")
   }
 
@@ -1035,9 +1058,32 @@ export function Menu({ setView, requireAuth, user }) {
       return
     }
 
+    // Stock to add (optional). For an item whose stock is not tracked yet, this becomes its opening stock.
+    const addQty = editAddQty === "" ? 0 : Number(editAddQty)
+    if (isInventory && editAddQty !== "" && (!Number.isFinite(addQty) || addQty < 0 || addQty > 1000000)) {
+      setEditFormError(t("stock.errQty", "Enter how many pieces."))
+      return
+    }
+
     setIsUpdatingPrice(true)
     setEditFormError("")
     try {
+      let stockFields = null
+      if (isInventory && addQty > 0) {
+        const tracked = stockInfo(editingItem).tracked
+        const body = tracked
+          ? { change: addQty, reason: "restock" }
+          : { set: addQty, reason: "opening" }
+        // a failed stock save is reported, not swallowed: the person must know the count did not change
+        const res = await call(`/menu/${editingItem.id}/stock`, { method: "POST", body: JSON.stringify(body) })
+        stockFields = {
+          stock_qty: Number(res?.stock_qty ?? ((tracked ? Number(editingItem.stock_qty || 0) : 0) + addQty)),
+          track_stock: true,
+          ...(res?.low_stock_alert !== undefined ? { low_stock_alert: res.low_stock_alert } : {})
+        }
+        invalidateApiCache("/menu")
+      }
+
       await call(`/menu/${editingItem.id}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -1049,15 +1095,17 @@ export function Menu({ setView, requireAuth, user }) {
       }).catch(() => null)
 
       setItems((prev) => {
-        const next = prev.map((it) => (it.id === editingItem.id ? { ...it, name: trimmedName, price: numPrice, custom_price: numPrice, is_active: editActive, barcode_active: editBarcodeActive } : it))
+        const next = prev.map((it) => (it.id === editingItem.id ? { ...it, name: trimmedName, price: numPrice, custom_price: numPrice, is_active: editActive, barcode_active: editBarcodeActive, ...(stockFields || {}) } : it))
         saveStoredMenuItems(next, user)
         return next
       })
 
-      toastSuccess(t("menu.toastUpdated", "Updated \"{{name}}\"", { name: trimmedName }))
+      toastSuccess(stockFields
+        ? t("menu.toastUpdatedStock", "Updated \"{{name}}\": {{n}} in stock", { name: trimmedName, n: formatQty(stockFields.stock_qty) })
+        : t("menu.toastUpdated", "Updated \"{{name}}\"", { name: trimmedName }))
       handleCloseEditModal()
     } catch (err) {
-      setEditFormError("Unable to update item. Please try again.")
+      setEditFormError(err?.message || "Unable to update item. Please try again.")
     } finally {
       setIsUpdatingPrice(false)
     }
@@ -2424,6 +2472,57 @@ export function Menu({ setView, requireAuth, user }) {
                     {t("menu.activeAvailable", "Active (Available for quick billing)")}
                   </label>
                 </div>
+
+                {/* Stock: add pieces while editing (kirana / grocery and cloth shops) */}
+                {isInventory && (() => {
+                  const s = stockInfo(editingItem)
+                  const current = s.tracked ? s.qty : 0
+                  const add = editAddQty === "" ? 0 : Number(editAddQty) || 0
+                  const bumpQty = (d) => { setEditAddQty(formatQty(Math.max(0, add + d))); setEditFormError("") }
+                  const chip = {
+                    none: [t("stock.notTracked", "Stock not tracked"), "#f1f5f9", "#475569"],
+                    ok: [t("stock.countShort", "{{n}} in stock", { n: formatQty(s.qty) }), "#dcfce7", "#15803d"],
+                    low: [t("stock.lowCount", "Low: {{n}} left", { n: formatQty(s.qty) }), "#fef3c7", "#b45309"],
+                    out: [t("stock.outOfStock", "Out of stock"), "#fee2e2", "#b91c1c"]
+                  }[s.level]
+                  return (
+                    <div className="menu-modal-field edit-stock-box" style={{ marginTop: "1rem" }}>
+                      <div className="edit-stock-head">
+                        <label className="menu-modal-label" htmlFor="edit-add-qty" style={{ margin: 0 }}>
+                          {s.tracked ? t("stock.addLabel", "Pieces to add") : t("stock.openingLabel", "Opening stock (pieces you have now)")}
+                        </label>
+                        <span className="edit-stock-chip" style={{ background: chip[1], color: chip[2] }}>{chip[0]}</span>
+                      </div>
+                      <div className="edit-stock-row">
+                        <button type="button" className="edit-stock-step" onClick={() => bumpQty(-1)} disabled={isUpdatingPrice} aria-label="-1"><Minus size={16} /></button>
+                        <input
+                          id="edit-add-qty"
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="any"
+                          className="edit-stock-input"
+                          placeholder="0"
+                          value={editAddQty}
+                          onChange={(e) => { setEditAddQty(e.target.value); setEditFormError("") }}
+                          disabled={isUpdatingPrice}
+                        />
+                        <button type="button" className="edit-stock-step" onClick={() => bumpQty(1)} disabled={isUpdatingPrice} aria-label="+1"><Plus size={16} /></button>
+                      </div>
+                      <div className="edit-stock-quick">
+                        {[5, 10, 25, 50].map((n) => (
+                          <button key={n} type="button" onClick={() => bumpQty(n)} disabled={isUpdatingPrice}>+{n}</button>
+                        ))}
+                      </div>
+                      {add > 0 && (
+                        <div className="edit-stock-preview">
+                          <span>{t("stock.newStock", "New stock")}</span>
+                          <strong>{formatQty(current)} → {formatQty(current + add)}</strong>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {showBarcode && (
 <>

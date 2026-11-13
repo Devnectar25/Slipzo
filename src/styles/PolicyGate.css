@@ -9,7 +9,7 @@
   box-sizing: border-box;
   background: radial-gradient(120% 70% at 50% 0%, #d9f0ff 0%, #f1f9ff 45%, #ffffff 100%);
   color: #0c1f41;
-  padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  padding-top: var(--app-safe-top);
 }
 
 .pg-scroll {
@@ -159,7 +159,7 @@
   max-width: 520px;
   margin: 0 auto;
   box-sizing: border-box;
-  padding: 14px 20px calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 14px);
+  padding: 14px 20px calc(var(--app-safe-bottom) + 14px);
   background: #ffffff;
   border-top: 1px solid #e0f2fe;
   box-shadow: 0 -10px 30px rgba(12, 31, 65, 0.06);

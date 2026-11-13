@@ -10,9 +10,9 @@
   overflow: hidden;
   box-sizing: border-box;
   padding:
-    calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 24px)
+    calc(var(--app-safe-top) + 24px)
     24px
-    calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 24px);
+    calc(var(--app-safe-bottom) + 24px);
   background: radial-gradient(120% 90% at 50% 0%, #d9f0ff 0%, #f1f9ff 48%, #ffffff 100%);
   color: #0c1f41;
 }

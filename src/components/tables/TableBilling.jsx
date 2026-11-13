@@ -40,6 +40,7 @@ import { TableResetModal } from "./TableResetModal"
 const CameraScannerModal = lazy(() => import("../common/CameraScannerModal").then((m) => ({ default: m.CameraScannerModal })))
 import { VoiceInputButton } from "../common/VoiceInputButton"
 import { useBarcodeScanner } from "../../hooks/useBarcodeScanner"
+import { matchesItemFuzzy, cleanVoiceQuery } from "../../lib/fuzzySearch"
 import { useShowBarcode } from "../../hooks/useShowBarcode"
 import { playScanSuccessBeep, playScanErrorBeep } from "../../lib/audioFeedback"
 import { useToast } from "../common/Toast"
@@ -285,16 +286,15 @@ export function TableBilling({
 
   // Filtered menu items
   const filteredMenuItems = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = cleanVoiceQuery(search)
     return userMenuItems.filter((it) => {
-      const matchesSearch = !q ||
-        (it.name || "").toLowerCase().includes(q) ||
-        (it.category || "").toLowerCase().includes(q)
+      // same spelling- and voice-tolerant search as the billing screen and My Menu
+      const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb })
       const matchesCat = selectedCategory === "all" ||
         (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
       return matchesSearch && matchesCat
     })
-  }, [userMenuItems, search, selectedCategory])
+  }, [userMenuItems, search, selectedCategory, tDb])
 
   // ==========================================
   // ITEM ADD / QUANTITY HANDLERS
