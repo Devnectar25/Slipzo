@@ -1,55 +1,15 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { ButtonLoader } from "./common/Skeleton"
-import { ArrowRight, ArrowLeft, Receipt, X, Check, Eye, EyeOff, AlertCircle, Phone, Lock, Printer, Store, Mail, ExternalLink } from "lucide-react"
+import { ArrowRight, ArrowLeft, Receipt, X, Check, Eye, EyeOff, AlertCircle, CheckCircle2, Phone, Lock, Printer, Store, Mail, ExternalLink } from "lucide-react"
 import { call } from "../lib/utils"
 import "../styles/Auth.css"
+import { PASSWORD_RULES, normalizeMobile, sanitizeMobileInput, mobileProblem } from "../lib/authFields"
+import { OtpVerify, otpErrorText } from "./auth/OtpVerify"
+import { ForgotPassword } from "./auth/ForgotPassword"
 
-export const PASSWORD_RULES = [
-  { 
-    id: "length", 
-    label: "At least 8 characters", 
-    test: (pwd) => /.{8,}/.test(pwd) 
-  },
-  { 
-    id: "uppercase", 
-    label: "At least 1 uppercase letter (A-Z)", 
-    test: (pwd) => /(?=.*[A-Z])/.test(pwd) 
-  },
-  { 
-    id: "lowercase", 
-    label: "At least 1 lowercase letter (a-z)", 
-    test: (pwd) => /(?=.*[a-z])/.test(pwd) 
-  },
-  { 
-    id: "number", 
-    label: "At least 1 number (0-9)", 
-    test: (pwd) => /(?=.*[0-9])/.test(pwd) 
-  },
-  { 
-    id: "special", 
-    label: "At least 1 symbol like !@#$%^&*", 
-    test: (pwd) => /(?=.*?[#?!@$%^&*-])/.test(pwd) || /[#?!@$%^&*+\-=_~`(){}[\]|\\:;"'<>,./]/.test(pwd) 
-  }
-]
+export { PASSWORD_RULES }
 
-// "+91 98765-43210", "09876543210" and "9876543210" are all the same number
-const normalizeMobile = (value) => {
-  let digits = String(value || "").replace(/[\s\-().]/g, "")
-  if (digits.startsWith("+")) digits = digits.slice(1)
-  if (!/^\d+$/.test(digits)) return null
-  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2)
-  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1)
-  return /^[6-9]\d{9}$/.test(digits) ? digits : null
-}
-
-// Strip non-digits and leading country/trunk prefix while typing or pasting a 10-digit mobile number
-const sanitizeMobileInput = (value) => {
-  let raw = String(value || "").replace(/\D/g, "")
-  if (raw.length === 12 && raw.startsWith("91")) raw = raw.slice(2)
-  else if (raw.length === 11 && raw.startsWith("0")) raw = raw.slice(1)
-  return raw.slice(0, 10)
-}
 // name@domain.tld: no spaces, a dot in the domain, a 2+ letter ending, no ".." anywhere
 const EMAIL_RE = /^(?!.*\.\.)[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/
 
@@ -68,20 +28,6 @@ const emailProblem = (value) => {
   return EMAIL_RE.test(v) ? null : ["auth.err_email", "Please enter a valid email address or leave it blank"]
 }
 
-// What is wrong with a mobile number, in words the person can act on. Returns null when the number is fine.
-// [translation key, English text, values for the text]
-const mobileProblem = (value) => {
-  const raw = String(value || "").trim()
-  if (!raw) return ["auth.err_mobile_required", "Please enter your mobile number"]
-  let digits = raw.replace(/[\s\-().]/g, "")
-  if (digits.startsWith("+")) digits = digits.slice(1)
-  if (!/^\d+$/.test(digits)) return ["auth.err_mobile_digits", "A mobile number can only contain digits (no letters or symbols)"]
-  if (digits.length === 12 && digits.startsWith("91")) digits = digits.slice(2)
-  else if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1)
-  if (digits.length !== 10) return ["auth.err_mobile_length", "A mobile number has 10 digits. You entered {{n}}.", { n: digits.length }]
-  if (!/^[6-9]/.test(digits)) return ["auth.err_mobile_start", "An Indian mobile number starts with 6, 7, 8 or 9"]
-  return null
-}
 // Same four categories as the shop profile (components/common/ChangeCategoryModal.jsx)
 const SHOP_CATEGORIES = [
   { id: "small_business", icon: "☕", label: "Cafe, Tea & Snacks" },
@@ -166,8 +112,25 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
   // Set when this number already has an unfinished sign up: the banner then offers a shortcut to the sign-in form
   const [offerSignIn, setOfferSignIn] = useState(false)
 
+  // Two-step check of the mobile number at sign up (code sent to the phone)
+  const [verifyingPhone, setVerifyingPhone] = useState(false)
+  const [otpSend, setOtpSend] = useState(null)
+  const [otpSendErr, setOtpSendErr] = useState(null)
+  const [otpToken, setOtpToken] = useState("")
+  const [otpPhone, setOtpPhone] = useState("") // the number the token belongs to
+  // "forgot" shows the forgot-password steps in place of the sign-in form
+  const [mode, setMode] = useState("main")
+  const [notice, setNotice] = useState("") // green message, e.g. after a password change
+
   const resetForm = () => {
     setOfferSignIn(false)
+    setVerifyingPhone(false)
+    setOtpSend(null)
+    setOtpSendErr(null)
+    setOtpToken("")
+    setOtpPhone("")
+    setMode("main")
+    setNotice("")
     setForm(EMPTY_FORM)
     setHasPrinter(null)
     setStep(1)
@@ -240,7 +203,23 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           ...(email ? { email } : {}),
         }),
       })
-      setStep(2)
+      const phone = normalizeMobile(form.phone)
+      // already verified this number (came back from step 2): no new code needed
+      if (otpToken && otpPhone === phone) {
+        setStep(2)
+        return
+      }
+      try {
+        const sent = await call("/auth/otp/send", { method: "POST", body: JSON.stringify({ phone, purpose: "register" }) })
+        setOtpSend(sent)
+        setOtpSendErr(null)
+      } catch (sendErr) {
+        // a code went out a moment ago: enter that one (a new one can be asked for after the wait)
+        if (sendErr.code !== "OTP_COOLDOWN") throw sendErr
+        setOtpSend(null)
+        setOtpSendErr(sendErr)
+      }
+      setVerifyingPhone(true)
     } catch (err) {
       // Allow progression only if an older backend does not expose /check-availability yet; register on step 3 still validates
       if (err.status === 404) {
@@ -305,6 +284,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           name: shopName,
           shop_name: shopName,
           business_type: form.category,
+          otp_token: otpToken,
           ...(hasPrinter === true ? { printer_name: (printers.find((pr) => pr.id === myPrinterId)?.name || myPrinterName).trim() } : {}),
           ...(form.email.trim() ? { email: form.email.trim() } : {})
         }
@@ -320,6 +300,16 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
       })
       onLogin(user, isRegister)
     } catch (err) {
+      // The verification ran out (15 minutes) or is missing: verify the number again on step 1
+      if (isRegister && err.code === "OTP_REQUIRED") {
+        setOtpToken("")
+        setOtpPhone("")
+        setVerifyingPhone(false)
+        setStep(1)
+        setErrorKey("")
+        setError(otpErrorText(err, t))
+        return
+      }
       // This number already started signing up (account made, plan not chosen) and the password typed now is not the same one:
       // the way back in is to sign in, so offer that with the number filled in
       if (err.code === "SIGNUP_IN_PROGRESS") {
@@ -360,7 +350,9 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     3: [t("auth.step3Eyebrow", "STEP 3 OF 3 · PASSWORD"), t("auth.step3Title", "Set your password"), t("auth.step3Sub", "Last step. Then you will pick a plan and set up your items.")]
   }
   const [eyebrowText, headingText, subText] = isRegister
-    ? titles[step]
+    ? (step === 1 && verifyingPhone
+      ? [t("auth.verifyEyebrow", "STEP 1 OF 3 · VERIFY MOBILE"), t("auth.verifyTitle", "Verify your mobile number"), t("auth.verifySub", "Enter the code to confirm this number is yours.")]
+      : titles[step])
     : [t("auth.signinEyebrow", "WELCOME BACK"), t("auth.signinTitle", "Sign in to Slipzen"), t("auth.signinSub", "Your shop, your templates, ready when you are.")]
 
 
@@ -410,6 +402,21 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         </section>
 
         <section className="auth-form">
+          {mode === "forgot" ? (
+            <ForgotPassword
+              initialPhone={form.phone}
+              onCancel={(target) => {
+                if (target === "register") { setIsRegister(true); resetForm() } else setMode("main")
+              }}
+              onDone={(phone) => {
+                setIsRegister(false)
+                resetForm()
+                setForm({ ...EMPTY_FORM, phone })
+                setNotice(t("forgot.done", "Password changed. Sign in with your new password."))
+              }}
+            />
+          ) : (
+          <>
           <div className="auth-header-block">
             <div className="mobile-brand">
               <img
@@ -431,8 +438,32 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           </div>
 
           <form onSubmit={submit} noValidate>
+            {notice && !isRegister && (
+              <div className="auth-notice" data-testid="auth-notice" role="status">
+                <CheckCircle2 size={16} />
+                <span>{notice}</span>
+              </div>
+            )}
             {/* ---------- sign up, step 1: the shop ---------- */}
-            {isRegister && step === 1 && (
+            {isRegister && step === 1 && verifyingPhone && (
+              <OtpVerify
+                key={otpSend?.demo_code || "otp"}
+                phone={normalizeMobile(form.phone)}
+                purpose="register"
+                initial={otpSend}
+                initialError={otpSendErr}
+                onVerified={(token) => {
+                  setOtpToken(token)
+                  setOtpPhone(normalizeMobile(form.phone))
+                  setVerifyingPhone(false)
+                  setError("")
+                  setStep(2)
+                }}
+                onBack={() => { setVerifyingPhone(false); setError("") }}
+              />
+            )}
+
+            {isRegister && step === 1 && !verifyingPhone && (
               <>
                 <label>
                   <span className="auth-label-text">{t("auth.shopName", "Shop name")} {required}</span>
@@ -692,6 +723,19 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                   {fieldError("password")}
                 </label>
 
+                {!isRegister && (
+                  <div className="auth-forgot-row">
+                    <button
+                      type="button"
+                      className="auth-forgot-link"
+                      data-testid="auth-forgot"
+                      onClick={() => { setError(""); setNotice(""); setFieldErrors({}); setMode("forgot") }}
+                    >
+                      {t("auth.forgotPassword", "Forgot password?")}
+                    </button>
+                  </div>
+                )}
+
                 {isRegister && (
                   <label>
                     <span className="auth-label-text">{t("auth.confirmPassword", "Re-enter password")} {required}</span>
@@ -737,6 +781,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               </div>
             )}
 
+            {!(isRegister && step === 1 && verifyingPhone) && (
             <div className="auth-actions">
               {isRegister && step > 1 && (
                 <button
@@ -769,6 +814,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               </button>
               )}
             </div>
+            )}
           </form>
 
           <p className="switch">
@@ -780,6 +826,8 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               {isRegister ? t("auth.signIn", "Sign in") : t("auth.createAnAccount", "Create an account")}
             </button>
           </p>
+          </>
+          )}
 
         </section>
       </div>

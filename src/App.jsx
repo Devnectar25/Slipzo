@@ -5,6 +5,7 @@ import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider, useToast } from "./components/common/Toast"
 import { TopProgressBar } from "./components/common/TopProgressBar"
+import { featurePageByView, featurePageByPath } from "./lib/featurePages"
 import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData, setCachedData } from "./lib/utils"
 import i18n from "./i18n/i18n"
 import PolicyGate from "./components/PolicyGate"
@@ -33,6 +34,7 @@ const Auth = lazyNamed(() => import("./components/Auth"), "Auth")
 const WelcomeOnboarding = lazyNamed(() => import("./components/WelcomeOnboarding"), "WelcomeOnboarding")
 const DesktopLanding = lazyNamed(() => import("./components/DesktopLanding"), "DesktopLanding")
 const PublicPageShell = lazyNamed(() => import("./components/PublicPageShell"), "PublicPageShell")
+const FeaturePage = lazyNamed(() => import("./components/FeaturePage"), "FeaturePage")
 const Dashboard = lazyNamed(() => import("./components/Dashboard"), "Dashboard")
 const Templates = lazyNamed(() => import("./components/Templates"), "Templates")
 const Bill = lazyNamed(() => import("./components/Bill"), "Bill")
@@ -139,6 +141,8 @@ const pathToView = (pathname) => {
   if (clean === "/guide" || clean === "/user-guide" || clean === "/help") return "guide"
   if (clean === "/reprint") return "reprint"
   if (clean === "/overview" || clean === "/dashboard" || clean === "/") return "dashboard"
+  const feature = featurePageByPath(clean)
+  if (feature) return feature.view
   return "dashboard"
 }
 
@@ -158,7 +162,7 @@ const isAuthPath = (pathname) => isLoginPath(pathname) || isRegisterPath(pathnam
 const publicViewFromPath = () => {
   if (typeof window === "undefined") return "dashboard"
   const v = pathToView(window.location.pathname)
-  return v === "pricing" || v === "contact" ? v : "dashboard"
+  return v === "pricing" || v === "contact" || featurePageByView(v) ? v : "dashboard"
 }
 
 const viewToPath = (viewName) => {
@@ -173,6 +177,9 @@ const viewToPath = (viewName) => {
     case "history": return "/bill-history"
     case "shop": return "/shop-profile"
     case "contact": return "/contact"
+    case "feature_token":
+    case "feature_inventory":
+    case "feature_pos": return featurePageByView(viewName)?.path
     case "guide": return "/user-guide"
     case "reprint": return "/reprint"
     case "admin_login":
@@ -897,6 +904,31 @@ function AppContent() {
     }
     const publicSetShowAuth = (open) => (open ? handleOpenAuth(true) : handleCloseAuth())
 
+    const featurePage = featurePageByView(view)
+    if (featurePage) {
+      return (
+        <ErrorBoundary onGoHome={() => setView("dashboard")}>
+          <Suspense fallback={<PageLoader />}>
+            <PublicPageShell
+              activeView={view}
+              setView={setView}
+              onLogin={() => handleOpenAuth(false)}
+              onSignUp={() => handleOpenAuth(true)}
+            >
+              <FeaturePage
+                page={featurePage}
+                onSignUp={() => handleOpenAuth(true)}
+                onLogin={() => handleOpenAuth(false)}
+                onOpenPage={setView}
+                onBack={() => setView("dashboard")}
+              />
+            </PublicPageShell>
+          </Suspense>
+          <PwaInstallPrompt />
+        </ErrorBoundary>
+      )
+    }
+
     if (view === "pricing") {
       return (
         <ErrorBoundary onGoHome={() => setView("dashboard")}>
@@ -970,6 +1002,15 @@ function AppContent() {
       <ErrorBoundary onGoHome={() => setView("dashboard")} onReset={() => setView("dashboard")}>
        <Suspense fallback={<PageLoader />}>
         {view === "dashboard" && <Dashboard setView={setView} setSelectedBillId={setSelectedBillId} requireAuth={requireAuth} user={user} />}
+        {featurePageByView(view) && (
+          <FeaturePage
+            page={featurePageByView(view)}
+            signedIn
+            onSignUp={() => setView("dashboard")}
+            onOpenPage={setView}
+            onBack={() => setView("dashboard")}
+          />
+        )}
         {view === "templates" && <Templates setView={setView} requireAuth={requireAuth} user={user} />}
         {(view === "tables" || (view === "bills" && isHotel)) && (
           <TableManagement

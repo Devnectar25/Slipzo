@@ -57,6 +57,7 @@ import { useToast } from "./common/Toast"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
+import { matchesItemFuzzy, cleanVoiceQuery } from "../lib/fuzzySearch"
 // Loaded on demand: the scanner library is large and only needed once the camera is opened
 const CameraScannerModal = lazy(() => import("./common/CameraScannerModal").then((m) => ({ default: m.CameraScannerModal })))
 import { useBarcodeScanner } from "../hooks/useBarcodeScanner"
@@ -427,11 +428,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   // Filter and sort user menu items:
   // Items in bill appear on TOP, sorted by maximum quantity in descending order
   const filteredMenuItems = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = search.trim()
     const filtered = userMenuItems.filter((it) => {
-      const matchesSearch = !q ||
-        (it.name || "").toLowerCase().includes(q) ||
-        (it.category || "").toLowerCase().includes(q)
+      const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb, lang })
       const matchesCat = selectedCategory === "all" ||
         (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
       return matchesSearch && matchesCat
@@ -871,7 +870,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
   // Print straight from this screen (no separate preview page): one print credit, then the print dialog
   const printNow = async (bill) => {
-    await new Promise((resolve) => setTimeout(resolve, 120)) // let the receipt pick up the saved bill number
+    await new Promise((resolve) => setTimeout(resolve, 60)) // let the receipt pick up the saved bill number
     const ok = await chargeAndPrint({
       user,
       elementId: "receipt-to-print",
@@ -879,7 +878,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       onNeedPlan: () => setView("pricing")
     })
     if (!ok) return false
-    if (bill?.id) call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
+    if (bill?.id && bill?.is_saved) call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
     window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
     toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
     setFlowStep("success")
@@ -1255,6 +1254,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                       setSearch("");
                       const nameMatch = userMenuItems.find(
                         (it) => (it.name || "").trim().toLowerCase() === val.toLowerCase()
+                      ) || userMenuItems.find(
+                        (it) => matchesItemFuzzy(it, val, { tDb, lang })
                       );
                       if (nameMatch) {
                         if (nameMatch.is_active === false || nameMatch.is_available === false) {
@@ -1289,7 +1290,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
               )}
               <div className="nb-search-voice-wrapper">
                 <VoiceInputButton
-                  onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
+                  onSpeechResult={(text) => setSearch(cleanVoiceQuery(text))}
                   variant="icon-only"
                   placeholder={t("bills.speakItemName", "Speak item name")}
                 />

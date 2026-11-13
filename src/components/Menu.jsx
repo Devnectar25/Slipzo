@@ -39,6 +39,7 @@ import { useToast } from "./common/Toast"
 import { Spinner, ButtonLoader, CardSkeleton } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
+import { matchesItemFuzzy, cleanVoiceQuery } from "../lib/fuzzySearch"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useSpeechInput } from "../hooks/useSpeechInput"
 import { BarcodeModal } from "./common/BarcodeModal"
@@ -127,9 +128,26 @@ function MenuImageThumbnail({ src, alt, className = "mob-item-thumb", wrapClassN
 
 const MENU_VIEW_KEY = "slipzo_menu_view"
 
+// A custom item belongs to the shop's own category (the one chosen at sign up / in the shop profile)
+const SHOP_CATEGORY_LABELS = {
+  small_business: "Small Business / Cafe & Tea",
+  kirana_grocery: "Kirana / Grocery Shop",
+  clothing_garments: "Cloth & Garments Shop",
+  hotel_food: "Hotel or Food Restaurant"
+}
+const shopCategoryLabel = (type) => {
+  const t = String(type || "").trim().toLowerCase()
+  if (SHOP_CATEGORY_LABELS[t]) return SHOP_CATEGORY_LABELS[t]
+  if (t.includes("kirana") || t.includes("grocery")) return SHOP_CATEGORY_LABELS.kirana_grocery
+  if (t.includes("cloth") || t.includes("garment")) return SHOP_CATEGORY_LABELS.clothing_garments
+  if (t.includes("hotel") || t.includes("restaurant") || t.includes("food")) return SHOP_CATEGORY_LABELS.hotel_food
+  if (t.includes("small") || t.includes("cafe") || t.includes("tea")) return SHOP_CATEGORY_LABELS.small_business
+  return "General"
+}
+
 export function Menu({ setView, requireAuth, user }) {
   const { t } = useTranslation()
-  const { tDb, formatNum } = useDbTranslation()
+  const { tDb, formatNum, lang } = useDbTranslation()
   const userKey = getCurrentUserKey(user)
   const { success: toastSuccess, error: toastError } = useToast()
 
@@ -177,12 +195,12 @@ export function Menu({ setView, requireAuth, user }) {
   // reads the two opening-stock inputs; returns { error } or { fields } to send with POST /menu
   const readOpeningStock = (qtyText, alertText) => {
     if (!isInventory) return { fields: {} }
-    const fields = {}
-    if (String(qtyText).trim() !== "") {
-      const q = Number(qtyText)
-      if (!Number.isFinite(q) || q < 0) return { error: t("stock.errOpening", "Opening stock must be 0 or more.") }
-      fields.stock_qty = q
+    if (String(qtyText).trim() === "") {
+      return { error: t("stock.errOpeningRequired", "Please enter opening stock.") }
     }
+    const q = Number(qtyText)
+    if (!Number.isFinite(q) || q < 0) return { error: t("stock.errOpening", "Opening stock must be 0 or more.") }
+    const fields = { stock_qty: q }
     if (String(alertText).trim() !== "") {
       const a = Number(alertText)
       if (!Number.isFinite(a) || a < 0) return { error: t("stock.errAlert", "Low-stock alert must be 0 or more.") }
@@ -332,7 +350,7 @@ export function Menu({ setView, requireAuth, user }) {
   // Custom Item Creation Modal State
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
   const [customName, setCustomName] = useState("")
-  const [customCat, setCustomCat] = useState("General")
+  const [customCat, setCustomCat] = useState(() => shopCategoryLabel(defaultBusinessType))
   const [customItemPrice, setCustomItemPrice] = useState("")
   const [customBarcode, setCustomBarcode] = useState("")
   const [customBarcodeActive, setCustomBarcodeActive] = useState(() => isDefaultBarcodeActiveForBusinessType(defaultBusinessType))
@@ -366,7 +384,7 @@ export function Menu({ setView, requireAuth, user }) {
 
   const handleOpenCustomModal = () => {
     setCustomName("")
-    setCustomCat("General")
+    setCustomCat(shopCategoryLabel(selectedBusinessType))
     setCustomItemPrice("")
     setCustomBarcode("")
     setCustomBarcodeActive(isDefaultBarcodeActiveForBusinessType(selectedBusinessType))
@@ -381,7 +399,7 @@ export function Menu({ setView, requireAuth, user }) {
   const handleCloseCustomModal = () => {
     setIsCustomModalOpen(false)
     setCustomName("")
-    setCustomCat("General")
+    setCustomCat(shopCategoryLabel(selectedBusinessType))
     setCustomItemPrice("")
     setCustomBarcode("")
     setCustomBarcodeActive(isDefaultBarcodeActiveForBusinessType(selectedBusinessType))
@@ -582,7 +600,7 @@ export function Menu({ setView, requireAuth, user }) {
   }, [errorMsg])
 
   const handleVoiceSearchResult = (text) => {
-    const clean = String(text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim()
+    const clean = cleanVoiceQuery(text)
     if (currentView === "my_menu") {
       setSearch(clean)
     } else {
@@ -734,11 +752,9 @@ export function Menu({ setView, requireAuth, user }) {
 
   // Filter & sort user menu items from actual items
   const filteredUserItems = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = search.trim()
     let res = items.filter((it) => {
-      const matchesSearch = !q ||
-        (it.name || "").toLowerCase().includes(q) ||
-        (it.category || "").toLowerCase().includes(q)
+      const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb, lang })
       const matchesCat = selectedCategory === "all" ||
         (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
       let matchesStock = true
@@ -757,7 +773,7 @@ export function Menu({ setView, requireAuth, user }) {
       res = [...res].sort((a, b) => (a.name || "").localeCompare(b.name || ""))
     }
     return res
-  }, [items, search, selectedCategory, myMenuSort, isInventory, stockFilter])
+  }, [items, search, selectedCategory, myMenuSort, isInventory, stockFilter, tDb, lang])
 
   const totalMyMenuPages = useMemo(() => {
     return Math.ceil(filteredUserItems.length / myMenuPageSize) || 1
@@ -774,12 +790,9 @@ export function Menu({ setView, requireAuth, user }) {
 
   // Filter & sort catalog items purely from authentic catalogItems
   const filteredCatalogItems = useMemo(() => {
-    const q = catalogSearch.trim().toLowerCase()
+    const q = catalogSearch.trim()
     let res = catalogItems.filter((it) => {
-      const matchesSearch = !q ||
-        (it.name || "").toLowerCase().includes(q) ||
-        (it.category || "").toLowerCase().includes(q) ||
-        (it.barcode || "").toLowerCase().includes(q)
+      const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb, lang })
       const matchesCat = catalogCategory === "all" ||
         (it.category || "").toLowerCase() === catalogCategory.toLowerCase()
       return matchesSearch && matchesCat
@@ -793,7 +806,7 @@ export function Menu({ setView, requireAuth, user }) {
       res = [...res].sort((a, b) => (favorites.has(b.id) ? 1 : 0) - (favorites.has(a.id) ? 1 : 0))
     }
     return res
-  }, [catalogItems, catalogSearch, catalogCategory, catalogSort, favorites])
+  }, [catalogItems, catalogSearch, catalogCategory, catalogSort, favorites, tDb, lang])
 
   const totalCatalogPages = useMemo(() => {
     return Math.ceil(filteredCatalogItems.length / catalogPageSize) || 1
@@ -1161,12 +1174,33 @@ export function Menu({ setView, requireAuth, user }) {
               </div>
             )}
 
+          {/* Category Filter Pills */}
+          {myMenuCategories.length > 1 && (
+            <div className="menu-category-pills-row">
+              {myMenuCategories.map((cat) => {
+                const isActive = selectedCategory.toLowerCase() === cat.id.toLowerCase()
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`mob-category-chip ${isActive ? "active" : ""}`}
+                    onClick={() => setSelectedCategory(cat.id)}
+                  >
+                    {cat.id === "all"
+                      ? (search.trim() ? t("menu.allCategories", "All Categories") : t("menu.allItems", "All Items"))
+                      : tDb(cat.label)}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           {/* Section Subheader: My Menu count & Sort */}
             <div className="mob-menu-subheader">
               <div className="mob-menu-count-wrap">
                 <h3 className="mob-menu-heading">{isMenu ? t("menu.myMenu", "My Menu") : t("menu.myItems", "My Items")}</h3>
                 <span className="mob-menu-count-badge">
-                  {filteredUserItems.length} {filteredUserItems.length === 1 ? "item" : "items"}
+                  {formatNum(filteredUserItems.length)} {filteredUserItems.length === 1 ? t("menu.item", "item") : t("menu.items", "items")}
                 </span>
               </div>
               <div className="mob-menu-sort-wrapper">
@@ -1176,7 +1210,7 @@ export function Menu({ setView, requireAuth, user }) {
                   onClick={() => setSortOpen((prev) => !prev)}
                 >
                   <ArrowUpDown size={14} />
-                  <span>{myMenuSort}</span>
+                  <span>{tDb(myMenuSort)}</span>
                   <ChevronDown size={14} />
                 </button>
                 {sortOpen && (
@@ -1190,7 +1224,7 @@ export function Menu({ setView, requireAuth, user }) {
                           setSortOpen(false)
                         }}
                       >
-                        {opt}
+                        {tDb(opt)}
                       </button>
                     ))}
                   </div>
@@ -1251,9 +1285,9 @@ export function Menu({ setView, requireAuth, user }) {
                         />
 
                         <div className="mob-item-details">
-                          <h4 className="mob-item-name">{item.name}</h4>
+                          <h4 className="mob-item-name">{tDb(item.name)}</h4>
                           <span className={`mob-item-cat-badge ${getCategoryBadgeClass(item.category)}`}>
-                            {item.category || "General"}
+                            {tDb(item.category || "General")}
                           </span>
                           <div className="mob-item-price-status">
                             <span className="mob-item-price">{money(item.price)}</span>
@@ -1378,7 +1412,7 @@ export function Menu({ setView, requireAuth, user }) {
                   className="mob-filter-sort-pill"
                   onClick={() => setSortOpen((prev) => !prev)}
                 >
-                  <span>Sort : {catalogSort}</span>
+                  <span>{t("menu.sort", "Sort")} : {tDb(catalogSort)}</span>
                   <ChevronDown size={14} />
                 </button>
                 {sortOpen && (
@@ -1392,7 +1426,7 @@ export function Menu({ setView, requireAuth, user }) {
                           setSortOpen(false)
                         }}
                       >
-                        {s}
+                        {tDb(s)}
                       </button>
                     ))}
                   </div>
@@ -2158,13 +2192,14 @@ export function Menu({ setView, requireAuth, user }) {
                 <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
                   <div className="stock-open-row">
                     <div>
-                      <label className="menu-modal-label" htmlFor="amm-stock">{t("stock.openingLabel", "Opening stock")}</label>
+                      <label className="menu-modal-label" htmlFor="amm-stock">{t("stock.openingRequired", "Opening stock *")}</label>
                       <input
                         id="amm-stock"
                         type="number"
                         inputMode="decimal"
                         min="0"
                         step="any"
+                        required
                         className="menu-modal-input"
                         placeholder={t("stock.openingPlaceholder", "Pieces you have")}
                         value={addStockQty}
@@ -2185,7 +2220,7 @@ export function Menu({ setView, requireAuth, user }) {
                       />
                     </div>
                   </div>
-                  <span className="stock-open-hint">{t("stock.openingHint", "Each bill takes sold pieces out of stock. Leave blank to skip stock for this item.")}</span>
+                  <span className="stock-open-hint">{t("stock.openingHint", "Each bill takes sold pieces out of stock.")}</span>
                 </div>
                 )}
 
@@ -2662,24 +2697,14 @@ export function Menu({ setView, requireAuth, user }) {
                 {/* 3. Category */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <label className="menu-modal-label">{tDb("Category")}</label>
-                  <select
-                    className="menu-modal-input"
-                    value={customCat}
-                    onChange={(e) => setCustomCat(e.target.value)}
-                    style={{
-                      height: "35px",
-                      fontSize: "0.85rem",
-                      padding: "0 0.75rem",
-                      background: "#ffffff",
-                      cursor: "pointer"
-                    }}
+                  <div
+                    className="menu-modal-input cp-category-fixed"
+                    data-testid="custom-item-category"
+                    aria-readonly="true"
+                    title={tDb(customCat)}
                   >
-                    <option value="Small Business / Cafe & Tea">{tDb("Small Business / Cafe & Tea")}</option>
-                    <option value="Kirana / Grocery Shop">{tDb("Kirana / Grocery Shop")}</option>
-                    <option value="Cloth & Garments Shop">{tDb("Cloth & Garments Shop")}</option>
-                    <option value="Hotel or Food Restaurant">{tDb("Hotel or Food Restaurant")}</option>
-                    <option value="General">{tDb("General")}</option>
-                  </select>
+                    {tDb(customCat)}
+                  </div>
                 </div>
 
                 {/* 4. Selling Price */}
@@ -2705,13 +2730,14 @@ export function Menu({ setView, requireAuth, user }) {
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <div className="stock-open-row">
                     <div>
-                      <label className="menu-modal-label" htmlFor="cp-stock">{t("stock.openingLabel", "Opening stock")}</label>
+                      <label className="menu-modal-label" htmlFor="cp-stock">{t("stock.openingRequired", "Opening stock *")}</label>
                       <input
                         id="cp-stock"
                         type="number"
                         inputMode="decimal"
                         min="0"
                         step="any"
+                        required
                         className="menu-modal-input"
                         placeholder={t("stock.openingPlaceholder", "Pieces you have")}
                         value={customStockQty}
@@ -2732,7 +2758,7 @@ export function Menu({ setView, requireAuth, user }) {
                       />
                     </div>
                   </div>
-                  <span className="stock-open-hint">{t("stock.openingHint", "Each bill takes sold pieces out of stock. Leave blank to skip stock for this item.")}</span>
+                  <span className="stock-open-hint">{t("stock.openingHint", "Each bill takes sold pieces out of stock.")}</span>
                 </div>
                 )}
 

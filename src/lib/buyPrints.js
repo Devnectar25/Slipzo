@@ -1,7 +1,7 @@
 import Swal from "sweetalert2"
 import i18n from "../i18n/i18n"
 import "../styles/PaymentSuccess.css"
-import { activatePlan, syncUserQuota, call, isNativeApp } from "./utils"
+import { syncUserQuota, call, isNativeApp } from "./utils"
 
 // Plan names are stored in English on the server; the screen shows them in the chosen language
 const PLAN_LABEL_KEYS = { "Starter Pack": "planGate.starter.name", "Pro Growth": "planGate.pro.name", "Business Super": "planGate.business.name" }
@@ -35,6 +35,16 @@ export const getPendingPayment = (user) => {
   return null
 }
 
+// The credit count as the server has it now (old prints + every pack bought), saved for every screen
+async function freshQuota(userKey, quota) {
+  if (quota) return syncUserQuota(quota, userKey)
+  try {
+    const mine = await call("/subscriptions/my", { noCache: true })
+    if (mine?.quota) return syncUserQuota(mine.quota, userKey)
+  } catch (_) { /* keep what is shown */ }
+  return null
+}
+
 // Asks our server to confirm the payment with Razorpay and add the prints. Nothing is added unless the server says yes.
 async function confirmPurchase(pending, user) {
   const { paymentId, planName, amountInRupees, printCount } = pending
@@ -53,18 +63,16 @@ async function confirmPurchase(pending, user) {
         user_email: user?.email || ""
       })
     })
-    if (subRes && subRes.quota) syncUserQuota(subRes.quota, userKey)
     clearPending()
-    return { ok: true, subRes, updated: activatePlan(planName, printCount, userKey) }
+    return { ok: true, subRes, updated: await freshQuota(userKey, subRes?.quota) }
   } catch (err) {
     // "already used" can mean an earlier try did go through but its answer never reached us: look before giving up
     if (err?.status === 409) {
       try {
         const mine = await call("/subscriptions/my", { noCache: true })
         if ((mine?.subscriptions || []).some((s) => s.payment_id === paymentId)) {
-          if (mine.quota) syncUserQuota(mine.quota, userKey)
           clearPending()
-          return { ok: true, subRes: mine, updated: activatePlan(planName, printCount, userKey) }
+          return { ok: true, subRes: mine, updated: await freshQuota(userKey, mine.quota) }
         }
       } catch (_) { /* fall through to the error */ }
     }

@@ -22,8 +22,19 @@ const hourLabel = (h) => {
  */
 export function TodayAnalytics({ user }) {
   const { t, i18n } = useTranslation()
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("slipzo_today_analytics")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed && parsed._day === localMidnight().toDateString() && parsed.data) {
+          return parsed.data
+        }
+      }
+    } catch (_) {}
+    return null
+  })
+  const [loading, setLoading] = useState(() => !data)
   const [refreshing, setRefreshing] = useState(false)
   const [failed, setFailed] = useState(false)
   const dayRef = useRef(localMidnight().getTime())
@@ -33,10 +44,19 @@ export function TodayAnalytics({ user }) {
     const from = localMidnight()
     dayRef.current = from.getTime()
     try {
-      const res = await call(`/bills/analytics/today?from=${encodeURIComponent(from.toISOString())}`, { noCache: true })
+      const res = await call(
+        `/bills/analytics/today?from=${encodeURIComponent(from.toISOString())}`,
+        manual ? { noCache: true } : {}
+      )
       if (res && typeof res === "object") {
         setData(res)
         setFailed(false)
+        try {
+          sessionStorage.setItem("slipzo_today_analytics", JSON.stringify({
+            _day: from.toDateString(),
+            data: res
+          }))
+        } catch (_) {}
       }
     } catch (_) {
       setFailed(true)

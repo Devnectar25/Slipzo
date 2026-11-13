@@ -7,6 +7,7 @@ import {
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
+import { matchesItemFuzzy, cleanVoiceQuery } from "../lib/fuzzySearch"
 import { call, getCachedData } from "../lib/utils"
 import { appSpeechLanguage } from "../hooks/useSpeechInput"
 import { useToast } from "./common/Toast"
@@ -213,7 +214,7 @@ export function Products({ setView, requireAuth, user }) {
       recognition.lang = appSpeechLanguage()
       recognition.interimResults = false
       recognition.onresult = (event) => {
-        const transcript = event.results?.[0]?.[0]?.transcript || ""
+        const transcript = cleanVoiceQuery(event.results?.[0]?.[0]?.transcript || "")
         if (transcript) {
           setSearch(transcript)
           toast?.show(`Searching for "${transcript}"`, "info")
@@ -559,12 +560,8 @@ export function Products({ setView, requireAuth, user }) {
     const name = (p.name || '').toLowerCase()
     const cat = (p.category || '').toLowerCase()
     const sku = (p.sku || '').toLowerCase()
-    const term = search.trim().toLowerCase()
-
-    const matchesSearch = term === "" ||
-      name.includes(term) ||
-      cat.includes(term) ||
-      sku.includes(term)
+    const term = search.trim()
+    const matchesSearch = term === "" || matchesItemFuzzy(p, term, { tDb, lang })
 
     const matchesCategory = selectedCategory === "all" || cat === selectedCategory.toLowerCase()
     return matchesSearch && matchesCategory

@@ -1199,3 +1199,146 @@
   color: #0369a1 !important;
   text-align: center;
 }
+
+/* ================= Phone code (sign up + forgot password) ================= */
+.auth-overlay .otp-panel { display: flex; flex-direction: column; gap: 0.85rem; }
+.auth-overlay .otp-sent {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+}
+.auth-overlay .otp-sent p { margin: 0; font-size: 0.86rem; color: #0c4a6e; line-height: 1.45; }
+.auth-overlay .otp-sent b { color: #0C1F41; white-space: nowrap; }
+.auth-overlay .otp-sent-sub { display: block; font-size: 0.76rem; color: #64748b; }
+.auth-overlay .otp-sent-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+}
+
+.auth-overlay .otp-demo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  background: #fffbeb;
+  border: 1px dashed #f59e0b;
+  color: #92400e;
+}
+.auth-overlay .otp-demo-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.auth-overlay .otp-demo-label { font-size: 0.74rem; font-weight: 600; }
+.auth-overlay .otp-demo-code { font-size: 1.15rem; letter-spacing: 0.3em; color: #78350f; font-variant-numeric: tabular-nums; }
+.auth-overlay .otp-demo-fill {
+  flex: none;
+  height: 32px;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  border: 1px solid #f59e0b;
+  background: #ffffff;
+  color: #92400e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.auth-overlay .otp-demo-fill:hover:not(:disabled) { background: #fef3c7; }
+.auth-overlay .otp-demo-fill:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.auth-overlay .otp-boxes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
+.auth-overlay .auth-form input.otp-box {
+  height: 52px !important;
+  padding: 0 !important;
+  text-align: center !important;
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+}
+.auth-overlay .otp-boxes.has-error input.otp-box { border-color: #fca5a5 !important; background: #fff7f7 !important; }
+.auth-overlay .auth-form input.otp-box:disabled { opacity: 0.6; }
+
+.auth-overlay .otp-resend { font-size: 0.82rem; color: #64748b; text-align: center; min-height: 22px; }
+.auth-overlay .auth-form .otp-resend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border: none;
+  background: none;
+  color: #0284c7;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.auth-overlay .auth-form .otp-resend-btn:hover:not(:disabled) { background: #f0f9ff; }
+.auth-overlay .otp-spin { animation: otpSpin 0.8s linear infinite; }
+@keyframes otpSpin { to { transform: rotate(360deg) } }
+
+/* green message (e.g. after a password change) */
+.auth-overlay .auth-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.auth-overlay .auth-notice svg { flex: none; margin-top: 1px; }
+
+/* "Forgot password?" under the password */
+.auth-overlay .auth-forgot-row { display: flex; justify-content: flex-end; margin-top: -0.35rem; }
+.auth-overlay .auth-form .auth-forgot-link {
+  padding: 0.2rem 0.35rem;
+  border: none;
+  background: none;
+  color: #0284c7;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.auth-overlay .auth-form .auth-forgot-link:hover { background: #f0f9ff; text-decoration: underline; }
+
+/* new-password rules (forgot password) */
+.auth-overlay .forgot-rules {
+  list-style: none;
+  margin: -0.2rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem 0.75rem;
+}
+.auth-overlay .forgot-rules li { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #94a3b8; }
+.auth-overlay .forgot-rules li.ok { color: #15803d; font-weight: 600; }
+
+@media (max-width: 480px) {
+  .auth-overlay .otp-boxes { gap: 0.35rem; }
+  .auth-overlay .auth-form input.otp-box { height: 46px !important; font-size: 1.15rem !important; }
+  .auth-overlay .forgot-rules { grid-template-columns: 1fr; }
+}
+
+.auth-overlay .auth-form .auth-summary.forgot-verified {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px !important;
+  text-align: left !important;
+}
+.auth-overlay .auth-form .auth-summary.forgot-verified svg { flex: none; color: #15803d; }

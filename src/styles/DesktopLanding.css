@@ -1411,3 +1411,16 @@
     animation: none;
   }
 }
+
+/* narrow screens: the section links do not fit; keep logo, language, Log in and Get started */
+@media (max-width: 900px) {
+  .dl-nav-links { display: none !important; }
+}
+@media (max-width: 480px) {
+  .dl-nav-inner { gap: 8px !important; }
+  .dl-nav .dl-logo { height: 28px !important; width: auto !important; }
+  .dl-nav-actions { gap: 6px !important; }
+  .dl-nav-actions .dl-btn { padding: 0 10px !important; height: 36px !important; font-size: 0.82rem !important; }
+  .dl-lang-btn { padding: 0 8px !important; height: 36px !important; }
+  .dl-lang-btn > span { display: none !important; }
+}
