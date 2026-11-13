@@ -31,7 +31,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: env(safe-area-inset-top, 20px) 24px max(env(safe-area-inset-bottom, 28px), 36px);
+  padding: max(var(--app-safe-top), 20px) 24px max(var(--app-safe-bottom), 36px);
   position: relative;
   box-sizing: border-box;
   background: #ffffff;
@@ -806,7 +806,7 @@
 @media (max-height: 760px) {
   .welcome-container {
     padding-top: 10px;
-    padding-bottom: max(env(safe-area-inset-bottom, 16px), 16px);
+    padding-bottom: max(var(--app-safe-bottom), 16px);
   }
 
   .welcome-top-bar {

@@ -32,7 +32,7 @@ export function Pricing({ setView, setShowAuth, user }) {
     let isMounted = true
     const currentKey = getCurrentUserKey(user)
 
-    const fetchFreshQuota = async () => {
+    const fetchFreshQuota = async (force = false) => {
       if (!user) return
       try {
         const subRes = await call("/subscriptions/my", { noCache: true })
@@ -47,8 +47,14 @@ export function Pricing({ setView, setShowAuth, user }) {
 
     fetchFreshQuota()
 
-    const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+    const handleUpdate = (e) => {
+      const direct = e?.detail?.quota || e?.detail?.plan
+      if (direct && typeof direct === 'object') {
+        setActivePlan(direct)
+      } else {
+        setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+      }
+      fetchFreshQuota(true)
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)
@@ -135,7 +141,7 @@ export function Pricing({ setView, setShowAuth, user }) {
       savings: t("pricing.save50", "Save ₹50 (10% OFF)"),
       perPrintCost: `₹0.225 ${t("pricing.perPrint", "/ print")}`,
       cardClass: "card-pro popular-plan-card",
-      btnClass: "btn-pro",
+      btnClass: "btn-starter",
       iconType: "pro"
     },
     {
@@ -163,7 +169,7 @@ export function Pricing({ setView, setShowAuth, user }) {
       savings: t("pricing.save250", "Save ₹250 (20% OFF)"),
       perPrintCost: `₹0.20 ${t("pricing.perPrint", "/ print")}`,
       cardClass: "card-business",
-      btnClass: "btn-business",
+      btnClass: "btn-starter",
       iconType: "business"
     }
   ]

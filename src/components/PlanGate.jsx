@@ -58,7 +58,11 @@ export function PlanGate({ user, shopName, onPurchased, onBack }) {
   // A payment that was made earlier but never confirmed (server not ready, connection lost) is finished here, with no second charge
   useEffect(() => {
     if (!getPendingPayment(user)) return
-    resumePendingPurchase({ user, onDone: () => onPurchased?.() })
+    resumePendingPurchase({
+      user,
+      onActivated: (updated) => { if (updated) onPurchased?.(updated) },
+      onDone: () => onPurchased?.()
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -71,6 +75,7 @@ export function PlanGate({ user, shopName, onPurchased, onBack }) {
         amountInRupees: plan.price,
         printCount: plan.prints,
         user,
+        onActivated: (updated) => { if (updated) onPurchased?.(updated) },
         onDone: () => onPurchased?.(plan)
       })
     } finally {

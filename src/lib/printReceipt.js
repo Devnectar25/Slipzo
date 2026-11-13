@@ -1,4 +1,75 @@
 import Swal from "sweetalert2"
+import { registerPlugin } from "@capacitor/core"
+
+const isMobileBrowser = () => {
+  if (typeof navigator === "undefined") return false
+  const ua = navigator.userAgent || ""
+  // iPadOS reports itself as a Mac, so also check for touch
+  return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua) ||
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+}
+
+function triggerBlobDownload(blob, filename) {
+  const blobUrl = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = blobUrl
+  link.download = filename
+  link.rel = "noopener"
+  link.style.display = "none"
+  document.body.appendChild(link)
+  link.click()
+  setTimeout(() => { if (link.parentNode) link.parentNode.removeChild(link) }, 1000)
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+}
+
+// "PDF ready" dialog for phones: Download and Share run inside the person's own tap
+function offerMobilePdf(pdfBlob, filename, formatLabel) {
+  const file = typeof File !== "undefined" ? new File([pdfBlob], filename, { type: "application/pdf" }) : null
+  const canShare = Boolean(
+    file && typeof navigator.share === "function" &&
+    typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })
+  )
+
+  return new Promise((resolve) => {
+    let result = { saved: false, filename }
+    Swal.fire({
+      title: "PDF Ready",
+      text: `${filename} (${formatLabel})`,
+      icon: "success",
+      showConfirmButton: true,
+      confirmButtonText: "Download PDF",
+      showDenyButton: canShare,
+      denyButtonText: "Share / Save to Files",
+      showCancelButton: true,
+      cancelButtonText: "Close",
+      confirmButtonColor: "#0284c7",
+      denyButtonColor: "#0f766e",
+      // Handle the taps with plain listeners so the download/share starts synchronously inside the tap
+      // (capture on the popup runs before SweetAlert's own button handler, which would close the dialog)
+      didOpen: (popup) => {
+        popup.addEventListener("click", (e) => {
+          if (e.target.closest(".swal2-confirm")) {
+            e.stopPropagation()
+            triggerBlobDownload(pdfBlob, filename)
+            result = { saved: true, filename }
+            Swal.update({
+              title: "Download started",
+              text: canShare
+                ? "Check your Downloads folder or the download notification. If nothing appears, tap Share / Save to Files."
+                : "Check your Downloads folder or the download notification.",
+              confirmButtonText: "Download again"
+            })
+          } else if (e.target.closest(".swal2-deny")) {
+            e.stopPropagation()
+            navigator.share({ title: filename, files: [file] })
+              .then(() => { result = { saved: true, filename }; Swal.close() })
+              .catch(() => {}) // the person closed the share sheet
+          }
+        }, true)
+      }
+    }).then(() => resolve(result))
+  })
+}
 
 const HTML2PDF_CDNS = [
   "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js",
@@ -544,7 +615,10 @@ export async function saveReceiptAsPdf(elementId = "receipt-to-print", options =
 
     const cap = typeof window !== "undefined" ? window.Capacitor : null
     const isCapacitorNative = Boolean(cap?.isNativePlatform?.() || cap?.isNative)
-    const nativeSaver = cap?.Plugins?.NativeFileSaver
+    // Capacitor 3+ no longer guarantees custom plugins on Capacitor.Plugins; registerPlugin always finds them
+    const nativeSaver = isCapacitorNative
+      ? (cap?.Plugins?.NativeFileSaver || (cap?.isPluginAvailable?.("NativeFileSaver") ? registerPlugin("NativeFileSaver") : null))
+      : null
 
     if (isCapacitorNative) {
       if (nativeSaver?.savePdf) {
@@ -595,23 +669,22 @@ export async function saveReceiptAsPdf(elementId = "receipt-to-print", options =
       throw new Error("Direct PDF download requires the latest Android app build.")
     }
 
-    // Standard desktop / mobile web browser download
     if (typeof window.navigator?.msSaveOrOpenBlob === "function") {
       window.navigator.msSaveOrOpenBlob(pdfBlob, filename)
-    } else {
-      const blobUrl = URL.createObjectURL(pdfBlob)
-      const link = document.createElement("a")
-      link.href = blobUrl
-      link.download = filename
-      link.rel = "noopener noreferrer"
-      link.style.display = "none"
-      document.body.appendChild(link)
-      link.click()
-      setTimeout(() => {
-        if (link.parentNode) link.parentNode.removeChild(link)
-      }, 1000)
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+      Swal.close()
+      return { saved: true, filename }
     }
+
+    // Mobile browsers: the PDF is made asynchronously, so by now the original tap has "expired" and many
+    // mobile browsers (in-app browsers, iOS home-screen apps, some Android Chrome setups) silently drop a
+    // programmatic blob download while we would still report success. Instead, offer a button: the
+    // download then starts inside a fresh tap, which every browser allows. Sharing is offered too.
+    if (isMobileBrowser()) {
+      return offerMobilePdf(pdfBlob, filename, formatLabel)
+    }
+
+    // Desktop browser download
+    triggerBlobDownload(pdfBlob, filename)
 
     Swal.fire({
       title: "PDF Saved!",

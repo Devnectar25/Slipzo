@@ -967,14 +967,14 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
         @media (max-width: 820px) {
           /* phone: stay clear of the status bar (top) and the navigation bar (bottom) */
           .shop-onboarding-backdrop {
-            padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 0.5rem) 0.5rem calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 0.5rem) !important;
+            padding: calc(var(--app-safe-top) + 0.5rem) 0.5rem calc(var(--app-safe-bottom) + 0.5rem) !important;
           }
 
           .shop-onboarding-card {
             width: calc(100vw - 1rem) !important;
             max-width: 100% !important;
-            max-height: calc(100vh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
-            max-height: calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
+            max-height: calc(100vh - var(--app-safe-top) - var(--app-safe-bottom) - 1rem) !important;
+            max-height: calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom) - 1rem) !important;
             border-radius: 16px !important;
             margin: 0 auto !important;
           }

@@ -15,10 +15,10 @@
   margin: 0 auto;
   /* leave room for the phone status bar and navigation bar (Capacitor sets the variables; newer WebViews support env()) */
   padding:
-    calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + clamp(1.25rem, 4vw, 2.5rem))
-    calc(var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) + 16px)
-    calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 2rem)
-    calc(var(--safe-area-inset-left, env(safe-area-inset-left, 0px)) + 16px);
+    calc(var(--app-safe-top) + clamp(1.25rem, 4vw, 2.5rem))
+    calc(var(--app-safe-right) + 16px)
+    calc(var(--app-safe-bottom) + 2rem)
+    calc(var(--app-safe-left) + 16px);
 }
 
 .plan-gate-head {
@@ -163,21 +163,21 @@
   min-height: 44px;
   border: none;
   border-radius: 12px;
-  background: #e0f2fe;
-  color: #0369a1;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: #fff;
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
-.plan-gate-card.popular .plan-gate-buy {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7);
-  color: #fff;
+.plan-gate-buy:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
 }
 
-.plan-gate-buy:hover:not(:disabled) { transform: translateY(-1px); background: #bae6fd; }
-.plan-gate-card.popular .plan-gate-buy:hover:not(:disabled) { background: linear-gradient(135deg, #0284c7, #0369a1); }
 .plan-gate-buy:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .plan-gate-foot {

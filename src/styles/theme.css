@@ -3,6 +3,20 @@
    Complete 90-Color Specification Palette & Global Styling Engine
    ========================================================================== */
 
+/* --------------------------------------------------------------------------
+   Safe areas (Android status bar and gesture bar, iPhone notch)
+   Capacitor 8 draws the app edge to edge and injects --safe-area-inset-* on <html>.
+   Some Android WebViews report env(safe-area-inset-*) as 0 there, so on its own env()
+   lets the header slide under the status bar. Taking the larger of the two works on
+   every WebView and in the browser. Use these tokens for all safe-area spacing.
+   -------------------------------------------------------------------------- */
+:root {
+  --app-safe-top: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
+  --app-safe-bottom: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
+  --app-safe-left: max(var(--safe-area-inset-left, 0px), env(safe-area-inset-left, 0px));
+  --app-safe-right: max(var(--safe-area-inset-right, 0px), env(safe-area-inset-right, 0px));
+}
+
 :root {
   /* --------------------------------------------------------------------------
      1-4. Brand Colors - Slipzo Primary Blue

@@ -1479,6 +1479,15 @@
   cursor: not-allowed;
 }
 
+/* out of stock, owner view: the button opens the stock popup */
+.nb-add-btn.nb-add-btn-restock {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+  border: 1px solid #fed7aa !important;
+  box-shadow: none !important;
+}
+.nb-add-btn.nb-add-btn-restock:hover { background: #ffedd5 !important; }
+
 /* Bill preview (New Bill and table billing): drawn smaller so the whole bill fits in less height */
 .tb-preview-paper {
   zoom: 0.72;

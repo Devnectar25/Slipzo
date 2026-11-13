@@ -2238,16 +2238,16 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           @media (max-width: 860px) {
             /* phone: stay clear of the status bar (top) and the navigation bar (bottom) */
             .add-menu-modal-backdrop {
-              padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 0.5rem) 0.5rem calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 0.5rem) !important;
+              padding: calc(var(--app-safe-top) + 0.5rem) 0.5rem calc(var(--app-safe-bottom) + 0.5rem) !important;
             }
 
             .add-menu-modal-card {
               width: 100% !important;
               max-width: 100% !important;
-              height: calc(100vh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
-              height: calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
-              max-height: calc(100vh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
-              max-height: calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) - 1rem) !important;
+              height: calc(100vh - var(--app-safe-top) - var(--app-safe-bottom) - 1rem) !important;
+              height: calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom) - 1rem) !important;
+              max-height: calc(100vh - var(--app-safe-top) - var(--app-safe-bottom) - 1rem) !important;
+              max-height: calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom) - 1rem) !important;
               border-radius: 16px !important;
               display: flex !important;
               flex-direction: column !important;

@@ -1,7 +1,7 @@
 import Swal from "sweetalert2"
 import i18n from "../i18n/i18n"
 import "../styles/PaymentSuccess.css"
-import { syncUserQuota, call, isNativeApp } from "./utils"
+import { activatePlan, syncUserQuota, call, isNativeApp, getCurrentUserKey, invalidateApiCache } from "./utils"
 
 // Plan names are stored in English on the server; the screen shows them in the chosen language
 const PLAN_LABEL_KEYS = { "Starter Pack": "planGate.starter.name", "Pro Growth": "planGate.pro.name", "Business Super": "planGate.business.name" }
@@ -48,7 +48,8 @@ async function freshQuota(userKey, quota) {
 // Asks our server to confirm the payment with Razorpay and add the prints. Nothing is added unless the server says yes.
 async function confirmPurchase(pending, user) {
   const { paymentId, planName, amountInRupees, printCount } = pending
-  const userKey = user?.email || user?.id
+  const userKey = getCurrentUserKey(user)
+  invalidateApiCache('/subscriptions')
   try {
     const subRes = await call("/subscriptions", {
       method: "POST",
@@ -63,16 +64,31 @@ async function confirmPurchase(pending, user) {
         user_email: user?.email || ""
       })
     })
+    invalidateApiCache('/subscriptions')
+    let updated = null
+    if (subRes && subRes.quota) {
+      updated = syncUserQuota(subRes.quota, userKey)
+    }
+    if (!updated) {
+      updated = await freshQuota(userKey, subRes?.quota)
+    }
+    if (!updated) {
+      updated = activatePlan(planName, printCount, userKey)
+    }
     clearPending()
-    return { ok: true, subRes, updated: await freshQuota(userKey, subRes?.quota) }
+    return { ok: true, subRes, updated }
   } catch (err) {
     // "already used" can mean an earlier try did go through but its answer never reached us: look before giving up
     if (err?.status === 409) {
       try {
         const mine = await call("/subscriptions/my", { noCache: true })
         if ((mine?.subscriptions || []).some((s) => s.payment_id === paymentId)) {
+          let updated = null
+          if (mine.quota) updated = syncUserQuota(mine.quota, userKey)
+          if (!updated) updated = await freshQuota(userKey, mine.quota)
+          if (!updated) updated = activatePlan(planName, printCount, userKey)
           clearPending()
-          return { ok: true, subRes: mine, updated: await freshQuota(userKey, mine.quota) }
+          return { ok: true, subRes: mine, updated }
         }
       } catch (_) { /* fall through to the error */ }
     }
@@ -153,8 +169,18 @@ async function confirmWithRetry(pending, user, { onActivated, onDone } = {}) {
     })
     const result = await confirmPurchase(pending, user)
     if (result.ok) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("slipzo-quota-update", {
+          detail: { quota: result.updated, plan: result.updated, userKey: getCurrentUserKey(user) }
+        }))
+      }
       onActivated?.(result.updated, result.subRes)
       await successPopup(pending)
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("slipzo-quota-update", {
+          detail: { quota: result.updated, plan: result.updated, userKey: getCurrentUserKey(user) }
+        }))
+      }
       onDone?.()
       return true
     }

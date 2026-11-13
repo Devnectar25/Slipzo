@@ -51,7 +51,7 @@ import {
   stockInfo,
   formatQty
 } from "../lib/utils"
-import { StockBadge } from "./common/StockModal"
+import { StockBadge, StockModal } from "./common/StockModal"
 import { Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { VoiceInputButton } from "./common/VoiceInputButton"
@@ -90,6 +90,15 @@ function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PRE
   }
 }
 
+// "Use Template" (Templates page, landing page, public templates) stores the picked template here and opens New Bill
+const PENDING_TEMPLATE_KEY = "slipzo-template"
+const readPendingTemplate = () => {
+  try { return typeof window !== "undefined" ? sessionStorage.getItem(PENDING_TEMPLATE_KEY) : null } catch (_) { return null }
+}
+const clearPendingTemplate = () => {
+  try { sessionStorage.removeItem(PENDING_TEMPLATE_KEY) } catch (_) { }
+}
+
 export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: initialShop, setShop: parentSetShop }) {
   const { t } = useTranslation()
   const { tDb, formatNum, lang } = useDbTranslation()
@@ -121,7 +130,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [templates, setTemplates] = useState(() => (Array.isArray(cachedTemplates) ? cachedTemplates : []))
   const [selectedId, setSelectedId] = useState(() => {
     const list = Array.isArray(cachedTemplates) && cachedTemplates.length > 0 ? cachedTemplates : BUILTIN_TEMPLATES
-    const targetTplId = initialShop?.default_template_id ||
+    // A template picked with "Use Template" (Templates page / landing page) comes first
+    const targetTplId = readPendingTemplate() ||
+      initialShop?.default_template_id ||
       cachedShop?.default_template_id ||
       (typeof window !== "undefined" ? localStorage.getItem("slipzo_default_template_id") : null)
     if (targetTplId) {
@@ -131,6 +142,24 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
     return ""
   })
+
+  // A template picked with "Use Template" becomes the shop's receipt template (same setting as Shop Profile ->
+  // Receipt Template), so this bill AND the next ones are shown and printed with it, not only one bill.
+  const rememberPickedTemplate = (tpl, shopData) => {
+    if (!tpl?.id) return
+    try { localStorage.setItem("slipzo_default_template_id", tpl.id) } catch (_) { }
+    toastSuccess(t("bills.usingTemplate", "Using the \"{{name}}\" template", { name: tDb(tpl.name || "") }))
+    // workers cannot change the shop; an owner without a shop name yet keeps the choice on this device
+    if (user?.staff_of || !shopData?.name || String(shopData.default_template_id || "") === String(tpl.id)) return
+    const updated = { ...shopData, default_template_id: tpl.id }
+    call("/shop", {
+      method: "PUT",
+      // the endpoint replaces name / address / phone, so the current values are sent along unchanged
+      body: JSON.stringify({ name: shopData.name, address: shopData.address || "", phone: shopData.phone || "", default_template_id: tpl.id })
+    }).then(() => {
+      setShop(updated)
+    }).catch((err) => console.warn("Could not save the picked template as default:", err))
+  }
 
   // Listen for shop updates (e.g. template changed in Shop Profile or Onboarding)
   useEffect(() => {
@@ -252,7 +281,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         if (!user) {
           if (isMounted) {
             setTemplates(BUILTIN_TEMPLATES)
-            setSelectedId(BUILTIN_TEMPLATES[0].id)
+            const picked = findTemplateMatch(BUILTIN_TEMPLATES, readPendingTemplate())
+            setSelectedId((picked || BUILTIN_TEMPLATES[0]).id)
             setCustomBillNumber(generateClientBillNumber("SLP", 1001, "PREFIX-DATE-SEQ"))
           }
           return
@@ -273,10 +303,19 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         const combinedTemplates = dbTemplates.length > 0 ? [...dbTemplates, ...extraBuiltins] : BUILTIN_TEMPLATES
         setTemplates(combinedTemplates)
 
-        // Automatically resolve the user's selected template from Shop Profile
+        // "Use Template" choice first, otherwise the template selected in Shop Profile
         let resolvedTpl = null
+        const pendingTpl = readPendingTemplate()
+        const pickedTpl = pendingTpl
+          ? (findTemplateMatch(combinedTemplates, pendingTpl) || findTemplateMatch(BUILTIN_TEMPLATES, pendingTpl))
+          : null
+        if (pendingTpl) clearPendingTemplate()
+        if (pickedTpl) {
+          resolvedTpl = pickedTpl
+          rememberPickedTemplate(pickedTpl, shopData)
+        }
         const targetTpl = shopData?.default_template_id || (typeof window !== "undefined" ? localStorage.getItem("slipzo_default_template_id") : null)
-        if (targetTpl) {
+        if (!resolvedTpl && targetTpl) {
           resolvedTpl = findTemplateMatch(combinedTemplates, targetTpl)
           if (!resolvedTpl) {
             resolvedTpl = findTemplateMatch(BUILTIN_TEMPLATES, targetTpl)
@@ -419,14 +458,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   // Map of added bill items by clean name (for card button and quantity controls)
   const addedItemMap = useMemo(() => {
     const map = new Map()
-    items.forEach((it) => {
-      map.set((it.name || "").trim().toLowerCase(), it)
+    items.forEach((it, idx) => {
+      map.set((it.name || "").trim().toLowerCase(), { ...it, billIndex: idx })
     })
     return map
   }, [items])
 
   // Filter and sort user menu items:
-  // Items in bill appear on TOP, sorted by maximum quantity in descending order
+  // Items in bill appear on TOP, preserving their stable addition order (never reordered by quantity)
   const filteredMenuItems = useMemo(() => {
     const q = search.trim()
     const filtered = userMenuItems.filter((it) => {
@@ -441,14 +480,19 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       const nameB = (b.name || "").trim().toLowerCase()
       const addedA = addedItemMap.get(nameA)
       const addedB = addedItemMap.get(nameB)
-      const qtyA = addedA ? Number(addedA.quantity) || 0 : 0
-      const qtyB = addedB ? Number(addedB.quantity) || 0 : 0
+      const inBillA = Boolean(addedA)
+      const inBillB = Boolean(addedB)
 
-      // If quantities differ, higher quantity comes first on top
-      if (qtyB !== qtyA) {
-        return qtyB - qtyA
+      // Items in the bill appear first
+      if (inBillA && !inBillB) return -1
+      if (!inBillA && inBillB) return 1
+
+      // If both are in the bill, preserve the order they were added to the bill
+      if (inBillA && inBillB) {
+        return (addedA.billIndex ?? 0) - (addedB.billIndex ?? 0)
       }
 
+      // If neither is in the bill, keep original menu order
       return 0
     })
   }, [userMenuItems, search, selectedCategory, addedItemMap])
@@ -482,6 +526,20 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   // ==========================================
   // ---------- stock (kirana / grocery and cloth shops) ----------
   const isInventory = isInventoryShop(shop?.business_type)
+  // The owner can restock straight from the bill (workers may not change stock, the server refuses it)
+  const canManageStock = isInventory && !user?.staff_of
+  const [stockItem, setStockItem] = useState(null)
+  const handleStockSaved = (res) => {
+    if (!res?.id) return
+    setUserMenuItems((prev) => {
+      const next = prev.map((it) => (it.id === res.id
+        ? { ...it, stock_qty: res.stock_qty, track_stock: res.track_stock, low_stock_alert: res.low_stock_alert }
+        : it))
+      saveStoredMenuItems(next, user)
+      return next
+    })
+    toastSuccess(t("stock.saved", "Stock updated"))
+  }
   const findMenuItemFor = (line) => {
     const code = String(line?.barcode || "").trim().toLowerCase()
     const name = String(line?.name || "").trim().toLowerCase()
@@ -984,7 +1042,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     if (isPrintingRef.current) return
     isPrintingRef.current = true
 
-    const userAuthKey = user?.email || user?.id || userKey
+    const userAuthKey = getCurrentUserKey(user)
 
     // Check if user has available quota
     if (!canPrintFree(userAuthKey)) {
@@ -1390,7 +1448,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                   {money(getItemRate(menuItem))}
                                 </div>
                                 {isInventory && stockInfo(menuItem).tracked && (
-                                  <div className="nb-item-stock"><StockBadge item={menuItem} /></div>
+                                  <div className="nb-item-stock">
+                                    <StockBadge item={menuItem} onClick={canManageStock ? () => setStockItem(menuItem) : undefined} />
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -1432,14 +1492,26 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                   </button>
                                 </div>
                               ) : maxQtyFor(menuItem) <= 0 ? (
-                                <button
-                                  type="button"
-                                  className="nb-add-btn nb-add-btn-out"
-                                  onClick={() => refuseIfShort(menuItem, 1)}
-                                  title={t("stock.outOfStock", "Out of stock")}
-                                >
-                                  {t("stock.outOfStock", "Out of stock")}
-                                </button>
+                                canManageStock ? (
+                                  // out of stock: offer to add stock here instead of a dead button
+                                  <button
+                                    type="button"
+                                    className="nb-add-btn nb-add-btn-restock"
+                                    onClick={() => setStockItem(menuItem)}
+                                    title={t("stock.outAddStock", "Out of stock. Tap to add stock")}
+                                  >
+                                    <Plus size={14} /> {t("stock.addStockShort", "Add stock")}
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="nb-add-btn nb-add-btn-out"
+                                    onClick={() => refuseIfShort(menuItem, 1)}
+                                    title={t("stock.outOfStock", "Out of stock")}
+                                  >
+                                    {t("stock.outOfStock", "Out of stock")}
+                                  </button>
+                                )
                               ) : (
                                 <button
                                   type="button"
@@ -1659,6 +1731,16 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           <RealisticReceiptView template={templateForPrint} />
         </div>
       </div>
+
+      {/* Add / set stock without leaving the bill (owner, kirana / cloth shops) */}
+      {canManageStock && (
+        <StockModal
+          item={stockItem}
+          isOpen={Boolean(stockItem)}
+          onClose={() => setStockItem(null)}
+          onSaved={handleStockSaved}
+        />
+      )}
 
       {/* Camera Barcode Scanner Modal */}
       {showBarcode && isCameraScannerOpen && (

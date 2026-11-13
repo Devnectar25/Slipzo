@@ -1,5 +1,12 @@
 {
   "appId": "com.slipzo.app",
   "appName": "Slipzen",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "LIGHT",
+      "initialViewportFitValueHint": "cover"
+    }
+  }
 }

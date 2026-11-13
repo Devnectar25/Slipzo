@@ -45,7 +45,7 @@ if (isNativeApp) {
       if (customApi?.includes('vercel.app')) {
         localStorage.removeItem('slipzo_custom_api_url')
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 } else {
   // Running in web browser
@@ -85,7 +85,7 @@ const getApiCacheScope = () => {
     }
     const token = localStorage.getItem('slipzo_token')
     if (token) return `tok:${token.slice(-12)}`
-  } catch (e) {}
+  } catch (e) { }
   return 'guest'
 }
 
@@ -105,7 +105,7 @@ export const clearApiCache = () => {
     for (const k of lKeys) {
       if (k.startsWith('slipzo_cache_')) localStorage.removeItem(k)
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export const invalidateApiCache = (pattern) => {
@@ -127,7 +127,7 @@ export const invalidateApiCache = (pattern) => {
         localStorage.removeItem(k)
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export const getCachedData = (path) => {
@@ -146,7 +146,7 @@ export const getCachedData = (path) => {
         return parsed.data
       }
     }
-  } catch (e) {}
+  } catch (e) { }
   return null
 }
 
@@ -158,17 +158,17 @@ export const setCachedData = (path, data) => {
     try {
       sessionStorage.removeItem(`slipzo_cache_${cacheKey}`)
       localStorage.removeItem(`slipzo_cache_${cacheKey}`)
-    } catch (e) {}
+    } catch (e) { }
     return
   }
   const cacheItem = { data, timestamp: Date.now() }
   memoryCache.set(cacheKey, cacheItem)
   try {
     sessionStorage.setItem(`slipzo_cache_${cacheKey}`, JSON.stringify(cacheItem))
-  } catch (e) {}
+  } catch (e) { }
   try {
     localStorage.setItem(`slipzo_cache_${cacheKey}`, JSON.stringify(cacheItem))
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export const removeCachedData = (path) => {
@@ -178,19 +178,19 @@ export const removeCachedData = (path) => {
   try {
     sessionStorage.removeItem(`slipzo_cache_${cacheKey}`)
     localStorage.removeItem(`slipzo_cache_${cacheKey}`)
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export const call = async (path, options = {}) => {
   // Ensure path starts with slash
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  
+
   // Strip duplicate /api prefix if path already includes it
   let cleanPath = normalizedPath
   if (API.endsWith('/api') && cleanPath.startsWith('/api/')) {
     cleanPath = cleanPath.substring(4)
   }
-  
+
   const method = (options.method || 'GET').toUpperCase()
   const isGet = method === 'GET'
   const cacheKey = getScopedCacheKey(cleanPath)
@@ -201,7 +201,6 @@ export const call = async (path, options = {}) => {
     else if (cleanPath.startsWith('/bills')) {
       invalidateApiCache('/bills')
       invalidateApiCache('/bills/stats')
-      invalidateApiCache('/menu') // bills change stock counts
     }
     else if (cleanPath.startsWith('/products') || cleanPath.startsWith('/admin/products') || cleanPath.startsWith('/menu')) {
       invalidateApiCache('/products')
@@ -211,6 +210,10 @@ export const call = async (path, options = {}) => {
     else if (cleanPath.startsWith('/shop')) invalidateApiCache('/shop')
     else if (cleanPath.startsWith('/subscriptions')) invalidateApiCache('/subscriptions')
     else if (cleanPath.startsWith('/customers')) invalidateApiCache('/customers')
+    else if (cleanPath.startsWith('/subscriptions')) {
+      invalidateApiCache('/subscriptions')
+      invalidateApiCache('/subscriptions/my')
+    }
     else if (cleanPath.startsWith('/restaurant') || cleanPath.startsWith('/tables')) {
       invalidateApiCache('/restaurant')
       invalidateApiCache('/tables')
@@ -231,7 +234,7 @@ export const call = async (path, options = {}) => {
           cached = JSON.parse(raw)
           memoryCache.set(cacheKey, cached)
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (cached) {
@@ -265,7 +268,7 @@ const revalidateInBackground = async (cleanPath, options) => {
       try {
         const fallbackPath = cleanPath.replace('/menu', '/products')
         await executeFetch(fallbackPath, { ...options, isRevalidation: true })
-      } catch (e2) {}
+      } catch (e2) { }
     }
   }
 }
@@ -293,9 +296,9 @@ const performFetch = async (cleanPath, options = {}) => {
   const url = `${API}${cleanPath}`
   const method = (options.method || 'GET').toUpperCase()
   const isGet = method === 'GET'
-  
-  const token = typeof window !== 'undefined' 
-    ? (localStorage.getItem('slipzo_admin_token') || localStorage.getItem('slipzo_token')) 
+
+  const token = typeof window !== 'undefined'
+    ? (localStorage.getItem('slipzo_admin_token') || localStorage.getItem('slipzo_token'))
     : null
 
   const { headers: customHeaders, ...restOptions } = options
@@ -320,7 +323,7 @@ const performFetch = async (cleanPath, options = {}) => {
       ...restOptions,
       headers: defaultHeaders
     })
-    
+
     // Check if server returned HTML (e.g. Vercel SPA index.html fallback) instead of JSON
     const contentType = response.headers.get("content-type") || ""
     if (contentType.includes("text/html")) {
@@ -343,11 +346,11 @@ const performFetch = async (cleanPath, options = {}) => {
     } else {
       data = {}
     }
-    
+
     if (!response.ok) {
       const errorMsg = Array.isArray(data.detail) ? data.detail[0]?.msg : data.detail || data.message || "Something went wrong"
       console.error(`❌ API Error (${response.status}):`, errorMsg)
-      
+
       if (response.status === 401) {
         try {
           localStorage.removeItem('slipzo_token')
@@ -358,7 +361,7 @@ const performFetch = async (cleanPath, options = {}) => {
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('slipzo_auth_unauthorized'))
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // The screen shows the translated text; the server's own wording stays available as rawMessage
@@ -380,7 +383,7 @@ const performFetch = async (cleanPath, options = {}) => {
           }
         }
         localStorage.setItem('slipzo_token', data.token)
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Store successful GET responses in cache
@@ -390,9 +393,9 @@ const performFetch = async (cleanPath, options = {}) => {
       memoryCache.set(cacheKey, cacheItem)
       try {
         sessionStorage.setItem(`slipzo_cache_${cacheKey}`, JSON.stringify(cacheItem))
-      } catch (e) {}
+      } catch (e) { }
     }
-    
+
     return data
   } catch (err) {
     if (err.name === 'AbortError') {
@@ -457,19 +460,24 @@ export const money = (n, customLang) => {
 export const now = () => new Date().toISOString()
 
 export const getCurrentUserKey = (user) => {
+  if (typeof user === 'number') return String(user)
   if (typeof user === 'string' && user.trim()) return user.trim().toLowerCase()
   if (user && typeof user === 'object') {
     if (user.email) return String(user.email).trim().toLowerCase()
-    if (user.id) return String(user.id).trim().toLowerCase()
+    if (user.phone) return String(user.phone).trim().toLowerCase()
+    if (user.mobile) return String(user.mobile).trim().toLowerCase()
+    if (user.id !== undefined && user.id !== null) return String(user.id).trim().toLowerCase()
   }
   try {
     const userRaw = typeof window !== 'undefined' ? localStorage.getItem('slipzo_user_info') : null
     if (userRaw) {
       const u = JSON.parse(userRaw)
       if (u?.email) return String(u.email).trim().toLowerCase()
-      if (u?.id) return String(u.id).trim().toLowerCase()
+      if (u?.phone) return String(u.phone).trim().toLowerCase()
+      if (u?.mobile) return String(u.mobile).trim().toLowerCase()
+      if (u?.id !== undefined && u?.id !== null) return String(u.id).trim().toLowerCase()
     }
-  } catch (e) {}
+  } catch (e) { }
   return "guest"
 }
 
@@ -665,7 +673,7 @@ export const getStoredMenuItems = (user) => {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) return parsed
     }
-  } catch (e) {}
+  } catch (e) { }
   return []
 }
 
@@ -676,7 +684,7 @@ export const saveStoredMenuItems = (items, user) => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { userKey: key, items: items || [] } }))
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export const clearStoredMenuItems = (user) => {
@@ -686,7 +694,7 @@ export const clearStoredMenuItems = (user) => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { userKey: key, items: [] } }))
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export const getActivePlanDetails = (userKey) => {
@@ -696,7 +704,7 @@ export const getActivePlanDetails = (userKey) => {
     if (raw) {
       return JSON.parse(raw)
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // No pack bought yet and no free prints: the real numbers arrive from the server (syncUserQuota)
   return {
@@ -721,7 +729,7 @@ export const activatePlan = (planName, printCount, userKey) => {
     }
     localStorage.setItem(`slipzo_active_plan_${key}`, JSON.stringify(planData))
     if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+      window.dispatchEvent(new CustomEvent("slipzo-quota-update", { detail: { quota: planData, plan: planData, userKey: key } }))
     }
     return planData
   } catch (e) {
@@ -752,7 +760,7 @@ export const syncUserQuota = (quotaData, userKey) => {
     }
     localStorage.setItem(`slipzo_active_plan_${key}`, JSON.stringify(updatedPlan))
     if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+      window.dispatchEvent(new CustomEvent("slipzo-quota-update", { detail: { quota: updatedPlan, plan: updatedPlan, userKey: key } }))
     }
     return updatedPlan
   } catch (e) {
@@ -780,7 +788,7 @@ export const incrementFreePrintCount = (userKey) => {
       const next = freeUsed + 1
       localStorage.setItem(`slipzo_free_print_count_${key}`, String(next))
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+        window.dispatchEvent(new CustomEvent("slipzo-quota-update", { detail: { quota: current, userKey: key } }))
       }
       return next
     } else {
@@ -793,7 +801,7 @@ export const incrementFreePrintCount = (userKey) => {
       }
       localStorage.setItem(`slipzo_active_plan_${key}`, JSON.stringify(updatedPlan))
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("slipzo-quota-update"))
+        window.dispatchEvent(new CustomEvent("slipzo-quota-update", { detail: { quota: updatedPlan, plan: updatedPlan, userKey: key } }))
       }
       return updatedRemaining
     }
@@ -897,8 +905,8 @@ export function findTemplateMatch(templatesList, targetId) {
   const targetStr = String(targetId).trim().toLowerCase()
 
   // 1. Direct ID match or templateId match
-  let matched = templatesList.find(t => 
-    String(t.id || "").toLowerCase() === targetStr || 
+  let matched = templatesList.find(t =>
+    String(t.id || "").toLowerCase() === targetStr ||
     String(t.templateId || "").toLowerCase() === targetStr
   )
   if (matched) return matched
@@ -936,7 +944,7 @@ export function findTemplateMatch(templatesList, targetId) {
   ]
 
   // Direct alias match
-  const matchedGroup = aliasGroups.find(g => 
+  const matchedGroup = aliasGroups.find(g =>
     g.aliases.some(a => a === targetStr || targetStr.includes(a) || a.includes(targetStr))
   )
 
@@ -951,8 +959,8 @@ export function findTemplateMatch(templatesList, targetId) {
   }
 
   // 4. Partial name match
-  matched = templatesList.find(t => 
-    (t.name || "").toLowerCase().includes(targetStr) || 
+  matched = templatesList.find(t =>
+    (t.name || "").toLowerCase().includes(targetStr) ||
     targetStr.includes((t.name || "").toLowerCase())
   )
   if (matched) return matched
@@ -968,9 +976,9 @@ export const isHotelRestaurant = (shopOrCategory) => {
     : (shopOrCategory.business_type || shopOrCategory.category || "")
   const clean = String(cat).trim().toLowerCase()
   return clean === "hotel_food" ||
-         clean === "hotel or food restaurant" ||
-         clean.includes("hotel") ||
-         clean.includes("restaurant")
+    clean === "hotel or food restaurant" ||
+    clean.includes("hotel") ||
+    clean.includes("restaurant")
 }
 
 // Small-business and hotel/restaurant categories call their catalog "Menu";
@@ -1000,7 +1008,7 @@ export const getStoredTables = (user) => {
   try {
     const raw = localStorage.getItem(`slipzo_tables_${userKey}`)
     if (raw) return JSON.parse(raw)
-  } catch (e) {}
+  } catch (e) { }
   return null
 }
 
@@ -1008,7 +1016,7 @@ export const saveStoredTables = (user, tables) => {
   const userKey = getCurrentUserKey(user)
   try {
     localStorage.setItem(`slipzo_tables_${userKey}`, JSON.stringify(tables))
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export const clearStoredTables = (user) => {
@@ -1016,7 +1024,7 @@ export const clearStoredTables = (user) => {
   try {
     localStorage.removeItem(`slipzo_tables_${userKey}`)
     localStorage.removeItem("slipzo_tables")
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export const createDefaultTables = (count = 10) => {
@@ -1036,7 +1044,7 @@ export const resetStoredTables = (user, count = 10) => {
   const defaultTables = createDefaultTables(count)
   try {
     localStorage.setItem(`slipzo_tables_${userKey}`, JSON.stringify(defaultTables))
-  } catch (e) {}
+  } catch (e) { }
   return defaultTables
 }
 

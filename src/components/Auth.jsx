@@ -689,27 +689,55 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
             {(!isRegister || step === 3) && (
               <>
                 {isRegister && (
-                  <p className="auth-summary" data-testid="auth-summary">
-                    <b>{form.shopName.trim()}</b> · +91 {normalizeMobile(form.phone)}
-                  </p>
+                  <>
+                    <input
+                      type="text"
+                      name="username"
+                      autoComplete="username"
+                      value={normalizeMobile(form.phone) || form.phone || ""}
+                      readOnly
+                      tabIndex={-1}
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        width: "1px",
+                        height: "1px",
+                        padding: 0,
+                        margin: "-1px",
+                        overflow: "hidden",
+                        clip: "rect(0, 0, 0, 0)",
+                        whiteSpace: "nowrap",
+                        border: 0,
+                        opacity: 0,
+                        pointerEvents: "none"
+                      }}
+                    />
+                    <p className="auth-summary" data-testid="auth-summary">
+                      <b>{form.shopName.trim()}</b> · +91 {normalizeMobile(form.phone)}
+                    </p>
+                  </>
                 )}
 
                 <label>
                   <span className="auth-label-text">{t("auth.password", "Password")} {required}</span>
                   <div className="auth-field password-input-wrap">
-                    <Lock size={17} className="auth-field-icon" />
                     <input
                       data-testid="auth-password-input"
                       data-field="password"
+                      name={isRegister ? "signup_password" : "password"}
+                      id={isRegister ? "signup_password" : "login_password"}
                       onBlur={() => { if (form.password || fieldErrors.password) checkField("password") }}
                       type={showPassword ? "text" : "password"}
                       required
-                      autoComplete={isRegister ? "new-password" : "current-password"}
+                      autoComplete={isRegister ? "one-time-code" : "current-password"}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
                       placeholder={isRegister ? t("auth.createPassword", "Create a password") : t("auth.enterPassword", "Enter your password")}
                       value={form.password}
                       onChange={(e) => set({ password: e.target.value })}
                       className={fieldErrors.password ? "input-error" : ""}
                     />
+                    <Lock size={17} className="auth-field-icon" />
                     <button
                       type="button"
                       className="password-toggle-btn"
@@ -740,19 +768,23 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                   <label>
                     <span className="auth-label-text">{t("auth.confirmPassword", "Re-enter password")} {required}</span>
                     <div className="auth-field password-input-wrap">
-                      <Lock size={17} className="auth-field-icon" />
                       <input
                         data-testid="auth-confirm-password-input"
                         data-field="confirmPassword"
+                        name="signup_confirm_password"
+                        id="signup_confirm_password"
                         onBlur={() => { if (form.confirmPassword || fieldErrors.confirmPassword) checkField("confirmPassword") }}
                         type={showConfirmPassword ? "text" : "password"}
                         required
-                        autoComplete="new-password"
+                        autoComplete="one-time-code"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
                         placeholder={t("auth.confirmPlaceholder", "Re-enter your password")}
                         value={form.confirmPassword}
                         onChange={(e) => set({ confirmPassword: e.target.value })}
                         className={fieldErrors.confirmPassword ? "input-error" : ""}
                       />
+                      <Lock size={17} className="auth-field-icon" />
                       <button
                         type="button"
                         className="password-toggle-btn"
@@ -908,9 +940,24 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           width: 100% !important;
         }
 
+        .password-input-wrap .auth-field-icon {
+          position: absolute !important;
+          left: 0.95rem !important;
+          top: 50% !important;
+          transform: translateY(-50%) !important;
+          color: #94a3b8 !important;
+          pointer-events: none !important;
+          z-index: 3 !important;
+        }
+
+        .password-input-wrap:focus-within .auth-field-icon {
+          color: #0284c7 !important;
+        }
+
         .password-input-wrap input {
           width: 100% !important;
-          padding-right: 2.6rem !important;
+          padding-left: 2.75rem !important;
+          padding-right: 2.9rem !important;
         }
 
         .password-toggle-btn {
@@ -928,7 +975,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           padding: 0.35rem !important;
           border-radius: 6px !important;
           transition: color 0.2s !important;
-          z-index: 2 !important;
+          z-index: 4 !important;
         }
 
         .password-toggle-btn:hover {

@@ -13,7 +13,6 @@ import {
   Camera,
   Upload,
   Edit2,
-  ChevronDown,
   Settings,
   SlidersHorizontal,
   Utensils,
@@ -30,13 +29,14 @@ import {
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
-import { call, getCachedData, setCachedData, getActivePlanDetails, findTemplateMatch, isHotelRestaurant, getDateLocale } from "../lib/utils"
+import { call, getCachedData, setCachedData, getActivePlanDetails, getCurrentUserKey, findTemplateMatch, isHotelRestaurant, getDateLocale } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { BUSINESS_CATEGORIES, getBusinessCategories } from "./common/ChangeCategoryModal"
 import { ManageTablesModal } from "./tables/ManageTablesModal"
+import { SelectMenu } from "./common/SelectMenu"
 import { Skeleton, ButtonLoader } from "./common/Skeleton"
 import { StaffAccessCard, StaffMemberView } from "./StaffAccessCard"
 import "../styles/ShopProfile.css"
@@ -100,7 +100,7 @@ export function Shop({ user, setView } = {}) {
   const { tDb } = useDbTranslation()
   const currentLang = i18n.language || "en"
 
-  const userKey = user?.email || user?.id
+  const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(getActivePlanDetails(userKey))
   const [hasUnsaved, setHasUnsaved] = useState(false)
 
@@ -108,8 +108,13 @@ export function Shop({ user, setView } = {}) {
   const shopNameInputRef = useRef(null)
 
   useEffect(() => {
-    const handleUpdate = () => {
-      setActivePlan(getActivePlanDetails(user?.email || user?.id))
+    const handleUpdate = (e) => {
+      const direct = e?.detail?.quota || e?.detail?.plan
+      if (direct && typeof direct === 'object') {
+        setActivePlan(direct)
+      } else {
+        setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+      }
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)
@@ -768,7 +773,7 @@ export function Shop({ user, setView } = {}) {
             alignItems: "center",
             justifyContent: "center",
             padding: "1rem",
-            paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+            paddingBottom: "calc(1rem + var(--app-safe-bottom))",
             overscrollBehavior: "contain",
           }}
         >
@@ -1155,28 +1160,25 @@ export function Shop({ user, setView } = {}) {
 
             <div className="sp-field-group full-width" style={{ marginTop: "0.5rem" }}>
               <label className="sp-label">{t("profile.numberFormat", "Numbering Format Pattern")}</label>
-              <div className="sp-select-wrap">
-                <SlidersHorizontal size={16} className="sp-input-icon" />
-                <select
-                  value={shop.invoice_format}
-                  onChange={(e) => handleChange("invoice_format", e.target.value)}
-                  className="sp-select"
-                >
-                  <option value="PREFIX-DATE-SEQ">
-                    {t("profile.formatPrefixDateSeq", "Prefix + Date + Number")} (e.g. {shop.invoice_prefix || "HB"}-{new Date().toISOString().slice(0, 10).replace(/-/g, "")}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
-                  </option>
-                  <option value="PREFIX-SHORTDATE-SEQ">
-                    {t("profile.formatPrefixYearSeq", "Prefix + Short Date + Number")} (e.g. {shop.invoice_prefix || "HB"}-{new Date().toISOString().slice(2, 10).replace(/-/g, "")}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
-                  </option>
-                  <option value="PREFIX-SEQ">
-                    {t("profile.formatPrefixSeq", "Prefix + Number")} (e.g. {shop.invoice_prefix || "HB"}-{String(shop.invoice_sequence || 1).padStart(4, "0")})
-                  </option>
-                  <option value="SEQ">
-                    {t("profile.formatSeqOnly", "Number Only")} (e.g. {String(shop.invoice_sequence || 1).padStart(4, "0")})
-                  </option>
-                </select>
-                <ChevronDown size={15} className="sp-select-arrow" />
-              </div>
+              {(() => {
+                const pfx = shop.invoice_prefix || "HB"
+                const seq = String(shop.invoice_sequence || 1).padStart(4, "0")
+                const ymd = new Date().toISOString().slice(0, 10).replace(/-/g, "")
+                return (
+                  <SelectMenu
+                    icon={SlidersHorizontal}
+                    ariaLabel={t("profile.numberFormat", "Numbering Format Pattern")}
+                    value={shop.invoice_format}
+                    onChange={(v) => handleChange("invoice_format", v)}
+                    options={[
+                      { value: "PREFIX-DATE-SEQ", label: `${t("profile.formatPrefixDateSeq", "Prefix + Date + Number")} (e.g. ${pfx}-${ymd}-${seq})` },
+                      { value: "PREFIX-SHORTDATE-SEQ", label: `${t("profile.formatPrefixYearSeq", "Prefix + Short Date + Number")} (e.g. ${pfx}-${ymd.slice(2)}-${seq})` },
+                      { value: "PREFIX-SEQ", label: `${t("profile.formatPrefixSeq", "Prefix + Number")} (e.g. ${pfx}-${seq})` },
+                      { value: "SEQ", label: `${t("profile.formatSeqOnly", "Number Only")} (e.g. ${seq})` }
+                    ]}
+                  />
+                )
+              })()}
             </div>
 
             <div style={{
@@ -1213,21 +1215,16 @@ export function Shop({ user, setView } = {}) {
 
             <div className="sp-field-group">
               <label className="sp-label">{t("profile.languageTitle", "App Language")}</label>
-              <div className="sp-select-wrap">
-                <Globe size={16} className="sp-input-icon" />
-                <select
-                  value={currentLang}
-                  onChange={(e) => handleLanguageSelect(e.target.value)}
-                  className="sp-select"
-                >
-                  {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.flag} {l.nativeName} ({l.label})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={15} className="sp-select-arrow" />
-              </div>
+              <SelectMenu
+                icon={Globe}
+                ariaLabel={t("profile.languageTitle", "App Language")}
+                value={currentLang}
+                onChange={handleLanguageSelect}
+                options={SUPPORTED_LANGUAGES.map((l) => ({
+                  value: l.code,
+                  label: `${l.flag ? `${l.flag} ` : ""}${l.nativeName} (${l.label})`
+                }))}
+              />
               <span className="sp-helper-text">{t("profile.chooseLang", "Choose your preferred application language")}</span>
             </div>
           </div>
@@ -1255,21 +1252,16 @@ export function Shop({ user, setView } = {}) {
 
             <div className="sp-field-group full-width" style={{ marginBottom: "1rem" }}>
               <label className="sp-label">{t("profile.receiptTemplate", "Receipt Template")}</label>
-              <div className="sp-select-wrap">
-                <Receipt size={16} className="sp-input-icon" />
-                <select
-                  value={shop.default_template_id}
-                  onChange={(e) => handleChange("default_template_id", e.target.value)}
-                  className="sp-select"
-                >
-                  {templates.map((tItem) => (
-                    <option key={tItem.id} value={tItem.id}>
-                      {tDb(tItem.name)} ({tItem.width || "58mm"})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={15} className="sp-select-arrow" />
-              </div>
+              <SelectMenu
+                icon={Receipt}
+                ariaLabel={t("profile.receiptTemplate", "Receipt Template")}
+                value={shop.default_template_id}
+                onChange={(v) => handleChange("default_template_id", String(v))}
+                options={templates.map((tItem) => ({
+                  value: tItem.id,
+                  label: `${tDb(tItem.name)} (${tItem.width || "58mm"})`
+                }))}
+              />
               <span className="sp-helper-text">{t("profile.templateHelper", "Layout loaded by default when creating bills")}</span>
             </div>
 
@@ -2101,7 +2093,7 @@ export function Shop({ user, setView } = {}) {
           }
 
           .shop-page {
-            padding: 0.65rem 0.55rem calc(85px + env(safe-area-inset-bottom, 0px)) !important;
+            padding: 0.65rem 0.55rem calc(85px + var(--app-safe-bottom)) !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
             overflow-x: hidden !important;
@@ -2528,7 +2520,7 @@ export function Shop({ user, setView } = {}) {
 
         @media (max-width: 360px) {
           .shop-page {
-            padding: 0.5rem 0.35rem calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+            padding: 0.5rem 0.35rem calc(80px + var(--app-safe-bottom)) !important;
           }
 
           .sp-card,

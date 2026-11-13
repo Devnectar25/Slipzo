@@ -210,7 +210,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
     if (isPrinting) return
     setIsPrinting(true)
 
-    const userAuthKey = user?.email || user?.id || getCurrentUserKey(user)
+    const userAuthKey = getCurrentUserKey(user)
 
     if (!canPrintFree(userAuthKey)) {
       const plan = getActivePlanDetails(userAuthKey)
