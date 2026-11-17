@@ -624,9 +624,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   }
 
   const handleUpdateQuantity = (itemId, delta) => {
+    const line = items.find((it) => it.id === itemId)
     if (delta > 0) {
-      const line = items.find((it) => it.id === itemId)
       if (line && refuseIfShort(findMenuItemFor(line), (Number(line.quantity) || 1) + delta)) return
+    }
+    // "−" on the last piece takes the item off the bill: confirm it like the trash button
+    if (delta < 0 && line && (Number(line.quantity) || 1) + delta <= 0) {
+      handleDeleteItem(line.name || line.id, line.name)
+      return
     }
     setItems((prev) =>
       prev.reduce((acc, it) => {
@@ -641,7 +646,26 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     )
   }
 
-  const handleDeleteItem = (itemIdOrName) => {
+  // Trash button on a bill line: ask first, then take the item off the bill
+  const handleDeleteItem = async (itemIdOrName, displayName) => {
+    if (Swal.isVisible()) return
+    const name = displayName || (typeof itemIdOrName === "string" ? itemIdOrName : "")
+    const confirmResult = await Swal.fire({
+      title: t("bills.removeItemTitle", "Remove this item?"),
+      text: name
+        ? t("bills.removeItemText", "\"{{name}}\" will be removed from this bill.", { name: tDb(name) })
+        : t("bills.removeItemTextGeneric", "This item will be removed from this bill."),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: t("bills.removeItemYes", "Yes, remove"),
+      cancelButtonText: t("common.cancel", "Cancel"),
+      reverseButtons: true,
+      focusCancel: true
+    })
+    if (!confirmResult.isConfirmed) return
+
     const targetName = typeof itemIdOrName === "string" ? itemIdOrName.trim().toLowerCase() : null
     setItems((prev) =>
       prev.filter((it) =>
@@ -1484,7 +1508,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                   <button
                                     type="button"
                                     className="nb-item-del-btn"
-                                    onClick={() => handleDeleteItem(addedItem.name || addedItem.id)}
+                                    onClick={() => handleDeleteItem(addedItem.name || addedItem.id, addedItem.name)}
                                     title={t("bills.removeFromBill", "Remove from bill")}
                                     aria-label={t("bills.removeFromBill", "Remove from bill")}
                                   >

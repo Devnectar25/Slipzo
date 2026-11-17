@@ -121,12 +121,12 @@ export const FEATURE_PAGES = [
       ["Print or share", "Print the receipt on your thermal printer, or save it as a PDF to share."]
     ],
     businesses: [
-      ["☕", "Cafes, tea & snacks", "Small menus billed in a few taps at a busy counter."],
-      ["🍽️", "Hotels & restaurants", "Table billing with a live bill preview for every table."],
-      ["🛒", "Kirana & grocery", "Scan barcodes for fast billing with stock kept up to date."],
-      ["👗", "Cloth & garments", "Clean A4 or thermal invoices for every customer."],
-      ["🍰", "Bakeries & sweet shops", "Weighed and packed items billed quickly at rush hour."],
-      ["💼", "Small businesses", "Any shop that sells over the counter and needs a receipt."]
+      ["🍽️", "Hotel and Restaurant", "Table billing with a live bill preview for every table."],
+      ["💊", "Medical & pharmacy stores", "Medicines billed by name or barcode, with a clear printed receipt."],
+      ["📱", "Mobile & electronics shops", "Phones, chargers and accessories billed with a proper invoice."],
+      ["✏️", "Stationery & gift shops", "Many small items rung up fast, even when the queue is long."],
+      ["🔧", "Hardware & paint stores", "Tools, fittings and paint billed with quantity and rate."],
+      ["💇", "Salons & beauty parlours", "Services and products on one bill, paid by cash, UPI or card."]
     ],
     benefits: [
       ["Faster billing", "Your items are ready on screen, so a bill takes seconds, not minutes."],
