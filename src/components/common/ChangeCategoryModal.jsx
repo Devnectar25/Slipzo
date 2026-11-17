@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { ButtonLoader } from "./Skeleton"
 import { createPortal } from "react-dom"
+import { usePageScrollLock } from "../../hooks/usePageScrollLock"
 import { X, Check, Store, AlertCircle, Info } from "lucide-react"
 import { 
   call, 
@@ -60,14 +61,10 @@ export function ChangeCategoryModal({ isOpen, onClose, currentCategory = "small_
     if (isOpen) {
       setSelectedCat(currentCategory)
       setShowTableSetup(false)
-      const originalOverflow = document.body.style.overflow
-      document.body.style.overflow = "hidden"
-      return () => {
-        document.body.style.overflow = originalOverflow
-      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
+  usePageScrollLock(isOpen)
 
   if (!isOpen && !showTableSetup) return null
 

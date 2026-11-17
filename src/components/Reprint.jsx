@@ -31,7 +31,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
   const [error, setError] = useState(null)
   const [isPrinting, setIsPrinting] = useState(false)
 
-  const { success, error: toastError } = useToast()
+  const { success, error: toastError, info: toastInfo } = useToast()
 
   const actualBillId = sessionStorage.getItem("slipzo-reprint-id") || billId
 
@@ -254,9 +254,13 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           return
         }
 
-        printReceiptElement("receipt-to-print", {
+        const result = await printReceiptElement("receipt-to-print", {
           pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
         })
+        if (!result?.printed) {
+          if (result?.cancelled) toastInfo(t("bills.printCancelled", "Print cancelled. Nothing was printed."))
+          return
+        }
 
         // Finalize print and reset table to AVAILABLE if table bill
         handleFinalizePrint(actualBillId, bill)
@@ -267,10 +271,14 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
         }
       } else {
-        incrementFreePrintCount(userAuthKey)
-        printReceiptElement("receipt-to-print", {
+        const result = await printReceiptElement("receipt-to-print", {
           pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
         })
+        if (!result?.printed) {
+          if (result?.cancelled) toastInfo(t("bills.printCancelled", "Print cancelled. Nothing was printed."))
+          return
+        }
+        incrementFreePrintCount(userAuthKey)
         handleFinalizePrint(actualBillId, bill)
         success(t("bills.printedSuccess", "Printed successfully!"))
       }

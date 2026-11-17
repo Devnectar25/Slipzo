@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { X, Printer, Copy, Check, Barcode as BarcodeIcon, Tag } from "lucide-react"
 import { Code128Barcode } from "../../lib/code128"
 import { printBarcodeLabel, LABEL_FORMATS } from "../../lib/printBarcodeLabel"
 import { useToast } from "./Toast"
+import { usePageScrollLock } from "../../hooks/usePageScrollLock"
 
 export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZEN POS" }) {
   const { t } = useTranslation()
@@ -12,15 +13,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZEN POS" }
   const [copied, setCopied] = useState(false)
   const { success: toastSuccess } = useToast()
 
-  useEffect(() => {
-    if (isOpen && item) {
-      const originalOverflow = document.body.style.overflow
-      document.body.style.overflow = "hidden"
-      return () => {
-        document.body.style.overflow = originalOverflow
-      }
-    }
-  }, [isOpen, item])
+  usePageScrollLock(Boolean(isOpen && item))
 
   if (!isOpen || !item) return null
 

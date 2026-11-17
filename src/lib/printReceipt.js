@@ -248,6 +248,22 @@ function collectAppStyles() {
   return { cssText, linksHtml }
 }
 
+const isNativeApp = () => {
+  const cap = typeof window !== "undefined" ? window.Capacitor : null
+  return Boolean(cap?.isNativePlatform?.() || cap?.isNative)
+}
+
+// The app's NativePrint plugin (Android print screen), or null when this build does not have it
+let nativePrinter = null
+const getNativePrinter = () => {
+  if (nativePrinter) return nativePrinter
+  const cap = typeof window !== "undefined" ? window.Capacitor : null
+  if (!isNativeApp()) return null
+  if (cap?.isPluginAvailable && !cap.isPluginAvailable("NativePrint")) return null
+  nativePrinter = cap?.Plugins?.NativePrint || registerPlugin("NativePrint")
+  return nativePrinter
+}
+
 /**
  * Prints a receipt element through an isolated iframe that contains only the receipt,
  * so no app layout, modal or off-screen wrapper can hide, clip or shift it.
@@ -415,26 +431,62 @@ export function printReceiptDom(el, isA4, rollMm, config = {}) {
     }
   }
 
+  // Size the thermal page to the receipt's real length so the printer feeds exactly one slip
+  const sizeThermalPage = () => {
+    if (isA4) return null
+    const container = iframeDoc.querySelector(".slipzo-isolated-receipt-container")
+    const heightMm = Math.max(Math.ceil((container ? container.scrollHeight : 0) * PX_TO_MM) + 2, 40)
+    const pageStyle = iframeDoc.createElement("style")
+    pageStyle.textContent = `@page { size: ${pageWidth} ${heightMm}mm; margin: 0; }`
+    iframeDoc.head.appendChild(pageStyle)
+    return heightMm
+  }
+
+  // Browsers: their own print dialog. They do not say whether the person printed or cancelled, so it counts as printed.
   const executePrint = () => {
     try {
-      // Size the thermal page to the receipt's real length so the printer feeds exactly one slip
-      if (!isA4) {
-        const container = iframeDoc.querySelector(".slipzo-isolated-receipt-container")
-        const heightMm = Math.ceil((container ? container.scrollHeight : 0) * PX_TO_MM) + 2
-        const pageStyle = iframeDoc.createElement("style")
-        pageStyle.textContent = `@page { size: ${pageWidth} ${Math.max(heightMm, 40)}mm; margin: 0; }`
-        iframeDoc.head.appendChild(pageStyle)
-      }
-
+      sizeThermalPage()
       const win = printFrame.contentWindow
       win.onafterprint = () => setTimeout(removeFrame, 500)
       win.focus()
       win.print()
       // Fallback for browsers that never fire afterprint on iframes
       setTimeout(removeFrame, 60000)
+      // the dialog has closed, but a browser never says whether it printed or was cancelled
+      return { printed: true, unconfirmed: true }
     } catch (err) {
       console.error("[printReceipt] DOM print execution failed:", err)
       removeFrame()
+      return { printed: false, failed: true, error: err?.message }
+    }
+  }
+
+  // Android app: a WebView ignores window.print(), so the same page goes to Android's print screen instead
+  const executeNativePrint = async () => {
+    let html = ""
+    let heightMm = null
+    try {
+      heightMm = sizeThermalPage()
+      html = "<!DOCTYPE html>" + iframeDoc.documentElement.outerHTML
+    } finally {
+      removeFrame()
+    }
+    const printer = getNativePrinter()
+    if (!printer) {
+      return { printed: false, failed: true, error: "This version of the app cannot print yet. Please update the app." }
+    }
+    try {
+      const res = await printer.print({
+        html,
+        jobName: config.jobName || "Slipzen receipt",
+        isA4,
+        widthMm: paperMm,
+        heightMm: heightMm || 200
+      })
+      return { printed: Boolean(res?.printed), cancelled: Boolean(res?.cancelled), failed: Boolean(res?.failed) }
+    } catch (err) {
+      console.error("[printReceipt] Native print failed:", err)
+      return { printed: false, failed: true, error: err?.message }
     }
   }
 
@@ -449,11 +501,11 @@ export function printReceiptDom(el, isA4, rollMm, config = {}) {
     })
   }))
 
-  waitFor(iframeDoc.querySelectorAll('link[rel="stylesheet"]'), 1500)
+  return waitFor(iframeDoc.querySelectorAll('link[rel="stylesheet"]'), 1500)
     .then(() => waitFor(iframeDoc.querySelectorAll("img"), 2000))
     .then(() => (iframeDoc.fonts && iframeDoc.fonts.ready ? iframeDoc.fonts.ready.catch(() => {}) : null))
     .then(() => new Promise((resolve) => setTimeout(resolve, 80)))
-    .then(executePrint)
+    .then(() => (isNativeApp() ? executeNativePrint() : executePrint()))
 }
 
 export async function printReceiptElement(elementId = "receipt-to-print", options = {}) {
@@ -471,7 +523,7 @@ export async function printReceiptElement(elementId = "receipt-to-print", option
       icon: "error",
       confirmButtonColor: "#0284c7"
     })
-    return
+    return { printed: false, failed: true }
   }
 
   const config = typeof options === "string" ? { pageWidth: options } : (options || {})
@@ -500,7 +552,16 @@ export async function printReceiptElement(elementId = "receipt-to-print", option
     } catch (_) {}
   }
 
-  printReceiptDom(el, isA4, rollMm, config)
+  const result = await printReceiptDom(el, isA4, rollMm, config)
+  if (result?.failed) {
+    Swal.fire({
+      title: "Could not print",
+      text: result.error || "The receipt could not be sent to the printer. Please check the printer and try again.",
+      icon: "error",
+      confirmButtonColor: "#0284c7"
+    })
+  }
+  return result
 }
 
 export async function saveReceiptAsPdf(elementId = "receipt-to-print", options = {}) {

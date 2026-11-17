@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import {
   Utensils,
   Search,
@@ -22,8 +22,11 @@ import {
   saveStoredTables,
   clearStoredTables,
   createDefaultTables,
-  getTableDisplayName
+  getTableDisplayName,
+  getCurrentUserKey,
+  removeCachedData
 } from "../../lib/utils"
+import { localMidnight, msUntilMidnight } from "../../lib/todayBills"
 import { TableCard } from "./TableCard"
 import { TableBilling } from "./TableBilling"
 import { ManageTablesModal } from "./ManageTablesModal"
@@ -53,6 +56,26 @@ export function TableManagement({
   })
 
   const [selectedTable, setSelectedTable] = useState(null)
+
+  // Opening a table swaps the grid for the billing screen on the same page, so the page kept its scroll position
+  // and the billing screen opened near its bottom. Open it at the top, and come back to the same place in the grid.
+  const gridScrollRef = useRef(0)
+  const billingOpen = Boolean(selectedTable)
+  const wasBillingOpenRef = useRef(false)
+  useLayoutEffect(() => {
+    if (typeof window === "undefined" || billingOpen === wasBillingOpenRef.current) return
+    wasBillingOpenRef.current = billingOpen
+    if (billingOpen) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+    } else {
+      const y = gridScrollRef.current
+      requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: "instant" }))
+    }
+  }, [billingOpen])
+  const openTable = (tbl) => {
+    if (typeof window !== "undefined") gridScrollRef.current = window.scrollY || document.documentElement.scrollTop || 0
+    setSelectedTable(tbl)
+  }
   const [activeFilter, setActiveFilter] = useState("all") // "all" | "available" | "occupied"
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
@@ -147,8 +170,42 @@ export function TableManagement({
     }
   }
 
+  // A new day: tables still holding yesterday's orders are made available on the server (once a day per device),
+  // then the list is reloaded. Bills are kept; only the tables are freed.
+  const releaseYesterdaysTables = async () => {
+    const dayKey = `slipzo_tables_day_${getCurrentUserKey(user)}`
+    const day = localMidnight()
+    try {
+      if (localStorage.getItem(dayKey) === day.toDateString()) return false
+    } catch (_) {}
+    try {
+      await call("/restaurant/tables/release-old", {
+        method: "POST",
+        body: JSON.stringify({ from: day.toISOString() })
+      })
+      try { localStorage.setItem(dayKey, day.toDateString()) } catch (_) {}
+      removeCachedData("/restaurant/tables")
+      return true
+    } catch (err) {
+      // An older server without this step, or no connection: try again next time
+      console.warn("Could not free yesterday's tables:", err)
+      return false
+    }
+  }
+
   useEffect(() => {
     loadTables()
+    releaseYesterdaysTables().then((released) => { if (released) loadTables(true) })
+
+    // At midnight, free yesterday's tables even if this screen stays open
+    let midnightTimer = null
+    const scheduleMidnight = () => {
+      midnightTimer = setTimeout(() => {
+        releaseYesterdaysTables().then(() => loadTables(true))
+        scheduleMidnight()
+      }, msUntilMidnight() + 1000)
+    }
+    scheduleMidnight()
 
     const handleShopUpdate = (e) => {
       if (e?.detail) {
@@ -202,6 +259,7 @@ export function TableManagement({
     window.addEventListener("slipzo_tables_reset", handleTablesReset)
     window.addEventListener("slipzo_bill_printed", handleBillPrinted)
     return () => {
+      clearTimeout(midnightTimer)
       window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
       window.removeEventListener("slipzo_tables_reset", handleTablesReset)
       window.removeEventListener("slipzo_bill_printed", handleBillPrinted)
@@ -479,7 +537,7 @@ export function TableManagement({
             <TableCard
               key={tbl.id || tbl.table_number}
               table={tbl}
-              onSelectTable={(selected) => setSelectedTable(selected)}
+              onSelectTable={(selected) => openTable(selected)}
             />
           ))}
         </div>

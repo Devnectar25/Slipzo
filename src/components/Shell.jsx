@@ -30,6 +30,7 @@ import "../styles/ConfirmDialog.css"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
 import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, isMenuCategory, getCachedData } from "../lib/utils"
+import { HeaderSearch } from "./common/HeaderSearch"
 
 // Sign-out confirmation in the app's own look instead of the stock dialog (styles: ConfirmDialog.css)
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
@@ -156,7 +157,12 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
   // (The phone keeps its drawer, opened with the menu button, and the bottom bar.)
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const profileRef = useRef(null)
+
+  useEffect(() => {
+    setSearchOpen(false)
+  }, [view])
 
   useEffect(() => {
     if (!profileOpen) return undefined
@@ -611,7 +617,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
       {/* Main Content */}
       <div className={`main ${!desktopSidebarOpen ? 'desktop-expanded' : ''}`} style={{ flex: 1, minWidth: 0, maxWidth: '100%', minHeight: '100vh', boxSizing: 'border-box' }}>
         {/* Static Header with Logo on Left and Menu / Prints Badge on Right */}
-        <header className="shell-static-header">
+        <header className={`shell-static-header ${searchOpen ? "search-active" : ""}`}>
           <div
             className="shell-header-brand"
             onClick={() => setView("dashboard")}
@@ -640,6 +646,15 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
           </nav>
 
           <div className="shell-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginLeft: 'auto' }}>
+            {/* search: pages, menu items and bills */}
+            {user && (
+              <HeaderSearch
+                user={user}
+                pages={navItems.filter((item) => !(user?.staff_of && item.id === "pricing")).map((item) => ({ id: item.id, label: item.label }))}
+                onNavigate={(id) => (id === "reprint" ? setView("reprint") : handleNavClick(id))}
+                onOpenChange={setSearchOpen}
+              />
+            )}
             {/* print balance lives in the profile menu (no badge in the header) */}
             <div className="shell-profile-wrap" ref={profileRef}>
               <button
@@ -843,8 +858,32 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
         }
 
         /* ---- desktop header navigation (hidden on phones) ---- */
-        .shell-desktop-nav { display: none; }
+        .shell-desktop-nav {
+          display: none;
+          transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s !important;
+        }
         .shell-profile-wrap { display: none; position: relative; }
+
+        .shell-static-header.search-active .shell-desktop-nav {
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          transform: translateY(-4px) !important;
+        }
+
+        @media (max-width: 768px) {
+          .shell-static-header.search-active .shell-header-brand,
+          .shell-static-header.search-active .shell-menu-btn {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            transition: opacity 0.18s ease, visibility 0.18s !important;
+          }
+          .shell-header-brand,
+          .shell-menu-btn {
+            transition: opacity 0.2s ease, visibility 0.2s !important;
+          }
+        }
 
         @media (min-width: 769px) {
           /* no sidebar, no menu button on desktop: everything is in the header */
@@ -1052,7 +1091,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
         }
 
         /* narrower desktop windows: Products, Pricing and Contact move into the profile menu */
-        @media (min-width: 769px) and (max-width: 1180px) {
+        @media (min-width: 769px) and (max-width: 1240px) {
           .shell-desktop-nav-btn.extra { display: none; }
           .shell-profile-item.narrow-only { display: flex; }
           .shell-profile-name { max-width: 90px; }

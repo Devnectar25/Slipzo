@@ -1,17 +1,13 @@
 import React, { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { AlertCircle, ArrowRight, Zap, CheckCircle2 } from "lucide-react"
+import { usePageScrollLock } from "../hooks/usePageScrollLock"
 
 export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
   const { t } = useTranslation()
+  usePageScrollLock(isOpen)
   useEffect(() => {
     if (isOpen) {
-      const originalBodyOverflow = document.body.style.overflow
-      const originalDocOverflow = document.documentElement.style.overflow
-
-      document.body.style.overflow = "hidden"
-      document.documentElement.style.overflow = "hidden"
-
       const handleKeyDown = (e) => {
         if (e.key === "Escape") {
           onClose?.()
@@ -20,8 +16,6 @@ export function FreeRewardExpiredModal({ isOpen, onClose, onViewPlans }) {
       window.addEventListener("keydown", handleKeyDown)
 
       return () => {
-        document.body.style.overflow = originalBodyOverflow
-        document.documentElement.style.overflow = originalDocOverflow
         window.removeEventListener("keydown", handleKeyDown)
       }
     }

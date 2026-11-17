@@ -30,32 +30,26 @@ import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { VoiceInputButton } from "./common/VoiceInputButton"
-import { TodayAnalytics } from "./TodayAnalytics"
+import { filterToday, todayBillsUrl } from "../lib/todayBills"
 
 export function History({ setView, setSelectedBillId, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum, lang } = useDbTranslation()
-  const cachedSaved = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=true")
-  const cachedPrinted = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=false")
-  const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
+  const cachedSaved = getCachedData(todayBillsUrl({ isSaved: true }))
+  const cachedPrinted = getCachedData(todayBillsUrl({ isSaved: false }))
 
-  const filter10Days = (list) => {
-    if (!Array.isArray(list)) return []
-    const cutoff = Date.now() - TEN_DAYS_MS
-    return list.filter((b) => b && b.created_at && new Date(b.created_at).getTime() >= cutoff)
-  }
 
   const [activeTab, setActiveTab] = useState("saved") // "saved" | "printed"
   const [savedCount, setSavedCount] = useState(() => (cachedSaved && typeof cachedSaved.total !== "undefined" ? Number(cachedSaved.total) : 0))
   const [printedCount, setPrintedCount] = useState(() => (cachedPrinted && typeof cachedPrinted.total !== "undefined" ? Number(cachedPrinted.total) : 0))
 
   const [bills, setBills] = useState(() => {
-    if (cachedSaved?.bills && Array.isArray(cachedSaved.bills)) return filter10Days(cachedSaved.bills)
-    if (Array.isArray(cachedSaved)) return filter10Days(cachedSaved)
+    if (cachedSaved?.bills && Array.isArray(cachedSaved.bills)) return filterToday(cachedSaved.bills)
+    if (Array.isArray(cachedSaved)) return filterToday(cachedSaved)
     return []
   })
   const [loading, setLoading] = useState(() => !cachedSaved)
-  const [totalRecords, setTotalRecords] = useState(() => cachedSaved?.total || (Array.isArray(cachedSaved) ? filter10Days(cachedSaved).length : 0))
+  const [totalRecords, setTotalRecords] = useState(() => cachedSaved?.total || (Array.isArray(cachedSaved) ? filterToday(cachedSaved).length : 0))
   const [totalPages, setTotalPages] = useState(() => cachedSaved?.totalPages || 1)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
@@ -107,20 +101,14 @@ export function History({ setView, setSelectedBillId, user }) {
     try {
       if (!silent && (!Array.isArray(bills) || bills.length === 0)) setLoading(true)
       const isSavedVal = activeTab === "saved" ? "true" : "false"
-      const queryParams = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-        days_limit: "10",
-        is_saved: isSavedVal
-      })
-      if (search.trim()) queryParams.append("search", search.trim())
-      if (paymentMode !== "All") queryParams.append("payment_mode", paymentMode)
-
-      const oppositeIsSaved = activeTab === "saved" ? "false" : "true"
+      // `from` is worked out on every load, so the list starts again by itself after midnight (it reloads every 15s)
+      let url = todayBillsUrl({ isSaved: isSavedVal === "true", page, limit })
+      if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`
+      if (paymentMode !== "All") url += `&payment_mode=${encodeURIComponent(paymentMode)}`
 
       // Primary bills request with SWR caching
-      const primaryPromise = call(`/bills?${queryParams.toString()}`)
-      const oppositePromise = call(`/bills?page=1&limit=1&days_limit=10&is_saved=${oppositeIsSaved}`).catch(() => ({}))
+      const primaryPromise = call(url)
+      const oppositePromise = call(todayBillsUrl({ isSaved: activeTab !== "saved", page: 1, limit: 1 })).catch(() => ({}))
 
       const data = await primaryPromise
 
@@ -137,12 +125,12 @@ export function History({ setView, setSelectedBillId, user }) {
       }
 
       if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.bills)) {
-        const filtered = filter10Days(data.bills)
+        const filtered = filterToday(data.bills)
         setBills(filtered)
         setTotalRecords(data.total !== undefined ? data.total : filtered.length)
         setTotalPages(data.totalPages || 1)
       } else {
-        const billsList = filter10Days(Array.isArray(data) ? data : [])
+        const billsList = filterToday(Array.isArray(data) ? data : [])
         setBills(billsList)
         setTotalRecords(billsList.length)
         setTotalPages(1)
@@ -373,12 +361,9 @@ export function History({ setView, setSelectedBillId, user }) {
             <Banknote size={13} /> {t("history.eyebrow", "YOUR RECEIPTS")}
           </span>
           <h1 className="menu-main-title">{t("history.title", "Bill history.")}</h1>
-          <p className="menu-sub-title">{t("history.subtitle", "Find and reprint any saved receipt.")}</p>
+          <p className="menu-sub-title">{t("history.subtitle", "Find and reprint today's receipts.")}</p>
         </div>
       </div>
-
-      {/* Today's sales: counts from midnight, so it starts again every day */}
-      <TodayAnalytics user={user} />
 
       {/* 2-Part Tab Switcher: Saved Bills & Print Bills */}
       <div className="history-tab-switcher-wrapper">
@@ -393,9 +378,9 @@ export function History({ setView, setSelectedBillId, user }) {
               if (activeTab !== "saved") {
                 setActiveTab("saved")
                 setPage(1)
-                const c = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=true")
+                const c = getCachedData(todayBillsUrl({ isSaved: true }))
                 if (c && (Array.isArray(c.bills) || Array.isArray(c))) {
-                  const list = filter10Days(Array.isArray(c.bills) ? c.bills : c)
+                  const list = filterToday(Array.isArray(c.bills) ? c.bills : c)
                   setBills(list)
                   setTotalRecords(c.total !== undefined ? c.total : list.length)
                   setTotalPages(c.totalPages || 1)
@@ -418,9 +403,9 @@ export function History({ setView, setSelectedBillId, user }) {
               if (activeTab !== "printed") {
                 setActiveTab("printed")
                 setPage(1)
-                const c = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=false")
+                const c = getCachedData(todayBillsUrl({ isSaved: false }))
                 if (c && (Array.isArray(c.bills) || Array.isArray(c))) {
-                  const list = filter10Days(Array.isArray(c.bills) ? c.bills : c)
+                  const list = filterToday(Array.isArray(c.bills) ? c.bills : c)
                   setBills(list)
                   setTotalRecords(c.total !== undefined ? c.total : list.length)
                   setTotalPages(c.totalPages || 1)
@@ -617,15 +602,6 @@ export function History({ setView, setSelectedBillId, user }) {
                         >
                           <Printer size={15} />
                         </button>
-                        <button
-                          data-testid={`delete-bill-${bill.id}-button`}
-                          className="history-action-btn delete"
-                          title={t("history.delete", "Delete Receipt")}
-                          disabled={deletingId === bill.id}
-                          onClick={() => handleDeleteBill(bill.rawBill || bill)}
-                        >
-                          {deletingId === bill.id ? <Spinner size="sm" /> : <Trash2 size={15} />}
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -732,8 +708,8 @@ export function History({ setView, setSelectedBillId, user }) {
             </h3>
             <p>
               {activeTab === "saved"
-                ? t("history.noSavedBillsDesc", "Saved bills and orders from the last 10 days will automatically appear here. You can reopen, edit items, and finalize them anytime.")
-                : t("history.noPrintedBillsDesc", "Printed thermal receipts from the last 10 days will appear here, ready to find and reprint.")}
+                ? t("history.noSavedBillsDesc", "Saved bills and orders from today will automatically appear here. You can reopen, edit items, and finalize them anytime.")
+                : t("history.noPrintedBillsDesc", "Printed thermal receipts from today will appear here, ready to find and reprint.")}
             </p>
             {activeTab === "saved" && (
               <button

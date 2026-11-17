@@ -455,10 +455,12 @@
   color: #74788A;
 }
 
+/* items: two per row when the list is wide enough (about 650px), one per row otherwise */
 .nb-menu-items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  align-content: start;
+  gap: 0.6rem;
   margin-bottom: 0;
   flex: 1;
 }
@@ -468,11 +470,13 @@
   background: #ffffff;
   border: 1.5px solid #bae6fd;
   border-radius: 10px;
-  padding: 0.45rem 0.85rem;
+  padding: 0.55rem 0.75rem;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.6rem 0.75rem;
+  min-width: 0;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -486,13 +490,16 @@
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
-  flex: 1;
+  /* keeps room for the picture and name; the Add button fits beside it, wider quantity controls move below */
+  flex: 1 1 150px;
 }
+/* add button / quantity controls sit at the right, also when they move to their own line */
+.nb-item-card > :last-child:not(.nb-item-left) { margin-left: auto; }
 
 .nb-item-thumb {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
   object-fit: cover;
   background: #e0f2fe;
   border: 1px solid #f0f9ff;
@@ -500,9 +507,9 @@
 }
 
 .nb-item-thumb-placeholder {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
   background: #f0f9ff;
   color: #0284c7;
   display: flex;
@@ -512,19 +519,46 @@
   flex-shrink: 0;
 }
 
+/* name, then price and category on one line, then the stock chip (one line less than stacking them) */
 .nb-item-info {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 6px;
 }
+.nb-item-info .nb-item-name { flex: 0 0 100%; margin: 0; }
+.nb-item-info .nb-item-price-desktop { order: 1; line-height: 1.25; }
+.nb-item-info .nb-item-category {
+  order: 2;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.nb-item-info .nb-item-stock { order: 3; flex: 0 0 100%; margin: 0; }
+/* once the item is on the bill, its quantity controls get their own line under the details */
+.nb-item-card:has(.nb-qty-controls-group) .nb-item-left { flex-basis: 100%; }
 
 .nb-item-name {
   font-size: 0.92rem;
   font-weight: 700;
+  line-height: 1.3;
   color: #0C1F41;
-  margin: 0 0 0.1rem 0;
-  white-space: nowrap;
+  margin: 0 0 0.15rem 0;
+  /* up to two lines, so names are not cut short in the narrower two-per-row cards */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .nb-item-category {
@@ -1251,9 +1285,9 @@
 
   .nb-item-thumb,
   .nb-item-thumb-placeholder {
-    width: 38px;
-    height: 38px;
-    border-radius: 6px;
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
     flex-shrink: 0;
   }
 
@@ -1455,6 +1489,53 @@
 .tb-pdf-btn:hover:not(:disabled) { background: #e0f2fe; border-color: #38bdf8; }
 .tb-pdf-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
+/* "Reset Table" under Download PDF in table billing */
+.tb-reset-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1.5px solid #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.05);
+}
+.tb-reset-btn:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+.tb-reset-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+.tb-reset-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Secondary action row (Download PDF and Reset Table side-by-side in one line) */
+.tb-secondary-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.55rem;
+  width: 100%;
+}
+.tb-secondary-actions > .tb-pdf-btn,
+.tb-secondary-actions > .tb-reset-btn {
+  flex: 1;
+  width: auto !important;
+  margin-top: 0 !important;
+  white-space: nowrap;
+}
+
 /* Print / Save row: the row sets the spacing, so the buttons' own top margin is dropped */
 .nb-action-row > .nb-save-bill-btn { margin-top: 0 !important; }
 /* the card already spaces its rows (0.7rem gap), so these add no extra margin */
@@ -1529,4 +1610,192 @@
   min-width: 200px;
   margin: 0.75rem auto 0;
   padding: 0.6rem 1.4rem;
+}
+
+/* ============ New Bill: result screen (saved / printed) ============ */
+.nbd {
+  --nbd-accent: #0284c7;
+  --nbd-soft: #e0f2fe;
+  --nbd-ring: #bae6fd;
+  width: 100%;
+  max-width: 460px;
+  margin: 8px auto 32px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid #e6eef6;
+  box-shadow: 0 1px 2px rgba(12, 31, 65, 0.04), 0 16px 40px rgba(12, 31, 65, 0.08);
+  overflow: hidden;
+}
+.nbd.is-printed { --nbd-accent: #16a34a; --nbd-soft: #dcfce7; --nbd-ring: #bbf7d0; }
+
+.nbd-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 30px 24px 22px;
+  background:
+    radial-gradient(360px 160px at 50% 0%, var(--nbd-soft), transparent 70%),
+    #ffffff;
+}
+.nbd-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: var(--nbd-accent);
+  box-shadow: 0 0 0 8px var(--nbd-soft), 0 10px 24px rgba(12, 31, 65, 0.15);
+  margin-bottom: 16px;
+  animation: nbdPop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes nbdPop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.nbd-status {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--nbd-accent);
+  background: var(--nbd-soft);
+  border: 1px solid var(--nbd-ring);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.nbd-title { margin: 12px 0 2px; font-size: 1.35rem; font-weight: 800; color: #0c1f41; }
+.nbd-amount { font-size: 2.3rem; font-weight: 800; letter-spacing: -0.02em; color: #0c1f41; line-height: 1.2; }
+.nbd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 8px;
+  margin-top: 8px;
+  font-size: 0.84rem;
+  color: #64748b;
+}
+.nbd-chip {
+  font-weight: 700;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+.nbd-dot { width: 4px; height: 4px; border-radius: 999px; background: #cbd5e1; }
+
+/* item summary, like the end of a receipt */
+.nbd-summary {
+  margin: 0 20px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px dashed #dbe4ee;
+}
+.nbd-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.nbd-lines li { display: flex; align-items: baseline; gap: 8px; font-size: 0.88rem; }
+.nbd-line-name { flex: 1; min-width: 0; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nbd-line-qty { flex: none; color: #94a3b8; font-size: 0.8rem; }
+.nbd-line-amt { flex: none; font-weight: 700; color: #0f172a; }
+.nbd-more { margin-top: 6px; font-size: 0.78rem; color: #64748b; }
+.nbd-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.86rem;
+  color: #475569;
+}
+.nbd-total strong { font-size: 1.05rem; color: #0c1f41; }
+
+.nbd-actions { display: flex; flex-direction: column; gap: 10px; padding: 20px; }
+.nbd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nbd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  min-height: 0 !important;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.nbd-btn:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; }
+.nbd-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.nbd-btn.primary {
+  height: 52px;
+  border: 0;
+  color: #ffffff;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.28);
+}
+.nbd-btn.primary:hover:not(:disabled) { background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%); transform: translateY(-1px); }
+.nbd-btn:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+@media (max-width: 480px) {
+  .nbd { border-radius: 20px; margin-top: 0; }
+  .nbd-hero { padding: 24px 18px 18px; }
+  .nbd-amount { font-size: 2rem; }
+  .nbd-summary { margin: 0 14px; }
+  .nbd-actions { padding: 16px 14px 18px; }
+}
+
+/* ============ New Bill item cards: compact grid layout (tablets and desktop) ============
+   picture on the left; on the right the name (full width), then price + category, then stock + Add on one line.
+   The Add button no longer takes its own column, so names get the room and the card has no empty space. */
+@media (min-width: 681px) {
+  .nb-menu-items-list .nb-item-card {
+    display: grid;
+    grid-template-columns: 88px auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "img name  name  name"
+      "img price cat   cat"
+      "img stock stock actions";
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 4px;
+    padding: 10px 12px;
+  }
+  .nb-menu-items-list .nb-item-card .nb-item-left,
+  .nb-menu-items-list .nb-item-card .nb-item-info { display: contents; }
+  .nb-menu-items-list .nb-item-card .nb-item-thumb,
+  .nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder { grid-area: img; align-self: center; }
+  .nb-menu-items-list .nb-item-card .nb-item-name { grid-area: name; align-self: end; }
+  .nb-menu-items-list .nb-item-card .nb-item-price-desktop { grid-area: price; }
+  .nb-menu-items-list .nb-item-card .nb-item-category { grid-area: cat; align-self: center; }
+  .nb-menu-items-list .nb-item-card .nb-item-stock { grid-area: stock; align-self: center; }
+  .nb-menu-items-list .nb-item-card .nb-item-actions-wrapper { grid-area: actions; justify-self: end; margin-left: 0; }
+  .nb-menu-items-list .nb-item-card .nb-add-btn { height: 36px; padding: 0 14px; font-size: 0.84rem; border-radius: 9px; }
+  .nb-menu-items-list .nb-item-card .nb-qty-btn,
+  .nb-menu-items-list .nb-item-card .nb-item-del-btn { width: 30px; height: 30px; }
+  .nb-menu-items-list .nb-item-card .nb-qty-controls-group { gap: 6px; }
+  .nb-menu-items-list .nb-item-card .nb-item-stock .stock-badge { white-space: nowrap; }
+
+  /* item already on the bill: the quantity controls (- 1 + delete) are too wide to share the stock line,
+     so they get their own line under it, on the right */
+  .nb-menu-items-list .nb-item-card:has(.nb-qty-controls-group) {
+    grid-template-areas:
+      "img name    name    name"
+      "img price   cat     cat"
+      "img stock   stock   stock"
+      "img actions actions actions";
+  }
+  /* no stock tracking: no empty line above the controls */
+  .nb-menu-items-list .nb-item-card:has(.nb-qty-controls-group):not(:has(.nb-item-stock)) {
+    grid-template-areas:
+      "img name    name    name"
+      "img price   cat     cat"
+      "img actions actions actions";
+  }
 }

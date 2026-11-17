@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { createPortal } from "react-dom"
+import { usePageScrollLock } from "../hooks/usePageScrollLock"
 import {
   Utensils,
   Shirt,
@@ -35,7 +36,7 @@ import {
   Image as ImageIcon,
   Barcode as BarcodeIcon
 } from "lucide-react"
-import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo, formatQty } from "../lib/utils"
+import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, updateItemStockInStorageAndCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo, formatQty } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { Spinner, ButtonLoader, CardSkeleton } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
@@ -290,17 +291,27 @@ export function Menu({ setView, requireAuth, user }) {
       }
     }
     const handleMenuUpdate = (e) => {
-      if (Array.isArray(e?.detail?.items)) {
+      if (Array.isArray(e?.detail?.items) && e.detail.items.length > 0) {
         setItems(e.detail.items)
+      } else if (e?.detail?.updatedItem) {
+        const { id, stock_qty, track_stock, low_stock_alert } = e.detail.updatedItem
+        setItems((prev) => prev.map((it) => (it.id === id ? { ...it, stock_qty, track_stock, low_stock_alert } : it)))
       } else {
         loadUserMenu(false)
       }
     }
+    const handleStockUpdated = (e) => {
+      const { id, stock_qty, track_stock, low_stock_alert } = e?.detail || {}
+      if (!id) return
+      setItems((prev) => prev.map((it) => (it.id === id ? { ...it, stock_qty, track_stock, low_stock_alert } : it)))
+    }
     window.addEventListener("slipzo_shop_updated", handleShopUpdate)
     window.addEventListener("slipzo-menu-update", handleMenuUpdate)
+    window.addEventListener("slipzo-stock-updated", handleStockUpdated)
     return () => {
       window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
       window.removeEventListener("slipzo-menu-update", handleMenuUpdate)
+      window.removeEventListener("slipzo-stock-updated", handleStockUpdated)
     }
   }, [user, userKey])
 
@@ -317,13 +328,34 @@ export function Menu({ setView, requireAuth, user }) {
         return !itCat.includes("tea") && !itCat.includes("chai") && !itCat.includes("coffee") && !itCat.includes("snack") && !itCat.includes("beverage") && !itCat.includes("bread") && !itCat.includes("food")
       })
     }
-    if (Array.isArray(cachedItems) && cachedItems.length > 0) return filterForCloth(cachedItems)
     const stored = getStoredMenuItems(user)
-    return filterForCloth(stored)
+    if (Array.isArray(stored) && stored.length > 0) return filterForCloth(stored)
+    if (Array.isArray(cachedItems) && cachedItems.length > 0) return filterForCloth(cachedItems)
+    return []
   })
   // With nothing to show yet, an empty list must not read as "your menu is empty"
   const [loading, setLoading] = useState(() => Boolean(user) && items.length === 0)
-  const [search, setSearch] = useState("")
+  // a search started from the header's search box arrives here already filled in
+  const [search, setSearch] = useState(() => {
+    try {
+      const fromHeader = sessionStorage.getItem("slipzo_menu_search")
+      if (fromHeader) {
+        sessionStorage.removeItem("slipzo_menu_search")
+        return fromHeader
+      }
+    } catch (_) {}
+    return ""
+  })
+  useEffect(() => {
+    const onHeaderSearch = (e) => {
+      if (typeof e?.detail === "string") {
+        setSearch(e.detail)
+        try { sessionStorage.removeItem("slipzo_menu_search") } catch (_) {}
+      }
+    }
+    window.addEventListener("slipzo_menu_search", onHeaderSearch)
+    return () => window.removeEventListener("slipzo_menu_search", onHeaderSearch)
+  }, [])
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [myMenuSort, setMyMenuSort] = useState("Latest")
   const [sortOpen, setSortOpen] = useState(false)
@@ -586,31 +618,7 @@ export function Menu({ setView, requireAuth, user }) {
     barcodeModalItem
   )
 
-  useEffect(() => {
-    if (isAnyMenuModalOpen) {
-      const originalBodyOverflow = document.body.style.overflow
-      const originalDocOverflow = document.documentElement.style.overflow
-
-      document.body.style.overflow = "hidden"
-      document.documentElement.style.overflow = "hidden"
-
-      const elementsToLock = document.querySelectorAll(
-        ".shell-content, .shell-main, .app, .public-layout, .main-content, .menu-page-container"
-      )
-      elementsToLock.forEach(el => {
-        el.dataset.origOverflow = el.style.overflow
-        el.style.overflow = "hidden"
-      })
-
-      return () => {
-        document.body.style.overflow = originalBodyOverflow
-        document.documentElement.style.overflow = originalDocOverflow
-        elementsToLock.forEach(el => {
-          el.style.overflow = el.dataset.origOverflow || ""
-        })
-      }
-    }
-  }, [isAnyMenuModalOpen])
+  usePageScrollLock(isAnyMenuModalOpen)
 
   // ==========================================
   // SPEECH RECOGNITION
@@ -657,7 +665,7 @@ export function Menu({ setView, requireAuth, user }) {
       if (showSpinner) setLoading(true)
       const cachedShop = getCachedData("/shop")
       const currentBType = (cachedShop?.business_type || selectedBusinessType || "small_business").toLowerCase()
-      const data = await call(`/menu?business_type=${encodeURIComponent(currentBType)}`).catch(() => null)
+      const data = await call(`/menu?business_type=${encodeURIComponent(currentBType)}`, { noCache: true }).catch(() => null)
 
       const isCloth = currentBType.includes("clothing") || currentBType.includes("garment")
       const isKirana = currentBType.includes("kirana") || currentBType.includes("grocery")
@@ -1082,6 +1090,7 @@ export function Menu({ setView, requireAuth, user }) {
           ...(res?.low_stock_alert !== undefined ? { low_stock_alert: res.low_stock_alert } : {})
         }
         invalidateApiCache("/menu")
+        updateItemStockInStorageAndCache({ id: editingItem.id, ...stockFields }, user)
       }
 
       await call(`/menu/${editingItem.id}`, {

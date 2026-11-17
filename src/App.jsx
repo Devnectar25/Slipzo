@@ -17,17 +17,45 @@ import "./styles/print.css"
 // Pages and modals are code-split so the first load only downloads what the current screen needs.
 // Each loader is kept so the remaining chunks can be prefetched once the app is idle.
 const pageLoaders = []
+// A page that fails to load (a dropped connection, or an old copy of the app after an update) is tried again a
+// couple of times; if it still fails, the app reloads itself once to pick up the current files. React keeps a
+// failed lazy page failed until the app reloads, so retrying here is the only retry that can work.
+const RELOAD_FLAG = "slipzo_page_load_reloaded_at"
+const loadPage = async (loader, name) => {
+  let lastError = null
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const m = await loader()
+      const Component = m?.[name]
+      if (Component) {
+        try { sessionStorage.removeItem(RELOAD_FLAG) } catch (_) {}
+        return { default: Component }
+      }
+      lastError = new Error(`The "${name}" page did not load correctly.`)
+    } catch (err) {
+      lastError = err
+    }
+    await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)))
+  }
+  // Reload once (not in a loop): a fresh start fetches the app's current files
+  let reloadedRecently = false
+  try {
+    const at = Number(sessionStorage.getItem(RELOAD_FLAG) || 0)
+    reloadedRecently = Date.now() - at < 60000
+    if (!reloadedRecently) sessionStorage.setItem(RELOAD_FLAG, String(Date.now()))
+  } catch (_) {
+    reloadedRecently = true
+  }
+  if (!reloadedRecently && typeof window !== "undefined") {
+    window.location.reload()
+    return new Promise(() => {}) // keep showing the loader while the page reloads
+  }
+  console.error(`[App] Could not load the "${name}" page:`, lastError)
+  throw new Error(`Failed to load "${name}" view. Please reload the app.`)
+}
 const lazyNamed = (loader, name) => {
   pageLoaders.push(loader)
-  return lazy(() =>
-    loader().then((m) => {
-      const Component = m?.[name]
-      if (!Component) {
-        throw new Error(`Failed to load "${name}" view. Please reload the app.`)
-      }
-      return { default: Component }
-    })
-  )
+  return lazy(() => loadPage(loader, name))
 }
 
 const Auth = lazyNamed(() => import("./components/Auth"), "Auth")

@@ -14,7 +14,7 @@ export function PrintModal({
   elementId = "receipt-to-print",
   user
 }) {
-  const { success, error: toastError } = useToast()
+  const { success, error: toastError, info: toastInfo } = useToast()
   const [isSubmittingPrint, setIsSubmittingPrint] = useState(false)
   const isPrintingRef = useRef(false)
 
@@ -177,7 +177,7 @@ export function PrintModal({
         }
 
         // Trigger physical print after successful deduction
-        printReceiptElement(elementId, {
+        const result = await printReceiptElement(elementId, {
           pageWidth,
           scale: scale / 100,
           fontSize,
@@ -188,6 +188,10 @@ export function PrintModal({
           showTax,
           showFooter
         })
+        if (!result?.printed) {
+          if (result?.cancelled) toastInfo?.("Print cancelled. Nothing was printed.")
+          return
+        }
 
         onClose()
         if (onPrinted) {
@@ -205,9 +209,7 @@ export function PrintModal({
           return
         }
 
-        incrementFreePrintCount(userKey)
-
-        printReceiptElement(elementId, {
+        const result = await printReceiptElement(elementId, {
           pageWidth,
           scale: scale / 100,
           fontSize,
@@ -218,6 +220,11 @@ export function PrintModal({
           showTax,
           showFooter
         })
+        if (!result?.printed) {
+          if (result?.cancelled) toastInfo?.("Print cancelled. Nothing was printed.")
+          return
+        }
+        incrementFreePrintCount(userKey)
 
         onClose()
         if (onPrinted) {
@@ -390,20 +397,20 @@ export function PrintModal({
               <p>Configure paper width, text size, and thermal density</p>
             </div>
           </div>
-          <button 
-            type="button" 
-            className="modal-close-btn" 
-            onClick={onClose} 
-            aria-label="Close setup modal" 
-            style={{ 
-              background: '#f1f5f9', 
-              border: 'none', 
-              borderRadius: '50%', 
-              width: '34px', 
-              height: '34px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            aria-label="Close setup modal"
+            style={{
+              background: '#f1f5f9',
+              border: 'none',
+              borderRadius: '50%',
+              width: '34px',
+              height: '34px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: 'pointer',
               color: '#64748b',
               flexShrink: 0
@@ -479,7 +486,7 @@ export function PrintModal({
                   transition: "transform 0.2s ease, width 0.2s ease"
                 }}
               >
-                <div className="thermal-tear-edge-top" />
+                <div className="thermal-tear-edge-top"></div>
 
                 <div
                   className="thermal-paper-inner"
@@ -626,7 +633,7 @@ export function PrintModal({
                         </div>
                       )}
 
-                      <div className="thermal-mock-divider" />
+                      <div className="thermal-mock-divider"></div>
 
                       <div className="thermal-mock-table">
                         <div className="thermal-mock-row head">
@@ -649,7 +656,7 @@ export function PrintModal({
                         </div>
                       </div>
 
-                      <div className="thermal-mock-divider" />
+                      <div className="thermal-mock-divider"></div>
 
                       <div className="thermal-mock-totals">
                         <div className="mock-total-line">
@@ -678,7 +685,7 @@ export function PrintModal({
                   )}
                 </div>
 
-                <div className="thermal-tear-edge-bottom" />
+                <div className="thermal-tear-edge-bottom"></div>
               </div>
             </div>
           </div>
@@ -689,9 +696,9 @@ export function PrintModal({
           <button type="button" className="secondary-button" onClick={onClose} disabled={isSubmittingPrint} style={{ flex: '1 1 auto' }}>
             Cancel
           </button>
-          <button 
-            type="button" 
-            className="secondary-button" 
+          <button
+            type="button"
+            className="secondary-button"
             onClick={handleSavePdf}
             disabled={isSubmittingPrint}
             style={{

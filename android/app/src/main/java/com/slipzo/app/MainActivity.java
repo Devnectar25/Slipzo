@@ -32,6 +32,8 @@ public class MainActivity extends BridgeActivity {
         // Razorpay's own payment screen (official plugin). Plugins have to be registered before the bridge starts.
         registerPlugin(Checkout.class);
         registerPlugin(NativeFileSaverPlugin.class);
+        // Android's print screen for receipts (a WebView ignores window.print())
+        registerPlugin(NativePrintPlugin.class);
         super.onCreate(savedInstanceState);
         enablePaymentWindows();
     }

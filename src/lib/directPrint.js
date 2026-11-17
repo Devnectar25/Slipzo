@@ -5,9 +5,30 @@ import { printReceiptElement, saveReceiptAsPdf } from "./printReceipt"
 
 const t = (key, fallback, values) => i18n.t(key, fallback, values)
 
-// Printing straight from the billing screen (no separate preview page): uses one print credit, then opens
-// the print dialog for the receipt already shown on screen. Resolves true when the print dialog was opened.
-export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNeedPlan }) {
+// After a browser's print dialog closes it never says whether the receipt printed, so the person is asked
+const confirmBrowserPrint = async (billNumber) => {
+  const res = await Swal.fire({
+    title: t("bills.didItPrint", "Did the receipt print?"),
+    text: billNumber ? t("bills.didItPrintBill", "Bill #{{n}}", { n: billNumber }) : undefined,
+    icon: "question",
+    showCancelButton: true,
+    reverseButtons: true,
+    focusConfirm: true,
+    confirmButtonText: t("bills.yesPrinted", "Yes, it printed"),
+    cancelButtonText: t("bills.notPrinted", "No"),
+    confirmButtonColor: "#0284c7",
+    cancelButtonColor: "#94a3b8",
+    allowOutsideClick: false
+  })
+  return Boolean(res.isConfirmed)
+}
+
+// Printing straight from the billing screen (no separate preview page). The print dialog opens first; one print
+// credit is used only once the receipt has printed (in the app the print screen says so, in a browser the person
+// is asked), so a cancelled print costs nothing.
+// Resolves true when it was printed, "cancelled" when it was not, "failed" when it could not be printed (already
+// explained in a popup), false when there were no print credits. Only true counts as printed.
+export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNeedPlan, billNumber }) {
   const userKey = user?.email || user?.id || getCurrentUserKey(user)
 
   const askForPlan = (text) => Swal.fire({
@@ -30,6 +51,11 @@ export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNe
     return false
   }
 
+  const result = await printReceiptElement(elementId, { pageWidth })
+  if (!result?.printed) return result?.cancelled ? "cancelled" : "failed"
+  if (result.unconfirmed && !(await confirmBrowserPrint(billNumber))) return "cancelled"
+
+  // It printed: now the credit is used
   let quota = null
   try {
     const res = await call("/subscriptions/consume-print", { method: "POST" })
@@ -38,12 +64,9 @@ export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNe
       syncUserQuota(res.quota, userKey)
     }
   } catch (err) {
-    console.error("Print credit could not be used:", err)
-    askForPlan(err?.detail || err?.message)
-    return false
+    // The receipt is already printed, so it still counts as printed; the server keeps the credit count right
+    console.error("Print credit could not be used after printing:", err)
   }
-
-  await printReceiptElement(elementId, { pageWidth })
 
   if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
     window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))

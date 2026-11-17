@@ -28,11 +28,50 @@ export function CameraScannerModal({
   const [torchOn, setTorchOn] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
   const [manualInput, setManualInput] = useState("");
+  // Phones: while the barcode box is being typed in, the camera area folds away and the popup moves up, so the
+  // box stays above the on-screen keyboard. The overlay also follows the part of the screen the keyboard leaves.
+  const [typing, setTyping] = useState(false);
+  const [viewport, setViewport] = useState(null);
+  const manualInputRef = useRef(null);
+  const blurTimerRef = useRef(null);
+  const isSmallScreen = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 768px), (pointer: coarse)").matches;
+  const compact = typing && isSmallScreen;
+
+  useEffect(() => {
+    if (!isOpen || typeof window === "undefined" || !window.visualViewport) return undefined;
+    const vv = window.visualViewport;
+    const update = () => setViewport({ height: vv.height, top: vv.offsetTop });
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [isOpen]);
+
+  useEffect(() => () => clearTimeout(blurTimerRef.current), []);
+
+  const handleManualFocus = () => {
+    clearTimeout(blurTimerRef.current);
+    setTyping(true);
+    // once the keyboard has opened, make sure the box is in view
+    setTimeout(() => manualInputRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 320);
+  };
+  const handleManualBlur = () => {
+    // a short wait so tapping "Add" still counts before the camera area comes back
+    blurTimerRef.current = setTimeout(() => setTyping(false), 180);
+  };
   const [lastScannedText, setLastScannedText] = useState(null);
   const [continuousMode, setContinuousMode] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const scannerRef = useRef(null);
+  const onScanRef = useRef(onScan);
+  onScanRef.current = onScan;
+  const continuousRef = useRef(continuousMode);
+  continuousRef.current = continuousMode;
+  const processingRef = useRef(false);
   const qrRegionId = "slipzo-qr-reader-region";
   const lastScanTimestampRef = useRef(0);
   const lastScannedCodeRef = useRef("");
@@ -138,6 +177,8 @@ export function CameraScannerModal({
           Html5QrcodeSupportedFormats.UPC_E,
           Html5QrcodeSupportedFormats.QR_CODE
         ],
+        // the browser's built-in detector (Chrome on Android, macOS, ChromeOS) is faster and copes better with blur
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         verbose: false
       });
 
@@ -158,15 +199,38 @@ export function CameraScannerModal({
         ? cameraConfig
         : (cameraConfig || { facingMode: "environment" });
 
+      // Without this the camera gives its default 640x480, which on a laptop webcam is too soft for dense
+      // Code 128 bars. Ask for HD and continuous focus; the camera picks the closest it supports.
+      const hdConstraints = {
+        ...(typeof cameraSelection === "string" ? { deviceId: { exact: cameraSelection } } : cameraSelection),
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        advanced: [{ focusMode: "continuous" }]
+      };
+      const hdConfig = { ...config, videoConstraints: hdConstraints };
+
       try {
-        await html5QrCode.start(
-          cameraSelection,
-          config,
-          (decodedText, decodedResult) => {
-            handleDecodedBarcode(decodedText, decodedResult);
-          },
-          () => {}
-        );
+        try {
+          await html5QrCode.start(
+            cameraSelection,
+            hdConfig,
+            (decodedText, decodedResult) => {
+              handleDecodedBarcode(decodedText, decodedResult);
+            },
+            () => {}
+          );
+        } catch (hdErr) {
+          // a camera that refuses the HD request still works at its default size
+          console.warn("HD camera request failed, using the default size:", hdErr);
+          await html5QrCode.start(
+            cameraSelection,
+            config,
+            (decodedText, decodedResult) => {
+              handleDecodedBarcode(decodedText, decodedResult);
+            },
+            () => {}
+          );
+        }
       } catch (firstErr) {
         console.warn("Primary camera start failed, retrying environment fallback...", firstErr);
         await html5QrCode.start(
@@ -217,7 +281,7 @@ export function CameraScannerModal({
   };
 
   const handleDecodedBarcode = async (barcode, decodedResult) => {
-    if (!barcode || isProcessing) return;
+    if (!barcode || processingRef.current) return;
     const clean = String(barcode).trim();
     if (!clean) return;
 
@@ -246,20 +310,22 @@ export function CameraScannerModal({
     lastScannedCodeRef.current = clean;
     setLastScannedText(clean);
 
+    processingRef.current = true;
     setIsProcessing(true);
     try {
       let isSuccess = false;
-      if (onScan) {
-        const result = await onScan(clean);
+      if (onScanRef.current) {
+        const result = await onScanRef.current(clean);
         isSuccess = result !== false;
       }
 
-      if (isSuccess && !continuousMode) {
+      if (isSuccess && !continuousRef.current) {
         await handleClose();
       }
     } catch (err) {
       console.error("Barcode scan processing error:", err);
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -302,14 +368,20 @@ export function CameraScannerModal({
     <div
       style={{
         position: "fixed",
-        inset: 0,
+        left: 0,
+        right: 0,
+        top: viewport && isSmallScreen ? `${viewport.top}px` : 0,
+        height: viewport && isSmallScreen ? `${viewport.height}px` : "100%",
         backgroundColor: "rgba(15, 23, 42, 0.85)",
         backdropFilter: "blur(6px)",
         display: "flex",
-        alignItems: "center",
+        // the popup centres itself with auto margins, so on a short screen it scrolls instead of being cut off
+        alignItems: "flex-start",
         justifyContent: "center",
         zIndex: 9999,
-        padding: "1rem"
+        padding: compact ? "0.75rem" : "1rem",
+        overflowY: "auto",
+        boxSizing: "border-box"
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose();
@@ -321,6 +393,8 @@ export function CameraScannerModal({
           borderRadius: "18px",
           width: "100%",
           maxWidth: "480px",
+          margin: compact ? "0 auto" : "auto",
+          flexShrink: 0,
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
           overflow: "hidden",
           display: "flex",
@@ -381,11 +455,16 @@ export function CameraScannerModal({
           style={{
             position: "relative",
             background: "#000000",
-            minHeight: "260px",
+            minHeight: compact ? 0 : "260px",
+            maxHeight: compact ? 0 : "none",
+            // the target box darkens everything around it with a large shadow; it must stay inside the camera view
+            overflow: "hidden",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center"
+            justifyContent: "center",
+            transition: "max-height 0.2s ease"
           }}
+          aria-hidden={compact || undefined}
         >
           {/* HTML5 QR Code Container */}
           <div
@@ -594,10 +673,15 @@ export function CameraScannerModal({
           <div style={{ position: "relative", flex: 1 }}>
             <Keyboard size={15} style={{ position: "absolute", left: "0.6rem", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
             <input
+              ref={manualInputRef}
               type="text"
+              inputMode="text"
+              enterKeyHint="done"
               placeholder={i18n.t("camera.typePh", "Or type barcode (e.g. SLP-000001)...")}
               value={manualInput}
               onChange={(e) => setManualInput(e.target.value)}
+              onFocus={handleManualFocus}
+              onBlur={handleManualBlur}
               data-barcode-input="true"
               style={{
                 width: "100%",

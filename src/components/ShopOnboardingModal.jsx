@@ -3,6 +3,7 @@ import { Store, Phone, MapPin, Hash, ArrowRight, Check, Sparkles, X, AlertCircle
 import { call, findTemplateMatch, setCachedData, getDateLocale } from "../lib/utils"
 import { ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
+import { usePageScrollLock } from "../hooks/usePageScrollLock"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { RealisticReceiptView } from "./RealisticReceiptView"
@@ -95,29 +96,7 @@ export function ShopOnboardingModal({ isOpen, onClose, user, onComplete }) {
   }, [isOpen, user])
 
   // Lock background scrolling when onboarding modal is open
-  useEffect(() => {
-    if (isOpen) {
-      const originalBodyOverflow = document.body.style.overflow
-      const originalDocOverflow = document.documentElement.style.overflow
-
-      document.body.style.overflow = "hidden"
-      document.documentElement.style.overflow = "hidden"
-
-      const elementsToLock = document.querySelectorAll(".shell-content, .shell-main, .app, .public-layout, .main-content")
-      elementsToLock.forEach(el => {
-        el.dataset.origOverflow = el.style.overflow
-        el.style.overflow = "hidden"
-      })
-
-      return () => {
-        document.body.style.overflow = originalBodyOverflow
-        document.documentElement.style.overflow = originalDocOverflow
-        elementsToLock.forEach(el => {
-          el.style.overflow = el.dataset.origOverflow || ""
-        })
-      }
-    }
-  }, [isOpen])
+  usePageScrollLock(isOpen)
 
   const validateField = (key, value) => {
     const val = String(value || "").trim()

@@ -417,7 +417,22 @@
     "increase": "Increase quantity",
     "downloadPdf": "Download PDF",
     "savedNotPrinted": "The bill is saved but was not printed. Add print credits and press Print again.",
-    "billPreview": "Bill Preview"
+    "billPreview": "Bill Preview",
+    "printCancelled": "Print cancelled. Nothing was printed.",
+    "didItPrint": "Did the receipt print?",
+    "didItPrintBill": "Bill #{{n}}",
+    "yesPrinted": "Yes, it printed",
+    "notPrinted": "No",
+    "notPrintedSaved": "Not printed. The bill is saved, so you can print it any time.",
+    "statusPrinted": "Printed",
+    "statusSaved": "Saved · not printed yet",
+    "donePrinted": "Bill printed",
+    "doneSaved": "Bill saved",
+    "itemsCount": "{{n}} items",
+    "moreItems": "+{{n}} more",
+    "printAgain": "Print again",
+    "newBillShort": "New bill",
+    "pdfShort": "PDF"
   },
   "contact": {
     "eyebrow": "CONTACT US",
@@ -689,7 +704,7 @@
   "history": {
     "eyebrow": "YOUR RECEIPTS",
     "title": "Bill history.",
-    "subtitle": "Find and reprint any saved receipt.",
+    "subtitle": "Find and reprint today's receipts.",
     "savedBills": "Saved Bills",
     "printBills": "Print Bills",
     "savedReceipt": "SAVED RECEIPT",
@@ -731,8 +746,8 @@
     "printBill": "Print Bill",
     "noSavedBillsYet": "No saved bills yet",
     "noPrintedBillsYet": "No printed bills yet",
-    "noSavedBillsDesc": "Saved bills and orders from the last 10 days will automatically appear here. You can reopen, edit items, and finalize them anytime.",
-    "noPrintedBillsDesc": "Printed thermal receipts from the last 10 days will appear here, ready to find and reprint.",
+    "noSavedBillsDesc": "Saved bills and orders from today will automatically appear here. You can reopen, edit items, and finalize them anytime.",
+    "noPrintedBillsDesc": "Printed thermal receipts from today will appear here, ready to find and reprint.",
     "err_loadFailed": "Failed to load bill history",
     "deletedOk": "Bill #{{n}} deleted successfully",
     "oneItem": "1 item",
@@ -803,8 +818,8 @@
     "viewPlans": "View plans",
     "recentBills": "Recent Bills",
     "viewAll": "View All →",
-    "noRecentBills": "No recent bills yet",
-    "createFirstBill": "Create your first bill to see it here.",
+    "noRecentBills": "No bills yet today",
+    "createFirstBill": "Bills you save today will show here.",
     "createBill": "Create Bill",
     "noMatchingBills": "No matching bills found",
     "clearSearch": "Clear search",
@@ -812,7 +827,12 @@
     "pending": "Pending",
     "draft": "Draft",
     "overdue": "Overdue",
-    "products": "Supplies"
+    "products": "Supplies",
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "greetingSub": "Here is how your shop is doing today.",
+    "openTables": "Open tables"
   },
   "tables": {
     "orderKept": "Order kept for {{tableName}}",
@@ -882,7 +902,8 @@
     "increase": "Increase tables",
     "orderSavedSuccess": "Bill saved for {{tableName}}!",
     "savedNotPrinted": "The bill is saved but was not printed. Add print credits and press Print again.",
-    "previewEmpty": "Add items to see the bill preview."
+    "previewEmpty": "Add items to see the bill preview.",
+    "savedPrintCancelled": "Print cancelled. The bill is saved and the table stays open."
   },
   "landing": {
     "features": "Features",
@@ -1675,7 +1696,35 @@
     "payments": "Payments",
     "cash": "Cash",
     "card": "Card",
-    "topItems": "Top items"
+    "topItems": "Top items",
+    "billOne": "1 bill",
+    "bestHour": "Best hour",
+    "emptyPayments": "Cash, UPI and card totals will show here.",
+    "emptyTopItems": "Your best-selling items today will show here.",
+    "glance": "Today at a glance",
+    "waitingToPrint": "Waiting to print",
+    "allPrinted": "All printed",
+    "openTables": "Open tables",
+    "tablesOf": "{{n}} of {{total}}",
+    "allFree": "All free",
+    "printedBills": "Printed bills",
+    "creditsLeft": "Print credits left",
+    "creditsLow": "Running low · buy more",
+    "creditsOk": "Enough for now",
+    "discountGiven": "Discount given",
+    "lastBill": "Last bill",
+    "noBillYet": "No bill yet",
+    "justNow": "Just now",
+    "minsAgo": "{{n}} min ago",
+    "topItemsSub": "Best sellers by amount",
+    "qtySold": "{{n}} sold",
+    "lowStock": "Low stock",
+    "stockOff": "Not tracked",
+    "allStocked": "All stocked",
+    "itemsN": "{{n}} items",
+    "stockSetup": "Set up stock in Menu",
+    "outOfStock": "{{n}} out of stock",
+    "stockOk": "Nothing running low"
   },
   "otp": {
     "sentTo": "We sent a 6-digit code to",
@@ -1862,5 +1911,16 @@
       "benefit2Title": "Know your day",
       "benefit2Text": "See today's sales, bills and best sellers the moment you need them."
     }
+  },
+  "search": {
+    "open": "Search",
+    "placeholder": "Search ..",
+    "clear": "Clear",
+    "close": "Close search",
+    "pages": "Pages",
+    "items": "Menu items",
+    "bills": "Bills",
+    "table": "Table",
+    "noResults": "Nothing found for “{{q}}”"
   }
 }
