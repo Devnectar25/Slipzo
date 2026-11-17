@@ -95,6 +95,9 @@ function previewInvoiceNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-
   return `${cleanPrefix}-${dateStr}-${seqStr}`
 }
 
+// Set by "Use Template" on the Templates page (see Templates.jsx)
+export const PROFILE_TEMPLATE_KEY = "slipzo-profile-template"
+
 export function Shop({ user, setView } = {}) {
   const { t, i18n } = useTranslation()
   const { tDb } = useDbTranslation()
@@ -264,6 +267,35 @@ export function Shop({ user, setView } = {}) {
     return newErrors
   }
 
+  // "Use Template" on the Templates page opens this page with that template already chosen as the
+  // Receipt Template. It is an unsaved change, so the owner sees it in the live preview and presses Save.
+  const applyPickedTemplate = (tplList) => {
+    let picked = null
+    try {
+      picked = sessionStorage.getItem(PROFILE_TEMPLATE_KEY)
+      sessionStorage.removeItem(PROFILE_TEMPLATE_KEY)
+    } catch (_) { }
+    if (!picked) return
+    const match = findTemplateMatch(tplList, picked) || findTemplateMatch(BUILTIN_TEMPLATES, picked)
+    if (!match) return
+
+    setShop((prev) => {
+      if (String(prev.default_template_id) === String(match.id)) return prev
+      edited.current = true
+      setHasUnsaved(true)
+      return { ...prev, default_template_id: match.id }
+    })
+    success(t("profile.templatePicked", "\"{{name}}\" selected as your receipt template. Press Save to keep it.", { name: tDb(match.name || "") }))
+
+    setTimeout(() => {
+      const field = document.getElementById("receipt-template-field")
+      if (!field) return
+      field.scrollIntoView({ behavior: "smooth", block: "center" })
+      field.classList.add("sp-field-flash")
+      setTimeout(() => field.classList.remove("sp-field-flash"), 2200)
+    }, 250)
+  }
+
   useEffect(() => {
     const loadShop = async () => {
       try {
@@ -302,6 +334,8 @@ export function Shop({ user, setView } = {}) {
           setCachedData("/shop", loadedShop)
           window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: loadedShop }))
         }
+
+        applyPickedTemplate(tplList)
       } catch (err) {
         console.error("Failed to load shop:", err)
         toastError(t("profile.err_loadShop", "Failed to load shop details"))
@@ -1250,7 +1284,7 @@ export function Shop({ user, setView } = {}) {
               </div>
             </div>
 
-            <div className="sp-field-group full-width" style={{ marginBottom: "1rem" }}>
+            <div id="receipt-template-field" className="sp-field-group full-width" style={{ marginBottom: "1rem" }}>
               <label className="sp-label">{t("profile.receiptTemplate", "Receipt Template")}</label>
               <SelectMenu
                 icon={Receipt}

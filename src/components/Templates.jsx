@@ -589,8 +589,8 @@ export function Templates({ setView, user }) {
                       className="template-use-btn"
                       style={{ background: topBarColor }}
                       onClick={() => {
-                        sessionStorage.setItem("slipzo-template", template.templateId || template.id)
-                        setView("bills")
+                        sessionStorage.setItem("slipzo-profile-template", template.templateId || template.id)
+                        setView("shop") // pick it as the Receipt Template in Shop Profile
                       }}
                     >
                       {t("templates.useTemplate", "Use Template")} <ArrowRight size={14} />
@@ -649,12 +649,12 @@ export function Templates({ setView, user }) {
                 className="modal-use-btn"
                 style={{ background: previewTemplate.topBarColor || previewTemplate.accentColor || "#0284c7" }}
                 onClick={() => {
-                  sessionStorage.setItem("slipzo-template", previewTemplate.templateId || previewTemplate.id)
+                  sessionStorage.setItem("slipzo-profile-template", previewTemplate.templateId || previewTemplate.id)
                   setPreviewTemplate(null)
-                  setView("bills")
+                  setView("shop")
                 }}
               >
-                {t("templates.useInBilling", "Use this template in billing")} <ArrowRight size={16} />
+                {t("templates.useTemplate", "Use Template")} <ArrowRight size={16} />
               </button>
             </div>
           </div>
