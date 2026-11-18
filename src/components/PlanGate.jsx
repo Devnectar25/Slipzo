@@ -4,6 +4,7 @@ import { Check, Crown, Layers, Zap, ArrowRight, ArrowLeft, ShieldCheck } from "l
 import { ButtonLoader } from "./common/Skeleton"
 import { startPrintPurchase, resumePendingPurchase, getPendingPayment } from "../lib/buyPrints"
 import { formatNumberByLang } from "../lib/utils"
+import { usePageScrollLock } from "../hooks/usePageScrollLock"
 import "../styles/PlanGate.css"
 
 // Same packs and prices as the Pricing page. The server checks the price against the payment, so these are only labels.
@@ -49,11 +50,7 @@ export function PlanGate({ user, shopName, onPurchased, onBack }) {
   const { t } = useTranslation()
   const [buying, setBuying] = useState(null)
 
-  useEffect(() => {
-    const prevBody = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => { document.body.style.overflow = prevBody }
-  }, [])
+  usePageScrollLock()
 
   // A payment that was made earlier but never confirmed (server not ready, connection lost) is finished here, with no second charge
   useEffect(() => {

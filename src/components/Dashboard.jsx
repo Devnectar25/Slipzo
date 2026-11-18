@@ -1,36 +1,23 @@
 import { useEffect, useState, useMemo } from "react"
+import { filterToday, msUntilMidnight, todayBillsUrl } from "../lib/todayBills"
 import {
-  Search,
-  FileText,
-  Package,
-  ShoppingCart,
-  LayoutTemplate,
-  Store,
-  Crown,
-  ChevronRight,
   Printer,
   Receipt,
   Plus,
-  ArrowRight,
-  X,
   Utensils,
-  Pencil,
-  BookOpen,
-  ShieldCheck
+  Pencil
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
-import { call, money, getCachedData, isHotelRestaurant, isMenuCategory, getTableDisplayName } from "../lib/utils"
-import { VoiceInputButton } from "./common/VoiceInputButton"
+import { TodayAnalytics } from "./TodayAnalytics"
+import { call, money, getCachedData, isHotelRestaurant, getTableDisplayName } from "../lib/utils"
 
 export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum, lang } = useDbTranslation()
-  const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000
 
   const [shop, setShop] = useState(() => getCachedData("/shop") || {})
   const isHotel = isHotelRestaurant(shop)
-  const isMenu = isMenuCategory(shop)
 
   useEffect(() => {
     setShop(getCachedData("/shop") || {})
@@ -44,11 +31,6 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
   }, [])
 
-  const filter10Days = (list) => {
-    if (!Array.isArray(list)) return []
-    const cutoff = Date.now() - TEN_DAYS_MS
-    return list.filter((b) => b && b.created_at && new Date(b.created_at).getTime() >= cutoff)
-  }
 
   const filterSavedBills = (list) => {
     if (!Array.isArray(list)) return []
@@ -68,20 +50,19 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     )
   }
 
-  const cachedData = getCachedData("/bills?page=1&limit=10&days_limit=10&is_saved=true")
+  const cachedData = getCachedData(todayBillsUrl({ isSaved: true }))
 
   const [bills, setBills] = useState(() => {
     if (cachedData?.bills && Array.isArray(cachedData.bills)) {
-      return sortNewestFirst(filter10Days(filterSavedBills(cachedData.bills)))
+      return sortNewestFirst(filterToday(filterSavedBills(cachedData.bills)))
     }
     if (Array.isArray(cachedData)) {
-      return sortNewestFirst(filter10Days(filterSavedBills(cachedData)))
+      return sortNewestFirst(filterToday(filterSavedBills(cachedData)))
     }
     return []
   })
 
   const [loading, setLoading] = useState(() => !cachedData)
-  const [search, setSearch] = useState("")
 
   const loadRecentBills = async (forceRefresh = false) => {
     try {
@@ -90,8 +71,8 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
       }
       const fetchOpts = forceRefresh ? { noCache: true } : {}
 
-      // Strictly query ONLY saved bills from database
-      const data = await call("/bills?page=1&limit=10&days_limit=10&is_saved=true", fetchOpts)
+      // Strictly query ONLY saved bills from database, made today
+      const data = await call(todayBillsUrl({ isSaved: true }), fetchOpts)
       let rawList = []
       if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.bills)) {
         rawList = data.bills
@@ -99,7 +80,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
         rawList = data
       }
 
-      const filtered = sortNewestFirst(filter10Days(filterSavedBills(rawList)))
+      const filtered = sortNewestFirst(filterToday(filterSavedBills(rawList)))
       setBills(filtered)
     } catch (err) {
       console.error("Failed to load recent bills on Home:", err)
@@ -155,12 +136,23 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
       }
     }
 
+    // Yesterday's bills leave the list when the day changes, even if the app stays open overnight
+    let midnightTimer = null
+    const scheduleMidnight = () => {
+      midnightTimer = setTimeout(() => {
+        loadRecentBills(true)
+        scheduleMidnight()
+      }, msUntilMidnight() + 1000)
+    }
+    scheduleMidnight()
+
     window.addEventListener("slipzo_bill_saved", handleBillSaved)
     window.addEventListener("slipzo_bill_printed", handleBillPrinted)
     window.addEventListener("slipzo_staff_changed", handleVisibleSync)
     window.addEventListener("focus", handleVisibleSync)
     document.addEventListener("visibilitychange", handleVisibleSync)
     return () => {
+      clearTimeout(midnightTimer)
       window.removeEventListener("slipzo_bill_saved", handleBillSaved)
       window.removeEventListener("slipzo_bill_printed", handleBillPrinted)
       window.removeEventListener("slipzo_staff_changed", handleVisibleSync)
@@ -244,65 +236,15 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     }
   }
 
-  const filteredBills = useMemo(() => {
-    if (!search.trim()) return bills.slice(0, 5)
-    const q = search.trim().toLowerCase()
-    return bills
-      .filter((b) => {
-        const num = String(b.number || "").toLowerCase()
-        const cust = String(b.customer_name || "").toLowerCase()
-        const tot = String(b.total || "").toLowerCase()
-        const mode = String(b.payment_mode || "").toLowerCase()
-        const tbl = String(b.table_number || "").toLowerCase()
-        return num.includes(q) || cust.includes(q) || tot.includes(q) || mode.includes(q) || tbl.includes(q)
-      })
-      .slice(0, 5)
-  }, [bills, search])
+  const filteredBills = useMemo(() => bills.slice(0, 5), [bills])
 
-  const quickActionCards = [
-    {
-      id: isHotel ? "tables" : "new-bill",
-      title: isHotel ? t("home.tables", "Tables") : t("home.newBill", "New Bill"),
-      subtitle: isHotel ? t("home.manageTables", "Manage tables & billing") : t("home.createInvoice", "Create invoice"),
-      icon: isHotel ? Utensils : FileText,
-      targetView: isHotel ? "tables" : "bills"
-    },
-    {
-      id: "add-item",
-      title: isMenu ? t("home.addMenu", "Add Menu") : t("home.addItem", "Add Item"),
-      subtitle: isMenu ? t("home.quickAddMenu", "Quick add menu") : t("home.quickAddItem", "Quick add item"),
-      icon: ShoppingCart,
-      targetView: "menu"
-    },
-    {
-      id: "shop-profile",
-      title: t("home.shopProfile", "Shop Profile"),
-      subtitle: t("home.manageYourShop", "Manage your shop"),
-      icon: Store,
-      targetView: "shop"
-    },
-    {
-      id: "products",
-      title: t("home.products", "Supplies"),
-      subtitle: t("home.addToInventory", "Suggested billing gear"),
-      icon: Package,
-      targetView: "products"
-    },
-    {
-      id: "templates",
-      title: t("home.templates", "Templates"),
-      subtitle: t("home.useReadyFormats", "Use ready formats"),
-      icon: LayoutTemplate,
-      targetView: "templates"
-    },
-    {
-      id: "pricing",
-      title: t("home.pricing", "Pricing"),
-      subtitle: t("home.viewPlans", "View plans"),
-      icon: Crown,
-      targetView: "pricing"
-    }
-  ]
+  const hourNow = new Date().getHours()
+  const greeting = hourNow < 12
+    ? t("home.goodMorning", "Good morning")
+    : hourNow < 17
+      ? t("home.goodAfternoon", "Good afternoon")
+      : t("home.goodEvening", "Good evening")
+  const shopName = String(shop?.name || user?.staff_of?.shop_name || "").trim()
 
   return (
     <div className="home-screen-root fade-in">
@@ -315,177 +257,43 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
           box-sizing: border-box;
         }
 
-        /* Top Search Bar */
-        .home-search-bar {
+        /* Greeting */
+        .home-greeting {
           display: flex;
           align-items: center;
-          background: #ffffff;
-          border: 1px solid #d5e0eb;
-          border-radius: 12px;
-          height: 48px;
-          padding: 0 0.5rem 0 0.85rem;
-          gap: 8px;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-          margin-bottom: 20px;
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
-          box-sizing: border-box;
-          width: 100%;
-        }
-
-        .home-search-bar:focus-within {
-          border-color: #0284c7;
-          box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
-        }
-
-        .home-search-icon {
-          color: #8F93A5;
-          flex-shrink: 0;
-        }
-
-        .home-search-input {
-          flex: 1;
-          border: none !important;
-          outline: none !important;
-          box-shadow: none !important;
-          background: transparent !important;
-          font-size: 16px;
-          font-weight: 400;
-          color: #0C1F41;
-          min-width: 0;
-          padding: 0;
-        }
-
-        .home-search-input::placeholder {
-          color: #8F93A5;
-          font-size: 16px;
-          font-weight: 400;
-        }
-
-        .home-search-icon {
-          color: #64748b;
-          flex-shrink: 0;
-        }
-
-        .home-search-clear {
-          background: none;
-          border: none;
-          color: #94a3b8;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-
-        .home-search-clear:hover {
-          color: #0f172a;
-        }
-
-        /* Quick Action Cards Grid */
-        .home-cards-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          justify-content: space-between;
           gap: 16px;
-          margin-bottom: 24px;
-          box-sizing: border-box;
-          width: 100%;
+          margin: 4px 0 22px;
         }
-
-        .home-action-card {
-          position: relative;
-          background: linear-gradient(145deg, #ffffff 65%, #f0f9ff 100%);
-          border: 1px solid #f1f5f9;
-          border-radius: 16px;
-          padding: 16px 18px;
-          display: flex;
-          flex-direction: column;
-          box-shadow: 0 1px 6px rgba(15, 23, 42, 0.03);
-          cursor: pointer;
-          transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-          text-align: left;
-          user-select: none;
-          box-sizing: border-box;
-          min-width: 0;
-          overflow: hidden;
+        .home-greeting-text { min-width: 0; }
+        .home-greeting-title {
+          margin: 0;
+          font-size: 2.1rem;
+          line-height: 1.15;
+          font-weight: 800;
+          color: #0c1f41;
+          letter-spacing: -0.02em;
         }
-
-        .home-action-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(2, 132, 199, 0.1);
-          border-color: #bae6fd;
-        }
-
-        .home-action-card:active {
-          transform: scale(0.98);
-        }
-
-        .home-card-icon-wrapper {
-          width: 46px;
-          height: 46px;
+        .home-greeting-title span { color: #0284c7; }
+        .home-greeting-sub { margin: 6px 0 0; font-size: 1.05rem; font-weight: 500; color: #64748b; }
+        .home-greeting-cta {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 11px 18px;
+          border: none;
           border-radius: 12px;
           background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
           color: #ffffff;
-          box-shadow: 0 3px 10px rgba(2, 132, 199, 0.22);
-          margin-bottom: 14px;
-          flex-shrink: 0;
-        }
-
-        .home-card-text-group {
-          min-width: 0;
-          padding-right: 32px;
-          box-sizing: border-box;
-        }
-
-        .home-card-title {
-          font-size: 1.02rem;
+          font-size: 0.9rem;
           font-weight: 700;
-          color: #0f172a;
-          margin: 0 0 3px;
-          line-height: 1.25;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          cursor: pointer;
+          box-shadow: 0 6px 16px rgba(2, 132, 199, 0.25);
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
-
-        .home-card-subtitle {
-          font-size: 0.8rem;
-          color: #64748b;
-          font-weight: 500;
-          margin: 0;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .home-card-chevron-btn {
-          position: absolute;
-          right: 14px;
-          bottom: 16px;
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          background: #ffffff;
-          border: 1px solid #bae6fd;
-          color: #0284c7;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 1px 4px rgba(2, 132, 199, 0.08);
-          flex-shrink: 0;
-          transition: transform 0.15s, background 0.15s;
-          pointer-events: none;
-        }
-
-        .home-action-card:hover .home-card-chevron-btn {
-          background: #f0f9ff;
-          transform: translateX(2px);
-          border-color: #7dd3fc;
-        }
+        .home-greeting-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(2, 132, 199, 0.32); }
+        .home-greeting-cta:active { transform: translateY(0); }
 
         /* Recent Bills Section */
         .home-recent-section {
@@ -793,64 +601,10 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
             padding: 8px 10px 0;
           }
 
-          .home-search-bar {
-            padding: 0 8px 0 10px;
-            margin-bottom: 12px;
-            border-radius: 10px;
-          }
-
-          .home-search-input {
-            font-size: 0.82rem;
-          }
-
-          .home-cards-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 8px;
-            margin-bottom: 18px;
-          }
-
-          .home-action-card {
-            padding: 10px 8px;
-            border-radius: 12px;
-            min-height: 96px;
-          }
-
-          .home-card-icon-wrapper {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            margin-bottom: 8px;
-          }
-
-          .home-card-icon-wrapper svg {
-            width: 18px;
-            height: 18px;
-          }
-
-          .home-card-text-group {
-            padding-right: 22px;
-          }
-
-          .home-card-title {
-            font-size: 0.85rem;
-            margin-bottom: 1px;
-          }
-
-          .home-card-subtitle {
-            font-size: 0.68rem;
-          }
-
-          .home-card-chevron-btn {
-            width: 20px;
-            height: 20px;
-            right: 8px;
-            bottom: 10px;
-          }
-
-          .home-card-chevron-btn svg {
-            width: 11px;
-            height: 11px;
-          }
+          .home-greeting { margin: 0 0 14px; gap: 10px; }
+          .home-greeting-title { font-size: 1.5rem; }
+          .home-greeting-sub { font-size: 0.9rem; margin-top: 4px; }
+          .home-greeting-cta { padding: 9px 12px; font-size: 0.82rem; }
 
           .home-recent-section {
             margin-top: 14px;
@@ -909,100 +663,27 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
         }
       `}</style>
 
-      {/* 1. TOP SEARCH SECTION */}
-      <div className="home-search-bar" role="search">
-        <Search size={16} className="home-search-icon" />
-        <input
-          type="text"
-          className="home-search-input"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("home.searchPlaceholder", "Search bills, products, templates, customers...")}
-          aria-label={t("dashboard.searchAria", "Search")}
-        />
-        {search.trim() && (
-          <button
-            type="button"
-            className="home-search-clear"
-            onClick={() => setSearch("")}
-            title={t("home.clearSearch", "Clear search")}
-          >
-            <X size={14} />
-          </button>
-        )}
-        <VoiceInputButton
-          mode="raw"
-          variant="icon-only"
-          onSpeechResult={(text) => setSearch(text)}
-          placeholder={t("menu.voiceSearch", "Speak to search")}
-          className="search-voice-btn"
-        />
-      </div>
-
-      {/* 2. SIX QUICK-ACTION CARDS */}
-      <div className="home-cards-grid">
-        {quickActionCards.map((card) => {
-          const IconComp = card.icon
-          return (
-            <div
-              key={card.id}
-              data-testid={`home-action-${card.id}`}
-              className="home-action-card"
-              onClick={() => setView(card.targetView)}
-            >
-              <div className="home-card-icon-wrapper">
-                <IconComp size={22} />
-              </div>
-
-              <div className="home-card-text-group">
-                <h3 className="home-card-title">{card.title}</h3>
-                <p className="home-card-subtitle">{card.subtitle}</p>
-              </div>
-
-              <div className="home-card-chevron-btn" aria-hidden="true">
-                <ChevronRight size={13} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* 2.5 USER GUIDE HELP BANNER */}
-      <div 
-        className="home-guide-banner"
-        onClick={() => setView("guide")}
-        style={{
-          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-          border: '1px solid #bae6fd',
-          borderRadius: '14px',
-          padding: '12px 18px',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(2, 132, 199, 0.08)',
-          transition: 'all 0.2s ease'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <BookOpen size={18} />
-          </div>
-          <div>
-            <h4 style={{ margin: '0 0 2px 0', fontSize: '0.9rem', fontWeight: 700, color: '#0369a1' }}>
-              {t("guide.bannerTitle", tDb("Slipzen User Guide & Quick Setup"))}
-            </h4>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: '#0284c7' }}>
-              {t("guide.bannerSubtitle", tDb("Step-by-step instructions for thermal printers, barcode inventory, dine-in tables & billing."))}
-            </p>
-          </div>
+      {/* 1. GREETING */}
+      <div className="home-greeting">
+        <div className="home-greeting-text">
+          <h1 className="home-greeting-title">
+            {greeting}{shopName ? <>, <span>{shopName}</span></> : null}
+          </h1>
+          <p className="home-greeting-sub">{t("home.greetingSub", "Here is how your shop is doing today.")}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', fontWeight: 700, color: '#0284c7', whiteSpace: 'nowrap' }}>
-          <span>{t("guide.openGuide", tDb("Open Guide"))}</span>
-          <ArrowRight size={14} />
-        </div>
+        <button
+          type="button"
+          data-testid="home-start-billing"
+          className="home-greeting-cta"
+          onClick={() => setView(isHotel ? "tables" : "bills")}
+        >
+          {isHotel ? <Utensils size={16} /> : <Plus size={16} />}
+          <span>{isHotel ? t("home.openTables", "Open tables") : t("home.newBill", "New Bill")}</span>
+        </button>
       </div>
+
+      {/* 2. TODAY'S ANALYTICS */}
+      {user && <TodayAnalytics user={user} variant="full" isRestaurant={isHotel} onNavigate={setView} />}
 
       {/* 3. RECENT BILLS SECTION */}
       <div className="home-recent-section">
@@ -1144,32 +825,16 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
               )
             })}
           </div>
-        ) : search.trim() ? (
-          <div className="home-empty-state">
-            <p className="home-empty-title">
-              {t("home.noMatchingBills", "No matching bills found")}
-            </p>
-            <p className="home-empty-desc">
-              {t("history.noReceiptsFoundDesc", "No receipts matched your search filters. Try clearing the search.")}
-            </p>
-            <button
-              type="button"
-              className="home-empty-btn"
-              onClick={() => setSearch("")}
-            >
-              {t("home.clearSearch", "Clear search")}
-            </button>
-          </div>
         ) : (
           <div className="home-empty-state">
             <div className="home-empty-icon-wrap">
               <Receipt size={24} />
             </div>
             <p className="home-empty-title">
-              {t("home.noRecentBills", "No recent bills yet")}
+              {t("home.noRecentBills", "No bills yet today")}
             </p>
             <p className="home-empty-desc">
-              {t("home.createFirstBill", "Create your first bill to see it here.")}
+              {t("home.createFirstBill", "Bills you save today will show here.")}
             </p>
             <button
               type="button"

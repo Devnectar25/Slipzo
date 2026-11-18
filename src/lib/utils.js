@@ -394,6 +394,17 @@ const performFetch = async (cleanPath, options = {}) => {
       try {
         sessionStorage.setItem(`slipzo_cache_${cacheKey}`, JSON.stringify(cacheItem))
       } catch (e) { }
+
+      // When background revalidation for /menu finishes, broadcast so active views refresh immediately
+      if (options.isRevalidation && cleanPath.startsWith('/menu') && Array.isArray(data)) {
+        try {
+          const uKey = getCurrentUserKey()
+          localStorage.setItem(`slipzo_menu_items_${uKey}`, JSON.stringify(data))
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('slipzo-menu-update', { detail: { userKey: uKey, items: data, fromRevalidation: true } }))
+          }
+        } catch (_) {}
+      }
     }
 
     return data
@@ -679,12 +690,95 @@ export const getStoredMenuItems = (user) => {
 
 export const saveStoredMenuItems = (items, user) => {
   const key = getCurrentUserKey(user)
+  const safeItems = Array.isArray(items) ? items : []
   try {
-    localStorage.setItem(`slipzo_menu_items_${key}`, JSON.stringify(items || []))
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { userKey: key, items: items || [] } }))
+    localStorage.setItem(`slipzo_menu_items_${key}`, JSON.stringify(safeItems))
+  } catch (e) { }
+
+  // Keep API cache and session storage in sync with new items
+  invalidateApiCache("/menu")
+  invalidateApiCache("/products")
+  if (safeItems.length > 0) {
+    setCachedData("/menu", safeItems)
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("slipzo-menu-update", { detail: { userKey: key, items: safeItems } }))
+  }
+}
+
+export const updateItemStockInStorageAndCache = (updatedItem, user) => {
+  if (!updatedItem || !updatedItem.id) return []
+  const key = getCurrentUserKey(user)
+  let updatedList = []
+  try {
+    const raw = localStorage.getItem(`slipzo_menu_items_${key}`)
+    if (raw) {
+      const list = JSON.parse(raw)
+      if (Array.isArray(list)) {
+        updatedList = list.map((it) => {
+          if (String(it.id) === String(updatedItem.id)) {
+            return {
+              ...it,
+              stock_qty: updatedItem.stock_qty !== undefined ? updatedItem.stock_qty : it.stock_qty,
+              track_stock: updatedItem.track_stock !== undefined ? updatedItem.track_stock : it.track_stock,
+              low_stock_alert: updatedItem.low_stock_alert !== undefined ? updatedItem.low_stock_alert : it.low_stock_alert
+            }
+          }
+          return it
+        })
+        localStorage.setItem(`slipzo_menu_items_${key}`, JSON.stringify(updatedList))
+      }
     }
   } catch (e) { }
+
+  // Invalidate any stale GET cached responses
+  invalidateApiCache("/menu")
+  invalidateApiCache("/products")
+
+  // Update memoryCache and session cache with the fresh list
+  if (updatedList.length > 0) {
+    setCachedData("/menu", updatedList)
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("slipzo-stock-updated", {
+      detail: {
+        id: updatedItem.id,
+        stock_qty: updatedItem.stock_qty,
+        track_stock: updatedItem.track_stock,
+        low_stock_alert: updatedItem.low_stock_alert,
+        userKey: key
+      }
+    }))
+    window.dispatchEvent(new CustomEvent("slipzo-menu-update", {
+      detail: {
+        userKey: key,
+        items: updatedList,
+        updatedItem
+      }
+    }))
+  }
+  return updatedList
+}
+
+// Cross-tab synchronization for menu and stock items
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key && e.key.startsWith("slipzo_menu_items_")) {
+      try {
+        const items = JSON.parse(e.newValue || "[]")
+        invalidateApiCache("/menu")
+        invalidateApiCache("/products")
+        if (Array.isArray(items) && items.length > 0) {
+          setCachedData("/menu", items)
+        }
+        window.dispatchEvent(new CustomEvent("slipzo-menu-update", {
+          detail: { items, isCrossTab: true }
+        }))
+      } catch (_) {}
+    }
+  })
 }
 
 export const clearStoredMenuItems = (user) => {

@@ -15,7 +15,6 @@ import {
   Check,
   X,
   FileText,
-  Lightbulb,
   Barcode as BarcodeIcon
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -61,7 +60,7 @@ export function TableBilling({
 }) {
   const { t } = useTranslation()
   const { tDb, formatNum } = useDbTranslation()
-  const { success: toastSuccess, error: toastError } = useToast()
+  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast()
   // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
   // Up-to-date shop details: the prop can be a snapshot taken before the shop loaded, which made the bill
   // preview and printed bills fall back to the Classic template and lose the shop name
@@ -69,7 +68,7 @@ export function TableBilling({
   useEffect(() => {
     let alive = true
     setShopInfo((prev) => ({ ...prev, ...(getCachedData("/shop") || {}), ...(shop || {}) }))
-    call("/shop").then((fresh) => { if (alive && fresh && typeof fresh === "object") setShopInfo((prev) => ({ ...prev, ...fresh })) }).catch(() => {})
+    call("/shop").then((fresh) => { if (alive && fresh && typeof fresh === "object") setShopInfo((prev) => ({ ...prev, ...fresh })) }).catch(() => { })
     const onShop = (e) => { if (e?.detail) setShopInfo((prev) => ({ ...prev, ...e.detail })) }
     window.addEventListener("slipzo_shop_updated", onShop)
     return () => { alive = false; window.removeEventListener("slipzo_shop_updated", onShop) }
@@ -105,7 +104,7 @@ export function TableBilling({
       try {
         const parsed = JSON.parse(rawItems)
         if (Array.isArray(parsed)) list = parsed
-      } catch (_) {}
+      } catch (_) { }
     }
     return list.map((it) => {
       const qty = Number(it.quantity !== undefined ? it.quantity : (it.qty !== undefined ? it.qty : 1)) || 1
@@ -143,14 +142,18 @@ export function TableBilling({
 
   // Shop Personal Menu Items
   const cachedMenuItems = getCachedData("/menu")
-  const [userMenuItems, setUserMenuItems] = useState(() => (Array.isArray(cachedMenuItems) ? cachedMenuItems : []))
+  const [userMenuItems, setUserMenuItems] = useState(() => {
+    const stored = getStoredMenuItems(user)
+    if (Array.isArray(stored) && stored.length > 0) return stored
+    return Array.isArray(cachedMenuItems) ? cachedMenuItems : []
+  })
   const [loadingMenu, setLoadingMenu] = useState(() => !cachedMenuItems || userMenuItems.length === 0)
 
   useEffect(() => {
     let isMounted = true
     const loadMenu = async () => {
       try {
-        const data = await call("/menu").catch(() => null)
+        const data = await call("/menu", { noCache: true }).catch(() => null)
         if (isMounted && Array.isArray(data)) {
           setUserMenuItems(data)
         } else if (isMounted) {
@@ -169,6 +172,31 @@ export function TableBilling({
     loadMenu()
     return () => { isMounted = false }
   }, [])
+
+  useEffect(() => {
+    const onMenuUpdate = (e) => {
+      if (Array.isArray(e?.detail?.items) && e.detail.items.length > 0) {
+        setUserMenuItems(e.detail.items)
+      } else if (e?.detail?.updatedItem) {
+        const { id, stock_qty, track_stock, low_stock_alert } = e.detail.updatedItem
+        setUserMenuItems((prev) => prev.map((it) => (it.id === id ? { ...it, stock_qty, track_stock, low_stock_alert } : it)))
+      } else {
+        const local = getStoredMenuItems(user)
+        if (local.length > 0) setUserMenuItems(local)
+      }
+    }
+    const onStockUpdated = (e) => {
+      const { id, stock_qty, track_stock, low_stock_alert } = e?.detail || {}
+      if (!id) return
+      setUserMenuItems((prev) => prev.map((it) => (it.id === id ? { ...it, stock_qty, track_stock, low_stock_alert } : it)))
+    }
+    window.addEventListener("slipzo-menu-update", onMenuUpdate)
+    window.addEventListener("slipzo-stock-updated", onStockUpdated)
+    return () => {
+      window.removeEventListener("slipzo-menu-update", onMenuUpdate)
+      window.removeEventListener("slipzo-stock-updated", onStockUpdated)
+    }
+  }, [user])
 
   // Bill Calculations
   const subtotal = useMemo(() => {
@@ -593,7 +621,8 @@ export function TableBilling({
         tax_amount: 0,
         total: total,
         payment_mode: paymentMode,
-        is_saved: false
+        // kept as a saved bill until it has really printed (it is marked printed below, after printing)
+        is_saved: true
       }
 
       // an existing bill for this table is updated (it used to be updated AND saved again as a second bill)
@@ -615,17 +644,27 @@ export function TableBilling({
         user,
         elementId: "table-receipt-to-print",
         pageWidth: printWidthOf(previewTemplate?.width),
-        onNeedPlan: () => setView?.("pricing")
+        onNeedPlan: () => setView?.("pricing"),
+        billNumber: savedBill?.number
       })
-      if (!printed) {
+      // not printed: the saved bill stays linked to this table, so printing later updates it instead of adding another
+      if (printed !== true && savedBill?.id && onUpdateTableState) {
+        onUpdateTableState(table.id || table.table_number, { editing_bill_id: savedBill.id, editing_bill_number: savedBill.number || null })
+      }
+      if (printed === "cancelled") {
+        toastInfo(t("tables.savedPrintCancelled", "Print cancelled. The bill is saved and the table stays open."))
+        return
+      }
+      if (printed === "failed") return // the reason was already shown in a popup; the table stays open
+      if (printed !== true) {
         toastError(t("tables.savedNotPrinted", "The bill is saved but was not printed. Add print credits and press Print again."))
         return
       }
-      if (savedBill?.id) call(`/bills/${savedBill.id}/print`, { method: "POST" }).catch(() => {})
+      if (savedBill?.id) call(`/bills/${savedBill.id}/print`, { method: "POST" }).catch(() => { })
 
       // If this table had an active saved bill in saved_bills, mark as printed in backend so it's removed from Home screen
       const tableLabel = getTableDisplayName(table, t, formatNum)
-      call(`/bills/print-table/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => {})
+      call(`/bills/print-table/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => { })
 
       // Printed: clear the table
       printBillIdRef.current = null
@@ -646,7 +685,7 @@ export function TableBilling({
 
       await call(`/restaurant/tables/reset/${tableIdOrNum}`, {
         method: "POST"
-      }).catch(() => {})
+      }).catch(() => { })
 
       // Invalidate restaurant tables cache so TableManagement gets clean state
       removeCachedData("/restaurant/tables")
@@ -718,7 +757,7 @@ export function TableBilling({
                 placeholder={t("menu.searchPlaceholder", "Search items or speak to add (e.g. Tea, Coffee, Pizza...)")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-          />
+              />
               {search && (
                 <button
                   type="button"
@@ -732,7 +771,7 @@ export function TableBilling({
               <VoiceInputButton
                 onSpeechResult={(text) => setSearch((text || "").trim().replace(/\s*[.,!?;:]+$/, "").trim())}
                 placeholder={t("menu.voiceSearch", "Speak to search item")}
-          />
+              />
             </div>
 
             {showBarcode && (
@@ -971,37 +1010,55 @@ export function TableBilling({
                 </button>
               </div>
 
-              <button
-                type="button"
-                className="tb-pdf-btn"
-                data-testid="table-pdf-button"
-                disabled={isSaving || items.length === 0}
-                onClick={() => downloadReceiptPdf({ elementId: "table-receipt-to-print", pageWidth: printWidthOf(previewTemplate?.width), billNumber: previewTemplate?.previewData?.invoiceNo })}
-              >
-                <Download size={15} /> {t("bills.downloadPdf", "Download PDF")}
-              </button>
-
-              {items.length > 0 && (
+              <div className="tb-secondary-actions" style={{ display: "flex", gap: "0.6rem", marginTop: "0.55rem", width: "100%" }}>
                 <button
                   type="button"
-                  onClick={() => setIsResetModalOpen(true)}
-                  disabled={isSaving}
-                  style={{ width: "100%", marginTop: 0, padding: "0.2rem", background: "transparent", border: "none", color: "#ef4444", fontSize: "0.82rem", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}
+                  className="tb-pdf-btn"
+                  data-testid="table-pdf-button"
+                  disabled={isSaving || items.length === 0}
+                  onClick={() => downloadReceiptPdf({ elementId: "table-receipt-to-print", pageWidth: printWidthOf(previewTemplate?.width), billNumber: previewTemplate?.previewData?.invoiceNo })}
+                  style={{
+                    flex: 1,
+                    width: "auto",
+                    marginTop: 0,
+                    whiteSpace: "nowrap"
+                  }}
                 >
-                  <RotateCcw size={13} /> {t("tables.resetTable", t("common.resetTable", "Reset Table"))}
+                  <Download size={15} /> {t("bills.downloadPdf", "Download PDF")}
                 </button>
-              )}
-            </div>
-          </div>
 
-          {/* Tip Card directly below Bill Summary */}
-          <div className="nb-tip-card">
-            <Lightbulb size={20} className="nb-tip-icon" />
-            <div className="nb-tip-content">
-              <h4 className="nb-tip-title">{t("bills.tipTitle", "Tip")}</h4>
-              <p className="nb-tip-desc">
-                {t("bills.tipDesc", "Search and add items from your menu. Adjust quantity using + / - buttons.")}
-              </p>
+                {items.length > 0 && (
+                  <button
+                    type="button"
+                    className="tb-reset-btn"
+                    onClick={() => setIsResetModalOpen(true)}
+                    disabled={isSaving}
+                    style={{
+                      flex: 1,
+                      width: "auto",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.45rem",
+                      marginTop: 0,
+                      padding: "0.6rem 0.75rem",
+                      borderRadius: "10px",
+                      border: "1.5px solid #fecaca",
+                      background: "#fef2f2",
+                      color: "#dc2626",
+                      fontSize: "0.86rem",
+                      fontWeight: "700",
+                      cursor: isSaving ? "not-allowed" : "pointer",
+                      opacity: isSaving ? 0.55 : 1,
+                      transition: "all 0.15s ease",
+                      boxShadow: "0 1px 2px rgba(220, 38, 38, 0.05)",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <RotateCcw size={15} /> {t("tables.resetTable", t("common.resetTable", "Reset Table"))}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

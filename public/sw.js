@@ -1,5 +1,5 @@
 // Slipzen PWA Service Worker
-const CACHE_NAME = 'slipzen-cache-v2';
+const CACHE_NAME = 'slipzen-cache-v3';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -33,6 +33,12 @@ self.addEventListener('fetch', (event) => {
 
   // Never cache API or Supabase requests - always fetch live from network
   if (url.pathname.startsWith('/api') || url.hostname.includes('supabase') || url.hostname.includes('slipzo-api')) {
+    return;
+  }
+
+  // Never cache the development server's source files (a worker left over from a production build on the same
+  // address would otherwise keep serving old copies of pages while they are being edited)
+  if (url.pathname.startsWith('/src/') || url.pathname.startsWith('/@') || url.pathname.startsWith('/node_modules/') || /[?&]t=\d/.test(url.search)) {
     return;
   }
 

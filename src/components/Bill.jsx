@@ -49,7 +49,9 @@ import {
   isMenuCategory,
   isInventoryShop,
   stockInfo,
-  formatQty
+  formatQty,
+  invalidateApiCache,
+  updateItemStockInStorageAndCache
 } from "../lib/utils"
 import { StockBadge, StockModal } from "./common/StockModal"
 import { Spinner } from "./common/Skeleton"
@@ -120,7 +122,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     if (initialShop) setShopState(initialShop)
   }, [initialShop])
 
-  const { success: toastSuccess, error: toastError } = useToast()
+  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast()
 
   // Data Caches
   const cachedShop = getCachedData("/shop")
@@ -183,9 +185,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
   // Logged-in User's Personal Menu Items
   const [userMenuItems, setUserMenuItems] = useState(() => {
-    if (Array.isArray(cachedMenuItems) && cachedMenuItems.length > 0) return cachedMenuItems
     const stored = getStoredMenuItems(user)
-    return Array.isArray(stored) ? stored : []
+    if (Array.isArray(stored) && stored.length > 0) return stored
+    if (Array.isArray(cachedMenuItems) && cachedMenuItems.length > 0) return cachedMenuItems
+    return []
   })
   const [loadingMenu, setLoadingMenu] = useState(() => !cachedMenuItems && userMenuItems.length === 0)
 
@@ -262,13 +265,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
   // In-Page Flow Step: "bill" (Steps 1, 2, 3) | "success" (Step 4)
   const [flowStep, setFlowStep] = useState("bill")
+  // what the result screen reports: "saved" (not printed yet) or "printed"
+  const [doneAction, setDoneAction] = useState("saved")
 
   // Search & Category Filters (Step 1)
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
 
   // Receipt preview drawer toggle
-  const [showPreviewDrawer, setShowPreviewDrawer] = useState(false)
 
   // Print guard to prevent duplicate print deductions
   const isPrintingRef = useRef(false)
@@ -291,7 +295,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         const [shopData, templatesData, menuData] = await Promise.all([
           call("/shop").catch(() => ({})),
           call("/templates").catch(() => []),
-          call("/menu").catch(() => [])
+          call("/menu", { noCache: true }).catch(() => [])
         ])
 
         if (!isMounted) return
@@ -378,22 +382,35 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
 
     const handleMenuUpdate = (e) => {
-      if (Array.isArray(e?.detail?.items)) {
+      if (Array.isArray(e?.detail?.items) && e.detail.items.length > 0) {
         setUserMenuItems(e.detail.items)
+      } else if (e?.detail?.updatedItem) {
+        const { id, stock_qty, track_stock, low_stock_alert } = e.detail.updatedItem
+        setUserMenuItems((prev) => prev.map((it) => (it.id === id ? { ...it, stock_qty, track_stock, low_stock_alert } : it)))
       } else {
-        call("/menu").then(res => {
+        const stored = getStoredMenuItems(user)
+        if (stored.length > 0) setUserMenuItems(stored)
+        else call("/menu", { noCache: true }).then(res => {
           if (Array.isArray(res)) setUserMenuItems(res)
         }).catch(() => { })
       }
     }
 
+    const handleStockUpdated = (e) => {
+      const { id, stock_qty, track_stock, low_stock_alert } = e?.detail || {}
+      if (!id) return
+      setUserMenuItems((prev) => prev.map((it) => (it.id === id ? { ...it, stock_qty, track_stock, low_stock_alert } : it)))
+    }
+
     window.addEventListener("slipzo_shop_updated", handleShopUpdate)
     window.addEventListener("slipzo-menu-update", handleMenuUpdate)
+    window.addEventListener("slipzo-stock-updated", handleStockUpdated)
 
     return () => {
       isMounted = false
       window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
       window.removeEventListener("slipzo-menu-update", handleMenuUpdate)
+      window.removeEventListener("slipzo-stock-updated", handleStockUpdated)
     }
   }, [user, userKey])
 
@@ -567,6 +584,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   // after a bill is saved the server has taken the sold pieces out of stock: show the new counts
   const refreshMenuStock = () => {
     if (!isInventory) return
+    invalidateApiCache("/menu")
     call("/menu", { noCache: true }).then((res) => {
       if (Array.isArray(res)) {
         setUserMenuItems(res)
@@ -918,11 +936,13 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
       // Save bill to backend (update if editing, create if new) - Deducts 0 print credits!
       let bill
-      if (editingBillId) {
-        bill = await call(`/bills/${editingBillId}`, {
+      const existingId = editingBillId || saved?.id
+      if (existingId) {
+        bill = await call(`/bills/${existingId}`, {
           method: "PUT",
           body: JSON.stringify(billData)
         })
+        bill = { ...(saved || {}), ...(bill || {}), id: existingId }
         toastSuccess(t("bills.updatedOk", "Bill #{{n}} updated successfully!", { n: bill?.number || customBillNumber }))
       } else {
         bill = await call("/bills", {
@@ -939,6 +959,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         setCustomBillNumber(bill.number)
       }
 
+      setDoneAction("saved")
       setFlowStep("success")
     } catch (err) {
       console.error("Failed to save bill:", err)
@@ -951,18 +972,26 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   }
 
   // Print straight from this screen (no separate preview page): one print credit, then the print dialog
+  // The bill is already saved; it is marked printed (and a credit used) only once the receipt really printed.
+  // Resolves the chargeAndPrint result: true, "cancelled", "failed" or false (no print credits).
   const printNow = async (bill) => {
     await new Promise((resolve) => setTimeout(resolve, 60)) // let the receipt pick up the saved bill number
     const ok = await chargeAndPrint({
       user,
       elementId: "receipt-to-print",
       pageWidth: printWidthOf(templateForPrint?.width),
-      onNeedPlan: () => setView("pricing")
+      onNeedPlan: () => setView("pricing"),
+      billNumber: bill?.number || customBillNumber
     })
-    if (!ok) return false
-    if (bill?.id && bill?.is_saved) call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
+    if (ok === "cancelled") {
+      toastInfo(t("bills.notPrintedSaved", "Not printed. The bill is saved, so you can print it any time."))
+      return ok
+    }
+    if (ok !== true) return ok
+    if (bill?.id) await call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
     window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
     toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
+    setDoneAction("printed")
     setFlowStep("success")
     return true
   }
@@ -990,13 +1019,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       return
     }
 
-    // Already saved: print it straight away
-    if (saved?.id) {
-      setBusyAction("print")
-      try { await printNow(saved) } finally { setBusyAction(null) }
-      return
-    }
-
     setBusyAction("print")
     setSaveError(null)
 
@@ -1019,19 +1041,19 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         total: total,
         payment_mode: payment,
         number: customBillNumber || "",
-        is_saved: false
+        // kept as a saved bill until it has really printed (a cancelled print then waits under "Waiting to print")
+        is_saved: true
       }
 
+      // the bill already exists (being edited, saved, or a print that was cancelled): update it with what is on screen
       let bill
-      if (editingBillId) {
-        await call(`/bills/${editingBillId}`, {
+      const existingId = editingBillId || saved?.id
+      if (existingId) {
+        await call(`/bills/${existingId}`, {
           method: "PUT",
           body: JSON.stringify(billData)
         })
-        await call(`/bills/${editingBillId}/print`, {
-          method: "POST"
-        })
-        bill = { ...billData, id: editingBillId }
+        bill = { ...(saved || {}), ...billData, id: existingId, number: saved?.number || editingBillNumber || customBillNumber }
       } else {
         bill = await call("/bills", {
           method: "POST",
@@ -1041,12 +1063,13 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
       setSaved(bill)
       refreshMenuStock()
+      window.dispatchEvent(new CustomEvent("slipzo_bill_saved", { detail: bill }))
       if (bill?.number) {
         setCustomBillNumber(bill.number)
       }
 
       const printed = await printNow(bill)
-      if (!printed) {
+      if (printed === false) {
         toastError(t("bills.savedNotPrinted", "The bill is saved but was not printed. Add print credits and press Print again."))
       }
     } catch (err) {
@@ -1090,10 +1113,11 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
     try {
       const templateWidth = activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.receipt_width === "55mm" ? "55mm" : (shop?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm")))
-      printReceiptElement("receipt-to-print", {
+      const result = await printReceiptElement("receipt-to-print", {
         pageWidth: templateWidth || "80mm"
       })
-      toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
+      if (result?.printed) toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
+      else if (result?.cancelled) toastInfo(t("bills.printCancelled", "Print cancelled. Nothing was printed."))
     } catch (err) {
       console.error("Printing failed:", err)
       toastError(t("bills.err_printFailed", "Printing failed. Please check printer connection."))
@@ -1218,60 +1242,76 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           STEP 4: SUCCESS & PRINT SCREEN (When Bill is Saved)
           ==================================================================== */}
       {flowStep === "success" ? (
-        <div className="nb-success-card fade-in">
-          <div className="nb-success-check-circle">
-            <Check size={36} />
-          </div>
-
-          <h2 className="nb-success-title">{t("bills.createdSuccess", "Bill Created Successfully!")}</h2>
-
-          <p className="nb-success-text">
-            {t("bills.savedMsg", "Your bill has been saved. You can print it now using your selected receipt template")} (
-            <strong>{activeTemplate?.name || "Shop Pro"}</strong>).
-          </p>
-
-          <div className="nb-success-actions">
-            <button className="nb-success-print-btn" onClick={() => handlePrintBill()} disabled={isSaving}>
-              <Printer size={18} /> {t("bills.printReceipt", "Print Receipt")}
-            </button>
-
-            <button className="nb-success-view-btn" onClick={handleDownloadPdf} data-testid="bill-success-pdf">
-              <Download size={16} /> {t("bills.downloadPdf", "Download PDF")}
-            </button>
-
-            <button
-              className="nb-success-view-btn"
-              onClick={() => setShowPreviewDrawer(!showPreviewDrawer)}
-            >
-              <Eye size={16} /> {showPreviewDrawer ? "Hide Details" : t("bills.viewReceipt", "View Bill Details")}
-            </button>
-
-            <button className="nb-success-new-btn" onClick={handleCreateNewBill} style={{ textDecoration: "none" }}>
-              <Plus size={16} /> {t("bills.createNewBill", "Create New Bill")}
-            </button>
-          </div>
-
-          {/* Optional Bill Details Drawer */}
-          {showPreviewDrawer && (
-            <div style={{ marginTop: "1.5rem", textAlign: "left", background: "#f0f9ff", padding: "1rem", borderRadius: "12px", border: "1px solid #bae6fd" }}>
-              <div style={{ fontWeight: "700", fontSize: "0.88rem", marginBottom: "0.5rem" }}>
-                Bill Summary
+        (() => {
+          const printed = doneAction === "printed"
+          const doneItems = items.filter((it) => it.name && String(it.name).trim() && Number(it.quantity) > 0)
+          const shownItems = doneItems.slice(0, 4)
+          const moreCount = doneItems.length - shownItems.length
+          const billNo = saved?.number || customBillNumber
+          return (
+            <div className={`nbd fade-in ${printed ? "is-printed" : "is-saved"}`} data-testid="bill-done">
+              <div className="nbd-hero">
+                <span className="nbd-badge">
+                  {printed ? <Check size={30} strokeWidth={3} /> : <Save size={26} />}
+                </span>
+                <span className="nbd-status">
+                  {printed ? t("bills.statusPrinted", "Printed") : t("bills.statusSaved", "Saved · not printed yet")}
+                </span>
+                <h2 className="nbd-title">{printed ? t("bills.donePrinted", "Bill printed") : t("bills.doneSaved", "Bill saved")}</h2>
+                <div className="nbd-amount">{money(total)}</div>
+                <div className="nbd-meta">
+                  {billNo && <span className="nbd-chip">#{billNo}</span>}
+                  <span>{t("bills.itemsCount", "{{n}} items", { n: doneItems.length })}</span>
+                  <span className="nbd-dot" aria-hidden="true" />
+                  <span>{tDb(payment)}</span>
+                </div>
               </div>
-              <div style={{ fontSize: "0.82rem", color: "#575B6B", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-                {items.map((it, idx) => (
-                  <div key={idx} style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>{tDb(it.name)} (×{it.quantity})</span>
-                    <span>{money(it.quantity * it.rate)}</span>
-                  </div>
-                ))}
-                <div style={{ borderTop: "1px solid #cbd5e1", marginTop: "0.4rem", paddingTop: "0.4rem", fontWeight: "800", color: "#0f172a", display: "flex", justifyContent: "space-between" }}>
-                  <span>{t("bills.totalAmount", "Total Amount")} ({tDb(payment)})</span>
-                  <span>{money(total)}</span>
+
+              <div className="nbd-summary">
+                <ul className="nbd-lines">
+                  {shownItems.map((it, idx) => (
+                    <li key={idx}>
+                      <span className="nbd-line-name">{tDb(it.name)}</span>
+                      <span className="nbd-line-qty">×{it.quantity}</span>
+                      <span className="nbd-line-amt">{money(Number(it.quantity) * getItemRate(it))}</span>
+                    </li>
+                  ))}
+                </ul>
+                {moreCount > 0 && <div className="nbd-more">{t("bills.moreItems", "+{{n}} more", { n: moreCount })}</div>}
+                <div className="nbd-total">
+                  <span>{t("bills.totalAmount", "Total Amount")}</span>
+                  <strong>{money(total)}</strong>
+                </div>
+              </div>
+
+              <div className="nbd-actions">
+                {printed ? (
+                  <button type="button" className="nbd-btn primary" onClick={handleCreateNewBill} data-testid="bill-done-new">
+                    <Plus size={18} /> {t("bills.createNewBill", "Create New Bill")}
+                  </button>
+                ) : (
+                  <button type="button" className="nbd-btn primary" onClick={() => handlePrintBill()} disabled={isSaving} data-testid="bill-done-print">
+                    <Printer size={18} /> {t("bills.printReceipt", "Print Receipt")}
+                  </button>
+                )}
+                <div className="nbd-row">
+                  {printed ? (
+                    <button type="button" className="nbd-btn" onClick={() => handlePrintBill()} disabled={isSaving}>
+                      <Printer size={16} /> {t("bills.printAgain", "Print again")}
+                    </button>
+                  ) : (
+                    <button type="button" className="nbd-btn" onClick={handleCreateNewBill}>
+                      <Plus size={16} /> {t("bills.newBillShort", "New bill")}
+                    </button>
+                  )}
+                  <button type="button" className="nbd-btn" onClick={handleDownloadPdf} data-testid="bill-success-pdf">
+                    <Download size={16} /> {t("bills.pdfShort", "PDF")}
+                  </button>
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          )
+        })()
       ) : (
         <>
           {/* Editing Saved Bill Banner */}
@@ -1462,7 +1502,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                 className="nb-item-thumb-placeholder"
                                 style={{ display: menuItem.image_url ? "none" : "flex" }}
                               >
-                                {isClothItem ? <Shirt size={18} /> : (isFoodItem ? <Utensils size={18} /> : <ShoppingBag size={18} />)}
+                                {isClothItem ? <Shirt size={26} /> : (isFoodItem ? <Utensils size={26} /> : <ShoppingBag size={26} />)}
                               </div>
 
                               <div className="nb-item-info">

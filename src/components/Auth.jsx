@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { ButtonLoader } from "./common/Skeleton"
 import { ArrowRight, ArrowLeft, Receipt, X, Check, Eye, EyeOff, AlertCircle, CheckCircle2, Phone, Lock, Printer, Store, Mail, ExternalLink } from "lucide-react"
 import { call } from "../lib/utils"
+import { usePageScrollLock } from "../hooks/usePageScrollLock"
 import "../styles/Auth.css"
 import { PASSWORD_RULES, normalizeMobile, sanitizeMobileInput, mobileProblem } from "../lib/authFields"
 import { OtpVerify, otpErrorText } from "./auth/OtpVerify"
@@ -145,18 +146,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRegister])
 
-  useEffect(() => {
-    const originalBodyOverflow = document.body.style.overflow
-    const originalHtmlOverflow = document.documentElement.style.overflow
-
-    document.body.style.overflow = "hidden"
-    document.documentElement.style.overflow = "hidden"
-
-    return () => {
-      document.body.style.overflow = originalBodyOverflow
-      document.documentElement.style.overflow = originalHtmlOverflow
-    }
-  }, [])
+  usePageScrollLock()
 
   // Printer pictures come from the Products catalogue (public), with built-in ones as a fallback
   useEffect(() => {

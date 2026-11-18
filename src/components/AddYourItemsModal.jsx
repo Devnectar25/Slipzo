@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react"
+import { usePageScrollLock } from "../hooks/usePageScrollLock"
 import {
   Utensils,
   Shirt,
@@ -270,19 +271,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   }, [catalog, isClothShop, isFoodShop])
 
   // Lock background scrolling when modal is active
-  useEffect(() => {
-    if (isOpen) {
-      const origBodyOverflow = document.body.style.overflow
-      const origDocOverflow = document.documentElement.style.overflow
-      document.body.style.overflow = "hidden"
-      document.documentElement.style.overflow = "hidden"
-
-      return () => {
-        document.body.style.overflow = origBodyOverflow
-        document.documentElement.style.overflow = origDocOverflow
-      }
-    }
-  }, [isOpen])
+  usePageScrollLock(isOpen)
 
   // Load master catalog from backend
   useEffect(() => {

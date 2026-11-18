@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { createPortal } from "react-dom"
 import { X, Plus, Minus, PackagePlus, PackageMinus, ClipboardCheck, History, Boxes, AlertTriangle } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { call, invalidateApiCache, stockInfo, formatQty } from "../../lib/utils"
+import { call, invalidateApiCache, stockInfo, formatQty, updateItemStockInStorageAndCache } from "../../lib/utils"
 import { ButtonLoader, Spinner } from "./Skeleton"
 import "../../styles/Stock.css"
 
@@ -142,6 +142,7 @@ export function StockModal({ item, isOpen, onClose, onSaved }) {
         result = { ...result, stock_qty: Number(res?.stock_qty ?? preview), track_stock: true }
       }
       invalidateApiCache("/menu")
+      updateItemStockInStorageAndCache(result)
       onSaved?.(result)
       onClose?.()
     } catch (err) {

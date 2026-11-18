@@ -152,7 +152,7 @@ export const getProductImage = (product) => {
 
 export function Products({ setView, requireAuth, user }) {
   const { t } = useTranslation()
-  const { tDb, formatNum } = useDbTranslation()
+  const { tDb, formatNum, lang } = useDbTranslation()
   const [products, setProducts] = useState(() => {
     const cached = getCachedData("/products")
     if (Array.isArray(cached) && cached.length > 0) return cached
