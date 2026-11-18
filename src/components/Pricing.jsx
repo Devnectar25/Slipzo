@@ -47,14 +47,21 @@ export function Pricing({ setView, setShowAuth, user }) {
 
     fetchFreshQuota()
 
+    // A message that carries the numbers is already fresh (it comes from the server through syncUserQuota):
+    // use them. Asking the server again here would save, send this message again and loop without end.
+    // Only a message without numbers asks the server, at most once every few seconds.
+    let lastAsked = 0
     const handleUpdate = (e) => {
       const direct = e?.detail?.quota || e?.detail?.plan
       if (direct && typeof direct === 'object') {
         setActivePlan(direct)
-      } else {
-        setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+        return
       }
-      fetchFreshQuota(true)
+      setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+      if (Date.now() - lastAsked > 5000) {
+        lastAsked = Date.now()
+        fetchFreshQuota(true)
+      }
     }
     window.addEventListener("slipzo-quota-update", handleUpdate)
     window.addEventListener("storage", handleUpdate)

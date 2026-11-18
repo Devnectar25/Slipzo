@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { usePageScrollLock } from "../hooks/usePageScrollLock"
+import { shopUsesBarcode } from "../hooks/useShowBarcode"
+import { productGroupOf, productGroupChips, productGroupLabelKey } from "../lib/productGroups"
 import {
   Utensils,
   Shirt,
@@ -13,8 +15,13 @@ import {
   Lightbulb,
   Check,
   AlertCircle,
-  Edit2
+  Edit2,
+  Barcode as BarcodeIcon,
+  ChevronLeft,
+  ChevronRight,
+  Printer
 } from "lucide-react"
+import { BarcodeModal } from "./common/BarcodeModal"
 import { useTranslation } from "react-i18next"
 import { call, money, getStoredMenuItems, saveStoredMenuItems, isInventoryShop, formatQty } from "../lib/utils"
 import { useToast } from "./common/Toast"
@@ -297,6 +304,46 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     }
   }, [isOpen, shop?.business_type])
 
+  // Filter chips: the shop type's 4-5 product groups that have items in the catalog (see lib/productGroups)
+  const groupChips = useMemo(() => productGroupChips(catalog, currentBType), [catalog, currentBType])
+
+  const chipsContainerRef = useRef(null)
+  const [canScrollChipsLeft, setCanScrollChipsLeft] = useState(false)
+  const [canScrollChipsRight, setCanScrollChipsRight] = useState(false)
+
+  const checkChipsScroll = () => {
+    const el = chipsContainerRef.current
+    if (!el) return
+    const { scrollLeft, scrollWidth, clientWidth } = el
+    setCanScrollChipsLeft(scrollLeft > 4)
+    setCanScrollChipsRight(scrollLeft + clientWidth < scrollWidth - 6)
+  }
+
+  const scrollChips = (direction) => {
+    const el = chipsContainerRef.current
+    if (!el) return
+    const distance = 160
+    el.scrollBy({ left: direction === "left" ? -distance : distance, behavior: "smooth" })
+    setTimeout(checkChipsScroll, 250)
+  }
+
+  useEffect(() => {
+    checkChipsScroll()
+    const handleResize = () => checkChipsScroll()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [groupChips])
+
+  useEffect(() => {
+    const el = chipsContainerRef.current
+    if (!el) return
+    const activeBtn = el.querySelector(".cat-chip-btn.active")
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    }
+    setTimeout(checkChipsScroll, 250)
+  }, [selectedCategory])
+
   // Filter master catalog products based on search & category chip
   const filteredProducts = useMemo(() => {
     const cleanSearch = cleanVoiceQuery(search)
@@ -311,13 +358,13 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           // Highlight first 10 popular items
           matchesCat = true
         } else {
-          matchesCat = cat.includes(selectedCategory.toLowerCase())
+          matchesCat = productGroupOf(item, currentBType) === selectedCategory
         }
       }
 
       return matchesSearch && matchesCat
     })
-  }, [catalog, search, selectedCategory, tDb, lang])
+  }, [catalog, search, selectedCategory, currentBType, tDb, lang])
 
   // Set of selected item IDs for instant lookup
   const [flyingItem, setFlyingItem] = useState(null) // added, still flying: joins the list when it lands
@@ -335,11 +382,143 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   // kirana / grocery and cloth shops: pieces in hand when the item is added
   const isInventory = isInventoryShop(currentBType)
   const [stockInput, setStockInput] = useState("")
+  // low-stock alert level (stock shops) and whether the item's barcode is used for scanning (barcode shops),
+  // the same choices the Menu page offers when an item is added
+  const [lowAlertInput, setLowAlertInput] = useState("5")
+  const usesBarcode = shopUsesBarcode(currentBType)
+  const [barcodeActive, setBarcodeActive] = useState(usesBarcode)
 
   // Inline price editing state for items in Selected Items list
   const [editingItemId, setEditingItemId] = useState(null)
   const [editingItemPrice, setEditingItemPrice] = useState("")
   const [editItemError, setEditItemError] = useState("")
+
+  // Custom Item Creation Modal State
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
+  const [customName, setCustomName] = useState("")
+  const [customCat, setCustomCat] = useState("")
+  const [customCatCustom, setCustomCatCustom] = useState("")
+  const [customPrice, setCustomPrice] = useState("")
+  const [customStock, setCustomStock] = useState("")
+  const [customLowAlert, setCustomLowAlert] = useState("5")
+  const [customBarcode, setCustomBarcode] = useState("")
+  const [customBarcodeActive, setCustomBarcodeActive] = useState(usesBarcode)
+  const [customFormError, setCustomFormError] = useState("")
+  const [barcodeModalItem, setBarcodeModalItem] = useState(null)
+
+  const availableCategoryOptions = useMemo(() => {
+    const list = []
+    categoryChips.forEach((c) => {
+      if (c.id !== "all" && c.label) list.push(c.label)
+    })
+    const defaults = isClothShop
+      ? ["Men's Wear", "Women's Wear", "Kids Wear", "Ethnic Wear", "Accessories", "General"]
+      : isFoodShop
+        ? ["Beverages", "Snacks", "Main Course", "Breakfast", "Desserts", "Bakery", "Fast Food", "General"]
+        : ["Atta & Flour", "Rice", "Dal & Pulses", "Oil & Ghee", "Spices & Masala", "Biscuits & Cookies", "Tea & Coffee", "Snacks", "General"]
+    defaults.forEach((d) => {
+      if (!list.includes(d)) list.push(d)
+    })
+    return list
+  }, [categoryChips, isClothShop, isFoodShop])
+
+  const handleOpenCustomModal = (initialName = "") => {
+    const defaultCat = availableCategoryOptions[0] || (isClothShop ? "Men's Wear" : isFoodShop ? "Snacks" : "General")
+    setCustomName(typeof initialName === "string" ? initialName.trim() : search.trim())
+    setCustomCat(defaultCat)
+    setCustomCatCustom("")
+    setCustomPrice("")
+    setCustomStock("")
+    setCustomLowAlert("5")
+    setCustomBarcode("")
+    setCustomBarcodeActive(usesBarcode)
+    setCustomFormError("")
+    setIsCustomModalOpen(true)
+  }
+
+  const handleCloseCustomModal = () => {
+    setIsCustomModalOpen(false)
+    setCustomFormError("")
+  }
+
+  const handleSaveCustomItem = (e, options = {}) => {
+    e?.preventDefault()
+    const trimmedName = customName.trim()
+    if (!trimmedName) {
+      setCustomFormError(t("menu.enterItemName", "Please enter item name."))
+      return
+    }
+
+    const numPrice = parseFloat(customPrice)
+    if (customPrice === "" || isNaN(numPrice) || numPrice < 0) {
+      setCustomFormError(t("menu.enterValidPrice", "Please enter a valid price."))
+      return
+    }
+
+    let stockNum = 0
+    let alertNum = 5
+    if (isInventory) {
+      if (customStock.trim() === "") {
+        setCustomFormError(t("stock.errOpeningRequired", "Please enter opening stock."))
+        return
+      }
+      stockNum = Number(customStock)
+      if (!Number.isFinite(stockNum) || stockNum < 0) {
+        setCustomFormError(t("stock.errOpening", "Opening stock must be 0 or more."))
+        return
+      }
+      if (String(customLowAlert).trim() !== "") {
+        alertNum = Number(customLowAlert)
+        if (!Number.isFinite(alertNum) || alertNum < 0) {
+          setCustomFormError(t("stock.errAlert", "Low-stock alert must be 0 or more."))
+          return
+        }
+      }
+    }
+
+    const uniqueId = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+    const isOther = customCat === "__other__"
+    const finalCat = isOther ? (customCatCustom.trim() || "General") : (customCat || "General").trim()
+
+    let finalBarcode = customBarcode.trim()
+    if (options.printBarcode && !finalBarcode) {
+      finalBarcode = `BC${Math.floor(1000000000 + Math.random() * 9000000000)}`
+    }
+
+    const newProduct = {
+      id: uniqueId,
+      name: trimmedName,
+      category: finalCat,
+      price: numPrice,
+      customPrice: numPrice,
+      user_price: numPrice,
+      image_url: "",
+      isCustom: true,
+      barcode: finalBarcode || undefined,
+      barcodeActive: usesBarcode ? customBarcodeActive : false,
+      is_veg: true,
+      ...(isInventory ? {
+        openingStock: stockNum,
+        lowAlert: alertNum,
+        track_stock: true,
+        stock_qty: stockNum,
+        low_stock_alert: alertNum
+      } : {})
+    }
+
+    // Add to catalog at top so it is visible in Available Items too
+    setCatalog((prev) => [newProduct, ...prev.filter((it) => it.id !== uniqueId)])
+
+    // Add to selected items immediately
+    setSelectedItems((prev) => [...prev.filter((it) => it.id !== uniqueId), newProduct])
+
+    toastSuccess(t("addItems.customAdded", "Custom item \"{{name}}\" added to your selected items!", { name: trimmedName }))
+    setIsCustomModalOpen(false)
+
+    if (options.printBarcode && newProduct.barcode) {
+      setBarcodeModalItem(newProduct)
+    }
+  }
 
   // "Fly to Selected Items" animation: the item's picture is thrown into Selected Items like a real object
   // (steady sideways speed, gravity up-and-down, tilting along its path, a faint trail) and squashes as it lands.
@@ -511,6 +690,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     setSettingPriceProduct(product)
     setSellingPriceInput(String(defaultPrice))
     setStockInput("")
+    setLowAlertInput("5")
+    setBarcodeActive(usesBarcode)
     setPriceModalError("")
     setStockModalError("")
   }
@@ -539,6 +720,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     }
 
     let openingStock
+    let lowAlert
     if (isInventory) {
       if (stockInput.trim() === "") {
         setStockModalError(t("stock.errOpeningRequired", "Please enter opening stock."))
@@ -552,13 +734,27 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           setStockModalError("")
         }
       }
+      // empty = the usual alert level (5)
+      if (!hasError && String(lowAlertInput).trim() !== "") {
+        lowAlert = Number(lowAlertInput)
+        if (!Number.isFinite(lowAlert) || lowAlert < 0) {
+          setStockModalError(t("stock.errAlert", "Low-stock alert must be 0 or more."))
+          hasError = true
+        }
+      }
     }
 
     if (hasError) return
 
     // an item still in flight from a previous add lands straight away
     if (flyingItem) setSelectedItems((prev) => (prev.some((it) => it.id === flyingItem.id) ? prev : [...prev, flyingItem]))
-    setFlyingItem({ ...settingPriceProduct, customPrice: num, openingStock })
+    setFlyingItem({
+      ...settingPriceProduct,
+      customPrice: num,
+      openingStock,
+      lowAlert,
+      ...(usesBarcode ? { barcodeActive } : {})
+    })
 
     handleCloseSetPrice()
   }
@@ -616,25 +812,35 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
         // Save each selected item to the user's personal menu
         const savePromises = selectedItems.map((item) => {
           const sellingPrice = parseFloat(item.customPrice !== undefined ? item.customPrice : item.price) || Number(item.price) || 0
+          const isCustom = item.isCustom || String(item.id).startsWith("custom_")
           return call("/menu", {
             method: "POST",
             body: JSON.stringify({
-              menu_item_id: item.id.startsWith("catalog_") ? undefined : item.id,
+              menu_item_id: (item.id.startsWith("catalog_") || isCustom) ? undefined : item.id,
               name: item.name,
               category: item.category || "General",
               price: sellingPrice,
               custom_price: sellingPrice,
               image_url: item.image_url || "",
-              ...(isInventory ? { stock_qty: item.openingStock !== undefined ? item.openingStock : 0 } : {})
+              is_custom: isCustom,
+              ...(item.barcode ? { barcode: item.barcode } : {}),
+              ...(isInventory ? { stock_qty: item.openingStock !== undefined ? item.openingStock : 0 } : {}),
+              ...(isInventory && item.lowAlert !== undefined ? { low_stock_alert: item.lowAlert } : {}),
+              ...(item.barcodeActive !== undefined ? { barcode_active: item.barcodeActive } : {})
             })
           }).catch((err) => {
             console.warn(`Could not sync item "${item.name}":`, err.message)
             return {
-              id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              id: isCustom ? item.id : `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
               name: item.name,
               category: item.category,
               price: sellingPrice,
+              custom_price: sellingPrice,
               image_url: item.image_url,
+              is_custom: isCustom,
+              barcode: item.barcode,
+              barcode_active: item.barcodeActive,
+              ...(isInventory ? { stock_qty: item.openingStock || 0, low_stock_alert: item.lowAlert || 5, track_stock: true } : {}),
               created_at: new Date().toISOString()
             }
           })
@@ -778,9 +984,82 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               </div>
             </div>
 
+            {/* Product group filter chips */}
+            {groupChips.length > 1 && (
+              <div className="add-menu-chips-wrapper">
+                {canScrollChipsLeft && (
+                  <button
+                    type="button"
+                    className="chips-scroll-arrow left"
+                    onClick={() => scrollChips("left")}
+                    aria-label={t("common.previous", "Previous")}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                )}
+                <div
+                  ref={chipsContainerRef}
+                  className="add-menu-category-chips"
+                  role="tablist"
+                  aria-label={t("productGroups.filter", "Filter products")}
+                  onScroll={checkChipsScroll}
+                  onWheel={(e) => {
+                    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                      e.currentTarget.scrollLeft += e.deltaY
+                    }
+                  }}
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedCategory === "all"}
+                    className={`cat-chip-btn ${selectedCategory === "all" ? "active" : ""}`}
+                    onClick={(e) => {
+                      setSelectedCategory("all")
+                      e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                    }}
+                  >
+                    {t("productGroups.all", "All")}
+                  </button>
+                  {groupChips.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={selectedCategory === g.id}
+                      className={`cat-chip-btn ${selectedCategory === g.id ? "active" : ""}`}
+                      onClick={(e) => {
+                        setSelectedCategory(g.id)
+                        e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                      }}
+                    >
+                      <span aria-hidden="true">{g.icon}</span> {t(productGroupLabelKey(currentBType, g.id), g.label)}
+                    </button>
+                  ))}
+                </div>
+                {canScrollChipsRight && (
+                  <button
+                    type="button"
+                    className="chips-scroll-arrow right"
+                    onClick={() => scrollChips("right")}
+                    aria-label={t("common.next", "Next")}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Section Heading */}
             <div className="add-menu-section-head">
               <h4>{t("menu.availableItems", "Available Items")} ({formatNum(filteredProducts.length)})</h4>
+              <button
+                type="button"
+                className="add-custom-item-trigger-btn"
+                onClick={() => handleOpenCustomModal()}
+              >
+                <Plus size={14} /> {t("menu.addCustomItem", "Add Custom Item")}
+              </button>
             </div>
 
             {/* Available Products List */}
@@ -792,6 +1071,13 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               ) : filteredProducts.length === 0 ? (
                 <div className="add-menu-empty-catalog">
                   <p>{t("menu.noMatchingItems", "No products found matching")} "{search}"</p>
+                  <button
+                    type="button"
+                    className="empty-add-custom-btn"
+                    onClick={() => handleOpenCustomModal(search)}
+                  >
+                    <Plus size={14} /> {t("menu.addAsCustom", "Add \"{{name}}\" as Custom Item", { name: search.trim() || t("menu.customItem", "Custom Item") })}
+                  </button>
                 </div>
               ) : (
                 filteredProducts.map((product) => {
@@ -841,6 +1127,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                             )}
                             <span className="product-name" title={product.name}>
                               {tDb(product.name)}
+                              {product.isCustom && <span className="custom-item-badge">{t("menu.customBadge", "Custom")}</span>}
                             </span>
                           </div>
                           <span className="product-category-text">{tDb(product.category || "General")}</span>
@@ -911,13 +1198,23 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                   {isClothShop ? <Shirt size={28} color="#cbd5e1" /> : isFoodShop ? <Utensils size={28} color="#cbd5e1" /> : <ShoppingBag size={28} color="#cbd5e1" />}
                   <p>{t("addItems.none", "No items selected yet.")}</p>
                   <small>{t("addItems.noneHint", "Click \"+ Add\" on any product to customize price and add to your menu.")}</small>
-                  <button
-                    type="button"
-                    className="mobile-browse-more-btn"
-                    onClick={() => setMobileTab("catalog")}
-                  >
-                    + Browse Available Items
-                  </button>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center", marginTop: "4px" }}>
+                    <button
+                      type="button"
+                      className="mobile-browse-more-btn"
+                      onClick={() => setMobileTab("catalog")}
+                    >
+                      + Browse Available Items
+                    </button>
+                    <button
+                      type="button"
+                      className="mobile-browse-more-btn"
+                      onClick={() => handleOpenCustomModal()}
+                      style={{ background: "#f0f9ff", color: "#0284c7", border: "1.5px dashed #38bdf8" }}
+                    >
+                      + {t("menu.addCustomItem", "Add Custom Item")}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 selectedItems.map((item) => (
@@ -954,6 +1251,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                       <div className="selected-item-info">
                         <span className="selected-name" title={item.name}>
                           {tDb(item.name)}
+                          {item.isCustom && <span className="custom-item-badge">{t("menu.customBadge", "Custom")}</span>}
                         </span>
                         <span className="selected-cat">{tDb(item.category || "General")}</span>
 
@@ -1008,6 +1306,28 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                     {/* Actions (Edit and Delete) when not inline-editing */}
                     {editingItemId !== item.id && (
                       <div className="selected-item-actions">
+                        {item.barcode && (
+                          <button
+                            type="button"
+                            className="selected-barcode-btn"
+                            onClick={() => setBarcodeModalItem(item)}
+                            title={t("menu.printBarcode", "Print Barcode Label")}
+                            style={{
+                              background: "#f0f9ff",
+                              border: "1px solid #bae6fd",
+                              color: "#0284c7",
+                              borderRadius: "8px",
+                              padding: "4px 8px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease"
+                            }}
+                          >
+                            <Printer size={13} />
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="selected-edit-btn"
@@ -1160,29 +1480,87 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
                 {isInventory && (
                   <div className="set-price-field-wrap">
-                    <label className="set-price-label" htmlFor="user-opening-stock-input">
-                      {t("stock.openingRequired", "Opening stock *")}
-                    </label>
-                    <div className={`set-price-input-container ${stockModalError ? "error" : ""}`}>
-                      <input
-                        id="user-opening-stock-input"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="any"
-                        required
-                        value={stockInput}
-                        onChange={(e) => {
-                          setStockInput(e.target.value)
-                          if (stockModalError) setStockModalError("")
-                        }}
-                        onKeyDown={(e) => { if (e.key === "Enter") handleConfirmAddPrice(e) }}
-                        placeholder={t("stock.openingPlaceholder", "Pieces you have")}
-                        className="set-price-input set-price-stock-input"
-                      />
+                    <div className="set-price-stock-row">
+                      <div className="set-price-stock-col">
+                        <label className="set-price-label" htmlFor="user-opening-stock-input">
+                          {t("stock.openingRequired", "Opening stock *")}
+                        </label>
+                        <div className={`set-price-input-container ${stockModalError ? "error" : ""}`}>
+                          <input
+                            id="user-opening-stock-input"
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="any"
+                            required
+                            value={stockInput}
+                            onChange={(e) => {
+                              setStockInput(e.target.value)
+                              if (stockModalError) setStockModalError("")
+                            }}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleConfirmAddPrice(e) }}
+                            placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                            className="set-price-input set-price-stock-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="set-price-stock-col">
+                        <label className="set-price-label" htmlFor="user-low-alert-input">
+                          {t("stock.alertLabel", "Low-stock alert at")}
+                        </label>
+                        <div className="set-price-input-container">
+                          <input
+                            id="user-low-alert-input"
+                            type="number"
+                            inputMode="decimal"
+                            min="0"
+                            step="any"
+                            value={lowAlertInput}
+                            onChange={(e) => {
+                              setLowAlertInput(e.target.value)
+                              if (stockModalError) setStockModalError("")
+                            }}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleConfirmAddPrice(e) }}
+                            placeholder="5"
+                            className="set-price-input set-price-stock-input"
+                          />
+                        </div>
+                      </div>
                     </div>
+                    <span className="set-price-hint">{t("addItems.lowAlertHint", "You are warned when stock falls to this number.")}</span>
                     {stockModalError && (
                       <span className="set-price-error-msg">{stockModalError}</span>
+                    )}
+                  </div>
+                )}
+
+                {usesBarcode && (
+                  <div className="set-price-field-wrap">
+                    <span className="set-price-label">{t("menu.barcodeStatus", "Barcode Status")}</span>
+                    <div className="set-price-barcode-toggle" role="radiogroup" aria-label={t("menu.barcodeStatus", "Barcode Status")}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={barcodeActive}
+                        className={`set-price-bc-btn on ${barcodeActive ? "selected" : ""}`}
+                        onClick={() => setBarcodeActive(true)}
+                      >
+                        <Check size={14} /> {t("menu.barcodeActive", "Active (Scan Ready)")}
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={!barcodeActive}
+                        className={`set-price-bc-btn off ${!barcodeActive ? "selected" : ""}`}
+                        onClick={() => setBarcodeActive(false)}
+                      >
+                        <X size={14} /> {t("menu.barcodeDeactive", "Deactive (Manual Only)")}
+                      </button>
+                    </div>
+                    {settingPriceProduct.barcode && barcodeActive && (
+                      <span className="set-price-barcode-code">
+                        <BarcodeIcon size={13} /> {t("menu.masterBarcode", "Master Barcode:")} <code>{settingPriceProduct.barcode}</code>
+                      </span>
                     )}
                   </div>
                 )}
@@ -1209,9 +1587,309 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           </div>
         )}
 
+        {/* Custom Item Creation Modal */}
+        {isCustomModalOpen && (
+          <div
+            className="set-price-backdrop fade-in"
+            onClick={(e) => {
+              if (e.target.classList.contains("set-price-backdrop")) {
+                handleCloseCustomModal()
+              }
+            }}
+          >
+            <form
+              onSubmit={handleSaveCustomItem}
+              className="set-price-modal zoom-in custom-item-modal"
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="set-price-header">
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div className="add-menu-icon-circle" style={{ width: "34px", height: "34px" }}>
+                    <Plus size={18} color="#0284c7" strokeWidth={2.5} />
+                  </div>
+                  <h3 className="set-price-title">{t("menu.addCustomItem", "Add Custom Item")}</h3>
+                </div>
+                <button
+                  type="button"
+                  className="set-price-close-btn"
+                  onClick={handleCloseCustomModal}
+                  aria-label={t("addItems.close", "Close")}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="custom-item-scroll-body">
+                {/* Item Name */}
+                <div className="custom-field-group">
+                  <label className="set-price-label" htmlFor="custom-item-name-input">
+                    {t("menu.itemName", "Item Name")} *
+                  </label>
+                  <input
+                    id="custom-item-name-input"
+                    type="text"
+                    autoFocus
+                    required
+                    value={customName}
+                    onChange={(e) => {
+                      setCustomName(e.target.value)
+                      if (customFormError) setCustomFormError("")
+                    }}
+                    placeholder={isClothShop ? "e.g. Cotton Kurta, Silk Saree..." : isFoodShop ? "e.g. Masala Chai, Veg Thali..." : "e.g. Basmati Rice 1kg, Detergent..."}
+                    className="custom-input-field"
+                  />
+                </div>
+
+                {/* Category Selection */}
+                <div className="custom-field-group">
+                  <label className="set-price-label" htmlFor="custom-item-cat-select">
+                    {t("menu.category", "Category")}
+                  </label>
+                  <select
+                    id="custom-item-cat-select"
+                    value={customCat}
+                    onChange={(e) => setCustomCat(e.target.value)}
+                    className="custom-select-field"
+                  >
+                    {availableCategoryOptions.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                    <option value="__other__">{t("menu.otherCategory", "+ Add New / Other Category...")}</option>
+                  </select>
+                  {customCat === "__other__" && (
+                    <div style={{ marginTop: "6px" }}>
+                      <input
+                        type="text"
+                        required
+                        value={customCatCustom}
+                        onChange={(e) => setCustomCatCustom(e.target.value)}
+                        placeholder={t("menu.enterCustomCategory", "Enter category name")}
+                        className="custom-input-field"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Selling Price */}
+                <div className="custom-field-group">
+                  <label className="set-price-label" htmlFor="custom-item-price-input">
+                    {t("menu.yourSellingPrice", "Your Selling Price (₹) *")}
+                  </label>
+                  <div className="custom-price-wrapper">
+                    <span className="custom-price-currency">₹</span>
+                    <input
+                      id="custom-item-price-input"
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="any"
+                      required
+                      value={customPrice}
+                      onChange={(e) => {
+                        setCustomPrice(e.target.value)
+                        if (customFormError) setCustomFormError("")
+                      }}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                {/* Stock Tracking (for inventory shops) */}
+                {isInventory && (
+                  <div className="custom-field-group">
+                    <div className="custom-stock-grid">
+                      <div>
+                        <label className="set-price-label" htmlFor="custom-opening-stock-input">
+                          {t("stock.openingRequired", "Opening stock *")}
+                        </label>
+                        <input
+                          id="custom-opening-stock-input"
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="any"
+                          required
+                          value={customStock}
+                          onChange={(e) => {
+                            setCustomStock(e.target.value)
+                            if (customFormError) setCustomFormError("")
+                          }}
+                          placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                          className="custom-input-field"
+                        />
+                      </div>
+                      <div>
+                        <label className="set-price-label" htmlFor="custom-low-alert-input">
+                          {t("stock.alertLabel", "Low-stock alert at")}
+                        </label>
+                        <input
+                          id="custom-low-alert-input"
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="any"
+                          value={customLowAlert}
+                          onChange={(e) => setCustomLowAlert(e.target.value)}
+                          placeholder="5"
+                          className="custom-input-field"
+                        />
+                      </div>
+                    </div>
+                    <span className="set-price-hint" style={{ marginTop: "4px", display: "block" }}>
+                      {t("addItems.lowAlertHint", "You are warned when stock falls to this number.")}
+                    </span>
+                  </div>
+                )}
+
+                {/* Barcode (for barcode shops) */}
+                {usesBarcode && (
+                  <div className="custom-field-group">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", gap: "8px", flexWrap: "wrap" }}>
+                      <label className="set-price-label" htmlFor="custom-barcode-input" style={{ margin: 0 }}>
+                        {t("menu.barcodeOptional", "Barcode (Optional)")}
+                      </label>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {customBarcode.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBarcodeModalItem({
+                                name: customName.trim() || t("menu.customItem", "Custom Item"),
+                                price: parseFloat(customPrice) || 0,
+                                barcode: customBarcode.trim()
+                              })
+                            }}
+                            style={{
+                              background: "#f0f9ff",
+                              border: "1px solid #bae6fd",
+                              color: "#0284c7",
+                              fontSize: "0.74rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title={t("menu.printBarcode", "Print Barcode Label")}
+                          >
+                            <Printer size={12} /> {t("menu.printBarcode", "Print Barcode")}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setCustomBarcode(`BC${Math.floor(1000000000 + Math.random() * 9000000000)}`)}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: "#0284c7",
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            padding: 0
+                          }}
+                        >
+                          + {t("menu.generateBarcode", "Generate Random")}
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      id="custom-barcode-input"
+                      type="text"
+                      value={customBarcode}
+                      onChange={(e) => setCustomBarcode(e.target.value)}
+                      placeholder="e.g. 8901030912345"
+                      className="custom-input-field"
+                    />
+                  </div>
+                )}
+
+                {customFormError && (
+                  <span className="set-price-error-msg">{customFormError}</span>
+                )}
+              </div>
+
+              <div className="set-price-footer" style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="set-price-cancel-btn"
+                  onClick={handleCloseCustomModal}
+                >
+                  {t("common.cancel", "Cancel")}
+                </button>
+                {usesBarcode && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleSaveCustomItem(e, { printBarcode: true })}
+                    className="set-price-print-btn"
+                    title={t("menu.addAndPrint", "Add and print barcode label")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                      padding: "0 12px",
+                      height: "38px",
+                      borderRadius: "10px",
+                      border: "1.5px solid #bae6fd",
+                      background: "#f0f9ff",
+                      color: "#0284c7",
+                      fontWeight: "700",
+                      fontSize: "0.82rem",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <Printer size={14} style={{ flexShrink: 0 }} />
+                    <span>{t("menu.addAndPrint", "Add & Print Barcode")}</span>
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="set-price-confirm-btn"
+                >
+                  <Plus size={16} style={{ flexShrink: 0 }} />
+                  <span>{t("menu.addCustomItem", "Add Custom Item")}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {/* Modal Scoped Styles matching reference UI */}
         <style>{`
           .set-price-stock-input { padding-left: 0.85rem !important; }
+          .set-price-stock-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+          .set-price-stock-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+          .set-price-hint { font-size: 0.74rem; color: #64748b; }
+          .set-price-barcode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .set-price-bc-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            min-height: 40px !important; padding: 0.45rem 0.5rem; border-radius: 10px;
+            border: 1px solid #cbd5e1; background: #ffffff; color: #64748b;
+            font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: center; line-height: 1.2;
+          }
+          .set-price-bc-btn.on.selected { border: 2px solid #16a34a; background: #f0fdf4; color: #15803d; }
+          .set-price-bc-btn.off.selected { border: 2px solid #dc2626; background: #fef2f2; color: #b91c1c; }
+          .set-price-barcode-code { display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem; color: #64748b; }
+          .set-price-barcode-code code { font-weight: 700; color: #0f172a; background: #f1f5f9; padding: 1px 6px; border-radius: 5px; }
+          /* with the extra fields the popup can be taller than a short screen: the middle part scrolls */
+          .set-price-modal {
+            max-height: min(480px, calc(100dvh - 100px)) !important;
+            height: auto !important;
+          }
+          .set-price-modal .set-price-body {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
           .selected-stock-note { font-size: 0.78em; font-weight: 600; color: #15803d; }
           .add-menu-modal-backdrop {
             position: fixed;
@@ -1380,18 +2058,79 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             justify-content: center;
           }
 
-          /* Category Chips */
-          .add-menu-category-chips {
+          /* Category Chips Wrapper & Row */
+          .add-menu-chips-wrapper {
+            position: relative;
             display: flex;
+            align-items: center;
+            width: 100%;
+            min-width: 0;
+            margin: 0.75rem 0 0.9rem;
+            flex-shrink: 0;
+          }
+
+          .add-menu-category-chips {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            align-items: center;
             gap: 8px;
-            margin: 0.85rem 0 1rem;
             overflow-x: auto;
-            padding-bottom: 4px;
+            overflow-y: hidden;
+            padding: 4px 18px 6px 2px;
+            margin: 0;
             scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            scroll-behavior: smooth;
           }
 
           .add-menu-category-chips::-webkit-scrollbar {
             display: none;
+          }
+
+          .add-menu-category-chips::after {
+            content: '';
+            flex: 0 0 16px;
+            width: 16px;
+            height: 1px;
+          }
+
+          .chips-scroll-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 5;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid #bae6fd;
+            background: #ffffff;
+            color: #0284c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            transition: all 0.15s ease;
+            padding: 0;
+          }
+
+          .chips-scroll-arrow:hover {
+            background: #f0f9ff;
+            border-color: #0284c7;
+            color: #0369a1;
+            transform: translateY(-50%) scale(1.08);
+          }
+
+          .chips-scroll-arrow.left {
+            left: -4px;
+            box-shadow: 4px 0 12px 6px rgba(255, 255, 255, 0.95), 0 2px 6px rgba(0, 0, 0, 0.1);
+          }
+
+          .chips-scroll-arrow.right {
+            right: -4px;
+            box-shadow: -4px 0 12px 6px rgba(255, 255, 255, 0.95), 0 2px 6px rgba(0, 0, 0, 0.1);
           }
 
           /* chips keep their full width; the row scrolls sideways instead of squeezing them */
@@ -1402,7 +2141,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             color: #0C1F41;
             font-weight: 500;
             border-radius: 999px;
-            padding: 6px 14px;
+            padding: 6px 13px;
             font-size: 0.8rem;
             cursor: pointer;
             white-space: nowrap;
@@ -1410,6 +2149,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             align-items: center;
             gap: 6px;
             transition: all 0.15s ease;
+            user-select: none;
           }
 
           .cat-chip-btn:hover {
@@ -1422,12 +2162,17 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             color: #ffffff;
             font-weight: 600;
             border-color: #0080ff;
+            box-shadow: 0 2px 6px rgba(0, 128, 255, 0.25);
           }
 
           /* Section Header */
           .add-menu-section-head {
             flex-shrink: 0;
             margin: 0.65rem 0 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
           }
 
           .add-menu-section-head h4 {
@@ -1436,6 +2181,245 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             color: #0C1F41;
             margin: 0;
             letter-spacing: -0.01em;
+          }
+
+          .add-custom-item-trigger-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f0f9ff;
+            color: #0284c7;
+            border: 1.5px dashed #38bdf8;
+            padding: 5px 12px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            white-space: nowrap;
+          }
+
+          .add-custom-item-trigger-btn:hover {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #0284c7;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(2, 132, 199, 0.2);
+          }
+
+          .add-custom-item-trigger-btn:active {
+            transform: translateY(0);
+          }
+
+          .empty-add-custom-btn {
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #0284c7;
+            color: #ffffff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s ease;
+          }
+
+          .empty-add-custom-btn:hover {
+            background: #0369a1;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+          }
+
+          .custom-item-badge {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            letter-spacing: 0.02em;
+            vertical-align: middle;
+          }
+
+          .custom-item-modal {
+            max-width: 460px !important;
+            width: 92% !important;
+            max-height: min(500px, calc(100dvh - 100px)) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+            border-radius: 18px !important;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3) !important;
+            border: 1px solid #bae6fd !important;
+          }
+
+          .custom-item-modal .set-price-header {
+            flex-shrink: 0 !important;
+            padding: 14px 20px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            background: #ffffff !important;
+          }
+
+          .custom-item-scroll-body {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding: 16px 20px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 14px !important;
+            box-sizing: border-box !important;
+          }
+
+          .custom-item-modal .set-price-footer {
+            flex-shrink: 0 !important;
+            padding: 12px 20px !important;
+            background: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            gap: 10px !important;
+            box-sizing: border-box !important;
+          }
+
+          .custom-field-group {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          .custom-input-field {
+            width: 100% !important;
+            height: 46px !important;
+            padding: 0 14px !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 12px !important;
+            background-color: #ffffff !important;
+            color: #0C1F41 !important;
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            box-sizing: border-box !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+          }
+
+          .custom-input-field:focus {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.16) !important;
+            background-color: #ffffff !important;
+          }
+
+          .custom-input-field::placeholder {
+            color: #94a3b8 !important;
+            font-weight: 400 !important;
+          }
+
+          .custom-select-field {
+            width: 100% !important;
+            height: 46px !important;
+            padding: 0 14px !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 12px !important;
+            background-color: #ffffff !important;
+            color: #0C1F41 !important;
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+          }
+
+          .custom-select-field:focus {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.16) !important;
+          }
+
+          .custom-price-wrapper {
+            display: flex !important;
+            align-items: center !important;
+            border: 1.5px solid #cbd5e1 !important;
+            border-radius: 12px !important;
+            background-color: #ffffff !important;
+            height: 46px !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+          }
+
+          .custom-price-wrapper:focus-within {
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.16) !important;
+          }
+
+          .custom-price-currency {
+            padding: 0 14px !important;
+            height: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: #f0f9ff !important;
+            border-right: 1.5px solid #bae6fd !important;
+            color: #0284c7 !important;
+            font-weight: 800 !important;
+            font-size: 1.05rem !important;
+            flex-shrink: 0 !important;
+          }
+
+          .custom-price-wrapper input,
+          .custom-price-wrapper input:focus {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 14px !important;
+            border: none !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            color: #0C1F41 !important;
+            font-size: 1rem !important;
+            font-weight: 700 !important;
+            outline: none !important;
+            box-shadow: none !important;
+            -moz-appearance: textfield !important;
+            appearance: textfield !important;
+          }
+
+          .custom-price-wrapper input::-webkit-outer-spin-button,
+          .custom-price-wrapper input::-webkit-inner-spin-button {
+            -webkit-appearance: none !important;
+            margin: 0 !important;
+          }
+
+          .custom-stock-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 12px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+
+          .custom-stock-grid > div {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 5px !important;
+            min-width: 0 !important;
           }
 
           /* Product List */
@@ -1892,7 +2876,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
             background: #ffffff;
             border-radius: 16px;
             width: 100%;
-            max-width: 380px;
+            max-width: 390px;
+            max-height: min(480px, calc(100dvh - 100px)) !important;
+            height: auto;
             box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.28);
             border: 1px solid #bae6fd;
             overflow: hidden;
@@ -1902,7 +2888,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .set-price-header {
-            padding: 1rem 1.25rem 0.85rem;
+            flex-shrink: 0 !important;
+            padding: 0.9rem 1.25rem 0.8rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -1937,10 +2924,15 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .set-price-body {
-            padding: 1.25rem;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding: 1.15rem 1.25rem;
             display: flex;
             flex-direction: column;
-            gap: 0.9rem;
+            gap: 0.85rem;
             box-sizing: border-box;
           }
 
@@ -2087,6 +3079,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .set-price-footer {
+            flex-shrink: 0 !important;
             padding: 0.85rem 1.25rem;
             background: #f0f9ff;
             border-top: 1px solid #bae6fd;
@@ -2098,37 +3091,46 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           .set-price-cancel-btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid #D9DDE4;
-            background: #ffffff;
-            color: #575B6B;
-            font-size: 0.84rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s ease;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            white-space: nowrap !important;
+            padding: 8px 16px !important;
+            border-radius: 8px !important;
+            border: 1px solid #D9DDE4 !important;
+            background: #ffffff !important;
+            color: #575B6B !important;
+            font-size: 0.84rem !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
           }
 
           .set-price-cancel-btn:hover {
-            background: #f0f9ff;
-            color: #0C1F41;
+            background: #f0f9ff !important;
+            color: #0C1F41 !important;
           }
 
           .set-price-confirm-btn {
-            padding: 8px 20px;
-            border-radius: 8px;
-            border: none;
-            background: #0284c7;
-            color: #ffffff;
-            font-size: 0.84rem;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
-            transition: all 0.15s ease;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            white-space: nowrap !important;
+            padding: 8px 18px !important;
+            border-radius: 8px !important;
+            border: none !important;
+            background: #0284c7 !important;
+            color: #ffffff !important;
+            font-size: 0.84rem !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
+            transition: all 0.15s ease !important;
           }
 
           .set-price-confirm-btn:hover {
-            background: #0369a1;
+            background: #0369a1 !important;
           }
 
           .item-trash-btn {
@@ -2415,6 +3417,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
         `}</style>
       </div>
+
+      {/* Barcode Print Modal */}
+      <BarcodeModal
+        item={barcodeModalItem}
+        isOpen={Boolean(barcodeModalItem)}
+        onClose={() => setBarcodeModalItem(null)}
+        shopName={shop?.name || user?.shopName || "SLIPZEN POS"}
+      />
     </div>
   )
 }

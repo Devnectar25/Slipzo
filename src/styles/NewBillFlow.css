@@ -493,8 +493,11 @@
   /* keeps room for the picture and name; the Add button fits beside it, wider quantity controls move below */
   flex: 1 1 150px;
 }
+
 /* add button / quantity controls sit at the right, also when they move to their own line */
-.nb-item-card > :last-child:not(.nb-item-left) { margin-left: auto; }
+.nb-item-card> :last-child:not(.nb-item-left) {
+  margin-left: auto;
+}
 
 .nb-item-thumb {
   width: 88px;
@@ -528,8 +531,17 @@
   align-items: baseline;
   gap: 3px 6px;
 }
-.nb-item-info .nb-item-name { flex: 0 0 100%; margin: 0; }
-.nb-item-info .nb-item-price-desktop { order: 1; line-height: 1.25; }
+
+.nb-item-info .nb-item-name {
+  flex: 0 0 100%;
+  margin: 0;
+}
+
+.nb-item-info .nb-item-price-desktop {
+  order: 1;
+  line-height: 1.25;
+}
+
 .nb-item-info .nb-item-category {
   order: 2;
   margin: 0;
@@ -542,9 +554,17 @@
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.nb-item-info .nb-item-stock { order: 3; flex: 0 0 100%; margin: 0; }
+
+.nb-item-info .nb-item-stock {
+  order: 3;
+  flex: 0 0 100%;
+  margin: 0;
+}
+
 /* once the item is on the bill, its quantity controls get their own line under the details */
-.nb-item-card:has(.nb-qty-controls-group) .nb-item-left { flex-basis: 100%; }
+.nb-item-card:has(.nb-qty-controls-group) .nb-item-left {
+  flex-basis: 100%;
+}
 
 .nb-item-name {
   font-size: 0.92rem;
@@ -1419,6 +1439,7 @@
   padding: 0.9rem 1rem 1rem;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
+
 .tb-preview-head {
   display: flex;
   align-items: center;
@@ -1426,11 +1447,13 @@
   gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
+
 .tb-preview-title {
   font-size: 0.95rem;
   font-weight: 800;
   color: #0c1f41;
 }
+
 .tb-preview-template {
   font-size: 0.72rem;
   font-weight: 700;
@@ -1444,6 +1467,7 @@
   text-overflow: ellipsis;
   max-width: 60%;
 }
+
 .tb-preview-empty {
   margin: 0;
   padding: 1.25rem 0.5rem;
@@ -1454,6 +1478,7 @@
   border: 1px dashed #cbd5e1;
   border-radius: 12px;
 }
+
 .tb-preview-paper {
   /* the whole bill is shown, total included (no inner scrolling) */
   margin: 0 auto 1rem !important;
@@ -1463,6 +1488,7 @@
   box-shadow: 0 10px 24px -16px rgba(12, 31, 65, 0.45);
   scrollbar-width: thin;
 }
+
 .tb-preview-paper.format-a4 {
   width: 100% !important;
   max-width: 100% !important;
@@ -1486,8 +1512,16 @@
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.tb-pdf-btn:hover:not(:disabled) { background: #e0f2fe; border-color: #38bdf8; }
-.tb-pdf-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.tb-pdf-btn:hover:not(:disabled) {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+}
+
+.tb-pdf-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 /* "Reset Table" under Download PDF in table billing */
 .tb-reset-btn {
@@ -1508,14 +1542,17 @@
   transition: all 0.15s ease;
   box-shadow: 0 1px 2px rgba(220, 38, 38, 0.05);
 }
+
 .tb-reset-btn:hover:not(:disabled) {
   background: #fee2e2;
   border-color: #fca5a5;
   color: #b91c1c;
 }
+
 .tb-reset-btn:active:not(:disabled) {
   transform: scale(0.99);
 }
+
 .tb-reset-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -1528,8 +1565,9 @@
   margin-top: 0.55rem;
   width: 100%;
 }
-.tb-secondary-actions > .tb-pdf-btn,
-.tb-secondary-actions > .tb-reset-btn {
+
+.tb-secondary-actions>.tb-pdf-btn,
+.tb-secondary-actions>.tb-reset-btn {
   flex: 1;
   width: auto !important;
   margin-top: 0 !important;
@@ -1537,20 +1575,45 @@
 }
 
 /* Print / Save row: the row sets the spacing, so the buttons' own top margin is dropped */
-.nb-action-row > .nb-save-bill-btn { margin-top: 0 !important; }
+.nb-action-row>.nb-save-bill-btn {
+  margin-top: 0 !important;
+}
+
 /* the card already spaces its rows (0.7rem gap), so these add no extra margin */
-.nb-summary-details > .nb-action-row { margin-top: 0.15rem !important; }
-.nb-summary-details > .tb-pdf-btn { margin-top: 0; }
-.nb-action-row + .tb-pdf-btn { margin-top: 0.5rem; }
-.nb-summary-details > .nb-action-row + .tb-pdf-btn { margin-top: 0; }
+.nb-summary-details>.nb-action-row {
+  margin-top: 0.15rem !important;
+}
+
+.nb-summary-details>.tb-pdf-btn {
+  margin-top: 0;
+}
+
+.nb-action-row+.tb-pdf-btn {
+  margin-top: 0.5rem;
+}
+
+.nb-summary-details>.nb-action-row+.tb-pdf-btn {
+  margin-top: 0;
+}
 
 
 /* stock pill on New Bill item cards (kirana / grocery and cloth shops) */
-.nb-item-stock { margin-top: 3px; display: flex; }
-.nb-item-stock .stock-badge { font-size: 0.66rem; padding: 2px 7px; }
+.nb-item-stock {
+  margin-top: 3px;
+  display: flex;
+}
+
+.nb-item-stock .stock-badge {
+  font-size: 0.66rem;
+  padding: 2px 7px;
+}
 
 /* stock limit reached: + looks unavailable; out-of-stock items cannot be added */
-.nb-qty-btn.at-max { opacity: 0.4; cursor: not-allowed; }
+.nb-qty-btn.at-max {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .nb-add-btn.nb-add-btn-out,
 .nb-add-btn.nb-add-btn-out:hover {
   background: #fef2f2 !important;
@@ -1567,17 +1630,24 @@
   border: 1px solid #fed7aa !important;
   box-shadow: none !important;
 }
-.nb-add-btn.nb-add-btn-restock:hover { background: #ffedd5 !important; }
+
+.nb-add-btn.nb-add-btn-restock:hover {
+  background: #ffedd5 !important;
+}
 
 /* Bill preview (New Bill and table billing): drawn smaller so the whole bill fits in less height */
 .tb-preview-paper {
   zoom: 0.72;
 }
+
 .tb-preview-paper.format-a4 {
   zoom: 0.62;
 }
+
 @media (max-width: 768px) {
-  .tb-preview-paper { zoom: 0.8; }
+  .tb-preview-paper {
+    zoom: 0.8;
+  }
 }
 
 /* Bill preview fills the card width (shorter: info rows and item lines no longer wrap) */
@@ -1587,6 +1657,7 @@
   zoom: 0.8;
   margin: 0 0 0.75rem !important;
 }
+
 .nb-summary-card .tb-preview-paper.receipt-preview-content .realistic-thermal-receipt {
   width: 100% !important;
   max-width: 100% !important;
@@ -1597,14 +1668,30 @@
   height: 22px !important;
   max-width: 70% !important;
 }
-.nb-summary-card .tb-preview-paper .receipt-barcode-wrap { margin: 0.3rem 0 0.1rem !important; }
-.nb-summary-card .tb-preview-paper .realistic-thermal-receipt { padding-bottom: 0.5rem !important; min-height: 0 !important; }
+
+.nb-summary-card .tb-preview-paper .receipt-barcode-wrap {
+  margin: 0.3rem 0 0.1rem !important;
+}
+
+.nb-summary-card .tb-preview-paper .realistic-thermal-receipt {
+  padding-bottom: 0.5rem !important;
+  min-height: 0 !important;
+}
+
 /* tighter card around the preview */
-.nb-right-col .nb-summary-card:has(.tb-preview-head) { padding-top: 0.85rem !important; }
-.nb-summary-card .tb-preview-head { margin-bottom: 0.55rem; }
+.nb-right-col .nb-summary-card:has(.tb-preview-head) {
+  padding-top: 0.85rem !important;
+}
+
+.nb-summary-card .tb-preview-head {
+  margin-bottom: 0.55rem;
+}
 
 /* "Add More Items" sits under the last item of the list */
-.nb-add-more-after-list { margin-top: 0.75rem; }
+.nb-add-more-after-list {
+  margin-top: 0.75rem;
+}
+
 .nb-add-more-after-list {
   width: auto;
   min-width: 200px;
@@ -1626,7 +1713,12 @@
   box-shadow: 0 1px 2px rgba(12, 31, 65, 0.04), 0 16px 40px rgba(12, 31, 65, 0.08);
   overflow: hidden;
 }
-.nbd.is-printed { --nbd-accent: #16a34a; --nbd-soft: #dcfce7; --nbd-ring: #bbf7d0; }
+
+.nbd.is-printed {
+  --nbd-accent: #16a34a;
+  --nbd-soft: #dcfce7;
+  --nbd-ring: #bbf7d0;
+}
 
 .nbd-hero {
   display: flex;
@@ -1638,6 +1730,7 @@
     radial-gradient(360px 160px at 50% 0%, var(--nbd-soft), transparent 70%),
     #ffffff;
 }
+
 .nbd-badge {
   width: 64px;
   height: 64px;
@@ -1650,7 +1743,19 @@
   margin-bottom: 16px;
   animation: nbdPop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
-@keyframes nbdPop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+@keyframes nbdPop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .nbd-status {
   font-size: 0.72rem;
   font-weight: 800;
@@ -1662,8 +1767,22 @@
   padding: 4px 10px;
   border-radius: 999px;
 }
-.nbd-title { margin: 12px 0 2px; font-size: 1.35rem; font-weight: 800; color: #0c1f41; }
-.nbd-amount { font-size: 2.3rem; font-weight: 800; letter-spacing: -0.02em; color: #0c1f41; line-height: 1.2; }
+
+.nbd-title {
+  margin: 12px 0 2px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0c1f41;
+}
+
+.nbd-amount {
+  font-size: 2.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0c1f41;
+  line-height: 1.2;
+}
+
 .nbd-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1674,6 +1793,7 @@
   font-size: 0.84rem;
   color: #64748b;
 }
+
 .nbd-chip {
   font-weight: 700;
   color: #334155;
@@ -1682,7 +1802,13 @@
   padding: 2px 8px;
   border-radius: 8px;
 }
-.nbd-dot { width: 4px; height: 4px; border-radius: 999px; background: #cbd5e1; }
+
+.nbd-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #cbd5e1;
+}
 
 /* item summary, like the end of a receipt */
 .nbd-summary {
@@ -1692,12 +1818,51 @@
   background: #f8fafc;
   border: 1px dashed #dbe4ee;
 }
-.nbd-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
-.nbd-lines li { display: flex; align-items: baseline; gap: 8px; font-size: 0.88rem; }
-.nbd-line-name { flex: 1; min-width: 0; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nbd-line-qty { flex: none; color: #94a3b8; font-size: 0.8rem; }
-.nbd-line-amt { flex: none; font-weight: 700; color: #0f172a; }
-.nbd-more { margin-top: 6px; font-size: 0.78rem; color: #64748b; }
+
+.nbd-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.nbd-lines li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.88rem;
+}
+
+.nbd-line-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nbd-line-qty {
+  flex: none;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.nbd-line-amt {
+  flex: none;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.nbd-more {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
 .nbd-total {
   display: flex;
   justify-content: space-between;
@@ -1708,10 +1873,25 @@
   font-size: 0.86rem;
   color: #475569;
 }
-.nbd-total strong { font-size: 1.05rem; color: #0c1f41; }
 
-.nbd-actions { display: flex; flex-direction: column; gap: 10px; padding: 20px; }
-.nbd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.nbd-total strong {
+  font-size: 1.05rem;
+  color: #0c1f41;
+}
+
+.nbd-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+}
+
+.nbd-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .nbd-btn {
   display: inline-flex;
   align-items: center;
@@ -1730,8 +1910,17 @@
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
-.nbd-btn:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; }
-.nbd-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.nbd-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.nbd-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .nbd-btn.primary {
   height: 52px;
   border: 0;
@@ -1740,15 +1929,38 @@
   background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
   box-shadow: 0 8px 20px rgba(2, 132, 199, 0.28);
 }
-.nbd-btn.primary:hover:not(:disabled) { background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%); transform: translateY(-1px); }
-.nbd-btn:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+.nbd-btn.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+  transform: translateY(-1px);
+}
+
+.nbd-btn:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
+}
 
 @media (max-width: 480px) {
-  .nbd { border-radius: 20px; margin-top: 0; }
-  .nbd-hero { padding: 24px 18px 18px; }
-  .nbd-amount { font-size: 2rem; }
-  .nbd-summary { margin: 0 14px; }
-  .nbd-actions { padding: 16px 14px 18px; }
+  .nbd {
+    border-radius: 20px;
+    margin-top: 0;
+  }
+
+  .nbd-hero {
+    padding: 24px 18px 18px;
+  }
+
+  .nbd-amount {
+    font-size: 2rem;
+  }
+
+  .nbd-summary {
+    margin: 0 14px;
+  }
+
+  .nbd-actions {
+    padding: 16px 14px 18px;
+  }
 }
 
 /* ============ New Bill item cards: compact grid layout (tablets and desktop) ============
@@ -1767,20 +1979,63 @@
     row-gap: 4px;
     padding: 10px 12px;
   }
+
   .nb-menu-items-list .nb-item-card .nb-item-left,
-  .nb-menu-items-list .nb-item-card .nb-item-info { display: contents; }
+  .nb-menu-items-list .nb-item-card .nb-item-info {
+    display: contents;
+  }
+
   .nb-menu-items-list .nb-item-card .nb-item-thumb,
-  .nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder { grid-area: img; align-self: center; }
-  .nb-menu-items-list .nb-item-card .nb-item-name { grid-area: name; align-self: end; }
-  .nb-menu-items-list .nb-item-card .nb-item-price-desktop { grid-area: price; }
-  .nb-menu-items-list .nb-item-card .nb-item-category { grid-area: cat; align-self: center; }
-  .nb-menu-items-list .nb-item-card .nb-item-stock { grid-area: stock; align-self: center; }
-  .nb-menu-items-list .nb-item-card .nb-item-actions-wrapper { grid-area: actions; justify-self: end; margin-left: 0; }
-  .nb-menu-items-list .nb-item-card .nb-add-btn { height: 36px; padding: 0 14px; font-size: 0.84rem; border-radius: 9px; }
+  .nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder {
+    grid-area: img;
+    align-self: center;
+  }
+
+  .nb-menu-items-list .nb-item-card .nb-item-name {
+    grid-area: name;
+    align-self: end;
+  }
+
+  .nb-menu-items-list .nb-item-card .nb-item-price-desktop {
+    grid-area: price;
+  }
+
+  .nb-menu-items-list .nb-item-card .nb-item-category {
+    grid-area: cat;
+    align-self: center;
+  }
+
+  .nb-menu-items-list .nb-item-card .nb-item-stock {
+    grid-area: stock;
+    align-self: center;
+  }
+
+  .nb-menu-items-list .nb-item-card .nb-item-actions-wrapper {
+    grid-area: actions;
+    justify-self: end;
+    margin-left: 0;
+  }
+
+  .nb-menu-items-list .nb-item-card .nb-add-btn {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 0.84rem;
+    border-radius: 9px;
+  }
+
   .nb-menu-items-list .nb-item-card .nb-qty-btn,
-  .nb-menu-items-list .nb-item-card .nb-item-del-btn { width: 30px; height: 30px; }
-  .nb-menu-items-list .nb-item-card .nb-qty-controls-group { gap: 6px; }
-  .nb-menu-items-list .nb-item-card .nb-item-stock .stock-badge { white-space: nowrap; }
+  .nb-menu-items-list .nb-item-card .nb-item-del-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .nb-menu-items-list .nb-item-card .nb-qty-controls-group {
+    gap: 6px;
+  }
+
+  .nb-menu-items-list .nb-item-card .nb-item-stock .stock-badge {
+    white-space: nowrap;
+  }
 
   /* item already on the bill: the quantity controls (- 1 + delete) are too wide to share the stock line,
      so they get their own line under it, on the right */
@@ -1791,6 +2046,7 @@
       "img stock   stock   stock"
       "img actions actions actions";
   }
+
   /* no stock tracking: no empty line above the controls */
   .nb-menu-items-list .nb-item-card:has(.nb-qty-controls-group):not(:has(.nb-item-stock)) {
     grid-template-areas:
@@ -1798,4 +2054,65 @@
       "img price   cat     cat"
       "img actions actions actions";
   }
+}
+
+/* ============ Product group filter chips (New Bill and table billing) ============ */
+.nb-group-chips {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 16px 10px 2px;
+  margin: 0 0 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
+
+.nb-group-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.nb-group-chips::after {
+  content: '';
+  flex: 0 0 16px;
+  width: 16px;
+  height: 1px;
+}
+
+.nb-group-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 0 !important;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid #bae6fd;
+  background: #ffffff;
+  color: #0c1f41;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.nb-group-chip:hover {
+  background: #f0f9ff;
+}
+
+.nb-group-chip.active {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+}
+
+.nb-group-chip:focus-visible {
+  outline: 2px solid #7dd3fc;
+  outline-offset: 2px;
 }

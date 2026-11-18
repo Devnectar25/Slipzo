@@ -1437,7 +1437,8 @@
     "removeItem": "Remove item",
     "removeFromSel": "Remove from selection",
     "added": "Added {{count}} item(s) to your menu!",
-    "saveFailed": "Failed to save items."
+    "saveFailed": "Failed to save items.",
+    "lowAlertHint": "You are warned when stock falls to this number."
   },
   "pricingPage": {
     "noFees": "No Monthly Fees",
@@ -1922,5 +1923,37 @@
     "bills": "Bills",
     "table": "Table",
     "noResults": "Nothing found for “{{q}}”"
+  },
+  "productGroups": {
+    "all": "All",
+    "filter": "Filter products",
+    "kirana": {
+      "staples": "Atta, Rice & Dal",
+      "oil": "Oil, Salt & Sugar",
+      "snacks": "Snacks & Drinks",
+      "spices": "Spices & Masala",
+      "home": "Home & Others"
+    },
+    "clothing": {
+      "men": "Men's Wear",
+      "women": "Women's Wear",
+      "kids": "Kids Wear",
+      "winter": "Winter & Jackets",
+      "essentials": "Essentials & More"
+    },
+    "hotel": {
+      "starters": "Starters",
+      "main": "Main Course & Thalis",
+      "breads": "Breads & Rice",
+      "breakfast": "Breakfast & Snacks",
+      "desserts": "Desserts & Drinks"
+    },
+    "cafe": {
+      "tea": "Tea & Coffee",
+      "south": "South Indian",
+      "street": "Street Food & Chaat",
+      "snacks": "Snacks & Bakery",
+      "others": "Others"
+    }
   }
 }

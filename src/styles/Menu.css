@@ -256,11 +256,21 @@
   align-items: center;
   gap: 0.5rem;
   overflow-x: auto;
-  padding: 0.1rem 0 0.75rem 0;
+  overflow-y: hidden;
+  padding: 0.1rem 1rem 0.75rem 0.1rem;
   margin-bottom: 1rem;
   scrollbar-width: thin;
   scrollbar-color: #D9DDE4 transparent;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+}
+
+.menu-category-pills-row::after {
+  content: '';
+  flex: 0 0 16px;
+  width: 16px;
+  height: 1px;
 }
 
 .menu-category-pills-row::-webkit-scrollbar {
@@ -3451,4 +3461,32 @@ body:has(.add-menu-modal-backdrop) .shell-main {
 .user-menu-card .user-menu-card-actions {
   flex-shrink: 0;
   padding-top: 8px;
+}
+
+/* "Add to My Menu" popup: shorter, the fields scroll between the fixed header and buttons */
+.menu-modal-backdrop .menu-modal-card.amm-card {
+  max-height: min(480px, calc(var(--zoom-dvh, 100dvh) - 4rem)) !important;
+}
+.amm-card .menu-modal-header { padding: 0.9rem 1.25rem !important; }
+.amm-card .menu-modal-body {
+  padding: 1rem 1.25rem !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: #bae6fd transparent;
+  /* soft shadows at the top / bottom edge show there is more to scroll */
+  background:
+    linear-gradient(#ffffff 30%, rgba(255, 255, 255, 0)) top / 100% 24px no-repeat local,
+    linear-gradient(rgba(255, 255, 255, 0), #ffffff 70%) bottom / 100% 24px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgba(12, 31, 65, 0.12), transparent) top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(12, 31, 65, 0.12), transparent) bottom / 100% 10px no-repeat scroll,
+    #ffffff;
+}
+.amm-card .menu-modal-body::-webkit-scrollbar { width: 6px; }
+.amm-card .menu-modal-body::-webkit-scrollbar-thumb { background: #bae6fd; border-radius: 999px; }
+.amm-card .menu-modal-footer { padding: 0.75rem 1.25rem !important; }
+
+@media (max-width: 768px) {
+  .menu-modal-backdrop .menu-modal-card.amm-card { max-height: min(500px, calc(var(--zoom-dvh, 100dvh) - 2rem)) !important; }
+  .amm-card .menu-modal-header { padding: 0.7rem 1rem !important; }
+  .amm-card .menu-modal-body { padding: 0.75rem 1rem !important; }
 }
