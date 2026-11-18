@@ -237,7 +237,7 @@
 
 .lp-stage {
   position: relative;
-  height: 400px;
+  height: 415px;
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -248,10 +248,10 @@
 .lp-stage-ring {
   position: absolute;
   left: 50%;
-  bottom: -190px;
-  width: 520px;
-  height: 520px;
-  margin-left: -260px;
+  bottom: -185px;
+  width: 540px;
+  height: 540px;
+  margin-left: -270px;
   border-radius: 50%;
   border: 1px dashed rgba(125, 211, 252, 0.22);
 }
@@ -259,9 +259,9 @@
   position: absolute;
   left: 50%;
   bottom: 30px;
-  width: 420px;
-  height: 260px;
-  margin-left: -210px;
+  width: 440px;
+  height: 280px;
+  margin-left: -220px;
   background: radial-gradient(closest-side, rgba(56, 189, 248, 0.35), transparent);
   filter: blur(10px);
 }
@@ -291,7 +291,7 @@
   align-items: center;
   justify-content: flex-end;
   padding-bottom: 26px;
-  scale: 0.84;
+  scale: 0.94;
   transform-origin: 50% 100%;
   animation: lpSceneIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -304,8 +304,8 @@
   align-items: flex-end;
   justify-content: center;
   flex-shrink: 0;
-  height: 330px;
-  margin-bottom: -20px;
+  height: 318px;
+  margin-bottom: -18px;
   padding: 0 24px;
   overflow: hidden;
 }
@@ -315,7 +315,7 @@
 
 .lp-receipt {
   position: relative;
-  padding: 12px 12px 16px;
+  padding: 10px 12px 48px;
   background: #ffffff;
   color: #1e293b;
   font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
@@ -335,9 +335,9 @@
     linear-gradient(-45deg, #ffffff 4px, transparent 0) 0 0 / 10px 8px repeat-x,
     linear-gradient(45deg, #ffffff 4px, transparent 0) 0 0 / 10px 8px repeat-x;
 }
-.lp-receipt-58mm { width: 160px; font-size: 9.5px; }
-.lp-receipt-80mm { width: 200px; }
-.lp-receipt-a4 { width: 262px; padding: 14px 16px 16px; font-size: 10px; }
+.lp-receipt-58mm { width: 168px; font-size: 10px; }
+.lp-receipt-80mm { width: 212px; }
+.lp-receipt-a4 { width: 268px; padding: 10px 14px 48px; font-size: 10px; }
 
 .lp-receipt-top {
   display: flex;
@@ -455,13 +455,15 @@
 }
 .lp-printer-slot {
   position: absolute;
-  left: 50%;
+  /* centred with auto margins rather than a transform, which the reduced-motion styles switch off */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   top: 16px;
   height: 7px;
   border-radius: 4px;
   background: #05080f;
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.08);
-  transform: translateX(-50%);
 }
 .lp-printer-front {
   position: relative;
@@ -523,8 +525,8 @@
 .lp-printer-mini .lp-printer-brand { font-size: 8px; letter-spacing: 0.12em; }
 .lp-printer-mini .lp-printer-front { height: 80px; border-radius: 6px 6px 28px 28px; }
 
-.lp-printer-counter { width: 252px; }
-.lp-printer-counter .lp-printer-slot { width: 214px; }
+.lp-printer-counter { width: 250px; }
+.lp-printer-counter .lp-printer-slot { width: 212px; }
 .lp-printer-counter .lp-printer-front { height: 96px; }
 
 .lp-printer-a4 { width: 330px; }
@@ -1231,15 +1233,15 @@
 
 /* taller windows: the hero already fills the screen, so the printer and heading grow into the space */
 @media (min-width: 1001px) and (min-height: 820px) {
-  .lp-stage { height: 460px; }
-  .lp-scene { scale: 0.96; }
+  .lp-stage { height: 480px; }
+  .lp-scene { scale: 1.02; }
   .lp-float-left { left: 16px; }
   .lp-hero-copy h1 { font-size: clamp(2.4rem, 3.8vw, 3.4rem); }
   .lp-hero-copy > p { font-size: 1.06rem; line-height: 1.65; }
 }
 @media (min-width: 1001px) and (min-height: 960px) {
   .lp-stage { height: 520px; }
-  .lp-scene { scale: 1.06; }
+  .lp-scene { scale: 1.08; }
   .lp-float-left { left: 26px; }
 }
 
@@ -1381,3 +1383,90 @@
   color: #0c1f41;
 }
 .lp-page .lp-cta-card .dl-btn-ghost-light:hover { background: #f0f9ff; border-color: #7dd3fc; }
+
+/* ============ Hero: phone with the app's items screen, just left of the printer ============
+   The printer moves right by --lp-shift and the phone stands on its left, so the pair is centred.
+   --lp-pw is each printer's width, so the gap is the same for the 58mm, 80mm and A4 printers. */
+.lp-scene-with-phone {
+  --lp-phone-w: 202px;
+  --lp-pw: 250px;
+  --lp-gap: 16px;
+  /* Centering formula: shift printer right so phone + gap + printer is exactly centered */
+  --lp-shift: calc((var(--lp-phone-w) + var(--lp-gap)) / 2);
+}
+.lp-scene-mini { --lp-pw: 250px; }
+.lp-scene-counter { --lp-pw: 250px; }
+.lp-scene-a4 { --lp-pw: 250px; }
+.lp-scene-with-phone > .lp-paper-window,
+.lp-scene-with-phone > .lp-printer { margin-left: calc(var(--lp-shift) * 2); }
+
+.lp-phone {
+  position: absolute;
+  z-index: 3;
+  bottom: 22px;
+  /* Centered with printer: exact equal margin on left and right */
+  left: max(12px, calc(50% - (var(--lp-phone-w) + var(--lp-gap) + var(--lp-pw)) / 2));
+  width: var(--lp-phone-w);
+  aspect-ratio: 0.54;
+  padding: 5px;
+  box-sizing: border-box;
+  border-radius: 25px;
+  background: linear-gradient(160deg, #1f2937 0%, #0b1220 100%);
+  box-shadow:
+    0 26px 40px -18px rgba(15, 23, 42, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10);
+}
+.lp-phone::before {
+  /* side button */
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 22%;
+  width: 3px;
+  height: 34px;
+  border-radius: 2px;
+  background: #334155;
+}
+.lp-phone-screen {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 19px;
+  background: #ffffff;
+}
+
+@media (max-width: 1180px) {
+  .lp-scene-with-phone {
+    --lp-phone-w: 182px;
+    --lp-pw: 236px;
+    --lp-gap: 14px;
+    --lp-shift: calc((var(--lp-phone-w) + var(--lp-gap)) / 2);
+  }
+}
+
+/* ============ One printer size for every shop type ============
+   The 58mm and A4 printers take the same size and shape as the 80mm counter printer
+   (the A4 one keeps its light colour); the A4 sheet is narrowed to fit the same paper slot. */
+.lp-printer-mini,
+.lp-printer-counter,
+.lp-printer-a4 { width: 250px; }
+.lp-printer-mini .lp-printer-lid,
+.lp-printer-counter .lp-printer-lid,
+.lp-printer-a4 .lp-printer-lid { height: 40px; border-radius: 18px 18px 6px 6px; }
+.lp-printer-mini .lp-printer-slot,
+.lp-printer-counter .lp-printer-slot,
+.lp-printer-a4 .lp-printer-slot { width: 212px; top: 16px; }
+.lp-printer-mini .lp-printer-front,
+.lp-printer-counter .lp-printer-front,
+.lp-printer-a4 .lp-printer-front { height: 96px; border-radius: 6px 6px 20px 20px; }
+.lp-printer-mini .lp-printer-brand,
+.lp-printer-counter .lp-printer-brand,
+.lp-printer-a4 .lp-printer-brand { font-size: 9.5px; letter-spacing: 0.2em; }
+.lp-scene-mini,
+.lp-scene-counter,
+.lp-scene-a4 { --lp-pw: 250px; }
+.lp-receipt-a4 { width: 210px; padding: 10px 14px 48px; font-size: 9.5px; }
+/* the stage is the size reference for the phone (100cqh = the stage's height) */
+.lp-stage { container-type: size; }

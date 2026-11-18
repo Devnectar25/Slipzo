@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   ArrowRight, Printer, ScanBarcode, UtensilsCrossed, BarChart3, Users, MonitorSmartphone,
-  ShoppingBasket, Shirt, Coffee, Store, Zap, Receipt, Languages, LayoutTemplate, FileCheck2, AlertTriangle,
+  ShoppingBasket, Shirt, Coffee, Store, Receipt, Languages, LayoutTemplate, FileCheck2,
   Bluetooth, CheckCircle2, Ticket, Boxes, MonitorCheck, Crown, UserRound, PackageCheck, ChefHat, ConciergeBell, Check, UserCheck
 } from "lucide-react"
 import { PublicNavbar, PUBLIC_NAV_LINKS } from "./PublicNavbar"
@@ -201,7 +201,6 @@ const SLIDES = [
       [3, "landing.mockSamosa", "Fresh Samosa", 60],
       [1, "landing.mockCoffee", "Cold Coffee", 80],
     ],
-    float: "lightning",
   },
   {
     id: "kirana",
@@ -221,7 +220,6 @@ const SLIDES = [
       [4, "landing.mockMaggi", "Maggi Noodles 70g", 56],
       [1, "landing.itemOil", "Sunflower Oil 1L", 165],
     ],
-    float: "scan",
   },
   {
     id: "hotel",
@@ -239,7 +237,6 @@ const SLIDES = [
       [4, "landing.itemNaan", "Butter Naan", 160],
       [1, "landing.itemBiryani", "Veg Biryani", 240],
     ],
-    float: "tables",
   },
   {
     id: "cloth",
@@ -257,7 +254,6 @@ const SLIDES = [
       [1, "landing.itemKurti", "Cotton Kurti", 799],
       [1, "landing.itemJeans", "Denim Jeans", 1299],
     ],
-    float: "ready",
   },
 ]
 
@@ -355,38 +351,11 @@ function ShopReceipt({ slide, template, table }) {
   )
 }
 
-function FloatCard({ type }) {
-  const { t } = useTranslation()
-  if (type === "lightning") {
-    return (
-      <div className="lp-float lp-float-left lp-float-chip lp-float-green">
-        <Zap size={14} /> {t("landing.mockLightning", "0.2s Lightning Print")}
-      </div>
-    )
-  }
-  if (type === "scan") {
-    return (
-      <div className="lp-float lp-float-left lp-float-scan">
-        <div className="lp-scan-bars"><i /></div>
-        <div className="lp-scan-row">
-          <span>{t("landing.mockMaggi", "Maggi Noodles 70g")}</span>
-          <b>₹14.00</b>
-        </div>
-        <span className="lp-scan-stock"><AlertTriangle size={11} /> {t("landing.mockLow", "Only 3 left")}</span>
-      </div>
-    )
-  }
-  if (type === "tables") {
-    return (
-      <div className="lp-float lp-float-left lp-float-tables">
-        <div className="lp-table lp-table-busy"><b>T-01</b><span>{t("landing.mockGuests", "4 Guests")}</span></div>
-        <div className="lp-table lp-table-bill"><b>T-02</b><span>{t("landing.mockBilling", "Billing")}</span></div>
-      </div>
-    )
-  }
+// A phone showing the real Slipzen items screen, standing just left of the printer
+function AppPhone() {
   return (
-    <div className="lp-float lp-float-left lp-float-chip lp-float-sky">
-      <FileCheck2 size={14} /> {t("landing.gstNonGst", "GST & Non-GST")}
+    <div className="lp-phone">
+      <img src="/landing-app-items.jpg" alt="" className="lp-phone-screen" loading="eager" />
     </div>
   )
 }
@@ -435,19 +404,14 @@ function PrinterShowcase() {
         <span className="lp-stage-ring" />
         <span className="lp-stage-glow" />
 
-        <div className="lp-chip-ready">
-          <Printer size={13} /> {t("landing.mockReady", "58mm / 80mm Ready")}
-        </div>
-
-        <div key={slide.id} className={`lp-scene lp-scene-${slide.printer}`}>
+        <div className={`lp-scene lp-scene-${slide.printer} lp-scene-with-phone`}>
+          <AppPhone />
           <div className="lp-paper-window">
-            <div className="lp-paper-feed">
+            <div key={slide.id} className="lp-paper-feed">
               <SampleReceipt slide={slide} />
             </div>
           </div>
           <PrinterBody type={slide.printer} />
-          <FloatCard type={slide.float} />
-          <span className="lp-paper-badge">{slide.paper}</span>
         </div>
       </div>
 

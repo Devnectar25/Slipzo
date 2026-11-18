@@ -474,19 +474,21 @@ export const getCurrentUserKey = (user) => {
   if (typeof user === 'number') return String(user)
   if (typeof user === 'string' && user.trim()) return user.trim().toLowerCase()
   if (user && typeof user === 'object') {
+    // email, then id: the same order as the many callers that pass user.email || user.id directly,
+    // so one shop never ends up with two keys (and two different saved credit counts)
     if (user.email) return String(user.email).trim().toLowerCase()
+    if (user.id !== undefined && user.id !== null && user.id !== "") return String(user.id).trim().toLowerCase()
     if (user.phone) return String(user.phone).trim().toLowerCase()
     if (user.mobile) return String(user.mobile).trim().toLowerCase()
-    if (user.id !== undefined && user.id !== null) return String(user.id).trim().toLowerCase()
   }
   try {
     const userRaw = typeof window !== 'undefined' ? localStorage.getItem('slipzo_user_info') : null
     if (userRaw) {
       const u = JSON.parse(userRaw)
       if (u?.email) return String(u.email).trim().toLowerCase()
+      if (u?.id !== undefined && u?.id !== null && u?.id !== "") return String(u.id).trim().toLowerCase()
       if (u?.phone) return String(u.phone).trim().toLowerCase()
       if (u?.mobile) return String(u.mobile).trim().toLowerCase()
-      if (u?.id !== undefined && u?.id !== null) return String(u.id).trim().toLowerCase()
     }
   } catch (e) { }
   return "guest"

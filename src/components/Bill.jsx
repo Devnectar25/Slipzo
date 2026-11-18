@@ -67,6 +67,7 @@ import { useShowBarcode } from "../hooks/useShowBarcode"
 import { playScanSuccessBeep, playScanErrorBeep } from "../lib/audioFeedback"
 import "../styles/NewBillFlow.css"
 import { EmptyMenuGuide } from "./common/EmptyMenuGuide"
+import { productGroupOf, productGroupChips, productGroupLabelKey } from "../lib/productGroups"
 
 function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -463,14 +464,11 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     return ""
   }
 
-  // Categories list from User's menu items
-  const menuCategories = useMemo(() => {
-    const set = new Set()
-    userMenuItems.forEach((it) => {
-      if (it.category) set.add(it.category)
-    })
-    return ["all", ...Array.from(set)]
-  }, [userMenuItems])
+  // Filter chips: the shop type's 4-5 product groups that have items (see lib/productGroups)
+  const groupChips = useMemo(() => productGroupChips(userMenuItems, shop?.business_type), [userMenuItems, shop?.business_type])
+  useEffect(() => {
+    if (selectedCategory !== "all" && !groupChips.some((g) => g.id === selectedCategory)) setSelectedCategory("all")
+  }, [groupChips, selectedCategory])
 
   // Map of added bill items by clean name (for card button and quantity controls)
   const addedItemMap = useMemo(() => {
@@ -487,8 +485,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     const q = search.trim()
     const filtered = userMenuItems.filter((it) => {
       const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb, lang })
-      const matchesCat = selectedCategory === "all" ||
-        (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
+      const matchesCat = selectedCategory === "all" || productGroupOf(it, shop?.business_type) === selectedCategory
       return matchesSearch && matchesCat
     })
 
@@ -512,7 +509,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       // If neither is in the bill, keep original menu order
       return 0
     })
-  }, [userMenuItems, search, selectedCategory, addedItemMap])
+  }, [userMenuItems, search, selectedCategory, addedItemMap, shop?.business_type])
 
   // Pagination for My Menu Items on New Bill page
   const [menuPage, setMenuPage] = useState(1)
@@ -1443,6 +1440,48 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                     {formatNum(filteredMenuItems.length)} {filteredMenuItems.length === 1 ? t("bills.item", "item") : t("bills.items", "items")}
                   </span>
                 </div>
+
+                {/* Product group filter chips */}
+                {!loadingMenu && groupChips.length > 1 && (
+                  <div
+                    className="nb-group-chips"
+                    role="tablist"
+                    aria-label={t("productGroups.filter", "Filter products")}
+                    onWheel={(e) => {
+                      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                        e.currentTarget.scrollLeft += e.deltaY
+                      }
+                    }}
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={selectedCategory === "all"}
+                      className={`nb-group-chip ${selectedCategory === "all" ? "active" : ""}`}
+                      onClick={(e) => {
+                        setSelectedCategory("all")
+                        e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                      }}
+                    >
+                      {t("productGroups.all", "All")}
+                    </button>
+                    {groupChips.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={selectedCategory === g.id}
+                        className={`nb-group-chip ${selectedCategory === g.id ? "active" : ""}`}
+                        onClick={(e) => {
+                          setSelectedCategory(g.id)
+                          e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                        }}
+                      >
+                        <span aria-hidden="true">{g.icon}</span> {t(productGroupLabelKey(shop?.business_type, g.id), g.label)}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {loadingMenu ? (
                   <div style={{ textAlign: "center", padding: "3rem 1rem" }}>

@@ -46,6 +46,7 @@ import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useSpeechInput } from "../hooks/useSpeechInput"
 import { BarcodeModal } from "./common/BarcodeModal"
 import { useShowBarcode } from "../hooks/useShowBarcode"
+import { productGroupOf, productGroupChips, productGroupLabelKey } from "../lib/productGroups"
 import { StockModal, StockBadge, InventorySummary } from "./common/StockModal"
 import Swal from "sweetalert2"
 import "../styles/Menu.css"
@@ -291,7 +292,9 @@ export function Menu({ setView, requireAuth, user }) {
       }
     }
     const handleMenuUpdate = (e) => {
-      if (Array.isArray(e?.detail?.items) && e.detail.items.length > 0) {
+      // a list that came with the message is used as it is, even an empty one (reloading here would
+      // save the list again, send this message again and loop for a shop with no items yet)
+      if (Array.isArray(e?.detail?.items)) {
         setItems(e.detail.items)
       } else if (e?.detail?.updatedItem) {
         const { id, stock_qty, track_stock, low_stock_alert } = e.detail.updatedItem
@@ -754,32 +757,20 @@ export function Menu({ setView, requireAuth, user }) {
   }, [currentView])
 
   // Extract categories dynamically from user's actual personal menu items
+  // Filter chips: the shop type's 4-5 product groups that have items (see lib/productGroups)
   const myMenuCategories = useMemo(() => {
-    const set = new Set()
-    items.forEach((it) => {
-      if (it.category && typeof it.category === "string" && it.category.trim()) {
-        set.add(it.category.trim())
-      }
-    })
-    const list = [{ id: "all", label: t("menu.allItems", "All Items"), icon: <LayoutGrid size={15} /> }]
-    const getCategoryIcon = (catName) => {
-      const lower = String(catName || "").toLowerCase()
-      if (lower.includes("baker") || lower.includes("bread") || lower.includes("croissant")) return <Croissant size={15} />
-      if (lower.includes("beverag") || lower.includes("drink") || lower.includes("coffee") || lower.includes("tea") || lower.includes("milk")) return <Coffee size={15} />
-      if (lower.includes("break") || lower.includes("paratha")) return <Utensils size={15} />
-      if (lower.includes("snack") || lower.includes("sandwich") || lower.includes("burger") || lower.includes("pizza") || lower.includes("fries")) return <Pizza size={15} />
-      if (lower.includes("main") || lower.includes("course") || lower.includes("meal") || lower.includes("curry") || lower.includes("rice")) return <Soup size={15} />
-      return <UtensilsCrossed size={15} />
-    }
-    Array.from(set).forEach((cat) => {
-      list.push({
-        id: cat,
-        label: cat,
-        icon: getCategoryIcon(cat)
-      })
+    const list = [{ id: "all", label: t("menu.allItems", "All Items") }]
+    productGroupChips(items, selectedBusinessType).forEach((g) => {
+      list.push({ id: g.id, label: t(productGroupLabelKey(selectedBusinessType, g.id), g.label), icon: g.icon })
     })
     return list
-  }, [items])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, selectedBusinessType, lang])
+
+  // a chosen group that no longer has items (item removed, shop type changed) goes back to "All"
+  useEffect(() => {
+    if (selectedCategory !== "all" && !myMenuCategories.some((c) => c.id === selectedCategory)) setSelectedCategory("all")
+  }, [myMenuCategories, selectedCategory])
 
   // Categories for the Add Menu screen: the catalog's, plus those of the shop's own custom items
   const catalogCategories = useMemo(() => {
@@ -806,8 +797,7 @@ export function Menu({ setView, requireAuth, user }) {
     const q = search.trim()
     let res = items.filter((it) => {
       const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb, lang })
-      const matchesCat = selectedCategory === "all" ||
-        (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
+      const matchesCat = selectedCategory === "all" || productGroupOf(it, selectedBusinessType) === selectedCategory
       let matchesStock = true
       if (isInventory && stockFilter !== "all") {
         const level = stockInfo(it).level
@@ -824,7 +814,7 @@ export function Menu({ setView, requireAuth, user }) {
       res = [...res].sort((a, b) => (a.name || "").localeCompare(b.name || ""))
     }
     return res
-  }, [items, search, selectedCategory, myMenuSort, isInventory, stockFilter, tDb, lang])
+  }, [items, search, selectedCategory, selectedBusinessType, myMenuSort, isInventory, stockFilter, tDb, lang])
 
   const totalMyMenuPages = useMemo(() => {
     return Math.ceil(filteredUserItems.length / myMenuPageSize) || 1
@@ -863,8 +853,7 @@ export function Menu({ setView, requireAuth, user }) {
     const q = catalogSearch.trim()
     let res = addMenuItems.filter((it) => {
       const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb, lang })
-      const matchesCat = catalogCategory === "all" ||
-        (it.category || "").toLowerCase() === catalogCategory.toLowerCase()
+      const matchesCat = catalogCategory === "all" || productGroupOf(it, selectedBusinessType) === catalogCategory
       return matchesSearch && matchesCat
     })
 
@@ -876,7 +865,7 @@ export function Menu({ setView, requireAuth, user }) {
       res = [...res].sort((a, b) => (favorites.has(b.id) ? 1 : 0) - (favorites.has(a.id) ? 1 : 0))
     }
     return res
-  }, [addMenuItems, catalogSearch, catalogCategory, catalogSort, favorites, tDb, lang])
+  }, [addMenuItems, catalogSearch, catalogCategory, catalogSort, favorites, selectedBusinessType, tDb, lang])
 
   const totalCatalogPages = useMemo(() => {
     return Math.ceil(filteredCatalogItems.length / catalogPageSize) || 1
@@ -1274,19 +1263,29 @@ export function Menu({ setView, requireAuth, user }) {
 
           {/* Category Filter Pills */}
           {myMenuCategories.length > 1 && (
-            <div className="menu-category-pills-row">
+            <div
+              className="menu-category-pills-row"
+              onWheel={(e) => {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                  e.currentTarget.scrollLeft += e.deltaY
+                }
+              }}
+            >
               {myMenuCategories.map((cat) => {
-                const isActive = selectedCategory.toLowerCase() === cat.id.toLowerCase()
+                const isActive = selectedCategory === cat.id
                 return (
                   <button
                     key={cat.id}
                     type="button"
                     className={`mob-category-chip ${isActive ? "active" : ""}`}
-                    onClick={() => setSelectedCategory(cat.id)}
+                    onClick={(e) => {
+                      setSelectedCategory(cat.id)
+                      e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+                    }}
                   >
                     {cat.id === "all"
                       ? (search.trim() ? t("menu.allCategories", "All Categories") : t("menu.allItems", "All Items"))
-                      : tDb(cat.label)}
+                      : <>{cat.icon && <span className="mob-category-chip-icon" aria-hidden="true">{cat.icon}</span>}{cat.label}</>}
                   </button>
                 )
               })}
@@ -2229,7 +2228,7 @@ export function Menu({ setView, requireAuth, user }) {
           ==================================================================== */}
       {selectedCatalogItem && (
         <div className="menu-modal-backdrop" onClick={handleCloseAddModal}>
-          <div className="menu-modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="menu-modal-card amm-card" onClick={(e) => e.stopPropagation()}>
             <div className="menu-modal-header">
               <h3 className="menu-modal-title">{isMenu ? t("menu.addToMyMenu", "Add to My Menu") : t("menu.addToMyItems", "Add to My Items")}</h3>
               <button className="menu-modal-close-btn" onClick={handleCloseAddModal}>

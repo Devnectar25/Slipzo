@@ -47,6 +47,7 @@ import Swal from "sweetalert2"
 import { Spinner } from "../common/Skeleton"
 import "../../styles/NewBillFlow.css"
 import { EmptyMenuGuide } from "../common/EmptyMenuGuide"
+import { productGroupOf, productGroupChips, productGroupLabelKey } from "../../lib/productGroups"
 
 export function TableBilling({
   table,
@@ -312,17 +313,23 @@ export function TableBilling({
     return map
   }, [items])
 
+  // Filter chips: the shop type's 4-5 product groups that have items (see lib/productGroups)
+  const groupBType = shopInfo?.business_type || "hotel"
+  const groupChips = useMemo(() => productGroupChips(userMenuItems, groupBType), [userMenuItems, groupBType])
+  useEffect(() => {
+    if (selectedCategory !== "all" && !groupChips.some((g) => g.id === selectedCategory)) setSelectedCategory("all")
+  }, [groupChips, selectedCategory])
+
   // Filtered menu items
   const filteredMenuItems = useMemo(() => {
     const q = cleanVoiceQuery(search)
     return userMenuItems.filter((it) => {
       // same spelling- and voice-tolerant search as the billing screen and My Menu
       const matchesSearch = !q || matchesItemFuzzy(it, q, { tDb })
-      const matchesCat = selectedCategory === "all" ||
-        (it.category || "").toLowerCase() === selectedCategory.toLowerCase()
+      const matchesCat = selectedCategory === "all" || productGroupOf(it, groupBType) === selectedCategory
       return matchesSearch && matchesCat
     })
-  }, [userMenuItems, search, selectedCategory, tDb])
+  }, [userMenuItems, search, selectedCategory, groupBType, tDb])
 
   // ==========================================
   // ITEM ADD / QUANTITY HANDLERS
@@ -795,6 +802,33 @@ export function TableBilling({
                 {formatNum(filteredMenuItems.length)} {filteredMenuItems.length === 1 ? t("bills.item", "item") : t("bills.items", "items")}
               </span>
             </div>
+
+            {/* Product group filter chips */}
+            {!loadingMenu && groupChips.length > 1 && (
+              <div className="nb-group-chips" role="tablist" aria-label={t("productGroups.filter", "Filter products")}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedCategory === "all"}
+                  className={`nb-group-chip ${selectedCategory === "all" ? "active" : ""}`}
+                  onClick={() => setSelectedCategory("all")}
+                >
+                  {t("productGroups.all", "All")}
+                </button>
+                {groupChips.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedCategory === g.id}
+                    className={`nb-group-chip ${selectedCategory === g.id ? "active" : ""}`}
+                    onClick={() => setSelectedCategory(g.id)}
+                  >
+                    <span aria-hidden="true">{g.icon}</span> {t(productGroupLabelKey(groupBType, g.id), g.label)}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {loadingMenu ? (
               <div style={{ textAlign: "center", padding: "2.5rem 1rem", color: "#64748b" }}>
