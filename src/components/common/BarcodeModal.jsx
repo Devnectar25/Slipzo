@@ -6,7 +6,7 @@ import { printBarcodeLabel, LABEL_FORMATS } from "../../lib/printBarcodeLabel"
 import { useToast } from "./Toast"
 import { usePageScrollLock } from "../../hooks/usePageScrollLock"
 
-export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZEN POS" }) {
+export function BarcodeModal({ item, isOpen, onClose }) {
   const { t } = useTranslation()
   const [labelSize, setLabelSize] = useState("50x25mm")
   const [copies, setCopies] = useState(1)
@@ -32,7 +32,6 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZEN POS" }
   const handlePrint = () => {
     printBarcodeLabel(item, {
       labelSize,
-      shopName,
       copies: parseInt(copies, 10) || 1
     })
   }
@@ -99,7 +98,7 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZEN POS" }
                 {t("barcode.title", "Item Barcode Label")}
               </h3>
               <p style={{ fontSize: "0.78rem", color: "#64748b", margin: 0 }}>
-                {t("barcode.sub", "Standard Code 128 machine-readable identifier")}
+                {itemName}
               </p>
             </div>
           </div>
@@ -137,33 +136,6 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZEN POS" }
               position: "relative"
             }}
           >
-            <div
-              style={{
-                fontSize: "0.68rem",
-                fontWeight: "800",
-                letterSpacing: "1px",
-                color: "#64748b",
-                textTransform: "uppercase",
-                marginBottom: "0.25rem"
-              }}
-            >
-              {shopName}
-            </div>
-
-            <div
-              style={{
-                fontSize: "1.05rem",
-                fontWeight: "800",
-                color: "#0f172a",
-                marginBottom: "0.5rem",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis"
-              }}
-            >
-              {itemName}
-            </div>
-
             {/* Render Code 128 Barcode */}
             <div style={{ display: "flex", justifyContent: "center", margin: "0.5rem 0" }}>
               <Code128Barcode value={barcodeValue} height={85} barWidth={3} showText={true} />
@@ -270,6 +242,24 @@ export function BarcodeModal({ item, isOpen, onClose, shopName = "SLIPZEN POS" }
               </select>
             </div>
           </div>
+
+          {/* Receipt rolls print at the right size only when the printer's paper is the roll, not A4 */}
+          {LABEL_FORMATS[labelSize]?.kind === "roll" && (
+            <div
+              style={{
+                margin: "-0.5rem 0 1.25rem",
+                padding: "0.65rem 0.8rem",
+                borderRadius: "8px",
+                background: "#f0f9ff",
+                border: "1px solid #bae6fd",
+                color: "#075985",
+                fontSize: "0.78rem",
+                lineHeight: 1.45
+              }}
+            >
+              {t("barcode.rollHint", "In the print window open More settings and set Margins to Default and Scale to Default. That removes the date and web address, and the labels print centred on your {{w}} roll. Your browser remembers this.", { w: labelSize })}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div style={{ display: "flex", gap: "0.75rem" }}>

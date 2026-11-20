@@ -6101,6 +6101,24 @@ body.is-native-app .public-footer,
   margin-left: auto;
 }
 
+/* 58mm roll (48mm printable): every label and its value on ONE line. Smaller text and side padding make
+   "INVOICE: #SLP-20261119-1008" and the full date fit; !important beats the template's inline styles and
+   print.css. Applies on screen and in the print frame (which carries the format-58mm class). */
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid) {
+  padding: 0.35rem 6px !important;
+  font-size: 11px !important;
+  gap: 3px !important;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid)>div {
+  flex-wrap: nowrap !important;
+  column-gap: 4px;
+}
+
+:is(.format-55mm, .format-58mm) .realistic-thermal-receipt :is(.pro-meta-bar, .classic-meta-grid)>div>span {
+  flex-shrink: 0;
+}
+
 .receipt-divider {
   border-top: 1.5px dashed #cbd5e1;
   margin: 0.65rem 0;

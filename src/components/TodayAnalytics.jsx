@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { IndianRupee, ReceiptText, Calculator, Package, TrendingUp, TrendingDown, RefreshCw, Clock, BarChart3, Trophy, Hourglass, Printer, Utensils, Boxes, ChevronRight } from "lucide-react"
+import { IndianRupee, ReceiptText, Calculator, Package, TrendingUp, TrendingDown, RefreshCw, Clock, BarChart3, Trophy, Hourglass, Printer, Utensils, Boxes, ChevronRight, Plus, Sun, LineChart, History } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { call, money, getActivePlanDetails, getCurrentUserKey, getCachedData, getStoredMenuItems } from "../lib/utils"
 import "../styles/TodayAnalytics.css"
@@ -52,14 +52,14 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
   })
   const dayRef = useRef(localMidnight().getTime())
 
-  const load = async ({ manual = false } = {}) => {
+  const load = async ({ manual = false, fresh = false } = {}) => {
     if (manual) setRefreshing(true)
     const from = localMidnight()
     dayRef.current = from.getTime()
     try {
       const res = await call(
         `/bills/analytics/today?from=${encodeURIComponent(from.toISOString())}`,
-        manual ? { noCache: true } : {}
+        manual || fresh ? { noCache: true } : {}
       )
       if (full && isRestaurant) {
         call("/restaurant/tables", manual ? { noCache: true } : {})
@@ -92,7 +92,8 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
   useEffect(() => {
     if (!user) return undefined
     load()
-    const onBill = () => load()
+    // a new bill: always fetch fresh, so the start card turns into the analytics right away
+    const onBill = () => load({ fresh: true })
     const onQuota = () => setPlan(getActivePlanDetails(getCurrentUserKey(user)))
     const onStockOrMenu = (e) => {
       if (Array.isArray(e?.detail?.items) && e.detail.items.length > 0) {
@@ -140,6 +141,10 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
+  // Home only: no bill yet today → a "start your day" card instead of a page of zeros.
+  // The analytics appear as soon as today's first bill is saved.
+  const noBillsYet = full && Boolean(data) && Number(data?.bill_count || 0) === 0 && !(data?.bills || []).length
+
   // sales per local hour, from the first sale (or 8am) to now
   const hours = useMemo(() => {
     const buckets = new Array(24).fill(null).map((_, h) => ({ h, total: 0, count: 0 }))
@@ -166,6 +171,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
 
   const sales = Number(data?.total_sales || 0)
   const ySales = Number(data?.yesterday?.total_sales || 0)
+  const yBills = Number(data?.yesterday?.bill_count || 0)
   const change = ySales > 0 ? Math.round(((sales - ySales) / ySales) * 100) : null
   const billCount = Number(data?.bill_count || 0)
   const topItems = Array.isArray(data?.top_items) ? data.top_items : []
@@ -259,7 +265,10 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
       label: t("todayStats.lastBill", "Last bill"),
       value: lastBillText
     }
-  ].filter(Boolean)
+  ]
+    .filter(Boolean)
+    // before the first bill, "0 bills / No bill yet" tiles add nothing; keep credits, stock and tables
+    .filter((row) => !noBillsYet || !["waiting", "printed", "last"].includes(row.key))
 
   if (loading && !data) {
     if (!full) {
@@ -398,7 +407,47 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
       </div>
       {errorBox}
 
+      {/* before today's first bill: a start card in place of the analytics */}
+      {noBillsYet && (
+        <div className="ta-start">
+          <div className="ta-start-main">
+            <span className="ta-start-icon"><Sun size={24} /></span>
+            <h3 className="ta-start-title">{t("todayStats.startTitle", "Ready for a new day")}</h3>
+            <p className="ta-start-sub">
+              {t("todayStats.startSub", "No bills yet today. Make your first bill and today's sales, bills and best sellers will show up here, live.")}
+            </p>
+            {onNavigate && (
+              <button type="button" className="ta-start-cta" onClick={() => onNavigate(isRestaurant ? "tables" : "bills")}>
+                {isRestaurant ? <Utensils size={17} /> : <Plus size={17} />}
+                <span>{isRestaurant ? t("todayStats.previewCtaTables", "Open tables") : t("todayStats.previewCta", "Create first bill")}</span>
+              </button>
+            )}
+          </div>
+          <div className="ta-start-side">
+            {yBills > 0 ? (
+              <div className="ta-start-yday">
+                <span className="ta-start-side-label"><History size={14} /> {t("todayStats.yesterdayTitle", "Yesterday")}</span>
+                <strong className="ta-start-yday-value">{money(ySales)}</strong>
+                <span className="ta-start-yday-meta">
+                  {billsText(yBills)} · {t("todayStats.avgShort", "avg {{v}}", { v: money(data?.yesterday?.avg_bill || 0) })}
+                </span>
+                <span className="ta-start-yday-goal">{t("todayStats.beatYesterday", "Let's beat it today")}</span>
+              </div>
+            ) : null}
+            <div className="ta-start-list">
+              <span className="ta-start-side-label">{t("todayStats.startListTitle", "After your first bill you will see")}</span>
+              <ul>
+                <li><span><IndianRupee size={15} /></span>{t("todayStats.startList1", "Today's sales, bill count and average bill")}</li>
+                <li><span><LineChart size={15} /></span>{t("todayStats.startList2", "Sales hour by hour, and your busiest hour")}</li>
+                <li><span><Trophy size={15} /></span>{t("todayStats.startList3", "Your best-selling items")}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 1. headline numbers: sales leads, the rest support it */}
+      {!noBillsYet && (
       <div className="ta-kpis">
         <div className="ta-kpi ta-kpi-hero">
           <div className="ta-kpi-top">
@@ -439,6 +488,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
           <span className="ta-kpi-sub">{itemsSubText}</span>
         </div>
       </div>
+      )}
 
       {/* 2. today at a glance: what needs attention, as one row of tiles */}
       <div className="ta-glance" role="list" aria-label={t("todayStats.glance", "Today at a glance")}>
@@ -465,6 +515,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
       </div>
 
       {/* 3. sales by hour + top items */}
+      {!noBillsYet && (
       <div className="ta-grid">
         <div className="ta-card ta-card-chart">
           <div className="ta-card-head">
@@ -565,6 +616,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
           )}
         </div>
       </div>
+      )}
     </section>
   )
 }
