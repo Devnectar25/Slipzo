@@ -194,10 +194,21 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [loadingMenu, setLoadingMenu] = useState(() => !cachedMenuItems && userMenuItems.length === 0)
 
   // Bill Items & Details State
-  const [items, setItems] = useState([])
-  const [discount, setDiscount] = useState("0")
+  // The bill being built survives leaving this screen (e.g. "Add more items" opens the Menu, which unmounts this
+  // page): it is kept in this browser tab for this account until it is saved, printed or cleared.
+  const draftKey = `slipzo_bill_draft:${userKey || "guest"}`
+  const [draft] = useState(() => {
+    try {
+      const d = JSON.parse(sessionStorage.getItem(draftKey) || "null")
+      return d && Array.isArray(d.items) && d.items.length > 0 ? d : null
+    } catch (_) {
+      return null
+    }
+  })
+  const [items, setItems] = useState(() => draft?.items || [])
+  const [discount, setDiscount] = useState(() => draft?.discount ?? "0")
   const [tax, setTax] = useState("0")
-  const [payment, setPayment] = useState("Cash")
+  const [payment, setPayment] = useState(() => draft?.payment || "Cash")
   const [saved, setSaved] = useState(null)
   const [busyAction, setBusyAction] = useState(null) // "print" | "save" | null
   const isSaving = busyAction !== null
@@ -268,6 +279,18 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [flowStep, setFlowStep] = useState("bill")
   // what the result screen reports: "saved" (not printed yet) or "printed"
   const [doneAction, setDoneAction] = useState("saved")
+
+  // Keep the unsaved bill as a draft. A saved/printed bill or a saved bill being edited is not a draft (it lives on
+  // the server; restoring it would make a duplicate new bill), and an empty bill clears it.
+  useEffect(() => {
+    try {
+      if (items.length === 0 || saved || editingBillId || flowStep !== "bill") {
+        sessionStorage.removeItem(draftKey)
+      } else {
+        sessionStorage.setItem(draftKey, JSON.stringify({ items, discount, payment }))
+      }
+    } catch (_) {}
+  }, [items, discount, payment, saved, editingBillId, flowStep, draftKey])
 
   // Search & Category Filters (Step 1)
   const [search, setSearch] = useState("")
@@ -1000,6 +1023,34 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   })
 
   // ==========================================
+  // HANDLERS: PRINT AGAIN (FOR ALREADY PRINTED BILLS)
+  // ==========================================
+  const handlePrintAgain = async () => {
+    if (isSaving) return
+    const billToPrint = saved || {
+      id: editingBillId,
+      number: customBillNumber,
+      items,
+      total,
+      subtotal,
+      payment_mode: payment
+    }
+    setBusyAction("print")
+    try {
+      const ok = await printNow(billToPrint)
+      if (ok === false) {
+        toastError(t("bills.savedNotPrinted", "The bill is saved but was not printed. Add print credits and press Print again."))
+      }
+    } catch (err) {
+      console.error("Print again failed:", err)
+      const msg = err?.detail || err?.message || t("bills.err_saveFailed", "Failed to print receipt.")
+      toastError(msg)
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  // ==========================================
   // HANDLERS: PRINT BILL -> SAVE, THEN PRINT DIRECTLY
   // ==========================================
   const handlePrintBill = async () => {
@@ -1008,6 +1059,11 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     if (!user) {
       requireAuth?.("bills")
       return
+    }
+
+    // If bill was already saved & printed, re-printing should directly print without re-saving
+    if (printed && saved) {
+      return handlePrintAgain()
     }
 
     const validItems = items.filter((item) => item.name && item.name.trim() && Number(item.quantity) > 0)
@@ -1044,13 +1100,18 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
       // the bill already exists (being edited, saved, or a print that was cancelled): update it with what is on screen
       let bill
-      const existingId = editingBillId || saved?.id
+      const existingId = editingBillId || (saved?.id && !printed ? saved?.id : null)
       if (existingId) {
-        await call(`/bills/${existingId}`, {
-          method: "PUT",
-          body: JSON.stringify(billData)
-        })
-        bill = { ...(saved || {}), ...billData, id: existingId, number: saved?.number || editingBillNumber || customBillNumber }
+        try {
+          await call(`/bills/${existingId}`, {
+            method: "PUT",
+            body: JSON.stringify(billData)
+          })
+          bill = { ...(saved || {}), ...billData, id: existingId, number: saved?.number || editingBillNumber || customBillNumber }
+        } catch (updateErr) {
+          console.warn("Could not update bill in backend:", updateErr)
+          bill = { ...(saved || {}), ...billData, id: existingId, number: saved?.number || editingBillNumber || customBillNumber }
+        }
       } else {
         bill = await call("/bills", {
           method: "POST",
@@ -1293,7 +1354,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                 )}
                 <div className="nbd-row">
                   {printed ? (
-                    <button type="button" className="nbd-btn" onClick={() => handlePrintBill()} disabled={isSaving}>
+                    <button type="button" className="nbd-btn" onClick={handlePrintAgain} disabled={isSaving}>
                       <Printer size={16} /> {t("bills.printAgain", "Print again")}
                     </button>
                   ) : (

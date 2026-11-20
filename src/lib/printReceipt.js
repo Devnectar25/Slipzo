@@ -348,8 +348,11 @@ export function printReceiptDom(el, isA4, rollMm, config = {}) {
     body *, body *::before, body *::after {
       visibility: visible !important;
     }
+    /* Thermal: no page size, so the page is the printer's paper and the receipt starts at its top edge.
+       With a size set, Chrome fits that page onto the printer's paper and centres it, so a receipt shorter
+       than the paper came out with blank paper above and below it. */
     @page {
-      size: ${isA4 ? "A4 portrait" : `${paperMm}mm 297mm`};
+      ${isA4 ? "size: A4 portrait;" : ""}
       margin: ${isA4 ? "10mm 12mm" : "0"};
     }
     html, body {
@@ -445,7 +448,8 @@ export function printReceiptDom(el, isA4, rollMm, config = {}) {
   // Browsers: their own print dialog. They do not say whether the person printed or cancelled, so it counts as printed.
   const executePrint = () => {
     try {
-      sizeThermalPage()
+      // no sizeThermalPage() here: a browser centres a sized page on the printer's paper (see the @page rule).
+      // Android's print screen does use the measured length (executeNativePrint).
       const win = printFrame.contentWindow
       win.onafterprint = () => setTimeout(removeFrame, 500)
       win.focus()

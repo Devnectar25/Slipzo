@@ -5,27 +5,10 @@ import { printReceiptElement, saveReceiptAsPdf } from "./printReceipt"
 
 const t = (key, fallback, values) => i18n.t(key, fallback, values)
 
-// After a browser's print dialog closes it never says whether the receipt printed, so the person is asked
-const confirmBrowserPrint = async (billNumber) => {
-  const res = await Swal.fire({
-    title: t("bills.didItPrint", "Did the receipt print?"),
-    text: billNumber ? t("bills.didItPrintBill", "Bill #{{n}}", { n: billNumber }) : undefined,
-    icon: "question",
-    showCancelButton: true,
-    reverseButtons: true,
-    focusConfirm: true,
-    confirmButtonText: t("bills.yesPrinted", "Yes, it printed"),
-    cancelButtonText: t("bills.notPrinted", "No"),
-    confirmButtonColor: "#0284c7",
-    cancelButtonColor: "#94a3b8",
-    allowOutsideClick: false
-  })
-  return Boolean(res.isConfirmed)
-}
-
 // Printing straight from the billing screen (no separate preview page). The print dialog opens first; one print
-// credit is used only once the receipt has printed (in the app the print screen says so, in a browser the person
-// is asked), so a cancelled print costs nothing.
+// credit is used once the receipt has printed. In the app the print screen says whether it printed, so a cancelled
+// print costs nothing there. A browser never says, and the person is not asked: once its dialog closes the receipt
+// counts as printed.
 // Resolves true when it was printed, "cancelled" when it was not, "failed" when it could not be printed (already
 // explained in a popup), false when there were no print credits. Only true counts as printed.
 export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNeedPlan, billNumber }) {
@@ -53,7 +36,6 @@ export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNe
 
   const result = await printReceiptElement(elementId, { pageWidth })
   if (!result?.printed) return result?.cancelled ? "cancelled" : "failed"
-  if (result.unconfirmed && !(await confirmBrowserPrint(billNumber))) return "cancelled"
 
   // It printed: now the credit is used
   let quota = null

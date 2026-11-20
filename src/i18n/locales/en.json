@@ -1489,6 +1489,7 @@
     "later": "Maybe Later"
   },
   "barcode": {
+    "rollHint": "In the print window open More settings and set Margins to Default and Scale to Default. That removes the date and web address, and the labels print centred on your {{w}} roll. Your browser remembers this.",
     "title": "Item Barcode Label",
     "sub": "Standard Code 128 machine-readable identifier",
     "code": "Code:",
@@ -1725,7 +1726,18 @@
     "itemsN": "{{n}} items",
     "stockSetup": "Set up stock in Menu",
     "outOfStock": "{{n}} out of stock",
-    "stockOk": "Nothing running low"
+    "stockOk": "Nothing running low",
+    "previewCta": "Create first bill",
+    "previewCtaTables": "Open tables",
+    "startTitle": "Ready for a new day",
+    "startSub": "No bills yet today. Make your first bill and today's sales, bills and best sellers will show up here, live.",
+    "yesterdayTitle": "Yesterday",
+    "avgShort": "avg {{v}}",
+    "beatYesterday": "Let's beat it today",
+    "startListTitle": "After your first bill you will see",
+    "startList1": "Today's sales, bill count and average bill",
+    "startList2": "Sales hour by hour, and your busiest hour",
+    "startList3": "Your best-selling items"
   },
   "otp": {
     "sentTo": "We sent a 6-digit code to",

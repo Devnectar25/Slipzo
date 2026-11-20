@@ -69,6 +69,7 @@ export function encodeCode128(text) {
   return {
     text: clean,
     totalModules,
+    quietZoneModules,
     bars
   }
 }
