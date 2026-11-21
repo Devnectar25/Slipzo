@@ -348,19 +348,20 @@ export function printReceiptDom(el, isA4, rollMm, config = {}) {
     body *, body *::before, body *::after {
       visibility: visible !important;
     }
-    /* Thermal: no page size, so the page is the printer's paper and the receipt starts at its top edge.
-       With a size set, Chrome fits that page onto the printer's paper and centres it, so a receipt shorter
-       than the paper came out with blank paper above and below it. */
+    /* Thermal: the page size is set just before printing (sizeThermalPage) to the roll width and the receipt's
+       measured length, so the print window shows 80mm / 58mm paper instead of the printer's default (often A4). */
     @page {
       ${isA4 ? "size: A4 portrait;" : ""}
       margin: ${isA4 ? "10mm 12mm" : "0"};
     }
-    html, body {
+    /* The page is as wide as the printer's paper (a 58mm receipt may go to an 80mm printer like POS80):
+       the body fills it and the receipt sits in the middle at its own width, not stuck to the left edge */
+    html, body, html[class], html body[class] {
       margin: 0 !important;
       padding: 0 !important;
-      width: ${isA4 ? "100%" : pageWidth} !important;
+      width: 100% !important;
       min-width: 0 !important;
-      max-width: ${isA4 ? "100%" : pageWidth} !important;
+      max-width: none !important;
       height: auto !important;
       min-height: 0 !important;
       overflow: visible !important;
@@ -448,8 +449,9 @@ export function printReceiptDom(el, isA4, rollMm, config = {}) {
   // Browsers: their own print dialog. They do not say whether the person printed or cancelled, so it counts as printed.
   const executePrint = () => {
     try {
-      // no sizeThermalPage() here: a browser centres a sized page on the printer's paper (see the @page rule).
-      // Android's print screen does use the measured length (executeNativePrint).
+      // the page is exactly the receipt (80mm or 58mm wide, as long as the slip), so the print window and
+      // "Save as PDF" show the roll size instead of the printer's default paper (often A4)
+      sizeThermalPage()
       const win = printFrame.contentWindow
       win.onafterprint = () => setTimeout(removeFrame, 500)
       win.focus()

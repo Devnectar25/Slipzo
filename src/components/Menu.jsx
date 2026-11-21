@@ -34,9 +34,11 @@ import {
   Upload,
   Link as LinkIcon,
   Image as ImageIcon,
-  Barcode as BarcodeIcon
+  Barcode as BarcodeIcon,
+  Lock,
+  Percent
 } from "lucide-react"
-import { call, money, getCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, updateItemStockInStorageAndCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo, formatQty } from "../lib/utils"
+import { call, money, getCachedData, setCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, updateItemStockInStorageAndCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo, formatQty } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { Spinner, ButtonLoader, CardSkeleton } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
@@ -50,14 +52,10 @@ import { productGroupOf, productGroupChips, productGroupLabelKey } from "../lib/
 import { StockModal, StockBadge, InventorySummary } from "./common/StockModal"
 import Swal from "sweetalert2"
 import "../styles/Menu.css"
-
-const CUSTOM_CATEGORY_OPTIONS = [
-  { value: "Small Business / Cafe & Tea", labelKey: "Small Business / Cafe & Tea", icon: "☕" },
-  { value: "Kirana / Grocery Shop", labelKey: "Kirana / Grocery Shop", icon: "🛒" },
-  { value: "Cloth & Garments Shop", labelKey: "Cloth & Garments Shop", icon: "👗" },
-  { value: "Hotel or Food Restaurant", labelKey: "Hotel or Food Restaurant", icon: "🍽️" },
-  { value: "General", labelKey: "General", icon: "📦" }
-]
+import { LooseUnitPicker } from "./common/LooseUnitPicker"
+import { GstPicker } from "./common/GstPicker"
+import { shopUsesGst, normalizeGstRate, withGst } from "../lib/gst"
+import { unitLabel, formatQtyUnit } from "../lib/units"
 
 const getCustomItemCategoryIcon = (category) => {
   const c = String(category || "").toLowerCase()
@@ -210,7 +208,28 @@ export function Menu({ setView, requireAuth, user }) {
   const [addStockQty, setAddStockQty] = useState("")
   const [addLowAlert, setAddLowAlert] = useState("5")
   const [customStockQty, setCustomStockQty] = useState("")
+  // loose items: measuring unit per form ("" = pieces)
+  const [customUnit, setCustomUnit] = useState("")
+  const [addUnit, setAddUnit] = useState("")
+  const [editUnit, setEditUnit] = useState("")
+  // GST % per form (used when the shop has GST turned on in its profile)
+  const [gstShop, setGstShop] = useState(() => getCachedData("/shop") || {})
+  const usesGst = shopUsesGst(gstShop)
+  const [customGst, setCustomGst] = useState("0")
+  const [addGst, setAddGst] = useState("0")
+  const [editGst, setEditGst] = useState("0")
+  const [showAddGst, setShowAddGst] = useState(false)
+  const [showEditGst, setShowEditGst] = useState(false)
+  const [showCustomGst, setShowCustomGst] = useState(false)
   const [customLowAlert, setCustomLowAlert] = useState("5")
+
+  useEffect(() => {
+    const handleShopUpdate = (e) => {
+      if (e?.detail) setGstShop(e.detail)
+    }
+    window.addEventListener("slipzo_shop_updated", handleShopUpdate)
+    return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
+  }, [])
 
   // reads the two opening-stock inputs; returns { error } or { fields } to send with POST /menu
   const readOpeningStock = (qtyText, alertText) => {
@@ -282,6 +301,7 @@ export function Menu({ setView, requireAuth, user }) {
   useEffect(() => {
     const handleShopUpdate = (e) => {
       const updatedShop = e?.detail || getCachedData("/shop")
+      if (updatedShop) setGstShop(updatedShop)
       if (updatedShop?.business_type) {
         setSelectedBusinessType(updatedShop.business_type)
         // Reset items to empty array & reload to ensure clean state
@@ -405,14 +425,11 @@ export function Menu({ setView, requireAuth, user }) {
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
   const [customName, setCustomName] = useState("")
   const [customCat, setCustomCat] = useState(() => shopCategoryLabel(defaultBusinessType) || "General")
-  const [isCatDropdownOpen, setIsCatDropdownOpen] = useState(false)
-  const catDropdownRef = useRef(null)
   const [customItemPrice, setCustomItemPrice] = useState("")
   const [customBarcode, setCustomBarcode] = useState("")
   const [customBarcodeActive, setCustomBarcodeActive] = useState(() => isDefaultBarcodeActiveForBusinessType(defaultBusinessType))
   const [customImageUrl, setCustomImageUrl] = useState("")
   const [customImagePreview, setCustomImagePreview] = useState("")
-  const [customImageMode, setCustomImageMode] = useState("upload") // "upload" | "url"
   const [isCreatingCustom, setIsCreatingCustom] = useState(false)
   const [customFormError, setCustomFormError] = useState("")
   const customFileInputRef = useRef(null)
@@ -438,28 +455,7 @@ export function Menu({ setView, requireAuth, user }) {
     return () => window.removeEventListener("slipzo_handle_back_button", handleBack)
   }, [isCustomModalOpen, selectedCatalogItem, editingItem, barcodeModalItem, stockItem, currentView])
 
-  useEffect(() => {
-    if (!isCatDropdownOpen) return
-    const handleOutsideClick = (e) => {
-      if (catDropdownRef.current && !catDropdownRef.current.contains(e.target)) {
-        setIsCatDropdownOpen(false)
-      }
-    }
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") setIsCatDropdownOpen(false)
-    }
-    document.addEventListener("mousedown", handleOutsideClick)
-    document.addEventListener("touchstart", handleOutsideClick, { passive: true })
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick)
-      document.removeEventListener("touchstart", handleOutsideClick)
-      document.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [isCatDropdownOpen])
-
   const handleOpenCustomModal = () => {
-    setIsCatDropdownOpen(false)
     setCustomName("")
     setCustomCat(shopCategoryLabel(selectedBusinessType))
     setCustomItemPrice("")
@@ -470,12 +466,14 @@ export function Menu({ setView, requireAuth, user }) {
     setCustomFormError("")
     setCustomStockQty("")
     setCustomLowAlert("5")
+    setCustomUnit("")
+    setCustomGst("0")
+    setShowCustomGst(usesGst)
     setIsCustomModalOpen(true)
   }
 
   const handleCloseCustomModal = () => {
     setIsCustomModalOpen(false)
-    setIsCatDropdownOpen(false)
     setCustomName("")
     setCustomCat(shopCategoryLabel(selectedBusinessType))
     setCustomItemPrice("")
@@ -572,6 +570,8 @@ export function Menu({ setView, requireAuth, user }) {
         barcode: customBarcode.trim() || undefined,
         barcode_active: customBarcodeActive,
         is_custom: true,
+        unit: customUnit || null,
+        gst_rate: normalizeGstRate(customGst),
         ...customStock.fields
       }
 
@@ -591,6 +591,8 @@ export function Menu({ setView, requireAuth, user }) {
         image_url: finalImage,
         barcode: customBarcode.trim() || res?.barcode || `BC${Math.floor(1000000000 + Math.random() * 9000000000)}`,
         barcode_active: customBarcodeActive,
+        unit: customUnit || "",
+        gst_rate: normalizeGstRate(customGst),
         ...localStockFields(res, customStock.fields)
       }
 
@@ -599,6 +601,15 @@ export function Menu({ setView, requireAuth, user }) {
         saveStoredMenuItems(next, user)
         return next
       })
+
+      const finalGst = normalizeGstRate(customGst)
+      if (finalGst > 0 && !usesGst) {
+        const updatedShop = { ...(getCachedData("/shop") || {}), gst_enabled: 1 }
+        setCachedData("/shop", updatedShop)
+        setGstShop(updatedShop)
+        window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: updatedShop }))
+        call("/shop", { method: "PUT", body: JSON.stringify(updatedShop) }).catch(() => {})
+      }
 
       invalidateApiCache("/menu")
       toastSuccess(t("menu.createdCustom", "Created custom product \"{{name}}\"", { name: trimmedName }))
@@ -946,6 +957,11 @@ export function Menu({ setView, requireAuth, user }) {
     setAddFormError("")
     setAddStockQty("")
     setAddLowAlert("5")
+    setAddUnit(catalogItem?.unit || "")
+    // a loose item has no GST unless the shop owner chooses a rate (the catalog's rate is not carried over)
+    const initialGst = catalogItem?.unit ? "0" : String(normalizeGstRate(catalogItem?.gst_rate))
+    setAddGst(initialGst)
+    setShowAddGst(usesGst || Number(initialGst) > 0)
   }
 
   const handleCloseAddModal = () => {
@@ -990,6 +1006,8 @@ export function Menu({ setView, requireAuth, user }) {
           custom_price: numPrice,
           image_url: selectedCatalogItem.image_url || "",
           barcode_active: addBarcodeActive,
+          unit: addUnit || null,
+          gst_rate: normalizeGstRate(addGst),
           ...addStock.fields
         })
       })
@@ -1005,6 +1023,8 @@ export function Menu({ setView, requireAuth, user }) {
         barcode_active: addBarcodeActive,
         barcode: added?.barcode || selectedCatalogItem.barcode,
         image_url: selectedCatalogItem.image_url || "",
+        unit: addUnit || "",
+        gst_rate: normalizeGstRate(addGst),
         ...localStockFields(added, addStock.fields)
       }
 
@@ -1013,6 +1033,15 @@ export function Menu({ setView, requireAuth, user }) {
         saveStoredMenuItems(next, user)
         return next
       })
+
+      const finalGst = normalizeGstRate(addGst)
+      if (finalGst > 0 && !usesGst) {
+        const updatedShop = { ...(getCachedData("/shop") || {}), gst_enabled: 1 }
+        setCachedData("/shop", updatedShop)
+        setGstShop(updatedShop)
+        window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: updatedShop }))
+        call("/shop", { method: "PUT", body: JSON.stringify(updatedShop) }).catch(() => {})
+      }
 
       toastSuccess(`Added "${selectedCatalogItem.name}" to My Menu!`)
       handleCloseAddModal()
@@ -1031,6 +1060,10 @@ export function Menu({ setView, requireAuth, user }) {
     const isBActive = userItem?.barcode_active !== false && userItem?.barcode_active !== 0 && userItem?.barcode_active !== "0" && userItem?.barcode_active !== "false"
     setEditBarcodeActive(isBActive)
     setEditAddQty("")
+    setEditUnit(userItem?.unit || "")
+    const initialGst = String(normalizeGstRate(userItem?.gst_rate))
+    setEditGst(initialGst)
+    setShowEditGst(usesGst || Number(initialGst) > 0)
     setEditFormError("")
   }
 
@@ -1058,7 +1091,7 @@ export function Menu({ setView, requireAuth, user }) {
     // Stock to add (optional). For an item whose stock is not tracked yet, this becomes its opening stock.
     const addQty = editAddQty === "" ? 0 : Number(editAddQty)
     if (isInventory && editAddQty !== "" && (!Number.isFinite(addQty) || addQty < 0 || addQty > 1000000)) {
-      setEditFormError(t("stock.errQty", "Enter how many pieces."))
+      setEditFormError(editUnit ? t("loose.errStockQty", "Enter how much ({{unit}}).", { unit: unitLabel(editUnit) }) : t("stock.errQty", "Enter how many pieces."))
       return
     }
 
@@ -1088,18 +1121,29 @@ export function Menu({ setView, requireAuth, user }) {
           name: trimmedName,
           custom_price: numPrice,
           is_active: editActive,
-          barcode_active: editBarcodeActive
+          barcode_active: editBarcodeActive,
+          unit: editUnit || null,
+          gst_rate: normalizeGstRate(editGst)
         })
       }).catch(() => null)
 
       setItems((prev) => {
-        const next = prev.map((it) => (it.id === editingItem.id ? { ...it, name: trimmedName, price: numPrice, custom_price: numPrice, is_active: editActive, barcode_active: editBarcodeActive, ...(stockFields || {}) } : it))
+        const next = prev.map((it) => (it.id === editingItem.id ? { ...it, name: trimmedName, price: numPrice, custom_price: numPrice, is_active: editActive, barcode_active: editBarcodeActive, unit: editUnit || "", gst_rate: normalizeGstRate(editGst), ...(stockFields || {}) } : it))
         saveStoredMenuItems(next, user)
         return next
       })
 
+      const finalGst = normalizeGstRate(editGst)
+      if (finalGst > 0 && !usesGst) {
+        const updatedShop = { ...(getCachedData("/shop") || {}), gst_enabled: 1 }
+        setCachedData("/shop", updatedShop)
+        setGstShop(updatedShop)
+        window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: updatedShop }))
+        call("/shop", { method: "PUT", body: JSON.stringify(updatedShop) }).catch(() => {})
+      }
+
       toastSuccess(stockFields
-        ? t("menu.toastUpdatedStock", "Updated \"{{name}}\": {{n}} in stock", { name: trimmedName, n: formatQty(stockFields.stock_qty) })
+        ? t("menu.toastUpdatedStock", "Updated \"{{name}}\": {{n}} in stock", { name: trimmedName, n: formatQtyUnit(stockFields.stock_qty, editUnit) })
         : t("menu.toastUpdated", "Updated \"{{name}}\"", { name: trimmedName }))
       handleCloseEditModal()
     } catch (err) {
@@ -1215,8 +1259,8 @@ export function Menu({ setView, requireAuth, user }) {
                 title={isMenu ? tDb("Create Custom Menu") : tDb("Create Custom Item")}
               >
                 <Sparkles size={14} />
-                <span className="mob-btn-text-full">{isMenu ? tDb("Custom Menu") : tDb("Custom Item")}</span>
-                <span className="mob-btn-text-short">{isMenu ? tDb("Custom Menu") : tDb("Custom Item")}</span>
+                <span className="mob-btn-text-full">{isMenu ? tDb("Custom Menu") : tDb("Add Your Item")}</span>
+                <span className="mob-btn-text-short">{isMenu ? tDb("Custom Menu") : tDb("Add Your Item")}</span>
               </button>
             </div>
 
@@ -1387,7 +1431,7 @@ export function Menu({ setView, requireAuth, user }) {
                             {tDb(item.category || "General")}
                           </span>
                           <div className="mob-item-price-status">
-                            <span className="mob-item-price">{money(item.price)}</span>
+                            <span className="mob-item-price">{money(usesGst ? withGst(item.price, item.gst_rate) : item.price)}{item.unit && <span className="loose-per-unit">/ {unitLabel(item.unit)}</span>}</span>
                             {isItemActive && (
                               <span className="mob-item-active-status">
                                 <span className="mob-status-dot" /> {t("menu.statusActive", "Active")}
@@ -1732,7 +1776,7 @@ export function Menu({ setView, requireAuth, user }) {
                   onClick={handleOpenCustomModal}
                   style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
                 >
-                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{isMenu ? tDb("Custom Menu") : tDb("Custom Item")}</span>
+                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{isMenu ? tDb("Custom Menu") : tDb("Add Your Item")}</span>
                 </button>
               </div>
             </div>
@@ -1894,7 +1938,7 @@ export function Menu({ setView, requireAuth, user }) {
                             {tDb(item.name)}
                           </h4>
                           <div className="menu-card-price-row">
-                            <span className="menu-card-selling-price">{money(item.price)}</span>
+                            <span className="menu-card-selling-price">{money(usesGst ? withGst(item.price, item.gst_rate) : item.price)}{item.unit && <span className="loose-per-unit">/ {unitLabel(item.unit)}</span>}</span>
                           </div>
                           {isInventory && (
                             <div className="menu-card-stock-row">
@@ -2263,7 +2307,11 @@ export function Menu({ setView, requireAuth, user }) {
                 </div>
 
                 <div className="menu-modal-field amm-field">
-                  <label className="menu-modal-label" htmlFor="amm-price">{t("menu.yourSellingPrice", "Your Selling Price (₹) *")}</label>
+                  <label className="menu-modal-label" htmlFor="amm-price">
+                    {addUnit
+                      ? t("loose.pricePerReq", "Your selling price per {{unit}} (₹) *", { unit: unitLabel(addUnit) })
+                      : t("menu.yourSellingPrice", "Your Selling Price (₹) *")}
+                  </label>
                   <div className="amm-price">
                     <span className="amm-currency">₹</span>
                     <input
@@ -2285,11 +2333,89 @@ export function Menu({ setView, requireAuth, user }) {
                   </span>
                 </div>
 
+                {/* GST on this product: selling price + GST = total price */}
+                <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
+                  {usesGst ? (
+                    <GstPicker rate={addGst} onChange={setAddGst} price={customPrice} unitLabel={unitLabel(addUnit)} />
+                  ) : (
+                    <div className="amm-gst-toggle-card">
+                      <div className="amm-gst-toggle-header" onClick={() => {
+                        const next = !showAddGst
+                        setShowAddGst(next)
+                        if (!next) setAddGst("0")
+                        else if (addGst === "0") setAddGst("18")
+                      }}>
+                        <div className="amm-gst-toggle-left">
+                          <div className="amm-gst-icon-box">
+                            <Percent size={15} />
+                          </div>
+                          <div>
+                            <div className="amm-gst-toggle-title">{t("gst.addGstTitle", "Add GST (%) to this product")}</div>
+                            <div className="amm-gst-toggle-sub">
+                              {showAddGst && Number(addGst) > 0
+                                ? t("gst.gstRateApplied", "{{rate}}% GST applied", { rate: addGst })
+                                : t("gst.addGstSub", "Optional tax percentage on selling price")}
+                            </div>
+                          </div>
+                        </div>
+                        <label className="sp-switch" style={{ position: "relative", display: "inline-block", width: "40px", height: "22px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={showAddGst}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setShowAddGst(checked)
+                              if (!checked) setAddGst("0")
+                              else if (addGst === "0") setAddGst("18")
+                            }}
+                            style={{ opacity: 0, width: 0, height: 0 }}
+                          />
+                          <span className={`sp-slider ${showAddGst ? "active" : ""}`} style={{
+                            position: "absolute",
+                            cursor: "pointer",
+                            inset: 0,
+                            backgroundColor: showAddGst ? "#0284c7" : "#cbd5e1",
+                            borderRadius: "22px",
+                            transition: "0.25s"
+                          }}>
+                            <span style={{
+                              position: "absolute",
+                              content: '""',
+                              height: "16px",
+                              width: "16px",
+                              left: showAddGst ? "21px" : "3px",
+                              bottom: "3px",
+                              backgroundColor: "white",
+                              borderRadius: "50%",
+                              transition: "0.25s",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                            }} />
+                          </span>
+                        </label>
+                      </div>
+                      {showAddGst && (
+                        <div style={{ marginTop: "0.75rem", animation: "fadeIn 0.2s ease" }}>
+                          <GstPicker rate={addGst} onChange={setAddGst} price={customPrice} unitLabel={unitLabel(addUnit)} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
+                  <LooseUnitPicker unit={addUnit} onChange={(u) => { if (u && !addUnit) setAddGst("0"); setAddUnit(u) }} />
+                </div>
+
                 {isInventory && (
                 <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
                   <div className="stock-open-row">
                     <div>
-                      <label className="menu-modal-label" htmlFor="amm-stock">{t("stock.openingRequired", "Opening stock *")}</label>
+                      <label className="menu-modal-label" htmlFor="amm-stock">
+                        {addUnit
+                          ? t("loose.openingRequired", "Opening stock ({{unit}}) *", { unit: unitLabel(addUnit) })
+                          : t("stock.openingRequired", "Opening stock *")}
+                      </label>
                       <input
                         id="amm-stock"
                         type="number"
@@ -2298,13 +2424,15 @@ export function Menu({ setView, requireAuth, user }) {
                         step="any"
                         required
                         className="menu-modal-input"
-                        placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                        placeholder={addUnit
+                          ? t("loose.openingPlaceholder", "e.g. 100 {{unit}}", { unit: unitLabel(addUnit) })
+                          : t("stock.openingPlaceholder", "Pieces you have")}
                         value={addStockQty}
                         onChange={(e) => setAddStockQty(e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="menu-modal-label" htmlFor="amm-alert">{t("stock.alertLabel", "Low-stock alert at")}</label>
+                      <label className="menu-modal-label" htmlFor="amm-alert">{t("stock.alertLabel", "Low-stock alert at")}{addUnit ? ` (${unitLabel(addUnit)})` : ""}</label>
                       <input
                         id="amm-alert"
                         type="number"
@@ -2443,7 +2571,11 @@ export function Menu({ setView, requireAuth, user }) {
                 </div>
 
                 <div className="menu-modal-field">
-                  <label className="menu-modal-label">{t("menu.yourSellingPrice", "Your Selling Price (₹) *")}</label>
+                  <label className="menu-modal-label">
+                    {editUnit
+                      ? t("loose.pricePerReq", "Your selling price per {{unit}} (₹) *", { unit: unitLabel(editUnit) })
+                      : t("menu.yourSellingPrice", "Your Selling Price (₹) *")}
+                  </label>
                   <div className="menu-modal-price-input-box">
                     <span className="menu-modal-currency-symbol">₹</span>
                     <input
@@ -2481,6 +2613,80 @@ export function Menu({ setView, requireAuth, user }) {
                   </label>
                 </div>
 
+                {/* GST on this product: selling price + GST = total price */}
+                <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
+                  {usesGst ? (
+                    <GstPicker rate={editGst} onChange={setEditGst} price={editPrice} unitLabel={unitLabel(editUnit)} />
+                  ) : (
+                    <div className="amm-gst-toggle-card">
+                      <div className="amm-gst-toggle-header" onClick={() => {
+                        const next = !showEditGst
+                        setShowEditGst(next)
+                        if (!next) setEditGst("0")
+                        else if (editGst === "0") setEditGst("18")
+                      }}>
+                        <div className="amm-gst-toggle-left">
+                          <div className="amm-gst-icon-box">
+                            <Percent size={15} />
+                          </div>
+                          <div>
+                            <div className="amm-gst-toggle-title">{t("gst.addGstTitle", "Add GST (%) to this product")}</div>
+                            <div className="amm-gst-toggle-sub">
+                              {showEditGst && Number(editGst) > 0
+                                ? t("gst.gstRateApplied", "{{rate}}% GST applied", { rate: editGst })
+                                : t("gst.addGstSub", "Optional tax percentage on selling price")}
+                            </div>
+                          </div>
+                        </div>
+                        <label className="sp-switch" style={{ position: "relative", display: "inline-block", width: "40px", height: "22px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={showEditGst}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setShowEditGst(checked)
+                              if (!checked) setEditGst("0")
+                              else if (editGst === "0") setEditGst("18")
+                            }}
+                            style={{ opacity: 0, width: 0, height: 0 }}
+                          />
+                          <span className={`sp-slider ${showEditGst ? "active" : ""}`} style={{
+                            position: "absolute",
+                            cursor: "pointer",
+                            inset: 0,
+                            backgroundColor: showEditGst ? "#0284c7" : "#cbd5e1",
+                            borderRadius: "22px",
+                            transition: "0.25s"
+                          }}>
+                            <span style={{
+                              position: "absolute",
+                              content: '""',
+                              height: "16px",
+                              width: "16px",
+                              left: showEditGst ? "21px" : "3px",
+                              bottom: "3px",
+                              backgroundColor: "white",
+                              borderRadius: "50%",
+                              transition: "0.25s",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                            }} />
+                          </span>
+                        </label>
+                      </div>
+                      {showEditGst && (
+                        <div style={{ marginTop: "0.75rem", animation: "fadeIn 0.2s ease" }}>
+                          <GstPicker rate={editGst} onChange={setEditGst} price={editPrice} unitLabel={unitLabel(editUnit)} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
+                  <LooseUnitPicker unit={editUnit} onChange={setEditUnit} disabled={isUpdatingPrice} />
+                </div>
+
                 {/* Stock: add pieces while editing (kirana / grocery and cloth shops) */}
                 {isInventory && (() => {
                   const s = stockInfo(editingItem)
@@ -2489,15 +2695,17 @@ export function Menu({ setView, requireAuth, user }) {
                   const bumpQty = (d) => { setEditAddQty(formatQty(Math.max(0, add + d))); setEditFormError("") }
                   const chip = {
                     none: [t("stock.notTracked", "Stock not tracked"), "#f1f5f9", "#475569"],
-                    ok: [t("stock.countShort", "{{n}} in stock", { n: formatQty(s.qty) }), "#dcfce7", "#15803d"],
-                    low: [t("stock.lowCount", "Low: {{n}} left", { n: formatQty(s.qty) }), "#fef3c7", "#b45309"],
+                    ok: [t("stock.countShort", "{{n}} in stock", { n: formatQtyUnit(s.qty, editUnit) }), "#dcfce7", "#15803d"],
+                    low: [t("stock.lowCount", "Low: {{n}} left", { n: formatQtyUnit(s.qty, editUnit) }), "#fef3c7", "#b45309"],
                     out: [t("stock.outOfStock", "Out of stock"), "#fee2e2", "#b91c1c"]
                   }[s.level]
                   return (
                     <div className="menu-modal-field edit-stock-box" style={{ marginTop: "1rem" }}>
                       <div className="edit-stock-head">
                         <label className="menu-modal-label" htmlFor="edit-add-qty" style={{ margin: 0 }}>
-                          {s.tracked ? t("stock.addLabel", "Pieces to add") : t("stock.openingLabel", "Opening stock (pieces you have now)")}
+                          {editUnit
+                            ? (s.tracked ? t("loose.addLabel", "Add stock ({{unit}})", { unit: unitLabel(editUnit) }) : t("loose.openingLabel", "Opening stock ({{unit}} you have now)", { unit: unitLabel(editUnit) }))
+                            : (s.tracked ? t("stock.addLabel", "Pieces to add") : t("stock.openingLabel", "Opening stock (pieces you have now)"))}
                         </label>
                         <span className="edit-stock-chip" style={{ background: chip[1], color: chip[2] }}>{chip[0]}</span>
                       </div>
@@ -2525,7 +2733,7 @@ export function Menu({ setView, requireAuth, user }) {
                       {add > 0 && (
                         <div className="edit-stock-preview">
                           <span>{t("stock.newStock", "New stock")}</span>
-                          <strong>{formatQty(current)} → {formatQty(current + add)}</strong>
+                          <strong>{formatQtyUnit(current, editUnit)} → {formatQtyUnit(current + add, editUnit)}</strong>
                         </div>
                       )}
                     </div>
@@ -2639,182 +2847,107 @@ export function Menu({ setView, requireAuth, user }) {
                       <ImageIcon size={13} style={{ color: "#0284c7" }} />
                       <span>{tDb("Product Image (Optional)")}</span>
                     </label>
-                    <div className="cp-image-toggle" style={{ display: "flex", gap: "2px", background: "#f1f5f9", padding: "2px", borderRadius: "5px" }}>
-                      <button
-                        type="button"
-                        onClick={() => setCustomImageMode("upload")}
-                        style={{
-                          border: "none",
-                          background: customImageMode === "upload" ? "#ffffff" : "transparent",
-                          color: customImageMode === "upload" ? "#0284c7" : "#64748b",
-                          fontSize: "0.7rem",
-                          fontWeight: "700",
-                          padding: "2px 7px",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          boxShadow: customImageMode === "upload" ? "0 1px 2px rgba(0,0,0,0.08)" : "none"
-                        }}
-                      >
-                        {tDb("Upload")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCustomImageMode("url")}
-                        style={{
-                          border: "none",
-                          background: customImageMode === "url" ? "#ffffff" : "transparent",
-                          color: customImageMode === "url" ? "#0284c7" : "#64748b",
-                          fontSize: "0.7rem",
-                          fontWeight: "700",
-                          padding: "2px 7px",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          boxShadow: customImageMode === "url" ? "0 1px 2px rgba(0,0,0,0.08)" : "none"
-                        }}
-                      >
-                        {tDb("Link")}
-                      </button>
-                    </div>
                   </div>
 
-                  {customImageMode === "upload" ? (
-                    <div>
-                      <input
-                        type="file"
-                        ref={customFileInputRef}
-                        onChange={handleCustomImageFileChange}
-                        accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
-                        style={{ display: "none" }}
-                      />
-                      {customImagePreview ? (
-                        <div className="cp-upload-preview" style={{
+                  <div>
+                    <input
+                      type="file"
+                      ref={customFileInputRef}
+                      onChange={handleCustomImageFileChange}
+                      accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
+                      style={{ display: "none" }}
+                    />
+                    {customImagePreview ? (
+                      <div className="cp-upload-preview" style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.6rem",
+                        padding: "0.3rem 0.55rem",
+                        background: "#f8fafc",
+                        border: "1.5px solid #cbd5e1",
+                        borderRadius: "8px",
+                        height: "40px",
+                        boxSizing: "border-box"
+                      }}>
+                        <div style={{
+                          width: "28px",
+                          height: "28px",
+                          borderRadius: "5px",
+                          overflow: "hidden",
+                          background: "#e2e8f0",
+                          flexShrink: 0,
                           display: "flex",
                           alignItems: "center",
-                          gap: "0.6rem",
-                          padding: "0.3rem 0.55rem",
-                          background: "#f8fafc",
-                          border: "1.5px solid #cbd5e1",
-                          borderRadius: "8px",
-                          height: "40px",
-                          boxSizing: "border-box"
+                          justifyContent: "center"
                         }}>
-                          <div style={{
-                            width: "28px",
-                            height: "28px",
-                            borderRadius: "5px",
-                            overflow: "hidden",
-                            background: "#e2e8f0",
-                            flexShrink: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center"
-                          }}>
-                            <img
-                              src={customImagePreview}
-                              alt={t("menu.preview", "Preview")}
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                            />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: "0.74rem", fontWeight: "700", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {customName ? `${customName} ${tDb("Photo")}` : tDb("Photo Ready")}
-                            </div>
-                            <div style={{ fontSize: "0.66rem", color: "#16a34a", fontWeight: "600" }}>
-                              ✓ {tDb("Attached")}
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", gap: "0.3rem" }}>
-                            <button
-                              type="button"
-                              onClick={() => customFileInputRef.current?.click()}
-                              className="menu-secondary-btn"
-                              style={{ padding: "0.15rem 0.45rem", fontSize: "0.68rem", height: "24px" }}
-                            >
-                              {tDb("Change")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleRemoveCustomImage}
-                              className="menu-delete-btn"
-                              style={{ padding: "0.15rem 0.35rem", height: "24px" }}
-                              title={tDb("Remove image")}
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="cp-upload-drop"
-                          onClick={() => customFileInputRef.current?.click()}
-                          style={{
-                            border: "1.5px dashed #cbd5e1",
-                            borderRadius: "8px",
-                            padding: "0.35rem 0.75rem",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "0.55rem",
-                            background: "#f8fafc",
-                            cursor: "pointer",
-                            transition: "all 0.15s ease",
-                            height: "40px",
-                            boxSizing: "border-box"
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#0284c7"; e.currentTarget.style.background = "#f0f9ff" }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#f8fafc" }}
-                        >
-                          <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <Upload size={12} />
-                          </div>
-                          <div className="cp-upload-text" style={{ display: "flex", alignItems: "baseline", gap: "0.4rem" }}>
-                            <span style={{ fontSize: "0.76rem", fontWeight: "700", color: "#0f172a" }}>
-                              {tDb("Click to upload product image")}
-                            </span>
-                            <span style={{ fontSize: "0.65rem", color: "#64748b" }}>
-                              {tDb("(PNG, JPG, WebP max 5MB)")}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                        <LinkIcon size={13} style={{ position: "absolute", left: "9px", color: "#94a3b8" }} />
-                        <input
-                          type="url"
-                          className="menu-modal-input"
-                          placeholder="https://example.com/item.jpg"
-                          value={customImageUrl}
-                          onChange={(e) => {
-                            setCustomImageUrl(e.target.value)
-                            setCustomImagePreview(e.target.value)
-                          }}
-                          style={{ paddingLeft: "1.8rem", height: "35px", fontSize: "0.82rem" }}
-                        />
-                      </div>
-                      {customImageUrl && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "0.25rem", padding: "0.2rem 0.5rem", background: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
                           <img
-                            src={customImageUrl}
-                            alt={t("menu.urlPreview", "URL preview")}
-                            onError={(e) => { e.currentTarget.style.display = "none" }}
-                            style={{ width: "22px", height: "22px", borderRadius: "4px", objectFit: "cover" }}
+                            src={customImagePreview}
+                            alt={t("menu.preview", "Preview")}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
                           />
-                          <span style={{ fontSize: "0.7rem", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                            {customImageUrl}
-                          </span>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "0.74rem", fontWeight: "700", color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {customName ? `${customName} ${tDb("Photo")}` : tDb("Photo Ready")}
+                          </div>
+                          <div style={{ fontSize: "0.66rem", color: "#16a34a", fontWeight: "600" }}>
+                            ✓ {tDb("Attached")}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: "0.3rem" }}>
+                          <button
+                            type="button"
+                            onClick={() => customFileInputRef.current?.click()}
+                            className="menu-secondary-btn"
+                            style={{ padding: "0.15rem 0.45rem", fontSize: "0.68rem", height: "24px" }}
+                          >
+                            {tDb("Change")}
+                          </button>
                           <button
                             type="button"
                             onClick={handleRemoveCustomImage}
-                            style={{ border: "none", background: "none", color: "#ef4444", cursor: "pointer", padding: "2px" }}
+                            className="menu-delete-btn"
+                            style={{ padding: "0.15rem 0.35rem", height: "24px" }}
+                            title={tDb("Remove image")}
                           >
-                            <X size={12} />
+                            <Trash2 size={12} />
                           </button>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    ) : (
+                      <div className="cp-upload-drop"
+                        onClick={() => customFileInputRef.current?.click()}
+                        style={{
+                          border: "1.5px dashed #cbd5e1",
+                          borderRadius: "8px",
+                          padding: "0.35rem 0.75rem",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "0.55rem",
+                          background: "#f8fafc",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          height: "40px",
+                          boxSizing: "border-box"
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#0284c7"; e.currentTarget.style.background = "#f0f9ff" }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#f8fafc" }}
+                      >
+                        <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <Upload size={12} />
+                        </div>
+                        <div className="cp-upload-text" style={{ display: "flex", alignItems: "baseline", gap: "0.4rem" }}>
+                          <span style={{ fontSize: "0.76rem", fontWeight: "700", color: "#0f172a" }}>
+                            {tDb("Click to upload product image")}
+                          </span>
+                          <span style={{ fontSize: "0.65rem", color: "#64748b" }}>
+                            {tDb("(PNG, JPG, WebP max 5MB)")}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* 2. Product Name */}
@@ -2845,53 +2978,27 @@ export function Menu({ setView, requireAuth, user }) {
                 {/* 3. Category */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <label className="menu-modal-label">{tDb("Category")}</label>
-                  <div className="cp-category-dropdown-wrap" ref={catDropdownRef}>
-                    <button
-                      type="button"
-                      className={`cp-category-select-btn ${isCatDropdownOpen ? "open" : ""}`}
-                      onClick={() => setIsCatDropdownOpen((prev) => !prev)}
-                      aria-haspopup="listbox"
-                      aria-expanded={isCatDropdownOpen}
-                    >
-                      <div className="cp-category-selected-info">
-                        <span className="cp-category-icon">{getCustomItemCategoryIcon(customCat)}</span>
-                        <span className="cp-category-text">{tDb(customCat)}</span>
-                      </div>
-                      <ChevronDown size={16} className={`cp-category-chevron ${isCatDropdownOpen ? "open" : ""}`} />
-                    </button>
-
-                    {isCatDropdownOpen && (
-                      <div className="cp-category-dropdown-menu" role="listbox">
-                        {CUSTOM_CATEGORY_OPTIONS.map((cat) => {
-                          const isSelected = customCat === cat.value
-                          return (
-                            <button
-                              key={cat.value}
-                              type="button"
-                              className={`cp-category-option-item ${isSelected ? "selected" : ""}`}
-                              role="option"
-                              aria-selected={isSelected}
-                              onClick={() => {
-                                setCustomCat(cat.value)
-                                setIsCatDropdownOpen(false)
-                              }}
-                            >
-                              <div className="cp-category-option-left">
-                                <span className="cp-category-icon">{cat.icon}</span>
-                                <span className="cp-category-option-label">{tDb(cat.labelKey)}</span>
-                              </div>
-                              {isSelected && <Check size={16} className="cp-category-check-icon" strokeWidth={2.5} />}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
+                  {/* set from the shop's business type; not editable here */}
+                  <div
+                    className="cp-category-select-btn cp-category-locked"
+                    aria-readonly="true"
+                    title={tDb("Category comes from your shop type")}
+                  >
+                    <div className="cp-category-selected-info">
+                      <span className="cp-category-icon">{getCustomItemCategoryIcon(customCat)}</span>
+                      <span className="cp-category-text">{tDb(customCat)}</span>
+                    </div>
+                    <Lock size={14} className="cp-category-lock" aria-hidden="true" />
                   </div>
                 </div>
 
                 {/* 4. Selling Price */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
-                  <label className="menu-modal-label">{tDb("Selling Price (₹) *")}</label>
+                  <label className="menu-modal-label">
+                    {customUnit
+                      ? t("loose.pricePerReq", "Your selling price per {{unit}} (₹) *", { unit: unitLabel(customUnit) })
+                      : tDb("Selling Price (₹) *")}
+                  </label>
                   <div className="menu-modal-price-input-box">
                     <span className="menu-modal-currency-symbol" style={{ left: "9px", fontSize: "0.9rem" }}>₹</span>
                     <input
@@ -2908,11 +3015,89 @@ export function Menu({ setView, requireAuth, user }) {
                   </div>
                 </div>
 
+                {/* GST on this product: selling price + GST = total price */}
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  {usesGst ? (
+                    <GstPicker rate={customGst} onChange={setCustomGst} price={customItemPrice} unitLabel={unitLabel(customUnit)} />
+                  ) : (
+                    <div className="amm-gst-toggle-card">
+                      <div className="amm-gst-toggle-header" onClick={() => {
+                        const next = !showCustomGst
+                        setShowCustomGst(next)
+                        if (!next) setCustomGst("0")
+                        else if (customGst === "0") setCustomGst("18")
+                      }}>
+                        <div className="amm-gst-toggle-left">
+                          <div className="amm-gst-icon-box">
+                            <Percent size={15} />
+                          </div>
+                          <div>
+                            <div className="amm-gst-toggle-title">{t("gst.addGstTitle", "Add GST (%) to this product")}</div>
+                            <div className="amm-gst-toggle-sub">
+                              {showCustomGst && Number(customGst) > 0
+                                ? t("gst.gstRateApplied", "{{rate}}% GST applied", { rate: customGst })
+                                : t("gst.addGstSub", "Optional tax percentage on selling price")}
+                            </div>
+                          </div>
+                        </div>
+                        <label className="sp-switch" style={{ position: "relative", display: "inline-block", width: "40px", height: "22px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={showCustomGst}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setShowCustomGst(checked)
+                              if (!checked) setCustomGst("0")
+                              else if (customGst === "0") setCustomGst("18")
+                            }}
+                            style={{ opacity: 0, width: 0, height: 0 }}
+                          />
+                          <span className={`sp-slider ${showCustomGst ? "active" : ""}`} style={{
+                            position: "absolute",
+                            cursor: "pointer",
+                            inset: 0,
+                            backgroundColor: showCustomGst ? "#0284c7" : "#cbd5e1",
+                            borderRadius: "22px",
+                            transition: "0.25s"
+                          }}>
+                            <span style={{
+                              position: "absolute",
+                              content: '""',
+                              height: "16px",
+                              width: "16px",
+                              left: showCustomGst ? "21px" : "3px",
+                              bottom: "3px",
+                              backgroundColor: "white",
+                              borderRadius: "50%",
+                              transition: "0.25s",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                            }} />
+                          </span>
+                        </label>
+                      </div>
+                      {showCustomGst && (
+                        <div style={{ marginTop: "0.75rem", animation: "fadeIn 0.2s ease" }}>
+                          <GstPicker rate={customGst} onChange={setCustomGst} price={customItemPrice} unitLabel={unitLabel(customUnit)} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                <div className="menu-modal-field" style={{ margin: 0 }}>
+                  <LooseUnitPicker unit={customUnit} onChange={(u) => { if (u && !customUnit) setCustomGst("0"); setCustomUnit(u) }} />
+                </div>
+
                 {isInventory && (
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <div className="stock-open-row">
                     <div>
-                      <label className="menu-modal-label" htmlFor="cp-stock">{t("stock.openingRequired", "Opening stock *")}</label>
+                      <label className="menu-modal-label" htmlFor="cp-stock">
+                        {customUnit
+                          ? t("loose.openingRequired", "Opening stock ({{unit}}) *", { unit: unitLabel(customUnit) })
+                          : t("stock.openingRequired", "Opening stock *")}
+                      </label>
                       <input
                         id="cp-stock"
                         type="number"
@@ -2921,13 +3106,15 @@ export function Menu({ setView, requireAuth, user }) {
                         step="any"
                         required
                         className="menu-modal-input"
-                        placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                        placeholder={customUnit
+                          ? t("loose.openingPlaceholder", "e.g. 100 {{unit}}", { unit: unitLabel(customUnit) })
+                          : t("stock.openingPlaceholder", "Pieces you have")}
                         value={customStockQty}
                         onChange={(e) => setCustomStockQty(e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="menu-modal-label" htmlFor="cp-alert">{t("stock.alertLabel", "Low-stock alert at")}</label>
+                      <label className="menu-modal-label" htmlFor="cp-alert">{t("stock.alertLabel", "Low-stock alert at")}{customUnit ? ` (${unitLabel(customUnit)})` : ""}</label>
                       <input
                         id="cp-alert"
                         type="number"

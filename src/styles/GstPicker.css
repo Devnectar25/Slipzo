@@ -1,0 +1,112 @@
+/* ============ GST % picker (add / edit item forms) ============ */
+.gst-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.gst-picker-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0c1f41;
+}
+.gst-picker-label svg { color: #0284c7; }
+.gst-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.gst-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gst-chip {
+  height: 32px;
+  padding: 0 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.gst-chip:hover { border-color: #0284c7; color: #0284c7; }
+.gst-chip.selected { border-color: #0284c7; background: #0284c7; color: #ffffff; }
+.gst-custom {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.gst-custom input {
+  width: 64px !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 0 4px 0 12px !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  color: #0c1f41 !important;
+  outline: none;
+}
+.gst-custom span { padding-right: 12px; font-size: 0.8rem; font-weight: 700; color: #64748b; }
+
+.gst-total {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px dashed #bae6fd;
+}
+.gst-total-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+}
+.gst-total-row.grand {
+  margin-top: 3px;
+  padding-top: 5px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.86rem;
+  color: #0c1f41;
+}
+.gst-total-row.grand strong { font-size: 1rem; font-weight: 800; color: #0284c7; }
+.gst-total-note { font-size: 0.7rem; font-weight: 500; color: #94a3b8; }
+
+/* "incl. GST" note next to a price */
+.gst-incl {
+  margin-left: 4px;
+  font-size: 0.68em;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+/* loose item without GST: says GST is only added when a rate is chosen */
+.gst-loose-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #0369a1;
+}

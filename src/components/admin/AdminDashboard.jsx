@@ -29,23 +29,28 @@ import {
   DollarSign,
   Sparkles,
   ExternalLink,
-  Utensils
+  Utensils,
+  CreditCard,
+  Bell
 } from "lucide-react"
 import { call, invalidateApiCache } from "../../lib/utils"
 import Swal from "sweetalert2"
 import { ButtonLoader, MetricSkeleton, TableSkeleton } from "../common/Skeleton"
 import "../../styles/Admin.css"
 import { AdminMenuManagement } from "./AdminMenuManagement"
+import { AdminPushNotifications } from "./AdminPushNotifications"
 
 const getInitialAdminTab = () => {
   if (typeof window === "undefined") return "overview"
   const cleanPath = (window.location.pathname || "").toLowerCase().trim()
   if (cleanPath.includes("/admin/menu") || cleanPath.includes("/admin/menu-catalog")) return "menu"
   if (cleanPath.includes("/admin/products") || cleanPath.includes("/admin/product-catalog")) return "products"
+  if (cleanPath.includes("/admin/pricing-plans") || cleanPath.includes("/admin/plans")) return "plans"
   if (cleanPath.includes("/admin/plan-buyers")) return "plan_buyers"
   if (cleanPath.includes("/admin/templates")) return "templates"
   if (cleanPath.includes("/admin/bill-history") || cleanPath.includes("/admin/bills")) return "bills"
   if (cleanPath.includes("/admin/support") || cleanPath.includes("/admin/contacts")) return "contacts"
+  if (cleanPath.includes("/admin/notifications")) return "notifications"
   if (cleanPath.includes("/admin/users")) return "users"
   if (cleanPath.includes("/admin/system") || cleanPath.includes("/admin/health")) return "system"
   return "overview"
@@ -57,9 +62,11 @@ const getAdminTabPath = (tab) => {
     case "menu": return "/admin/menu"
     case "products": return "/admin/products"
     case "plan_buyers": return "/admin/plan-buyers"
+    case "plans": return "/admin/plans"
     case "templates": return "/admin/templates"
     case "bills": return "/admin/bill-history"
     case "contacts": return "/admin/support"
+    case "notifications": return "/admin/notifications"
     case "users": return "/admin/users"
     case "system": return "/admin/system"
     default: return "/admin/overview"
@@ -96,6 +103,27 @@ export function AdminDashboard({ admin, onLogout }) {
   const [templatesList, setTemplatesList] = useState([])
   const [productsList, setProductsList] = useState([])
   const [planBuyersList, setPlanBuyersList] = useState([])
+  const [plansList, setPlansList] = useState([])
+  const [plansStats, setPlansStats] = useState(null)
+  const [planFilterType, setPlanFilterType] = useState("all") // "all" | "time" | "print"
+  const [showPlanModal, setShowPlanModal] = useState(false)
+  const [editingPlan, setEditingPlan] = useState(null)
+  const [planForm, setPlanForm] = useState({
+    name: "",
+    plan_type: "time",
+    duration_months: 1,
+    duration_label: "1 Month Validity (30 Days)",
+    prints_count: 0,
+    price: "",
+    original_price: "",
+    description: "",
+    features: "Unlimited prints for 30 days\nThermal & POS printer support\nCustom shop branding & logo\nWhatsApp receipt sharing\nEmail & chat support",
+    is_popular: false,
+    status: "active",
+    sort_order: 10
+  })
+  const [planError, setPlanError] = useState("")
+  const [planSubmitting, setPlanSubmitting] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1)
@@ -103,7 +131,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
   // Add Product Modal State
   const [showAddProductModal, setShowAddProductModal] = useState(false)
-  const [prodForm, setProdForm] = useState({ name: "", category: "Hardware", price: "", product_link: "" })
+  const [prodForm, setProdForm] = useState({ name: "", category: "Hardware", price: "", product_link: "", description: "" })
   const [prodPhotos, setProdPhotos] = useState([])
   const [prodError, setProdError] = useState("")
   const [prodSubmitting, setProdSubmitting] = useState(false)
@@ -156,6 +184,14 @@ export function AdminDashboard({ admin, onLogout }) {
       const buyersRes = await call("/admin/plan-buyers", opts).catch(() => null)
       if (buyersRes && (buyersRes.planBuyers || Array.isArray(buyersRes))) {
         setPlanBuyersList(buyersRes.planBuyers || (Array.isArray(buyersRes) ? buyersRes : []))
+      }
+
+      const plansRes = await call("/admin/plans", opts).catch(() => null)
+      if (plansRes && (plansRes.plans || Array.isArray(plansRes))) {
+        setPlansList(plansRes.plans || (Array.isArray(plansRes) ? plansRes : []))
+        if (plansRes.stats) {
+          setPlansStats(plansRes.stats)
+        }
       }
 
       if (isManualRefresh) {
@@ -287,7 +323,7 @@ export function AdminDashboard({ admin, onLogout }) {
   }
 
   const handleOpenAddProductModal = () => {
-    setProdForm({ name: "", category: "Hardware", price: "", tax_rate: "" })
+    setProdForm({ name: "", category: "Hardware", price: "", product_link: "", description: "" })
     setProdPhotos([])
     setProdError("")
     setShowAddProductModal(true)
@@ -295,7 +331,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
   const handleCloseAddProductModal = () => {
     setShowAddProductModal(false)
-    setProdForm({ name: "", category: "Hardware", price: "", product_link: "" })
+    setProdForm({ name: "", category: "Hardware", price: "", product_link: "", description: "" })
     setProdPhotos([])
     setProdError("")
   }
@@ -445,6 +481,7 @@ export function AdminDashboard({ admin, onLogout }) {
         category: (prodForm.category || "Hardware").trim(),
         price: parseFloat(prodForm.price) || 0,
         product_link: prodForm.product_link.trim(),
+        description: (prodForm.description || "").trim(),
         images: photoUrls,
         image: photoUrls[0] || "",
         status: "active",
@@ -683,7 +720,10 @@ export function AdminDashboard({ admin, onLogout }) {
           <input id="swal-edit-prod-price" type="number" step="any" min="0" class="swal2-input" value="${product.price || 0}" placeholder="Price" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
 
           <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Product Link (Buy Now URL)</label>
-          <input id="swal-edit-prod-link" type="url" class="swal2-input" value="${(product.product_link || '').replace(/"/g, '&quot;')}" placeholder="https://example.com/product" style="width: 100%; margin: 0; box-sizing: border-box;" />
+          <input id="swal-edit-prod-link" type="url" class="swal2-input" value="${(product.product_link || '').replace(/"/g, '&quot;')}" placeholder="https://example.com/product" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+
+          <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Product Description</label>
+          <textarea id="swal-edit-prod-desc" class="swal2-textarea" placeholder="e.g. ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals" style="width: 100%; margin: 0; box-sizing: border-box; font-size: 0.85rem; height: 75px; resize: vertical; padding: 0.5rem 0.75rem; border: 1px solid #d9dde4; border-radius: 8px;">${(product.description || '').replace(/"/g, '&quot;')}</textarea>
         </div>
       `,
       focusConfirm: false,
@@ -695,6 +735,7 @@ export function AdminDashboard({ admin, onLogout }) {
         const category = document.getElementById('swal-edit-prod-cat')?.value;
         const price = document.getElementById('swal-edit-prod-price')?.value;
         const product_link = document.getElementById('swal-edit-prod-link')?.value;
+        const description = document.getElementById('swal-edit-prod-desc')?.value;
 
         if (!name || !name.trim()) {
           Swal.showValidationMessage('Product name is required');
@@ -712,7 +753,8 @@ export function AdminDashboard({ admin, onLogout }) {
           name: name.trim(),
           category: category ? category.trim() : 'General',
           price: parseFloat(price) || 0,
-          product_link: product_link.trim()
+          product_link: product_link.trim(),
+          description: description !== undefined ? description.trim() : ''
         };
       }
     });
@@ -733,6 +775,197 @@ export function AdminDashboard({ admin, onLogout }) {
       }
     }
   };
+
+  // Pricing Plans Handlers
+  const handleOpenAddPlanModal = () => {
+    setEditingPlan(null)
+    setPlanForm({
+      name: "",
+      plan_type: "time",
+      duration_months: 1,
+      duration_label: "1 Month Validity (30 Days)",
+      prints_count: 0,
+      price: "",
+      original_price: "",
+      description: "",
+      features: "Unlimited prints for 30 days\nThermal & POS printer support\nCustom shop branding & logo\nWhatsApp receipt sharing\nEmail & chat support",
+      is_popular: false,
+      status: "active",
+      sort_order: (plansList.length + 1) * 10
+    })
+    setPlanError("")
+    setShowPlanModal(true)
+  }
+
+  const handleOpenEditPlanModal = (plan) => {
+    setEditingPlan(plan)
+    let featuresText = ""
+    if (Array.isArray(plan.features)) {
+      featuresText = plan.features.join("\n")
+    } else if (typeof plan.features === "string") {
+      try {
+        const parsed = JSON.parse(plan.features)
+        featuresText = Array.isArray(parsed) ? parsed.join("\n") : plan.features
+      } catch (_) {
+        featuresText = plan.features
+      }
+    }
+
+    setPlanForm({
+      name: plan.name || "",
+      plan_type: plan.plan_type || "time",
+      duration_months: plan.duration_months !== undefined ? plan.duration_months : (plan.plan_type === "time" ? 1 : 0),
+      duration_label: plan.duration_label || "",
+      prints_count: plan.prints_count || 0,
+      price: plan.price !== undefined ? plan.price : "",
+      original_price: plan.original_price || "",
+      description: plan.description || "",
+      features: featuresText,
+      is_popular: Boolean(plan.is_popular),
+      status: plan.status || "active",
+      sort_order: plan.sort_order !== undefined ? plan.sort_order : 10
+    })
+    setPlanError("")
+    setShowPlanModal(true)
+  }
+
+  const handleClosePlanModal = () => {
+    setShowPlanModal(false)
+    setEditingPlan(null)
+    setPlanError("")
+  }
+
+  const handleSavePlan = async (e) => {
+    if (e) e.preventDefault()
+    if (!planForm.name || !planForm.name.trim()) {
+      setPlanError("Plan name is required.")
+      return
+    }
+    const priceNum = Number(planForm.price)
+    if (isNaN(priceNum) || priceNum < 0) {
+      setPlanError("Please enter a valid price (greater than or equal to 0).")
+      return
+    }
+
+    setPlanSubmitting(true)
+    setPlanError("")
+
+    const featuresArray = (planForm.features || "")
+      .split("\n")
+      .map(s => s.trim())
+      .filter(Boolean)
+
+    const payload = {
+      name: planForm.name.trim(),
+      plan_type: planForm.plan_type,
+      duration_months: planForm.plan_type === "time" ? Number(planForm.duration_months || 1) : 0,
+      duration_label: planForm.plan_type === "time" ? (planForm.duration_label || `${planForm.duration_months} Months Validity`) : null,
+      prints_count: planForm.plan_type === "print" ? Number(planForm.prints_count || 0) : 0,
+      price: priceNum,
+      original_price: planForm.original_price ? Number(planForm.original_price) : null,
+      description: (planForm.description || "").trim(),
+      features: featuresArray,
+      is_popular: Boolean(planForm.is_popular),
+      status: planForm.status || "active",
+      sort_order: Number(planForm.sort_order || 0)
+    }
+
+    try {
+      if (editingPlan) {
+        await call(`/admin/plans/${editingPlan.id}`, {
+          method: "PUT",
+          headers: getAdminHeaders(),
+          body: JSON.stringify(payload)
+        })
+        Swal.fire({
+          icon: "success",
+          title: "Plan Updated!",
+          text: `Plan "${payload.name}" updated successfully.`,
+          timer: 2000,
+          showConfirmButton: false
+        })
+      } else {
+        await call("/admin/plans", {
+          method: "POST",
+          headers: getAdminHeaders(),
+          body: JSON.stringify(payload)
+        })
+        Swal.fire({
+          icon: "success",
+          title: "Plan Created!",
+          text: `New plan "${payload.name}" created successfully.`,
+          timer: 2000,
+          showConfirmButton: false
+        })
+      }
+      setShowPlanModal(false)
+      setEditingPlan(null)
+      loadAdminData(true)
+    } catch (err) {
+      console.error("Failed to save plan:", err)
+      setPlanError(err?.detail || err?.message || "Failed to save plan.")
+    } finally {
+      setPlanSubmitting(false)
+    }
+  }
+
+  const handleDeletePlan = async (plan) => {
+    const result = await Swal.fire({
+      title: "Delete Plan?",
+      text: `Are you sure you want to delete "${plan.name}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Delete Plan"
+    })
+
+    if (result.isConfirmed) {
+      try {
+        await call(`/admin/plans/${plan.id}`, {
+          method: "DELETE",
+          headers: getAdminHeaders()
+        })
+        Swal.fire({
+          icon: "success",
+          title: "Deleted!",
+          text: `Plan "${plan.name}" deleted.`,
+          timer: 2000,
+          showConfirmButton: false
+        })
+        loadAdminData(true)
+      } catch (err) {
+        Swal.fire("Error", err?.detail || err?.message || "Failed to delete plan", "error")
+      }
+    }
+  }
+
+  const handleTogglePlanStatus = async (plan) => {
+    const newStatus = plan.status === "active" ? "inactive" : "active"
+    try {
+      await call(`/admin/plans/${plan.id}`, {
+        method: "PUT",
+        headers: getAdminHeaders(),
+        body: JSON.stringify({ status: newStatus })
+      })
+      loadAdminData(true)
+    } catch (err) {
+      Swal.fire("Error", err?.detail || err?.message || "Failed to update plan status", "error")
+    }
+  }
+
+  const safePlansList = Array.isArray(plansList) ? plansList : []
+  const filteredPlans = safePlansList.filter(p => {
+    if (planFilterType === "time" && p.plan_type !== "time") return false
+    if (planFilterType === "print" && p.plan_type !== "print") return false
+    if (!searchQuery) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      (p.name && p.name.toLowerCase().includes(q)) ||
+      (p.description && p.description.toLowerCase().includes(q)) ||
+      (p.duration_label && p.duration_label.toLowerCase().includes(q))
+    )
+  })
 
   const safeProductsList = Array.isArray(productsList) ? productsList : []
   const safeTemplatesList = Array.isArray(templatesList) ? templatesList : []
@@ -757,6 +990,7 @@ export function AdminDashboard({ admin, onLogout }) {
     return (
       (p.name && p.name.toLowerCase().includes(q)) ||
       (p.category && p.category.toLowerCase().includes(q)) ||
+      (p.description && p.description.toLowerCase().includes(q)) ||
       (p.shop_name && p.shop_name.toLowerCase().includes(q)) ||
       (p.user_name && p.user_name.toLowerCase().includes(q))
     )
@@ -796,6 +1030,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   const paginatedPlanBuyers = filteredPlanBuyers.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const paginatedPlans = filteredPlans.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   const paginatedTemplates = filteredTemplates.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   const paginatedBills = filteredBills.slice((currentPage - 1) * pageSize, currentPage * pageSize)
@@ -889,6 +1124,14 @@ export function AdminDashboard({ admin, onLogout }) {
           </button>
 
           <button
+            className={`admin-nav-item ${activeTab === "plans" ? "active" : ""}`}
+            onClick={() => { setActiveTab("plans"); setSearchQuery(""); }}
+          >
+            <CreditCard size={18} />
+            <span>Pricing Plans</span>
+          </button>
+
+          <button
             className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
             onClick={() => { setActiveTab("products"); setSearchQuery(""); }}
           >
@@ -926,6 +1169,14 @@ export function AdminDashboard({ admin, onLogout }) {
           >
             <Mail size={18} />
             <span>Support Messages</span>
+          </button>
+
+          <button
+            className={`admin-nav-item ${activeTab === "notifications" ? "active" : ""}`}
+            onClick={() => { setActiveTab("notifications"); setSearchQuery(""); }}
+          >
+            <Bell size={18} />
+            <span>Push Notifications</span>
           </button>
 
           <button
@@ -967,11 +1218,13 @@ export function AdminDashboard({ admin, onLogout }) {
             {activeTab === "overview" && "System Dashboard Overview"}
             {activeTab === "users" && "User & Shop Directory"}
             {activeTab === "plan_buyers" && "Plan Buyer Users & Print Quotas"}
+            {activeTab === "plans" && "Pricing Plans Management (Time & Print Plans)"}
             {activeTab === "products" && "System Product Catalog Management"}
             {activeTab === "menu" && "Master Menu Catalog Management"}
             {activeTab === "templates" && "Manage Bill Templates"}
             {activeTab === "bills" && "System Bill Logs"}
             {activeTab === "contacts" && "Customer Support Inquiries"}
+            {activeTab === "notifications" && "Push Notifications to the App"}
             {activeTab === "system" && "Server Diagnostics & Environment"}
           </h2>
 
@@ -1327,6 +1580,297 @@ export function AdminDashboard({ admin, onLogout }) {
             </>
           )}
 
+          {activeTab === "plans" && (
+            <>
+              {/* Analytics Section for Plans */}
+              <div className="admin-stats-grid">
+                {/* 1. Total Plans */}
+                <div className="admin-stat-card admin-stat-card--detail">
+                  <div className="admin-stat-header">
+                    <div>
+                      <div className="admin-stat-title">Total Configured Plans</div>
+                      <div className="admin-stat-val" style={{ color: "#0C1F41" }}>
+                        {plansStats?.totalPlans ?? plansList.length}
+                      </div>
+                    </div>
+                    <div className="admin-stat-icon-wrapper" style={{ background: "#f0f9ff", color: "#0284c7" }}>
+                      <CreditCard size={22} />
+                    </div>
+                  </div>
+                  <div className="admin-stat-footer" style={{ color: "#74788A" }}>
+                    Active & Inactive across all types
+                  </div>
+                </div>
+
+                {/* 2. Time-Based Plans */}
+                <div className="admin-stat-card admin-stat-card--detail">
+                  <div className="admin-stat-header">
+                    <div>
+                      <div className="admin-stat-title">Time-Based Plans</div>
+                      <div className="admin-stat-val" style={{ color: "#0284c7" }}>
+                        {plansStats?.timePlansCount ?? plansList.filter(p => p.plan_type === "time").length}
+                      </div>
+                    </div>
+                    <div className="admin-stat-icon-wrapper" style={{ background: "#e0f2fe", color: "#0284c7" }}>
+                      <Clock size={22} />
+                    </div>
+                  </div>
+                  <div className="admin-stat-footer" style={{ color: "#0284c7" }}>
+                    1 Month, 3 Months, 1 Year plans
+                  </div>
+                </div>
+
+                {/* 3. Print-Based Plans */}
+                <div className="admin-stat-card admin-stat-card--detail">
+                  <div className="admin-stat-header">
+                    <div>
+                      <div className="admin-stat-title">Print-Based Packs</div>
+                      <div className="admin-stat-val" style={{ color: "#7c3aed" }}>
+                        {plansStats?.printPlansCount ?? plansList.filter(p => p.plan_type === "print").length}
+                      </div>
+                    </div>
+                    <div className="admin-stat-icon-wrapper" style={{ background: "#f5f3ff", color: "#7c3aed" }}>
+                      <Package size={22} />
+                    </div>
+                  </div>
+                  <div className="admin-stat-footer" style={{ color: "#7c3aed" }}>
+                    Fixed quota & starter packs
+                  </div>
+                </div>
+
+                {/* 4. Active Plans */}
+                <div className="admin-stat-card admin-stat-card--detail">
+                  <div className="admin-stat-header">
+                    <div>
+                      <div className="admin-stat-title">Live on Pricing Page</div>
+                      <div className="admin-stat-val" style={{ color: "#16a34a" }}>
+                        {plansStats?.activePlansCount ?? plansList.filter(p => p.status === "active").length}
+                      </div>
+                    </div>
+                    <div className="admin-stat-icon-wrapper" style={{ background: "#ecfdf5", color: "#16a34a" }}>
+                      <CheckCircle size={22} />
+                    </div>
+                  </div>
+                  <div className="admin-stat-footer" style={{ color: "#16a34a" }}>
+                    Active for public checkout
+                  </div>
+                </div>
+              </div>
+
+              {/* Plans Table Container */}
+              <div className="admin-table-container">
+                <div className="admin-table-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <h4 className="admin-table-title" style={{ margin: 0 }}>
+                      Pricing Plans ({filteredPlans.length})
+                    </h4>
+                    {/* Filter Pills */}
+                    <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '0.2rem', borderRadius: '8px', gap: '0.25rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => setPlanFilterType("all")}
+                        className="admin-refresh-btn"
+                        style={{
+                          border: 'none',
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.75rem',
+                          background: planFilterType === "all" ? '#ffffff' : 'transparent',
+                          color: planFilterType === "all" ? '#0284c7' : '#64748b',
+                          boxShadow: planFilterType === "all" ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          fontWeight: planFilterType === "all" ? 700 : 500
+                        }}
+                      >
+                        All ({plansList.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPlanFilterType("time")}
+                        className="admin-refresh-btn"
+                        style={{
+                          border: 'none',
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.75rem',
+                          background: planFilterType === "time" ? '#ffffff' : 'transparent',
+                          color: planFilterType === "time" ? '#0284c7' : '#64748b',
+                          boxShadow: planFilterType === "time" ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          fontWeight: planFilterType === "time" ? 700 : 500
+                        }}
+                      >
+                        Time-Based ({plansList.filter(p => p.plan_type === "time").length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPlanFilterType("print")}
+                        className="admin-refresh-btn"
+                        style={{
+                          border: 'none',
+                          padding: '0.25rem 0.65rem',
+                          fontSize: '0.75rem',
+                          background: planFilterType === "print" ? '#ffffff' : 'transparent',
+                          color: planFilterType === "print" ? '#0284c7' : '#64748b',
+                          boxShadow: planFilterType === "print" ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          fontWeight: planFilterType === "print" ? 700 : 500
+                        }}
+                      >
+                        Print-Based ({plansList.filter(p => p.plan_type === "print").length})
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      className="admin-search-input"
+                      placeholder="Search plan name, validity..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <button
+                      className="admin-refresh-btn"
+                      style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '0.45rem 0.95rem' }}
+                      onClick={handleOpenAddPlanModal}
+                    >
+                      <Plus size={14} /> Create New Plan
+                    </button>
+                  </div>
+                </div>
+
+                <div className="admin-product-table-wrapper">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: "18%" }}>Plan Name</th>
+                        <th style={{ width: "12%", textAlign: "center" }}>Type</th>
+                        <th style={{ width: "16%" }}>Validity / Quota</th>
+                        <th style={{ width: "12%", textAlign: "right" }}>Price</th>
+                        <th style={{ width: "18%" }}>Description & Features</th>
+                        <th style={{ width: "10%", textAlign: "center" }}>Status</th>
+                        <th style={{ width: "6%", textAlign: "center" }}>Order</th>
+                        <th style={{ width: "8%", textAlign: "center" }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedPlans.map((plan) => (
+                        <tr key={plan.id}>
+                          {/* 1. Name & Popular */}
+                          <td>
+                            <div style={{ fontWeight: 700, color: "#0C1F41", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                              {plan.name}
+                              {plan.is_popular && (
+                                <span className="admin-tag admin-tag-blue" style={{ fontSize: "0.68rem", padding: "0.1rem 0.35rem" }}>
+                                  Popular
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: "0.75rem", color: "#64748b" }}>ID: {plan.id}</div>
+                          </td>
+
+                          {/* 2. Type */}
+                          <td style={{ textAlign: "center" }}>
+                            {plan.plan_type === "time" ? (
+                              <span className="admin-tag admin-tag-blue" style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                                <Clock size={11} /> Time-Based
+                              </span>
+                            ) : (
+                              <span className="admin-tag" style={{ background: "#f5f3ff", color: "#7c3aed", border: "1px solid #ddd6fe", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                                <Package size={11} /> Print-Based
+                              </span>
+                            )}
+                          </td>
+
+                          {/* 3. Validity / Quota */}
+                          <td>
+                            {plan.plan_type === "time" ? (
+                              <div>
+                                <strong style={{ color: "#0C1F41" }}>{plan.duration_label || `${plan.duration_months} Months`}</strong>
+                                <div style={{ fontSize: "0.75rem", color: "#16a34a" }}>Unlimited Prints</div>
+                              </div>
+                            ) : (
+                              <div>
+                                <strong style={{ color: "#0C1F41" }}>{Number(plan.prints_count || 0).toLocaleString("en-IN")} Prints</strong>
+                                <div style={{ fontSize: "0.75rem", color: "#64748b" }}>Permanent Quota</div>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* 4. Price */}
+                          <td style={{ textAlign: "right" }}>
+                            <div style={{ fontWeight: 800, color: "#0C1F41", fontSize: "0.95rem" }}>
+                              ₹{Number(plan.price || 0).toLocaleString("en-IN")}
+                            </div>
+                            {plan.original_price && plan.original_price > plan.price && (
+                              <div style={{ fontSize: "0.75rem", color: "#94a3b8", textDecoration: "line-through" }}>
+                                ₹{Number(plan.original_price).toLocaleString("en-IN")}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* 5. Description & Features */}
+                          <td>
+                            <div style={{ fontSize: "0.8rem", color: "#334155", lineHeight: 1.35, maxHeight: "45px", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {plan.description || "No description"}
+                            </div>
+                            {Array.isArray(plan.features) && plan.features.length > 0 && (
+                              <div style={{ fontSize: "0.72rem", color: "#0284c7", marginTop: "2px" }}>
+                                {plan.features.length} features included
+                              </div>
+                            )}
+                          </td>
+
+                          {/* 6. Status Toggle */}
+                          <td style={{ textAlign: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePlanStatus(plan)}
+                              className={`admin-tag ${plan.status === "active" ? "admin-tag-green" : "admin-tag-gray"}`}
+                              style={{ cursor: "pointer", border: "none" }}
+                              title="Click to toggle status"
+                            >
+                              {plan.status === "active" ? "Active" : "Inactive"}
+                            </button>
+                          </td>
+
+                          {/* 7. Sort Order */}
+                          <td style={{ textAlign: "center", color: "#64748b", fontWeight: 600 }}>
+                            {plan.sort_order ?? 0}
+                          </td>
+
+                          {/* 8. Actions */}
+                          <td style={{ textAlign: "center" }}>
+                            <div style={{ display: "inline-flex", gap: "0.35rem" }}>
+                              <button
+                                className="admin-action-btn edit-btn"
+                                onClick={() => handleOpenEditPlanModal(plan)}
+                                title="Edit Plan"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                              <button
+                                className="admin-action-btn delete-btn"
+                                onClick={() => handleDeletePlan(plan)}
+                                title="Delete Plan"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredPlans.length === 0 && (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: "center", color: "#74788A", padding: "2.5rem" }}>
+                            No pricing plans found matching your criteria. Click "+ Create New Plan" to add one.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {renderPagination(filteredPlans.length)}
+              </div>
+            </>
+          )}
+
           {activeTab === "products" && (
             <div className="admin-table-container">
               <div className="admin-table-header">
@@ -1390,9 +1934,14 @@ export function AdminDashboard({ admin, onLogout }) {
                           })()}
                         </td>
 
-                        {/* 2. Product Name */}
+                        {/* 2. Product Name & Description */}
                         <td style={{ fontWeight: 600, color: "#0C1F41", fontSize: "0.825rem", lineHeight: 1.3, wordBreak: "break-word" }}>
-                          {p.name}
+                          <div>{p.name}</div>
+                          {p.description && (
+                            <div style={{ fontSize: "0.72rem", color: "#64748b", fontWeight: 400, marginTop: "2px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }} title={p.description}>
+                              {p.description}
+                            </div>
+                          )}
                         </td>
 
                         {/* 3. Category */}
@@ -1645,6 +2194,8 @@ export function AdminDashboard({ admin, onLogout }) {
             </div>
           )}
 
+          {activeTab === "notifications" && <AdminPushNotifications />}
+
           {activeTab === "contacts" && (
             <div className="admin-table-container">
               <div className="admin-table-header">
@@ -1732,6 +2283,298 @@ export function AdminDashboard({ admin, onLogout }) {
           )}
         </div>
       </main>
+
+      {/* Plan Create / Edit Modal */}
+      {showPlanModal && (
+        <div
+          className="admin-modal-overlay"
+          onClick={handleClosePlanModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+        >
+          <div
+            className="admin-modal-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '620px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: '1px solid #bae6fd'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CreditCard size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0C1F41' }}>
+                    {editingPlan ? `Edit Plan: ${editingPlan.name}` : "Create New Pricing Plan"}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b' }}>
+                    Configure time-based or print-based plan displayed to users
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleClosePlanModal}
+                style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <form onSubmit={handleSavePlan} style={{ padding: '1.5rem' }}>
+              {planError && (
+                <div className="admin-alert-error" style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <AlertCircle size={16} />
+                  <span>{planError}</span>
+                </div>
+              )}
+
+              {/* Row 1: Plan Name & Plan Type */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                    Plan Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 1 Month Plan or Pro Growth"
+                    value={planForm.name}
+                    onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                    Plan Category / Type *
+                  </label>
+                  <select
+                    value={planForm.plan_type}
+                    onChange={(e) => {
+                      const newType = e.target.value
+                      setPlanForm({
+                        ...planForm,
+                        plan_type: newType,
+                        duration_label: newType === "time" ? `${planForm.duration_months || 1} Month Validity` : "",
+                        prints_count: newType === "print" ? (planForm.prints_count || 1000) : 0
+                      })
+                    }}
+                    className="admin-select-input"
+                    style={{ width: '100%', boxSizing: 'border-box', height: '38px' }}
+                  >
+                    <option value="time">⏱️ Time-Based (Monthly / Yearly)</option>
+                    <option value="print">🖨️ Print-Based (Fixed Print Quota)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Conditional on Type (Duration vs Prints) */}
+              {planForm.plan_type === "time" ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem', marginBottom: '1rem', background: '#f0f9ff', padding: '0.85rem', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                      Duration (Months) *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={planForm.duration_months}
+                      onChange={(e) => {
+                        const m = parseInt(e.target.value) || 1
+                        const defaultLabel = m === 1 ? "1 Month Validity (30 Days)" : m === 3 ? "3 Months Validity (90 Days)" : m === 12 ? "1 Year Validity (365 Days)" : `${m} Months Validity`
+                        setPlanForm({ ...planForm, duration_months: m, duration_label: defaultLabel })
+                      }}
+                      className="admin-search-input"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                      Validity Label (Shown on card)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 1 Month Validity (30 Days)"
+                      value={planForm.duration_label}
+                      onChange={(e) => setPlanForm({ ...planForm, duration_label: e.target.value })}
+                      className="admin-search-input"
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: '1rem', background: '#f5f3ff', padding: '0.85rem', borderRadius: '10px', border: '1px solid #ddd6fe' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#5b21b6', marginBottom: '0.35rem' }}>
+                    Prints Count (Quota added to shop balance) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 1000, 2000, 5000"
+                    value={planForm.prints_count}
+                    onChange={(e) => setPlanForm({ ...planForm, prints_count: parseInt(e.target.value) || 0 })}
+                    className="admin-search-input"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+              )}
+
+              {/* Row 3: Price & Original Price */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                    Selling Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    placeholder="e.g. 299"
+                    value={planForm.price}
+                    onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                    Original Price (₹) (Optional strikethrough)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 399"
+                    value={planForm.original_price}
+                    onChange={(e) => setPlanForm({ ...planForm, original_price: e.target.value })}
+                    className="admin-search-input"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Description */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                  Short Description
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Perfect for small shops and new merchants getting started with digital billing."
+                  value={planForm.description}
+                  onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
+                  className="admin-search-input"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Row 5: Features (Multiline) */}
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41' }}>
+                    Plan Features (One per line)
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {(planForm.features || '').split('\n').filter(s => s.trim()).length} lines
+                  </span>
+                </div>
+                <textarea
+                  rows={4}
+                  placeholder="Unlimited prints for 30 days&#10;Thermal & POS printer support&#10;Custom shop branding & logo&#10;WhatsApp receipt sharing&#10;Email & chat support"
+                  value={planForm.features}
+                  onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })}
+                  className="admin-search-input"
+                  style={{ width: '100%', boxSizing: 'border-box', height: '100px', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.82rem', lineHeight: 1.4 }}
+                />
+              </div>
+
+              {/* Row 6: Toggles & Order */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                    Display Status
+                  </label>
+                  <select
+                    value={planForm.status}
+                    onChange={(e) => setPlanForm({ ...planForm, status: e.target.value })}
+                    className="admin-select-input"
+                    style={{ width: '100%', boxSizing: 'border-box', height: '38px' }}
+                  >
+                    <option value="active">Active (Visible)</option>
+                    <option value="inactive">Inactive (Hidden)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41', marginBottom: '0.35rem' }}>
+                    Sort Order
+                  </label>
+                  <input
+                    type="number"
+                    value={planForm.sort_order}
+                    onChange={(e) => setPlanForm({ ...planForm, sort_order: parseInt(e.target.value) || 0 })}
+                    className="admin-search-input"
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ paddingTop: '1.25rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, color: '#0C1F41' }}>
+                    <input
+                      type="checkbox"
+                      checked={planForm.is_popular}
+                      onChange={(e) => setPlanForm({ ...planForm, is_popular: e.target.checked })}
+                      style={{ width: '16px', height: '16px', accentColor: '#0284c7' }}
+                    />
+                    <span>Popular Plan Badge</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
+                <button
+                  type="button"
+                  onClick={handleClosePlanModal}
+                  className="admin-refresh-btn"
+                  style={{ padding: '0.55rem 1.25rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={planSubmitting}
+                  className="admin-refresh-btn"
+                  style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '0.55rem 1.5rem', fontWeight: 700 }}
+                >
+                  {planSubmitting ? <ButtonLoader text="Saving Plan..." /> : (editingPlan ? "Update Plan" : "Create Plan")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add New Product Modal */}
       {showAddProductModal && (
@@ -1854,7 +2697,21 @@ export function AdminDashboard({ admin, onLogout }) {
                 </div>
               </div>
 
-              {/* Row 4: Product Photos Section (MIN 1, MAX 5) */}
+              {/* Row 4: Product Description (Full Width) */}
+              <div>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '4px', fontSize: '0.825rem', color: '#0C1F41' }}>
+                  Product Description
+                </label>
+                <textarea
+                  rows="2"
+                  placeholder="e.g. ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals"
+                  value={prodForm.description}
+                  onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
+                  style={{ width: '100%', padding: '0.55rem 0.75rem', border: '1px solid #D9DDE4', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Row 5: Product Photos Section (MIN 1, MAX 5) */}
               <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '0.65rem 0.85rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.45rem' }}>
                   <div>

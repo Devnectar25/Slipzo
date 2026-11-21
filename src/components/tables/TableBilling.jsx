@@ -15,7 +15,9 @@ import {
   Check,
   X,
   FileText,
-  Barcode as BarcodeIcon
+  Barcode as BarcodeIcon,
+  Tag,
+  Percent
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../../lib/translator"
@@ -31,9 +33,10 @@ import {
   resetSingleStoredTable,
   getTableDisplayName
 } from "../../lib/utils"
+import { shopUsesGst, shopShowsGstOnBill, itemGstRate, menuItemRate, gstSummary } from "../../lib/gst"
 import { BUILTIN_TEMPLATES } from "../Templates"
 import { RealisticReceiptView } from "../RealisticReceiptView"
-import { chargeAndPrint, downloadReceiptPdf, printWidthOf } from "../../lib/directPrint"
+import { chargeAndPrint, chargeAndSavePdf, printWidthOf } from "../../lib/directPrint"
 import { TableResetModal } from "./TableResetModal"
 // Loaded on demand: the scanner library is large and only needed once the camera is opened
 const CameraScannerModal = lazy(() => import("../common/CameraScannerModal").then((m) => ({ default: m.CameraScannerModal })))
@@ -48,6 +51,8 @@ import { Spinner } from "../common/Skeleton"
 import "../../styles/NewBillFlow.css"
 import { EmptyMenuGuide } from "../common/EmptyMenuGuide"
 import { productGroupOf, productGroupChips, productGroupLabelKey } from "../../lib/productGroups"
+import { shopPaymentModes, shopDefaultPaymentMode } from "../../lib/paymentModes"
+import { UpiPayCard } from "../common/UpiQr"
 
 export function TableBilling({
   table,
@@ -66,6 +71,8 @@ export function TableBilling({
   // Up-to-date shop details: the prop can be a snapshot taken before the shop loaded, which made the bill
   // preview and printed bills fall back to the Classic template and lose the shop name
   const [shopInfo, setShopInfo] = useState(() => ({ ...(getCachedData("/shop") || {}), ...(shop || {}) }))
+  // payment modes the shop takes (Shop profile); the bill starts with the shop's default
+  const paymentOptions = useMemo(() => shopPaymentModes(shopInfo), [shopInfo?.payment_modes])
   useEffect(() => {
     let alive = true
     setShopInfo((prev) => ({ ...prev, ...(getCachedData("/shop") || {}), ...(shop || {}) }))
@@ -109,7 +116,7 @@ export function TableBilling({
     }
     return list.map((it) => {
       const qty = Number(it.quantity !== undefined ? it.quantity : (it.qty !== undefined ? it.qty : 1)) || 1
-      const rate = getItemRate(it)
+      const rate = menuItemRate(it, shopInfo)
       return {
         id: it.id || (Date.now() + Math.floor(Math.random() * 1000)),
         name: (it.name || "").trim(),
@@ -117,6 +124,7 @@ export function TableBilling({
         rate: rate,
         price: rate,
         quantity: qty,
+        gst_rate: itemGstRate(it, shopInfo),
         qty: qty,
         category: it.category || "General",
         image_url: resolveItemImage(it)
@@ -129,11 +137,19 @@ export function TableBilling({
   // Keep items synced if table reference changes
   useEffect(() => {
     setItems(normalizeItems(table?.current_items))
+    setDiscount("0")
+    setDiscountType("percent")
   }, [table?.id, table?.table_number, JSON.stringify(table?.current_items)])
 
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
-  const [paymentMode, setPaymentMode] = useState("Cash")
+  const [paymentMode, setPaymentMode] = useState(() => shopDefaultPaymentMode({ ...(getCachedData("/shop") || {}), ...(shop || {}) }))
+  const paymentPickedRef = useRef(false)
+  useEffect(() => {
+    const allowed = paymentOptions.some((m) => m.id === paymentMode)
+    if (!allowed || !paymentPickedRef.current) setPaymentMode(shopDefaultPaymentMode(shopInfo))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopInfo?.payment_modes, shopInfo?.default_payment_mode])
   const [isSaving, setIsSaving] = useState(false)
   const [busyAction, setBusyAction] = useState(null) // "save" | "print" while a request is running
   const [printedNumber, setPrintedNumber] = useState("") // real bill number once saved, shown on the receipt being printed
@@ -199,7 +215,11 @@ export function TableBilling({
     }
   }, [user])
 
-  // Bill Calculations
+  // Bill Calculations & Discount
+  const [discountType, setDiscountType] = useState("percent") // "percent" (%) default | "amount" (₹)
+  const [discount, setDiscount] = useState("0")
+  const [discountFocused, setDiscountFocused] = useState(false)
+
   const subtotal = useMemo(() => {
     return items.reduce((sum, item) => {
       const q = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1)) || 0
@@ -208,7 +228,19 @@ export function TableBilling({
     }, 0)
   }, [items])
 
-  const total = subtotal
+  const discountAmount = useMemo(() => {
+    const val = parseFloat(discount) || 0
+    if (val <= 0) return 0
+    if (discountType === "percent") {
+      const pct = Math.min(100, Math.max(0, val))
+      return Math.min(subtotal, Math.round(((subtotal * pct) / 100) * 100) / 100)
+    }
+    return Math.min(val, subtotal)
+  }, [discount, discountType, subtotal])
+
+  const total = useMemo(() => {
+    return Math.max(0, subtotal - discountAmount)
+  }, [subtotal, discountAmount])
 
   const totalItemsCount = useMemo(() => {
     return items.reduce((sum, item) => {
@@ -349,7 +381,7 @@ export function TableBilling({
     }
 
     const cleanName = (menuItem.name || "").trim()
-    const rate = getItemRate(menuItem)
+    const rate = menuItemRate(menuItem, shopInfo)
     const itemImage = resolveItemImage(menuItem)
 
     setItems((prev) => {
@@ -366,6 +398,7 @@ export function TableBilling({
             name: cleanName,
             barcode: menuItem.barcode || null,
             rate: rate,
+            gst_rate: itemGstRate(menuItem, shopInfo),
             quantity: 1,
             category: menuItem.category || "General",
             image_url: itemImage
@@ -442,18 +475,24 @@ export function TableBilling({
   // SAVE BILL / PERSIST ACTIVE TABLE ORDER & RECORD BILL
   // ==========================================
   // The receipt as it will print, in the template the shop picked (same view as the New Bill screen)
+  const showGst = useMemo(() => shopShowsGstOnBill(shopInfo), [shopInfo])
+  const discountFactor = useMemo(() => (subtotal > 0 ? total / subtotal : 1), [total, subtotal])
+  const linesForPrint = useMemo(() => {
+    return items
+      .filter((it) => it.name && Number(it.quantity) > 0)
+      .map((it) => {
+        const qty = Number(it.quantity) || 1
+        const rate = Number(it.rate) || 0
+        return { name: it.name, qty, rate, gst_rate: it.gst_rate || 0, total: qty * rate }
+      })
+  }, [items])
+  const gstData = useMemo(() => (showGst ? gstSummary(linesForPrint, discountFactor) : null), [showGst, linesForPrint, discountFactor])
+
   const previewTemplate = useMemo(() => {
     const list = getCachedData("/templates") || BUILTIN_TEMPLATES
     const matched = findTemplateMatch(list, shopInfo?.default_template_id) || list[0] || BUILTIN_TEMPLATES[0]
     const rawWidth = String(matched?.width || shopInfo?.receipt_width || "80mm").toLowerCase()
     const width = rawWidth === "a4" || rawWidth === "full" ? "a4" : (rawWidth.startsWith("55") || rawWidth.startsWith("58") ? "55mm" : "80mm")
-    const lines = items
-      .filter((it) => it.name && Number(it.quantity) > 0)
-      .map((it) => {
-        const qty = Number(it.quantity) || 1
-        const rate = Number(it.rate) || 0
-        return { name: it.name, qty, rate, total: qty * rate }
-      })
     const sequence = shopInfo?.invoice_sequence || shopInfo?.next_invoice_number || 1001
     return {
       ...matched,
@@ -462,21 +501,23 @@ export function TableBilling({
         shopName: shopInfo?.name || shopInfo?.shop_name || t("bills.yourShop", "Your Shop"),
         address: shopInfo?.address || "",
         phone: shopInfo?.phone || "",
-        gst: shopInfo?.gstin || "",
+        gst: showGst ? (shopInfo?.gstin || "") : "",
+        showGstOnBill: showGst,
+        gstSummary: gstData,
         logo_url: shopInfo?.logo_url || "",
         invoiceNo: printedNumber || table.editing_bill_number || `${shopInfo?.invoice_prefix || "SLP"}-${sequence}`,
         date: new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
         tableNumber: table.name || table.table_number || "",
-        items: lines,
+        items: linesForPrint,
         subtotal,
-        discount: 0,
+        discount: Number(discountAmount || 0),
         tax: 0,
         total,
         payment: paymentMode,
         footer: matched?.footer || shopInfo?.receipt_footer || "Thank you for visiting! Please come again."
       }
     }
-  }, [items, shopInfo, table, subtotal, total, paymentMode, printedNumber, t])
+  }, [linesForPrint, shopInfo, table, subtotal, discountAmount, total, paymentMode, printedNumber, t, showGst, gstData])
 
   const handleSaveBill = async () => {
     if (!user) {
@@ -509,7 +550,9 @@ export function TableBilling({
           rate: Number(it.rate) || 0
         })),
         subtotal: subtotal,
-        discount: 0,
+        discount: Number(discountAmount || 0),
+        discount_type: discountType,
+        discount_value: Number(discount) || 0,
         tax_rate: 0,
         tax_mode: 0,
         tax_amount: 0,
@@ -622,7 +665,9 @@ export function TableBilling({
           rate: Number(it.rate) || 0
         })),
         subtotal: subtotal,
-        discount: 0,
+        discount: Number(discountAmount || 0),
+        discount_type: discountType,
+        discount_value: Number(discount) || 0,
         tax_rate: 0,
         tax_mode: 0,
         tax_amount: 0,
@@ -863,7 +908,7 @@ export function TableBilling({
                   const cleanName = (item.name || "").trim()
                   const added = addedItemMap.get(cleanName.toLowerCase())
                   const currentQty = added ? Number(added.quantity || 0) : 0
-                  const price = getItemRate(item)
+                  const price = menuItemRate(item, shopInfo)
                   const itemImg = resolveItemImage(item)
 
                   return (
@@ -963,34 +1008,228 @@ export function TableBilling({
 
           {/* Bill Summary Card */}
           <div className="nb-summary-card">
-            <div className="tb-preview-head">
-              <span className="tb-preview-title">{t("bills.billPreview", "Bill Preview")}</span>
-              <span className="tb-preview-template">{tDb(previewTemplate?.name || "Classic Receipt")}</span>
-            </div>
-            {items.length === 0 ? (
-              <p className="tb-preview-empty">{t("tables.previewEmpty", "Add items to see the bill preview.")}</p>
-            ) : (
-              <div id="table-receipt-to-print" className={`receipt-preview-content tb-preview-paper format-${previewTemplate.width === "a4" ? "a4" : previewTemplate.width}`}>
+            {/* Dedicated Print DOM Container */}
+            <div style={{ position: "absolute", left: "-9999px", top: "-9999px", opacity: 0, pointerEvents: "none" }}>
+              <div id="table-receipt-to-print" className={`receipt-preview-content format-${previewTemplate.width === "a4" ? "a4" : previewTemplate.width}`}>
                 <RealisticReceiptView template={previewTemplate} />
+              </div>
+            </div>
+
+            {/* Bill Summary Header */}
+            <div className="nb-summary-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.65rem", borderBottom: "1px solid #e2e8f0", marginBottom: "0.65rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#0284c7" }}>
+                  <FileText size={17} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: "0.98rem", fontWeight: 800, color: "#0C1F41", margin: 0 }}>
+                    {t("bills.billSummary", "Bill Summary")}
+                  </h4>
+                  <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                    {getTableDisplayName(table, t, formatNum)}
+                  </span>
+                </div>
+              </div>
+              <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.55rem", borderRadius: "20px" }}>
+                {t("bills.itemsCount", "{{n}} items", { n: items.length })}
+              </span>
+            </div>
+
+            {/* Items in Bill Summary */}
+            {items.length === 0 ? (
+              <div style={{ padding: "1.75rem 1rem", textAlign: "center", color: "#94a3b8" }}>
+                <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: 600 }}>{t("tables.previewEmpty", "Add items to see the bill summary.")}</p>
+              </div>
+            ) : (
+              <div className="nb-summary-items-list" style={{ maxHeight: "180px", overflowY: "auto", margin: "0.4rem 0 0.8rem", paddingRight: "4px" }}>
+                {items.map((it, idx) => (
+                  <div key={it.id || idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.32rem 0", fontSize: "0.8rem", borderBottom: "1px dashed #f1f5f9" }}>
+                    <div style={{ flex: 1, minWidth: 0, paddingRight: "0.5rem" }}>
+                      <span style={{ fontWeight: 600, color: "#1e293b", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {tDb(it.name)}
+                      </span>
+                      <span style={{ fontSize: "0.71rem", color: "#64748b" }}>
+                        {it.quantity} × {money(it.rate)}
+                      </span>
+                    </div>
+                    <span style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                      {money(Number(it.quantity) * Number(it.rate))}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
 
             <div className="nb-summary-details">
-              {/* PAYMENT MODE */}
-              <div className="nb-payment-section">
-                <label className="nb-payment-label">
-                  <CreditCard size={15} style={{ color: "#0f172a" }} />
-                  <span>{t("bills.paymentModeUpper", t("bills.paymentMode", "PAYMENT MODE"))}</span>
-                </label>
-                <select
-                  value={paymentMode}
-                  onChange={(e) => setPaymentMode(e.target.value)}
-                  className="nb-payment-select"
-                >
-                  <option value="Cash">{t("bills.cash", "Cash")}</option>
-                  <option value="UPI">{t("bills.upi", "UPI")}</option>
-                  <option value="Card">{t("bills.card", "Card")}</option>
-                </select>
+              {/* Billing Options Row: Discount & Payment Mode Side by Side in One Line */}
+              <div className="nb-billing-options-row">
+                {/* Left: Discount */}
+                <div className="nb-discount-col">
+                  <div className="nb-discount-header">
+                    <label className="nb-payment-label">
+                      <Tag size={13} style={{ color: "#0f172a" }} />
+                      <span>{t("bills.discount", "Discount")}</span>
+                    </label>
+                    <div className="nb-discount-toggle-group">
+                      <button
+                        type="button"
+                        className={`nb-discount-toggle-btn ${discountType === "amount" ? "active" : ""}`}
+                        onClick={() => setDiscountType("amount")}
+                        title={t("bills.discountAmountMode", "₹ Flat Amount")}
+                      >
+                        <span className="nb-toggle-full">₹ Flat</span>
+                        <span className="nb-toggle-short">₹</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`nb-discount-toggle-btn ${discountType === "percent" ? "active" : ""}`}
+                        onClick={() => {
+                          setDiscountType("percent")
+                          const curr = parseFloat(discount) || 0
+                          if (curr > 100) setDiscount("10")
+                        }}
+                        title={t("bills.discountPercentMode", "% Percentage")}
+                      >
+                        <span className="nb-toggle-full">% Off</span>
+                        <span className="nb-toggle-short">%</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="nb-discount-input-wrapper">
+                    <div className="nb-discount-input-field">
+                      <span className="nb-discount-prefix">{discountType === "amount" ? "₹" : "%"}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={discountType === "percent" ? "100" : String(subtotal)}
+                        step={discountType === "percent" ? "1" : "any"}
+                        placeholder={discountType === "percent" ? "0" : "0.00"}
+                        value={discount === "0" && !discountFocused ? "" : discount}
+                        onFocus={() => setDiscountFocused(true)}
+                        onBlur={() => setDiscountFocused(false)}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          if (raw === "") {
+                            setDiscount("0")
+                            return
+                          }
+                          const val = parseFloat(raw)
+                          if (isNaN(val) || val < 0) {
+                            setDiscount("0")
+                            return
+                          }
+                          if (discountType === "percent") {
+                            setDiscount(String(Math.min(100, val)))
+                          } else {
+                            setDiscount(String(Math.min(subtotal, val)))
+                          }
+                        }}
+                        className="nb-discount-input"
+                        aria-label={t("bills.discount", "Discount")}
+                      />
+                      {parseFloat(discount) > 0 && (
+                        <button
+                          type="button"
+                          className="nb-discount-clear-btn"
+                          onClick={() => setDiscount("0")}
+                          title={t("common.clear", "Clear discount")}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    {discountAmount > 0 && (
+                      <div className="nb-discount-savings-badge">
+                        <Percent size={11} />
+                        <span>
+                          {discountType === "percent"
+                            ? t("bills.savesAmount", "Save {{amt}} ({{pct}}% off)", { amt: money(discountAmount), pct: formatNum(discount) })
+                            : t("bills.savesAmountFlat", "Save {{amt}} off", { amt: money(discountAmount) })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Payment Mode */}
+                <div className="nb-payment-col">
+                  <div className="nb-payment-header">
+                    <label className="nb-payment-label">
+                      <CreditCard size={13} style={{ color: "#0f172a" }} />
+                      <span>{t("bills.paymentModeUpper", t("bills.paymentMode", "PAYMENT MODE"))}</span>
+                    </label>
+                  </div>
+                  <select
+                    value={paymentMode}
+                    onChange={(e) => { setPaymentMode(e.target.value); paymentPickedRef.current = true }}
+                    className="nb-payment-select"
+                  >
+                    {paymentOptions.map((m) => (
+                      <option key={m.id} value={m.id}>{t(m.labelKey, m.label)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* UPI: QR code from the shop's UPI ID with the exact bill amount, for the customer to scan */}
+              {paymentMode === "UPI" && (
+                <UpiPayCard
+                  upiId={shopInfo?.upi_id}
+                  payeeName={shopInfo?.name}
+                  amount={total}
+                  note={table?.name ? `${shopInfo?.name || "Bill"} - ${table.name}` : ""}
+                  onAddUpiId={() => {
+                    sessionStorage.setItem("slipzo_scroll_to", "payment-modes-section")
+                    sessionStorage.setItem("slipzo_focus_target", "shop-upi-id")
+                    setView?.("shop")
+                    window.dispatchEvent(new CustomEvent("slipzo-scroll-to-target", { detail: "shop-upi-id" }))
+                  }}
+                />
+              )}
+
+              {/* Instant Totals Breakdown */}
+              <div className="nb-totals-summary">
+                <div className="nb-total-row">
+                  <span>{t("bills.subtotal", "Subtotal")}</span>
+                  <span>{money(subtotal)}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="nb-total-row discount-row">
+                    <span>{t("bills.discount", "Discount")} {discountType === "percent" ? `(${formatNum(discount)}%)` : ""}</span>
+                    <span>-{money(discountAmount)}</span>
+                  </div>
+                )}
+                {/* GST Split (CGST + SGST & Total GST %) */}
+                {showGst && gstData && gstData.gst > 0 && (
+                  <div className="nb-summary-gst-box" style={{ background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "8px", padding: "0.4rem 0.6rem", margin: "0.45rem 0", fontSize: "0.78rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b", marginBottom: "0.2rem" }}>
+                      <span>{t("bills.taxableValue", "Taxable Value")}</span>
+                      <span>{money(gstData.taxable)}</span>
+                    </div>
+                    {gstData.groups?.map((g) => (
+                      <React.Fragment key={g.rate}>
+                        <div style={{ display: "flex", justifyContent: "space-between", color: "#475569", marginBottom: "0.15rem" }}>
+                          <span>CGST ({g.cgstRate}%)</span>
+                          <span>{money(g.cgst)}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", color: "#475569", marginBottom: "0.15rem" }}>
+                          <span>SGST ({g.sgstRate}%)</span>
+                          <span>{money(g.sgst)}</span>
+                        </div>
+                      </React.Fragment>
+                    ))}
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#0369a1", fontWeight: 700, borderTop: "1px dashed #e2e8f0", paddingTop: "0.25rem", marginTop: "0.2rem" }}>
+                      <span>{t("bills.totalGstIncluded", "Total GST ({{rate}}% Included)", { rate: gstData.totalRate || 18 })}</span>
+                      <span>{money(gstData.gst)}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="nb-total-row grand-total-row">
+                  <span>{t("bills.grandTotal", "Total Payable")}</span>
+                  <span className="nb-grand-total-val">{money(total)}</span>
+                </div>
               </div>
 
               {/* Billing Action Buttons */}
@@ -1050,7 +1289,7 @@ export function TableBilling({
                   className="tb-pdf-btn"
                   data-testid="table-pdf-button"
                   disabled={isSaving || items.length === 0}
-                  onClick={() => downloadReceiptPdf({ elementId: "table-receipt-to-print", pageWidth: printWidthOf(previewTemplate?.width), billNumber: previewTemplate?.previewData?.invoiceNo })}
+                  onClick={() => chargeAndSavePdf({ user, elementId: "table-receipt-to-print", pageWidth: printWidthOf(previewTemplate?.width), billNumber: previewTemplate?.previewData?.invoiceNo, onNeedPlan: () => setView?.("pricing") })}
                   style={{
                     flex: 1,
                     width: "auto",

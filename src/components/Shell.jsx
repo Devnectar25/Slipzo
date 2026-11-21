@@ -22,8 +22,11 @@ import {
   Globe,
   Home,
   ChevronDown,
-  BookOpen
+  BookOpen,
+  ShieldCheck,
+  Clock
 } from "lucide-react"
+import { PolicyLinks, PoweredBy } from "./PolicyLinks"
 import { useTranslation } from "react-i18next"
 import Swal from "sweetalert2"
 import "../styles/ConfirmDialog.css"
@@ -31,6 +34,7 @@ import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
 import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, isMenuCategory, getCachedData } from "../lib/utils"
 import { HeaderSearch } from "./common/HeaderSearch"
+import { NotificationBell } from "./common/NotificationBell"
 
 // Sign-out confirmation in the app's own look instead of the stock dialog (styles: ConfirmDialog.css)
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]))
@@ -120,7 +124,8 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
     { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, protected: false, badge: t("nav.plans", "Plans"), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
     { id: "shop", label: t("nav.shopProfile", "Shop profile"), icon: Settings, protected: true },
     { id: "guide", label: t("nav.guide", "User Guide"), icon: BookOpen, protected: false, badge: t("sidebar.help", tDb("Help")), badgeBg: "#e0f2fe", badgeColor: "#0284c7" },
-    { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, protected: false }
+    { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, protected: false },
+    { id: "policy_terms", label: t("legalPages.policies", "Policies"), icon: ShieldCheck, protected: false }
   ]
 
   // Mobile bottom navigation items matching Figma reference
@@ -151,6 +156,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
     { id: "pricing", label: t("nav.pricing", "Pricing"), icon: Tag, badge: t("nav.plans", "Plans"), narrow: true },
     { id: "guide", label: t("nav.guide", "User Guide"), icon: BookOpen, badge: t("sidebar.help", tDb("Help")) },
     { id: "contact", label: t("nav.contact", "Contact us"), icon: Mail, narrow: true },
+    { id: "policy_terms", label: t("legalPages.policies", "Policies"), icon: ShieldCheck },
   ].filter((item) => !(user?.staff_of && item.id === "pricing"))
   const [isOpen, setIsOpen] = useState(false)
   // Desktop has no sidebar any more: the main pages sit in the header, the rest in the profile menu.
@@ -464,38 +470,77 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
                 onClick={() => handleNavClick("pricing")}
                 title={t("shell.ariaPlans", "Click to view pricing plans")}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
-                    <div style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '7px',
+                {activePlan?.hasActiveTimePlan ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '7px',
+                        background: '#ffffff',
+                        border: '1px solid #bae6fd',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: (activePlan.daysRemaining || 0) > 3 ? '#0284c7' : '#ef4444',
+                        boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
+                        flexShrink: 0
+                      }}>
+                        <Clock size={13} />
+                      </div>
+                      <span>{activePlan.planName || t("sidebar.timePlan", "Validity Plan")}</span>
+                    </span>
+                    <span style={{
+                      color: (activePlan.daysRemaining || 0) > 3 ? '#0284c7' : '#ef4444',
+                      fontWeight: 700,
+                      fontSize: '0.7rem',
                       background: '#ffffff',
                       border: '1px solid #bae6fd',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444',
-                      boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
-                      flexShrink: 0
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontVariantNumeric: 'tabular-nums'
                     }}>
-                      <Printer size={13} />
-                    </div>
-                    <span>{activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}</span>
-                  </span>
-                  <span style={{
-                    color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444',
-                    fontWeight: 700,
-                    fontSize: '0.7rem',
-                    background: '#ffffff',
-                    border: '1px solid #bae6fd',
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                    fontVariantNumeric: 'tabular-nums'
-                  }}>
-                    {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 0).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
-                  </span>
-                </div>
+                      {activePlan.isExpired
+                        ? t("expiry.expiredBadge", "Expired")
+                        : (activePlan.daysRemaining === 0
+                            ? t("expiry.todayBadge", "Expires Today")
+                            : `${formatNumberByLang(String(activePlan.daysRemaining), currentLang)} ${t("sidebar.daysLeft", "days left")}`)}
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '7px',
+                        background: '#ffffff',
+                        border: '1px solid #bae6fd',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444',
+                        boxShadow: '0 1px 3px rgba(14, 165, 233, 0.08)',
+                        flexShrink: 0
+                      }}>
+                        <Printer size={13} />
+                      </div>
+                      <span>{activePlan.isFreeTier ? t("sidebar.freePrints", "Free prints") : t("sidebar.subscription", "Subscription")}</span>
+                    </span>
+                    <span style={{
+                      color: (activePlan.printsRemaining || 0) > 2 ? '#0284c7' : '#ef4444',
+                      fontWeight: 700,
+                      fontSize: '0.7rem',
+                      background: '#ffffff',
+                      border: '1px solid #bae6fd',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontVariantNumeric: 'tabular-nums'
+                    }}>
+                      {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 0).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
+                    </span>
+                  </div>
+                )}
                 <div style={{ width: '100%', height: '6px', background: 'rgba(2, 132, 199, 0.15)', borderRadius: '9999px', overflow: 'hidden' }}>
                   <div style={{
                     width: `${Math.min(100, Math.max(0, activePlan.totalPrints > 0 ? ((activePlan.printsRemaining || 0) / activePlan.totalPrints) * 100 : 0))}%`,
@@ -662,6 +707,13 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
                 onOpenChange={setSearchOpen}
               />
             )}
+            {/* notifications: offers and news from Slipzen, plan reminders, low stock */}
+            {user && !searchOpen && (
+              <NotificationBell
+                user={user}
+                onNavigate={(v) => (user?.staff_of && v === "pricing" ? null : handleNavClick(v))}
+              />
+            )}
             {/* print balance lives in the profile menu (no badge in the header) */}
             <div className="shell-profile-wrap" ref={profileRef}>
               <button
@@ -768,7 +820,30 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
         </header>
 
         <div className="main-content-scroll">
+          {(activePlan?.isExpiringSoon || activePlan?.isExpired) && (
+            <div className={`plan-expiry-alert-banner ${activePlan.isExpired ? "expired" : (activePlan.daysRemaining <= 1 ? "urgent" : "warning")}`}>
+              <div className="expiry-alert-info">
+                <span className="expiry-alert-icon">{activePlan.isExpired ? "❌" : (activePlan.daysRemaining <= 1 ? "🚨" : "⚠️")}</span>
+                <span className="expiry-alert-text">
+                  {activePlan.isExpired && t("expiry.expiredNotice", "Your {{plan}} has expired. Please recharge to continue.", { plan: activePlan.planName || "plan" })}
+                  {!activePlan.isExpired && activePlan.daysRemaining === 0 && t("expiry.todayNotice", "Final Alert: Your {{plan}} expires today! Renew now to avoid interruption.", { plan: activePlan.planName || "plan" })}
+                  {!activePlan.isExpired && activePlan.daysRemaining === 1 && t("expiry.day1Notice", "Urgent: Last 1 day remaining! Your {{plan}} expires tomorrow.", { plan: activePlan.planName || "plan" })}
+                  {!activePlan.isExpired && activePlan.daysRemaining > 1 && t("expiry.daysNotice", "Reminder: Only {{n}} days remaining in your {{plan}}! Renew now.", { n: activePlan.daysRemaining, plan: activePlan.planName || "plan" })}
+                </span>
+              </div>
+              <button type="button" className="expiry-alert-btn" onClick={() => setView("pricing")}>
+                {t("expiry.renewBtn", "Recharge Now")}
+              </button>
+            </div>
+          )}
           {children}
+          <footer className="shell-legal-footer" data-testid="app-legal-footer">
+            <div className="pp-legal-left">
+              <span>© {new Date().getFullYear()} Slipzen</span>
+              <PoweredBy />
+            </div>
+            <PolicyLinks onOpen={setView} />
+          </footer>
         </div>
       </div>
 

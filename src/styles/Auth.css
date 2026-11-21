@@ -1343,3 +1343,410 @@
   text-align: left !important;
 }
 .auth-overlay .auth-form .auth-summary.forgot-verified svg { flex: none; color: #15803d; }
+
+
+/* ---------- Sign up: policy acceptance checkbox (under the email field) ---------- */
+.auth-overlay .auth-form .auth-consent { margin-top: -2px; }
+.auth-overlay .auth-form label.auth-consent-row {
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  line-height: 1.45 !important;
+  color: #475569 !important;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.auth-overlay .auth-form label.auth-consent-row:hover { border-color: #b6c4d8 !important; }
+.auth-overlay .auth-form label.auth-consent-row:has(input:checked) {
+  border-color: #7dd3fc !important;
+  background: #f0f9ff !important;
+}
+.auth-overlay .auth-form label.auth-consent-row.has-error {
+  border-color: #fca5a5 !important;
+  background: #fef2f2 !important;
+}
+.auth-overlay .auth-form .auth-consent-row input[type="checkbox"] {
+  flex: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 1px 0 0 !important;
+  padding: 0 !important;
+  border-radius: 5px !important;
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+.auth-overlay .auth-form .auth-consent-row input[type="checkbox"]:focus-visible {
+  outline: 2px solid #0ea5e9 !important;
+  outline-offset: 2px !important;
+}
+.auth-overlay .auth-consent-text a {
+  color: #0284c7;
+  font-weight: 700;
+  text-decoration: none;
+}
+.auth-overlay .auth-consent-text a:hover { text-decoration: underline; }
+
+/* ---------- Sign up: password strength track ---------- */
+.auth-overlay .auth-pw-track {
+  --pw-color: #cbd5e1;
+  width: 100%;
+  margin: 2px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+.auth-overlay .auth-pw-track.is-weak { --pw-color: #ef4444; }
+.auth-overlay .auth-pw-track.is-fair { --pw-color: #f59e0b; }
+.auth-overlay .auth-pw-track.is-good { --pw-color: #0ea5e9; }
+
+.auth-overlay .auth-pw-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.auth-overlay .auth-pw-bars {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.auth-overlay .auth-pw-bars span {
+  height: 5px;
+  border-radius: 99px;
+  background: #e2e8f0;
+  transition: background-color 0.2s ease;
+}
+.auth-overlay .auth-pw-bars span.on { background: var(--pw-color); }
+.auth-overlay .auth-pw-level {
+  min-width: 52px;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--pw-color);
+  white-space: nowrap;
+}
+
+.auth-overlay .auth-pw-rules {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+}
+.auth-overlay .auth-pw-rules li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: #64748b;
+  transition: color 0.2s ease;
+}
+.auth-overlay .auth-pw-rules li.ok { color: #15803d; }
+.auth-overlay .auth-pw-rules li.missing { color: #b91c1c; }
+.auth-overlay .auth-pw-rule-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  box-sizing: border-box;
+  color: #fff;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.auth-overlay .auth-pw-rules li.ok .auth-pw-rule-icon { background: #16a34a; border-color: #16a34a; }
+.auth-overlay .auth-pw-rules li.missing .auth-pw-rule-icon { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+
+.auth-overlay .auth-pw-match {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 0 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.auth-overlay .auth-pw-match.ok { color: #15803d; }
+.auth-overlay .auth-pw-match.bad { color: #dc2626; }
+
+.auth-overlay .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .auth-overlay .auth-pw-rules { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ==========================================================================
+   Password Toggle, Banner & Validation Popup
+   ========================================================================== */
+
+.password-input-wrap {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.password-input-wrap .auth-field-icon {
+  position: absolute !important;
+  left: 0.95rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #94a3b8 !important;
+  pointer-events: none !important;
+  z-index: 3 !important;
+}
+
+.password-input-wrap:focus-within .auth-field-icon {
+  color: #0284c7 !important;
+}
+
+.password-input-wrap input {
+  width: 100% !important;
+  padding-left: 2.75rem !important;
+  padding-right: 2.9rem !important;
+}
+
+.password-toggle-btn {
+  position: absolute !important;
+  right: 0.5rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: none !important;
+  border: none !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0.35rem !important;
+  border-radius: 6px !important;
+  transition: color 0.2s !important;
+  z-index: 4 !important;
+}
+
+.password-toggle-btn:hover {
+  color: #0f172a !important;
+}
+
+.auth-error-banner {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+  background: #FFE1E5 !important;
+  border: 1px solid #FFB8BD !important;
+  color: #b91c1c !important;
+  font-size: clamp(0.75rem, 2.2vw, 0.82rem) !important;
+  font-weight: 500 !important;
+  padding: 0.45rem 0.75rem !important;
+  border-radius: 8px !important;
+  margin-top: 0.15rem !important;
+  line-height: 1.3 !important;
+}
+
+/* Validation Failure Popup Overlay */
+.validation-popup-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  z-index: 10000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: clamp(8px, 3vw, 16px) !important;
+  animation: fadeIn 0.2s ease !important;
+  overflow-y: auto !important;
+}
+
+.validation-popup-card {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  width: 100% !important;
+  max-width: 420px !important;
+  max-height: min(92vh, 92dvh) !important;
+  overflow-y: auto !important;
+  padding: clamp(1rem, 3.5vw, 1.4rem) !important;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.25) !important;
+  border: 1px solid #bae6fd !important;
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+}
+
+.validation-popup-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 0.65rem !important;
+}
+
+.popup-icon-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.55rem !important;
+}
+
+.popup-alert-icon {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: #fee2e2 !important;
+  color: #ef4444 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.popup-icon-title h3 {
+  font-size: clamp(1rem, 3.5vw, 1.12rem) !important;
+  font-weight: 700 !important;
+  color: #0C1F41 !important;
+  margin: 0 !important;
+}
+
+.popup-close-btn {
+  background: #f0f9ff !important;
+  border: 1px solid #bae6fd !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #0284c7 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  flex-shrink: 0 !important;
+}
+
+.popup-close-btn:hover {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+
+.popup-desc {
+  font-size: clamp(0.78rem, 2.5vw, 0.85rem) !important;
+  color: #64748b !important;
+  line-height: 1.4 !important;
+  margin: 0 0 0.75rem 0 !important;
+}
+
+.popup-rules-list {
+  background: #f0f9ff !important;
+  border: 1px solid #bae6fd !important;
+  border-radius: 10px !important;
+  padding: 0.65rem 0.85rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.45rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.popup-rule-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.55rem !important;
+  font-size: clamp(0.76rem, 2.4vw, 0.82rem) !important;
+  font-weight: 500 !important;
+}
+
+.popup-rule-row.passed {
+  color: #059669 !important;
+}
+
+.popup-rule-row.missing {
+  color: #dc2626 !important;
+}
+
+.popup-rule-status {
+  width: 18px !important;
+  height: 18px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.popup-rule-row.passed .popup-rule-status {
+  background: #d1fae5 !important;
+  color: #059669 !important;
+}
+
+.popup-rule-row.missing .popup-rule-status {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+.popup-rule-text {
+  line-height: 1.25 !important;
+}
+
+.popup-ok-btn {
+  width: 100% !important;
+  padding: 0.65rem 1rem !important;
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 9px !important;
+  font-weight: 600 !important;
+  font-size: clamp(0.84rem, 2.5vw, 0.9rem) !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  min-height: 38px !important;
+}
+
+.popup-ok-btn:hover {
+  background: #0369a1 !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------- Sign up step 3: payment modes ---------- */
+.auth-overlay .auth-form .auth-pay .auth-cat { position: relative !important; }
+.auth-overlay .auth-form .auth-pay-check {
+  margin-left: auto !important;
+  flex: none !important;
+  color: #0284c7 !important;
+}
+.auth-overlay .auth-form .auth-pay-hint {
+  font-size: 0.72rem !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+.auth-overlay .auth-form .upi-id-preview { margin-top: 4px !important; }
+.auth-overlay .auth-form .upi-id-preview-text { font-weight: 500 !important; }

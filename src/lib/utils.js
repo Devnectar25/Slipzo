@@ -844,6 +844,20 @@ export const syncUserQuota = (quotaData, userKey) => {
       ? Number(quotaData.printsRemaining)
       : Math.max(0, totalPrints - usedPrints)
     const planName = quotaData.activePlanName || quotaData.planName || current?.name || (quotaData.isFreeTier === false ? "Purchased Plan" : "No Plan")
+    const planType = quotaData.planType || (quotaData.expiresAt ? 'time' : (current?.planType || 'print'))
+    const expiresAt = quotaData.expiresAt !== undefined ? quotaData.expiresAt : (current?.expiresAt || null)
+    const daysRemaining = quotaData.daysRemaining !== undefined
+      ? (quotaData.daysRemaining !== null ? Number(quotaData.daysRemaining) : null)
+      : (expiresAt ? Math.ceil((new Date(expiresAt) - new Date()) / (1000 * 60 * 60 * 24)) : (current?.daysRemaining ?? null))
+    const hasActiveTimePlan = quotaData.hasActiveTimePlan !== undefined
+      ? Boolean(quotaData.hasActiveTimePlan)
+      : (daysRemaining !== null && daysRemaining >= 0)
+    const isExpired = quotaData.isExpired !== undefined
+      ? Boolean(quotaData.isExpired)
+      : (daysRemaining !== null && daysRemaining < 0)
+    const isExpiringSoon = quotaData.isExpiringSoon !== undefined
+      ? Boolean(quotaData.isExpiringSoon)
+      : (daysRemaining !== null && daysRemaining <= 3 && daysRemaining >= 0)
 
     const updatedPlan = {
       name: planName,
@@ -852,11 +866,23 @@ export const syncUserQuota = (quotaData, userKey) => {
       usedPrints,
       isFreeTier: quotaData.isFreeTier !== undefined ? Boolean(quotaData.isFreeTier) : totalPrints <= 10,
       onboardingRewardClaimed: quotaData.onboardingRewardClaimed,
+      planType,
+      expiresAt,
+      daysRemaining,
+      isExpiringSoon,
+      isExpired,
+      hasActiveTimePlan,
       updatedAt: new Date().toISOString()
     }
     localStorage.setItem(`slipzo_active_plan_${key}`, JSON.stringify(updatedPlan))
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("slipzo-quota-update", { detail: { quota: updatedPlan, plan: updatedPlan, userKey: key } }))
+      if (printsRemaining <= 10 && printsRemaining > 0 && !hasActiveTimePlan) {
+        window.dispatchEvent(new CustomEvent("slipzo-low-prints-reminder", { detail: { quota: updatedPlan, printsRemaining, userKey: key } }))
+      }
+      if (daysRemaining !== null && (isExpiringSoon || isExpired)) {
+        window.dispatchEvent(new CustomEvent("slipzo-plan-expiry-reminder", { detail: { quota: updatedPlan, daysRemaining, expiresAt, isExpiringSoon, isExpired, planName, userKey: key } }))
+      }
     }
     return updatedPlan
   } catch (e) {
@@ -1258,8 +1284,8 @@ export const stockInfo = (item) => {
   return { tracked, qty, alert, level }
 }
 
-// 12 -> "12", 2.5 -> "2.5"
+// 12 -> "12", 2.5 -> "2.5", 0.125 -> "0.125" (loose items keep 3 decimals: 125 ml = 0.125 L)
 export const formatQty = (n) => {
   const v = Number(n) || 0
-  return Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100)
+  return Number.isInteger(v) ? String(v) : String(Math.round(v * 1000) / 1000)
 }

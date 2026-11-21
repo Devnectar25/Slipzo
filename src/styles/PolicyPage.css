@@ -1,0 +1,395 @@
+/* ---------- Policy pages: Terms, Privacy, Cookies ---------- */
+.pp-page {
+  --pp-ink: #0f172a;
+  --pp-text: #334155;
+  --pp-muted: #64748b;
+  --pp-line: #e2e8f0;
+  --pp-blue: #0284c7;
+  --pp-blue-soft: #e0f2fe;
+  color: var(--pp-text);
+  background: #f8fafc;
+  min-height: 100%;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+.pp-wrap {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.pp-hero {
+  background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
+  border-bottom: 1px solid var(--pp-line);
+  padding: 40px 0 0;
+}
+.pp-eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--pp-blue);
+}
+.pp-hero h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  line-height: 1.2;
+  color: var(--pp-ink);
+}
+.pp-summary {
+  margin: 0 0 6px;
+  max-width: 680px;
+  color: var(--pp-muted);
+}
+.pp-updated {
+  margin: 0 0 22px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pp-muted);
+}
+
+.pp-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pp-tabs::-webkit-scrollbar { display: none; }
+.pp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 11px 16px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: transparent;
+  color: var(--pp-muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+}
+.pp-tab:hover { color: var(--pp-ink); background: rgba(2, 132, 199, 0.06); }
+.pp-tab.active {
+  color: var(--pp-blue);
+  background: #f8fafc;
+  border-color: var(--pp-line);
+  box-shadow: inset 0 3px 0 var(--pp-blue);
+}
+.pp-tab:focus-visible { outline: 2px solid var(--pp-blue); outline-offset: -2px; }
+
+.pp-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 36px;
+  padding-top: 32px;
+  padding-bottom: 56px;
+  align-items: start;
+}
+
+.pp-toc {
+  position: sticky;
+  top: 84px;
+  align-self: start;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+  width: 100% !important;
+  max-width: 240px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+  z-index: 10 !important;
+}
+.pp-toc > p {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pp-muted);
+}
+.pp-toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 2px solid var(--pp-line);
+}
+.pp-toc button {
+  display: block;
+  width: 100%;
+  padding: 5px 0 5px 12px;
+  margin-left: -2px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  color: var(--pp-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+.pp-toc button:hover { color: var(--pp-blue); border-left-color: var(--pp-blue); }
+
+.pp-article {
+  background: #ffffff;
+  border: 1px solid var(--pp-line);
+  border-radius: 16px;
+  padding: 32px 36px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+.pp-lang-note {
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.85rem;
+}
+.pp-intro {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--pp-ink);
+}
+.pp-section {
+  scroll-margin-top: 90px;
+  padding-top: 22px;
+}
+.pp-section h2 {
+  margin: 0 0 8px;
+  font-size: 1.08rem;
+  color: var(--pp-ink);
+}
+.pp-section p { margin: 0 0 10px; }
+.pp-section ul {
+  margin: 0 0 10px;
+  padding-left: 1.2rem;
+}
+.pp-section li { margin-bottom: 6px; }
+.pp-section li::marker { color: var(--pp-blue); }
+
+.pp-table-wrap {
+  margin: 4px 0 12px;
+  overflow-x: auto;
+  border: 1px solid var(--pp-line);
+  border-radius: 12px;
+}
+.pp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.pp-table th {
+  background: #f1f5f9;
+  color: var(--pp-ink);
+  text-align: left;
+  font-weight: 700;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+.pp-table td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--pp-line);
+  vertical-align: top;
+}
+
+.pp-contact {
+  margin-top: 30px;
+  padding: 22px 24px;
+  border-radius: 14px;
+  background: var(--pp-blue-soft);
+  border: 1px solid #bae6fd;
+}
+.pp-contact h2 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  color: var(--pp-ink);
+}
+.pp-contact ul {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.pp-contact li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.pp-contact svg { color: var(--pp-blue); flex: none; }
+.pp-contact a { color: var(--pp-blue); font-weight: 700; text-decoration: none; }
+.pp-contact a:hover { text-decoration: underline; }
+.pp-contact-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  background: var(--pp-blue);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pp-contact-btn:hover { background: #0369a1; }
+
+.pp-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  border: none;
+  background: none;
+  color: var(--pp-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pp-top:hover { color: var(--pp-blue); }
+
+/* Footer links (website footer and inside the app) */
+.pp-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+.pp-links a {
+  color: inherit;
+  font-size: 0.82rem;
+  text-decoration: none;
+  opacity: 0.85;
+}
+.pp-links a:hover { opacity: 1; text-decoration: none; color: #0284c7; }
+
+/* website footers: copyright on the left, policy links on the right */
+.dl-footer-legal,
+.lp-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 24px;
+  color: #94a3b8;
+}
+
+/* copyright + "Powered by DevNectar" on the left */
+.pp-legal-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 0;
+}
+.pp-powered {
+  display: inline-flex;
+  align-items: center;
+  color: #94a3b8;
+}
+.pp-powered strong {
+  color: #e2e8f0;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* policy links in the website footers. Two classes so the footer's own `nav { gap: 4px }` rule can't squeeze them */
+.pp-links.dl-footer-policies {
+  align-items: center;
+  gap: 6px 0;
+}
+.pp-links.dl-footer-policies a {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  opacity: 1;
+  transition: color 0.15s ease;
+}
+.pp-links.dl-footer-policies a:hover { color: #ffffff; text-decoration: none; }
+
+/* small dots between the items (inline-block so a link's hover underline never runs under the dot) */
+.pp-legal-left > * + *::before,
+.pp-links.dl-footer-policies a + a::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin: 0 12px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.55);
+  vertical-align: middle;
+}
+
+@media (max-width: 640px) {
+  .dl-footer-legal,
+  .lp-footer-legal {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+  .pp-legal-left,
+  .pp-links.dl-footer-policies { justify-content: center; }
+}
+
+/* phone welcome screen: a quiet row under Log in / Sign up */
+.welcome-policy-row {
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px calc(6px + env(safe-area-inset-bottom, 0px));
+  color: #64748b;
+}
+.welcome-policy-row .pp-links { justify-content: center; gap: 4px 14px; }
+.welcome-policy-row .pp-links a { font-size: 0.74rem; }
+
+.shell-legal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 28px;
+  padding: 16px 20px;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 860px) {
+  .pp-body { grid-template-columns: 1fr; gap: 0; padding-top: 20px; }
+  .pp-toc { display: none !important; }
+  .pp-article { padding: 22px 18px; border-radius: 14px; width: 100%; }
+  .pp-hero { padding-top: 28px; }
+}
+/* in-app footer is on a light background: darker credit text */
+.shell-legal-footer .pp-powered { color: #64748b; }
+.shell-legal-footer .pp-powered strong { color: #0c1f41; }
+.shell-legal-footer .pp-legal-left > * + *::before { background: #cbd5e1; }
+
+@media (max-width: 768px) {
+  /* keep the in-app footer above the phone's bottom navigation */
+  .shell-legal-footer .pp-legal-left { justify-content: center; }
+  .shell-legal-footer { justify-content: center; text-align: center; }
+  .shell-legal-footer .pp-links { justify-content: center; }
+}
+@media (max-width: 560px) {
+  .pp-table thead { display: none; }
+  .pp-table, .pp-table tbody, .pp-table tr, .pp-table td { display: block; width: 100%; box-sizing: border-box; }
+  .pp-table tr { padding: 8px 0; border-top: 1px solid var(--pp-line); }
+  .pp-table tr:first-child { border-top: none; }
+  .pp-table td { border-top: none; padding: 3px 12px; }
+  .pp-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--pp-muted);
+  }
+}

@@ -2852,6 +2852,20 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   background: #ffffff;
 }
 
+/* custom item category: fixed to the shop type, shown read-only */
+.cp-category-select-btn.cp-category-locked,
+.cp-category-select-btn.cp-category-locked:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.cp-category-lock {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
 .cp-category-selected-info {
   display: flex;
   align-items: center;
@@ -3489,4 +3503,56 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   .menu-modal-backdrop .menu-modal-card.amm-card { max-height: min(500px, calc(var(--zoom-dvh, 100dvh) - 2rem)) !important; }
   .amm-card .menu-modal-header { padding: 0.7rem 1rem !important; }
   .amm-card .menu-modal-body { padding: 0.75rem 1rem !important; }
+}
+
+/* ============================================================
+   GST TOGGLE CARD IN PRODUCT MODALS
+   ============================================================ */
+.amm-gst-toggle-card {
+  padding: 0.75rem 0.95rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+.amm-gst-toggle-card:hover {
+  border-color: #cbd5e1;
+}
+.amm-gst-toggle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.75rem;
+}
+.amm-gst-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 0;
+}
+.amm-gst-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.amm-gst-toggle-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+.amm-gst-toggle-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+  line-height: 1.3;
 }

@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState, useRef, lazy, Suspense } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
-import { chargeAndPrint, downloadReceiptPdf, printWidthOf } from "../lib/directPrint"
+import { chargeAndPrint, spendPrintCredit, chargeAndSavePdf, printWidthOf } from "../lib/directPrint"
+import { Capacitor } from "@capacitor/core"
+
+// The Android app's print screen says whether the receipt printed. A browser's print window does not (Print and
+// Cancel close it the same way), so there the app only says the receipt was sent to the printer.
+const PRINT_CONFIRMED = Capacitor.isNativePlatform()
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import Swal from "sweetalert2"
@@ -30,7 +35,12 @@ import {
   Save,
   Pencil,
   Barcode as BarcodeIcon,
-  Download
+  Download,
+  AlertTriangle,
+  Zap,
+  Receipt,
+  Tag,
+  Percent
 } from "lucide-react"
 import {
   call,
@@ -66,6 +76,11 @@ import { useBarcodeScanner } from "../hooks/useBarcodeScanner"
 import { useShowBarcode } from "../hooks/useShowBarcode"
 import { playScanSuccessBeep, playScanErrorBeep } from "../lib/audioFeedback"
 import "../styles/NewBillFlow.css"
+import { LooseQtyModal } from "./common/LooseQtyModal"
+import { shopPaymentModes, shopDefaultPaymentMode } from "../lib/paymentModes"
+import { UpiPayCard } from "./common/UpiQr"
+import { shopUsesGst, shopShowsGstOnBill, itemGstRate, menuItemRate, gstSummary } from "../lib/gst"
+import { isLooseItem, normalizeUnit, unitLabel, formatQtyUnit, roundQty } from "../lib/units"
 import { EmptyMenuGuide } from "./common/EmptyMenuGuide"
 import { productGroupOf, productGroupChips, productGroupLabelKey } from "../lib/productGroups"
 
@@ -123,7 +138,25 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     if (initialShop) setShopState(initialShop)
   }, [initialShop])
 
-  const { success: toastSuccess, error: toastError, info: toastInfo } = useToast()
+  const { success: toastSuccess, error: toastError, info: toastInfo, warning: toastWarning } = useToast()
+  const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
+
+  useEffect(() => {
+    const handleQuotaUpdate = (e) => {
+      const direct = e?.detail?.quota || e?.detail?.plan
+      if (direct && typeof direct === "object") {
+        setActivePlan(direct)
+        return
+      }
+      setActivePlan(getActivePlanDetails(getCurrentUserKey(user)))
+    }
+    window.addEventListener("slipzo-quota-update", handleQuotaUpdate)
+    window.addEventListener("storage", handleQuotaUpdate)
+    return () => {
+      window.removeEventListener("slipzo-quota-update", handleQuotaUpdate)
+      window.removeEventListener("storage", handleQuotaUpdate)
+    }
+  }, [user, userKey])
 
   // Data Caches
   const cachedShop = getCachedData("/shop")
@@ -206,14 +239,37 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
   })
   const [items, setItems] = useState(() => draft?.items || [])
+  const [discountType, setDiscountType] = useState(() => draft?.discountType || "percent") // "percent" (%) default | "amount" (₹)
   const [discount, setDiscount] = useState(() => draft?.discount ?? "0")
+  const [discountFocused, setDiscountFocused] = useState(false)
   const [tax, setTax] = useState("0")
-  const [payment, setPayment] = useState(() => draft?.payment || "Cash")
+  const [payment, setPayment] = useState(() => draft?.payment || shopDefaultPaymentMode(initialShop))
+  // the person picked a mode on this bill (a saved draft counts): don't switch it to the shop's default
+  const paymentPickedRef = useRef(Boolean(draft?.payment))
   const [saved, setSaved] = useState(null)
   const [busyAction, setBusyAction] = useState(null) // "print" | "save" | null
   const isSaving = busyAction !== null
   const [saveError, setSaveError] = useState(null)
   const [editingBillId, setEditingBillId] = useState(null)
+
+  // paper size for printing, chosen on the bill and remembered on this device (the printer belongs to the device).
+  // "" = use the receipt template's width
+  const [paperSize, setPaperSizeState] = useState(() => {
+    try { return localStorage.getItem("slipzo_paper_size") || "" } catch (_) { return "" }
+  })
+  const setPaperSize = (size) => {
+    setPaperSizeState(size)
+    try { localStorage.setItem("slipzo_paper_size", size) } catch (_) {}
+  }
+
+  // payment modes the shop takes (Shop profile); a new bill starts with the shop's default
+  const paymentOptions = useMemo(() => shopPaymentModes(shop), [shop?.payment_modes])
+  useEffect(() => {
+    if (editingBillId) return
+    const allowed = paymentOptions.some((m) => m.id === payment)
+    if (!allowed || !paymentPickedRef.current) setPayment(shopDefaultPaymentMode(shop))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shop?.payment_modes, shop?.default_payment_mode, editingBillId])
   const editBaseQtyRef = useRef(new Map()) // name -> quantity on the bill being edited
   const [editingBillNumber, setEditingBillNumber] = useState(null)
 
@@ -240,8 +296,13 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           setEditingBillId(editBill.id)
           setEditingBillNumber(editBill.number || "")
           if (editBill.number) setCustomBillNumber(editBill.number)
-          if (editBill.payment_mode) setPayment(editBill.payment_mode)
-          if (editBill.discount !== undefined) setDiscount(String(editBill.discount))
+          if (editBill.payment_mode) { setPayment(editBill.payment_mode); paymentPickedRef.current = true }
+          if (editBill.discount_type) setDiscountType(editBill.discount_type)
+          if (editBill.discount_value !== undefined) {
+            setDiscount(String(editBill.discount_value))
+          } else if (editBill.discount !== undefined) {
+            setDiscount(String(editBill.discount))
+          }
           if (editBill.tax_rate !== undefined) setTax(String(editBill.tax_rate))
           if (editBill.template_id) setSelectedId(editBill.template_id)
 
@@ -263,6 +324,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
               barcode: it.barcode || null,
               rate: Number(it.rate) || 0,
               quantity: Number(it.quantity) || 1,
+              unit: normalizeUnit(it.unit),
+              gst_rate: Number(it.gst_rate) || 0,
               category: it.category || "General",
               image_url: it.image_url || ""
             })))
@@ -287,10 +350,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       if (items.length === 0 || saved || editingBillId || flowStep !== "bill") {
         sessionStorage.removeItem(draftKey)
       } else {
-        sessionStorage.setItem(draftKey, JSON.stringify({ items, discount, payment }))
+        sessionStorage.setItem(draftKey, JSON.stringify({ items, discount, discountType, payment }))
       }
     } catch (_) {}
-  }, [items, discount, payment, saved, editingBillId, flowStep, draftKey])
+  }, [items, discount, discountType, payment, saved, editingBillId, flowStep, draftKey])
 
   // Search & Category Filters (Step 1)
   const [search, setSearch] = useState("")
@@ -462,10 +525,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   }, [items])
 
   const discountAmount = useMemo(() => {
-    const val = Number(discount) || 0
+    const val = parseFloat(discount) || 0
     if (val <= 0) return 0
+    if (discountType === "percent") {
+      const pct = Math.min(100, Math.max(0, val))
+      return Math.min(subtotal, Math.round(((subtotal * pct) / 100) * 100) / 100)
+    }
     return Math.min(val, subtotal)
-  }, [discount, subtotal])
+  }, [discount, discountType, subtotal])
 
   const total = useMemo(() => {
     return Math.max(0, subtotal - discountAmount)
@@ -473,7 +540,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
   // Total quantity of items in current bill
   const totalItemsInBill = useMemo(() => {
-    return items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+    return items.reduce((sum, item) => sum + (normalizeUnit(item.unit) ? 1 : (Number(item.quantity) || 0)), 0)
   }, [items])
 
   // Helper for category emoji matching reference design
@@ -502,8 +569,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     return map
   }, [items])
 
-  // Filter and sort user menu items:
-  // Items in bill appear on TOP, preserving their stable addition order (never reordered by quantity)
+  // Filter the menu items. Cards keep their menu order: adding an item to the bill never moves its card
+  // (it only shows the quantity controls in the same place).
   const filteredMenuItems = useMemo(() => {
     const q = search.trim()
     const filtered = userMenuItems.filter((it) => {
@@ -512,27 +579,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       return matchesSearch && matchesCat
     })
 
-    return [...filtered].sort((a, b) => {
-      const nameA = (a.name || "").trim().toLowerCase()
-      const nameB = (b.name || "").trim().toLowerCase()
-      const addedA = addedItemMap.get(nameA)
-      const addedB = addedItemMap.get(nameB)
-      const inBillA = Boolean(addedA)
-      const inBillB = Boolean(addedB)
-
-      // Items in the bill appear first
-      if (inBillA && !inBillB) return -1
-      if (!inBillA && inBillB) return 1
-
-      // If both are in the bill, preserve the order they were added to the bill
-      if (inBillA && inBillB) {
-        return (addedA.billIndex ?? 0) - (addedB.billIndex ?? 0)
-      }
-
-      // If neither is in the bill, keep original menu order
-      return 0
-    })
-  }, [userMenuItems, search, selectedCategory, addedItemMap, shop?.business_type])
+    return filtered
+  }, [userMenuItems, search, selectedCategory, shop?.business_type])
 
   // Pagination for My Menu Items on New Bill page
   const [menuPage, setMenuPage] = useState(1)
@@ -598,7 +646,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     playScanErrorBeep()
     toastError(max <= 0
       ? t("stock.warnOut", "\"{{name}}\" is out of stock", { name: menuItem.name })
-      : t("stock.warnShort", "Only {{n}} of \"{{name}}\" left in stock", { n: formatQty(max), name: menuItem.name }))
+      : t("stock.warnShort", "Only {{n}} of \"{{name}}\" left in stock", { n: formatQtyUnit(max, menuItem.unit), name: menuItem.name }))
     return true
   }
   // after a bill is saved the server has taken the sold pieces out of stock: show the new counts
@@ -611,6 +659,38 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         saveStoredMenuItems(res, user)
       }
     }).catch(() => {})
+  }
+
+  // loose item (sold by kg, litre, ...): the quantity box is open for { menuItem, lineId, initialQty }
+  const [looseEntry, setLooseEntry] = useState(null)
+  const openLooseEntry = (menuItem) => {
+    const cleanName = (menuItem.name || "").trim().toLowerCase()
+    const line = items.find((i) => (i.name || "").trim().toLowerCase() === cleanName)
+    setLooseEntry({ menuItem, lineId: line?.id || null, initialQty: line ? Number(line.quantity) || 0 : 0 })
+  }
+  const handleLooseConfirm = (qty) => {
+    if (!looseEntry) return
+    const { menuItem, lineId } = looseEntry
+    const q = roundQty(qty)
+    if (lineId) {
+      setItems((prev) => prev.map((it) => (it.id === lineId ? { ...it, quantity: q } : it)))
+    } else {
+      setItems((prev) => [
+        ...prev,
+        {
+          id: Date.now() + Math.floor(Math.random() * 1000),
+          name: (menuItem.name || "").trim(),
+          barcode: menuItem.barcode || null,
+          rate: menuItemRate(menuItem, shop),
+          gst_rate: itemGstRate(menuItem, shop),
+          quantity: q,
+          unit: normalizeUnit(menuItem.unit),
+          category: menuItem.category || "General",
+          image_url: menuItem.image_url || ""
+        }
+      ])
+    }
+    setLooseEntry(null)
   }
 
   const handleAddItemFromMenu = (menuItem) => {
@@ -629,8 +709,19 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       return false
     }
 
+    // loose items ask how much (2.5 kg) instead of adding one piece
+    const looseSource = isLooseItem(menuItem) ? menuItem : findMenuItemFor(menuItem)
+    if (isLooseItem(looseSource)) {
+      if (maxQtyFor(looseSource) <= 0) {
+        refuseIfShort(looseSource, 1)
+        return false
+      }
+      openLooseEntry({ ...menuItem, unit: looseSource.unit })
+      return true
+    }
+
     const cleanName = (menuItem.name || "").trim()
-    const rate = getItemRate(menuItem)
+    const rate = menuItemRate(menuItem, shop)
 
     const inCart = items.find((i) => (i.name || "").trim().toLowerCase() === cleanName.toLowerCase())
     if (refuseIfShort(findMenuItemFor(menuItem) || menuItem, Number(inCart?.quantity || 0) + 1)) return false
@@ -651,6 +742,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
             name: cleanName,
             barcode: menuItem.barcode || null,
             rate: rate,
+            gst_rate: itemGstRate(menuItem, shop),
             quantity: 1,
             category: menuItem.category || "General",
             image_url: menuItem.image_url || ""
@@ -936,15 +1028,20 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       const billData = {
         template_id: activeTemplate?.id || selectedId || "",
         template_name: activeTemplate?.name || "",
-        template_width: activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm"),
+        template_width: currentPaperWidth,
         items: validItems.map((item) => ({
           name: item.name.trim(),
           barcode: item.barcode || null,
           quantity: Number(item.quantity) || 1,
-          rate: getItemRate(item)
+          rate: getItemRate(item),
+          unit: normalizeUnit(item.unit) || null,
+          // GST % in this line's rate, so the day's GST can be added up from saved bills
+          gst_rate: Number(item.gst_rate) || 0
         })),
         subtotal: subtotal,
         discount: discountAmount,
+        discount_type: discountType,
+        discount_value: Number(discount) || 0,
         tax_rate: 0,
         tax_mode: 0,
         tax_amount: 0,
@@ -991,9 +1088,27 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
   }
 
-  // Print straight from this screen (no separate preview page): one print credit, then the print dialog
-  // The bill is already saved; it is marked printed (and a credit used) only once the receipt really printed.
-  // Resolves the chargeAndPrint result: true, "cancelled", "failed" or false (no print credits).
+  // Browser printing ("quiet"): the print window closes the same way for Print, Save as PDF and Cancel, so nothing
+  // changes on screen afterwards. The bill uses one credit when its print window first closes; printing it again
+  // (or saving its PDF) is free.
+  const unchargedPrintRef = useRef(null) // bill sent to a print window, credit not used yet
+  const chargedBillIdsRef = useRef(new Set()) // bills whose credit was already used in this visit
+  const chargeSentPrint = async () => {
+    const bill = unchargedPrintRef.current
+    if (!bill) return
+    unchargedPrintRef.current = null
+    if (bill.id && chargedBillIdsRef.current.has(bill.id)) return
+    if (bill.id) chargedBillIdsRef.current.add(bill.id)
+    await spendPrintCredit(user)
+    if (bill.id) await call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
+    window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
+  }
+  // leaving the page with a bill sent to the printer still uses its credit
+  useEffect(() => () => { chargeSentPrint().catch(() => {}) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Print from the result screen. The bill is already saved. Android app: marked printed (and a credit used) once
+  // its print screen says it printed. Browser: see chargeSentPrint above.
+  // Resolves the chargeAndPrint result: true, "sent" (browser), "cancelled", "failed" or false (no print credits).
   const printNow = async (bill) => {
     await new Promise((resolve) => setTimeout(resolve, 60)) // let the receipt pick up the saved bill number
     const ok = await chargeAndPrint({
@@ -1001,26 +1116,82 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       elementId: "receipt-to-print",
       pageWidth: printWidthOf(templateForPrint?.width),
       onNeedPlan: () => setView("pricing"),
-      billNumber: bill?.number || customBillNumber
+      billNumber: bill?.number || customBillNumber,
+      chargeLater: !PRINT_CONFIRMED
     })
+    if (ok === "sent") {
+      // the print window closed (printed, saved as PDF, or cancelled: a browser does not say which).
+      // The bill's credit is used now, once per bill; no message and no change on screen.
+      if (!(bill?.id && chargedBillIdsRef.current.has(bill.id))) {
+        unchargedPrintRef.current = bill
+        await chargeSentPrint()
+      }
+      return ok
+    }
     if (ok === "cancelled") {
       toastInfo(t("bills.notPrintedSaved", "Not printed. The bill is saved, so you can print it any time."))
+      // a bill that already printed once stays "printed" when a reprint is cancelled
+      setDoneAction((prev) => (prev === "printed" ? prev : "saved"))
       return ok
     }
     if (ok !== true) return ok
     if (bill?.id) await call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
+    refreshMenuStock()
     window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
     toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
     setDoneAction("printed")
     setFlowStep("success")
+
+    // Low prints reminder check
+    const currentAuthKey = getCurrentUserKey(user)
+    const freshPlan = getActivePlanDetails(currentAuthKey)
+    const rem = freshPlan?.printsRemaining !== undefined ? Number(freshPlan.printsRemaining) : null
+    if (rem !== null && rem <= 10 && rem > 0) {
+      const alertedKey = `slipzo_low_prints_dialog_${currentAuthKey}`
+      const lastAlerted = Number(sessionStorage.getItem(alertedKey) || -1)
+      if (rem === 10 || (lastAlerted !== rem && rem <= 5)) {
+        sessionStorage.setItem(alertedKey, String(rem))
+        Swal.fire({
+          title: t("bills.lowPrintsReminderTitle", "Low Print Balance Reminder"),
+          html: `<p style="font-size:0.95rem;color:#475569;margin:0 0 0.5rem 0">${t("bills.lowPrintsReminderText", "You have only {{n}} prints remaining in your plan. Recharge now to keep printing uninterrupted.", { n: rem })}</p>`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: t("bills.rechargeNow", "Recharge Now"),
+          cancelButtonText: t("bills.later", "Later"),
+          confirmButtonColor: "#0284c7"
+        }).then((result) => {
+          if (result.isConfirmed) {
+            setView("pricing")
+          }
+        })
+      }
+    }
     return true
   }
 
-  const handleDownloadPdf = () => downloadReceiptPdf({
-    elementId: "receipt-to-print",
-    pageWidth: printWidthOf(templateForPrint?.width),
-    billNumber: saved?.number || customBillNumber
-  })
+  // Saving the bill as a PDF counts as printing it: one credit per bill, like printing (a bill whose credit was
+  // already used gets its PDF free, and printing it after the PDF is free too).
+  const handleDownloadPdf = async () => {
+    const billId = saved?.id
+    // a print window was already opened for this bill: its credit is used now and covers the PDF
+    if (billId && unchargedPrintRef.current?.id === billId) await chargeSentPrint()
+    const free = doneAction === "printed" || Boolean(billId && chargedBillIdsRef.current.has(billId))
+    const ok = await chargeAndSavePdf({
+      user,
+      elementId: "receipt-to-print",
+      pageWidth: printWidthOf(templateForPrint?.width),
+      billNumber: saved?.number || customBillNumber,
+      onNeedPlan: () => setView("pricing"),
+      free
+    })
+    if (!ok || free) return
+    unchargedPrintRef.current = null
+    if (billId) {
+      chargedBillIdsRef.current.add(billId)
+      call(`/bills/${billId}/print`, { method: "POST" }).catch(() => {})
+      window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: saved }))
+    }
+  }
 
   // ==========================================
   // HANDLERS: PRINT AGAIN (FOR ALREADY PRINTED BILLS)
@@ -1033,6 +1204,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       items,
       total,
       subtotal,
+      discount: discountAmount,
+      discount_type: discountType,
+      discount_value: Number(discount) || 0,
       payment_mode: payment
     }
     setBusyAction("print")
@@ -1062,7 +1236,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
 
     // If bill was already saved & printed, re-printing should directly print without re-saving
-    if (printed && saved) {
+    if (doneAction === "printed" && saved) {
       return handlePrintAgain()
     }
 
@@ -1079,15 +1253,20 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       const billData = {
         template_id: activeTemplate?.id || selectedId || "",
         template_name: activeTemplate?.name || "",
-        template_width: activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : "80mm"),
+        template_width: currentPaperWidth,
         items: validItems.map((item) => ({
           name: item.name.trim(),
           barcode: item.barcode || null,
           quantity: Number(item.quantity) || 1,
-          rate: getItemRate(item)
+          rate: getItemRate(item),
+          unit: normalizeUnit(item.unit) || null,
+          // GST % in this line's rate, so the day's GST can be added up from saved bills
+          gst_rate: Number(item.gst_rate) || 0
         })),
         subtotal: subtotal,
         discount: discountAmount,
+        discount_type: discountType,
+        discount_value: Number(discount) || 0,
         tax_rate: 0,
         tax_mode: 0,
         tax_amount: 0,
@@ -1100,7 +1279,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
       // the bill already exists (being edited, saved, or a print that was cancelled): update it with what is on screen
       let bill
-      const existingId = editingBillId || (saved?.id && !printed ? saved?.id : null)
+      const isPrinted = doneAction === "printed"
+      const existingId = editingBillId || (saved?.id && !isPrinted ? saved?.id : null)
       if (existingId) {
         try {
           await call(`/bills/${existingId}`, {
@@ -1126,10 +1306,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         setCustomBillNumber(bill.number)
       }
 
-      const printed = await printNow(bill)
-      if (printed === false) {
-        toastError(t("bills.savedNotPrinted", "The bill is saved but was not printed. Add print credits and press Print again."))
-      }
+      // The result screen comes first: there the paper size is chosen and its Print button opens the print window
+      setDoneAction("saved")
+      setFlowStep("success")
     } catch (err) {
       console.error("Failed to save and print bill:", err)
       const msg = err.detail || err.message || t("bills.err_saveFailed", "Failed to save bill. Please try again.")
@@ -1170,11 +1349,11 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     }
 
     try {
-      const templateWidth = activeTemplate?.width || (shop?.receipt_width === "58mm" ? "58mm" : (shop?.receipt_width === "55mm" ? "55mm" : (shop?.receipt_width?.toLowerCase() === "a4" ? "a4" : "80mm")))
+      const templateWidth = printWidthOf(templateForPrint?.width)
       const result = await printReceiptElement("receipt-to-print", {
         pageWidth: templateWidth || "80mm"
       })
-      if (result?.printed) toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
+      if (result?.printed && PRINT_CONFIRMED) toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
       else if (result?.cancelled) toastInfo(t("bills.printCancelled", "Print cancelled. Nothing was printed."))
     } catch (err) {
       console.error("Printing failed:", err)
@@ -1187,13 +1366,26 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   }
 
   // Create new bill (reset state for next customer)
+  // Result screen -> back to the bill with the same items, to change them. The bill is already saved, so the next
+  // Print or Save updates it (same bill number). Only offered before the receipt has printed.
+  const handleBackToBill = () => {
+    // going back to change the bill: what was sent to the print window is not charged
+    unchargedPrintRef.current = null
+    setFlowStep("bill")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
   const handleCreateNewBill = () => {
+    chargeSentPrint()
     setItems([])
+    setDiscount("0")
+    setDiscountType("percent")
     setSaved(null)
     setSaveError(null)
     setSearch("")
     setSelectedCategory("all")
-    setPayment("Cash")
+    setPayment(shopDefaultPaymentMode(shop))
+    paymentPickedRef.current = false
 
     const nextSeq = (shop?.invoice_sequence || 1001) + 1
     if (shop?.invoice_sequence) {
@@ -1220,6 +1412,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     minute: "2-digit"
   })
 
+  const showGst = useMemo(() => shopShowsGstOnBill(shop), [shop])
+  const discountFactor = useMemo(() => (subtotal > 0 ? total / subtotal : 1), [total, subtotal])
+  const gstData = useMemo(() => (showGst ? gstSummary(items, discountFactor) : null), [showGst, items, discountFactor])
+
   // Dynamically resolve receipt data for RealisticReceiptView
   const templateForPrint = useMemo(() => {
     const list = Array.isArray(templates) && templates.length > 0 ? templates : BUILTIN_TEMPLATES
@@ -1232,6 +1428,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         name: it.name || "Item",
         qty,
         rate,
+        unit: normalizeUnit(it.unit),
         total: Number(it.total !== undefined ? it.total : (qty * rate))
       }
     })
@@ -1244,7 +1441,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       minute: "2-digit"
     })
 
-    const rawTemplateWidth = String(activeTemplate?.width || shop?.receipt_width || shop?.printer_width || "80mm").trim().toLowerCase()
+    const rawTemplateWidth = String(paperSize || activeTemplate?.width || shop?.receipt_width || shop?.printer_width || "80mm").trim().toLowerCase()
     const isA4Width = rawTemplateWidth === "a4" || rawTemplateWidth === "full"
     const is55Width = rawTemplateWidth === "55mm" || rawTemplateWidth === "58mm" || rawTemplateWidth === "55" || rawTemplateWidth === "58"
     const templateWidth = isA4Width ? "a4" : (is55Width ? "55mm" : "80mm")
@@ -1260,7 +1457,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         shopName: shop?.name || "Shop Receipt",
         address: shop?.address || "",
         phone: shop?.phone || "",
-        gst: shop?.gstin || shop?.gst || "",
+        gst: showGst ? (shop?.gstin || shop?.gst || "") : "",
+        showGstOnBill: showGst,
+        gstSummary: gstData,
         customerName: "",
         customerPhone: "",
         invoiceNo: customBillNumber,
@@ -1275,7 +1474,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         footer: activeTemplate?.footer || shop?.receipt_footer || "Thank you for shopping with us! Please come again."
       }
     }
-  }, [templates, selectedId, activeTemplate, items, shop, customBillNumber, subtotal, discountAmount, total, payment, lang])
+  }, [templates, selectedId, activeTemplate, items, shop, customBillNumber, subtotal, discountAmount, discountType, total, payment, lang, showGst, gstData, paperSize])
+  // the paper size the bill prints on: "58mm" | "80mm" | "a4"
+  const currentPaperWidth = templateForPrint?.width === "55mm" ? "58mm" : (templateForPrint?.width || "80mm")
 
   return (
     <div className="new-bill-flow-container fade-in">
@@ -1303,68 +1504,138 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         (() => {
           const printed = doneAction === "printed"
           const doneItems = items.filter((it) => it.name && String(it.name).trim() && Number(it.quantity) > 0)
-          const shownItems = doneItems.slice(0, 4)
-          const moreCount = doneItems.length - shownItems.length
           const billNo = saved?.number || customBillNumber
           return (
-            <div className={`nbd fade-in ${printed ? "is-printed" : "is-saved"}`} data-testid="bill-done">
-              <div className="nbd-hero">
-                <span className="nbd-badge">
-                  {printed ? <Check size={30} strokeWidth={3} /> : <Save size={26} />}
-                </span>
-                <span className="nbd-status">
-                  {printed ? t("bills.statusPrinted", "Printed") : t("bills.statusSaved", "Saved · not printed yet")}
-                </span>
-                <h2 className="nbd-title">{printed ? t("bills.donePrinted", "Bill printed") : t("bills.doneSaved", "Bill saved")}</h2>
-                <div className="nbd-amount">{money(total)}</div>
-                <div className="nbd-meta">
-                  {billNo && <span className="nbd-chip">#{billNo}</span>}
-                  <span>{t("bills.itemsCount", "{{n}} items", { n: doneItems.length })}</span>
-                  <span className="nbd-dot" aria-hidden="true" />
-                  <span>{tDb(payment)}</span>
-                </div>
-              </div>
-
-              <div className="nbd-summary">
-                <ul className="nbd-lines">
-                  {shownItems.map((it, idx) => (
-                    <li key={idx}>
-                      <span className="nbd-line-name">{tDb(it.name)}</span>
-                      <span className="nbd-line-qty">×{it.quantity}</span>
-                      <span className="nbd-line-amt">{money(Number(it.quantity) * getItemRate(it))}</span>
-                    </li>
-                  ))}
-                </ul>
-                {moreCount > 0 && <div className="nbd-more">{t("bills.moreItems", "+{{n}} more", { n: moreCount })}</div>}
-                <div className="nbd-total">
-                  <span>{t("bills.totalAmount", "Total Amount")}</span>
-                  <strong>{money(total)}</strong>
-                </div>
-              </div>
-
-              <div className="nbd-actions">
-                {printed ? (
-                  <button type="button" className="nbd-btn primary" onClick={handleCreateNewBill} data-testid="bill-done-new">
-                    <Plus size={18} /> {t("bills.createNewBill", "Create New Bill")}
-                  </button>
-                ) : (
-                  <button type="button" className="nbd-btn primary" onClick={() => handlePrintBill()} disabled={isSaving} data-testid="bill-done-print">
-                    <Printer size={18} /> {t("bills.printReceipt", "Print Receipt")}
-                  </button>
-                )}
-                <div className="nbd-row">
-                  {printed ? (
-                    <button type="button" className="nbd-btn" onClick={handlePrintAgain} disabled={isSaving}>
-                      <Printer size={16} /> {t("bills.printAgain", "Print again")}
-                    </button>
-                  ) : (
-                    <button type="button" className="nbd-btn" onClick={handleCreateNewBill}>
-                      <Plus size={16} /> {t("bills.newBillShort", "New bill")}
+            <div className="nbd-success-wrapper fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem", width: "100%", maxWidth: "960px", margin: "12px auto 40px", padding: "0 1rem", boxSizing: "border-box" }}>
+              <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: "1.5rem", width: "100%", alignItems: "flex-start" }}>
+                {/* 1. Payment Collected Confirmation Card */}
+                <div className={`nbd ${printed ? "is-printed" : "is-saved"}`} style={{ flex: "1 1 420px", maxWidth: "460px", margin: 0, position: "relative" }} data-testid="bill-done">
+                  {!printed && (
+                    <button
+                      type="button"
+                      className="nbd-back-btn"
+                      onClick={handleBackToBill}
+                      disabled={isSaving}
+                      data-testid="bill-done-back"
+                    >
+                      <ArrowLeft size={16} /> {t("bills.backToBill", "Back to bill")}
                     </button>
                   )}
-                  <button type="button" className="nbd-btn" onClick={handleDownloadPdf} data-testid="bill-success-pdf">
-                    <Download size={16} /> {t("bills.pdfShort", "PDF")}
-                  </button>
+                  <div className="nbd-hero">
+                    <span className="nbd-badge" style={{ background: "#16a34a", boxShadow: "0 0 0 8px #dcfce7, 0 10px 24px rgba(22, 163, 74, 0.2)" }}>
+                      <CheckCircle2 size={34} color="#ffffff" strokeWidth={2.5} />
+                    </span>
+                    <span className="nbd-status" style={{ background: "#dcfce7", color: "#15803d", borderColor: "#bbf7d0" }}>
+                      ✓ {t("bills.paymentCollected", "Payment Collected")}
+                    </span>
+                    <h2 className="nbd-title" style={{ color: "#0f172a" }}>
+                      {printed ? t("bills.donePrinted", "Bill printed") : t("bills.paymentCollectedSuccess", "Payment Collected Successfully")}
+                    </h2>
+                    <div className="nbd-amount" style={{ color: "#15803d" }}>{money(total)}</div>
+                    <div className="nbd-meta">
+                      {billNo && <span className="nbd-chip">#{billNo}</span>}
+                      <span className="nbd-chip" style={{ background: "#f0fdf4", color: "#166534", borderColor: "#bbf7d0" }}>
+                        {t("bills.paidVia", "Paid via {{mode}}", { mode: tDb(payment) })}
+                      </span>
+                      <span>{t("bills.itemsCount", "{{n}} items", { n: doneItems.length })}</span>
+                      <span className="nbd-dot" aria-hidden="true" />
+                      <span>{formattedDate}</span>
+                    </div>
+                  </div>
+
+                  {/* Low Prints Reminder Notice on Success Screen */}
+                  {activePlan?.printsRemaining !== undefined && Number(activePlan.printsRemaining) <= 10 && Number(activePlan.printsRemaining) > 0 && (
+                    <div style={{
+                      background: "#fffbeb",
+                      border: "1.5px solid #fde68a",
+                      borderRadius: "12px",
+                      padding: "10px 14px",
+                      margin: "0 1.25rem 1rem",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      flexWrap: "wrap"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b45309", fontSize: "0.85rem", fontWeight: "700" }}>
+                        <AlertTriangle size={16} color="#d97706" style={{ flexShrink: 0 }} />
+                        <span>{t("bills.lowPrintsLeft", "Only {{n}} prints left in your plan", { n: activePlan.printsRemaining })}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setView("pricing")}
+                        style={{
+                          background: "#d97706",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "6px",
+                          padding: "4px 10px",
+                          fontSize: "0.8rem",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px"
+                        }}
+                      >
+                        <Zap size={13} /> {t("bills.rechargeNow", "Recharge Now")}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="nbd-actions">
+                    {/* Paper size for this printer (remembered on this device), then Print opens the print window */}
+                    <div className="nb-paper-size nbd-paper-size" role="radiogroup" aria-label={t("bills.paperSize", "Paper size")}>
+                      <span className="nb-paper-size-label"><Printer size={14} /> {t("bills.paperSize", "Paper size")}</span>
+                      <div className="nb-paper-size-options">
+                        {[["58mm", "58 mm"], ["80mm", "80 mm"], ["a4", "A4"]].map(([id, label]) => (
+                          <button
+                            key={id}
+                            type="button"
+                            role="radio"
+                            aria-checked={currentPaperWidth === id}
+                            className={`nb-paper-size-btn ${currentPaperWidth === id ? "active" : ""}`}
+                            onClick={() => setPaperSize(id)}
+                            disabled={isSaving}
+                            data-testid={`paper-size-${id}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button type="button" className="nbd-btn primary" onClick={() => handlePrintAgain()} disabled={isSaving} data-testid="bill-done-print">
+                      <Printer size={18} /> {busyAction === "print" ? t("bills.printing", "Printing...") : printed ? t("bills.printAgain", "Print again") : t("bills.printReceipt", "Print Receipt")}
+                    </button>
+                    <div className="nbd-row">
+                      <button type="button" className="nbd-btn" onClick={handleCreateNewBill} data-testid="bill-done-new">
+                        <Plus size={16} /> {t("bills.createNewBill", "Create New Bill")}
+                      </button>
+                      <button type="button" className="nbd-btn" onClick={handleDownloadPdf} data-testid="bill-success-pdf">
+                        <Download size={16} /> {t("bills.pdfShort", "PDF")}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Bill Preview Card on Success Page */}
+                <div className="nbd-preview-card" style={{ flex: "1 1 380px", maxWidth: "460px", background: "#ffffff", borderRadius: "24px", border: "1px solid #bae6fd", padding: "1.25rem", boxShadow: "0 1px 2px rgba(12, 31, 65, 0.04), 0 16px 40px rgba(12, 31, 65, 0.08)", boxSizing: "border-box" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.85rem", paddingBottom: "0.55rem", borderBottom: "1px solid #f0f9ff" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Receipt size={17} color="#0284c7" />
+                      <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#0C1F41" }}>{t("bills.billPreview", "Bill Preview")}</span>
+                    </div>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", padding: "3px 9px", borderRadius: "12px", border: "1px solid #bae6fd" }}>
+                      {tDb(templateForPrint?.name || "Classic Receipt")} · {currentPaperWidth === "a4" ? "A4" : currentPaperWidth.replace("mm", " mm")}
+                    </span>
+                  </div>
+                  <div
+                    className={`receipt-preview-content tb-preview-paper nb-preview-paper format-${String(templateForPrint?.width || "80mm").toLowerCase() === "55mm" ? "55mm" : (String(templateForPrint?.width || "").toLowerCase() === "a4" ? "a4" : "80mm")}`}
+                    style={{ margin: "0 auto", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", borderRadius: "8px", overflow: "hidden" }}
+                    aria-label={t("bills.billPreview", "Bill Preview")}
+                  >
+                    <RealisticReceiptView template={templateForPrint} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1372,6 +1643,53 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         })()
       ) : (
         <>
+          {/* Low Prints Reminder Banner on New Bill page */}
+          {activePlan?.printsRemaining !== undefined && Number(activePlan.printsRemaining) <= 10 && Number(activePlan.printsRemaining) > 0 && (
+            <div
+              className="fade-in"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#fffbeb",
+                border: "1.5px solid #fde68a",
+                borderRadius: "12px",
+                padding: "10px 14px",
+                marginBottom: "1rem",
+                boxShadow: "0 2px 6px rgba(217, 119, 6, 0.08)",
+                gap: "10px",
+                flexWrap: "wrap"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b45309", fontWeight: "700", fontSize: "0.88rem" }}>
+                <AlertTriangle size={18} color="#d97706" style={{ flexShrink: 0 }} />
+                <span>
+                  {t("bills.lowPrintsBanner", "Reminder: Only {{n}} prints remaining in your plan!", { n: activePlan.printsRemaining })}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setView("pricing")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  background: "#d97706",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "5px 12px",
+                  borderRadius: "8px",
+                  fontSize: "0.82rem",
+                  fontWeight: "700",
+                  cursor: "pointer"
+                }}
+              >
+                <Zap size={14} />
+                {t("bills.rechargeNow", "Recharge Now")}
+              </button>
+            </div>
+          )}
+
           {/* Editing Saved Bill Banner */}
           {editingBillId && (
             <div style={{
@@ -1609,7 +1927,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                                 <h4 className="nb-item-name" title={menuItem.name}>{tDb(menuItem.name)}</h4>
                                 <span className="nb-item-category">{tDb(menuItem.category || "General")}</span>
                                 <div className="nb-item-price nb-item-price-desktop">
-                                  {money(getItemRate(menuItem))}
+                                  {money(menuItemRate(menuItem, shop))}
+                                  {isLooseItem(menuItem) && <span className="loose-per-unit">/ {unitLabel(menuItem.unit)}</span>}
                                 </div>
                                 {isInventory && stockInfo(menuItem).tracked && (
                                   <div className="nb-item-stock">
@@ -1621,10 +1940,32 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
                             <div className="nb-item-actions-wrapper">
                               <div className="nb-item-price nb-item-price-mobile">
-                                {money(getItemRate(menuItem))}
+                                {money(menuItemRate(menuItem, shop))}
+                                {isLooseItem(menuItem) && <span className="loose-per-unit">/ {unitLabel(menuItem.unit)}</span>}
                               </div>
 
-                              {addedItem ? (
+                              {addedItem && isLooseItem(menuItem) ? (
+                                <div className="nb-qty-controls-group">
+                                  <button
+                                    type="button"
+                                    className="loose-line-qty"
+                                    onClick={() => openLooseEntry(menuItem)}
+                                    title={t("loose.change", "Change quantity")}
+                                    data-testid="loose-line-qty"
+                                  >
+                                    {formatQtyUnit(addedItem.quantity, menuItem.unit)}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="nb-item-del-btn"
+                                    onClick={() => handleDeleteItem(addedItem.name || addedItem.id, addedItem.name)}
+                                    title={t("bills.removeFromBill", "Remove from bill")}
+                                    aria-label={t("bills.removeFromBill", "Remove from bill")}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              ) : addedItem ? (
                                 <div className="nb-qty-controls-group">
                                   <button
                                     type="button"
@@ -1707,41 +2048,231 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
               </div>
             </div>
 
-            {/* RIGHT COLUMN: Bill Preview */}
+            {/* RIGHT COLUMN: Bill Summary */}
             <div className="nb-right-col">
-              {/* Live bill preview in the shop's chosen template (in place of the old summary) */}
               <div className="nb-summary-card">
-                <div className="tb-preview-head">
-                  <span className="tb-preview-title">{t("bills.billPreview", "Bill Preview")}</span>
-                  <span className="tb-preview-template">{tDb(templateForPrint?.name || "Classic Receipt")}</span>
+                {/* Bill Summary Header */}
+                <div className="nb-summary-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.65rem", borderBottom: "1px solid #e2e8f0", marginBottom: "0.65rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#0284c7" }}>
+                      <FileText size={17} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: "0.98rem", fontWeight: 800, color: "#0C1F41", margin: 0 }}>
+                        {t("bills.billSummary", "Bill Summary")}
+                      </h4>
+                      <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                        #{customBillNumber}
+                      </span>
+                    </div>
+                  </div>
+                  <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.55rem", borderRadius: "20px" }}>
+                    {t("bills.itemsCount", "{{n}} items", { n: totalItemsInBill })}
+                  </span>
                 </div>
+
+                {/* Items in Bill Summary */}
                 {items.length === 0 ? (
-                  <p className="tb-preview-empty">{t("tables.previewEmpty", "Add items to see the bill preview.")}</p>
+                  <div style={{ padding: "1.75rem 1rem", textAlign: "center", color: "#94a3b8" }}>
+                    <ShoppingBag size={28} style={{ margin: "0 auto 0.4rem", opacity: 0.45, display: "block" }} />
+                    <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: 600 }}>{t("bills.emptyCart", "No items added yet")}</p>
+                    <p style={{ margin: "0.2rem 0 0", fontSize: "0.74rem", color: "#94a3b8" }}>{t("bills.selectFromMenuHint", "Add items from the menu to build the bill")}</p>
+                  </div>
                 ) : (
-                  <div
-                    className={`receipt-preview-content tb-preview-paper nb-preview-paper format-${String(templateForPrint?.width || "80mm").toLowerCase() === "55mm" ? "55mm" : (String(templateForPrint?.width || "").toLowerCase() === "a4" ? "a4" : "80mm")}`}
-                    aria-label={t("bills.billPreview", "Bill Preview")}
-                  >
-                    <RealisticReceiptView template={templateForPrint} />
+                  <div className="nb-summary-items-list" style={{ maxHeight: "180px", overflowY: "auto", margin: "0.4rem 0 0.8rem", paddingRight: "4px" }}>
+                    {items.map((it, idx) => (
+                      <div key={it.id || idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.32rem 0", fontSize: "0.8rem", borderBottom: "1px dashed #f1f5f9" }}>
+                        <div style={{ flex: 1, minWidth: 0, paddingRight: "0.5rem" }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {tDb(it.name)}
+                          </span>
+                          <span style={{ fontSize: "0.71rem", color: "#64748b" }}>
+                            {formatQtyUnit(it.quantity, it.unit)} × {money(getItemRate(it))}
+                          </span>
+                        </div>
+                        <span style={{ fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+                          {money(Number(it.quantity) * getItemRate(it))}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                {/* Payment Mode */}
-                <div className="nb-payment-section">
-                  <label className="nb-payment-label">
-                    <CreditCard size={15} style={{ color: "#0f172a" }} />
-                    <span>{t("bills.paymentMode", "Payment Mode")}</span>
-                  </label>
-                  <select
-                    value={payment}
-                    onChange={(e) => setPayment(e.target.value)}
-                    className="nb-payment-select"
-                  >
-                    <option value="Cash">{t("bills.cash", "Cash")}</option>
-                    <option value="UPI">{t("bills.upi", "UPI")}</option>
-                    <option value="Card">{t("bills.card", "Card")}</option>
-                    <option value="Credit">{t("bills.credit", "Credit")}</option>
-                  </select>
+                {/* Billing Options Row: Discount & Payment Mode Side by Side in One Line */}
+                <div className="nb-billing-options-row">
+                  {/* Left: Discount */}
+                  <div className="nb-discount-col">
+                    <div className="nb-discount-header">
+                      <label className="nb-payment-label">
+                        <Tag size={13} style={{ color: "#0f172a" }} />
+                        <span>{t("bills.discount", "Discount")}</span>
+                      </label>
+                      <div className="nb-discount-toggle-group">
+                        <button
+                          type="button"
+                          className={`nb-discount-toggle-btn ${discountType === "amount" ? "active" : ""}`}
+                          onClick={() => setDiscountType("amount")}
+                          title={t("bills.discountAmountMode", "₹ Flat Amount")}
+                        >
+                          <span className="nb-toggle-full">₹ Flat</span>
+                          <span className="nb-toggle-short">₹</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`nb-discount-toggle-btn ${discountType === "percent" ? "active" : ""}`}
+                          onClick={() => {
+                            setDiscountType("percent")
+                            const curr = parseFloat(discount) || 0
+                            if (curr > 100) setDiscount("10")
+                          }}
+                          title={t("bills.discountPercentMode", "% Percentage")}
+                        >
+                          <span className="nb-toggle-full">% Off</span>
+                          <span className="nb-toggle-short">%</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="nb-discount-input-wrapper">
+                      <div className="nb-discount-input-field">
+                        <span className="nb-discount-prefix">{discountType === "amount" ? "₹" : "%"}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={discountType === "percent" ? "100" : String(subtotal)}
+                          step={discountType === "percent" ? "1" : "any"}
+                          placeholder={discountType === "percent" ? "0" : "0.00"}
+                          value={discount === "0" && !discountFocused ? "" : discount}
+                          onFocus={() => setDiscountFocused(true)}
+                          onBlur={() => setDiscountFocused(false)}
+                          onChange={(e) => {
+                            const raw = e.target.value
+                            if (raw === "") {
+                              setDiscount("0")
+                              return
+                            }
+                            const val = parseFloat(raw)
+                            if (isNaN(val) || val < 0) {
+                              setDiscount("0")
+                              return
+                            }
+                            if (discountType === "percent") {
+                              setDiscount(String(Math.min(100, val)))
+                            } else {
+                              setDiscount(String(Math.min(subtotal, val)))
+                            }
+                          }}
+                          className="nb-discount-input"
+                          aria-label={t("bills.discount", "Discount")}
+                        />
+                        {parseFloat(discount) > 0 && (
+                          <button
+                            type="button"
+                            className="nb-discount-clear-btn"
+                            onClick={() => setDiscount("0")}
+                            title={t("common.clear", "Clear discount")}
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+
+                      {discountAmount > 0 && (
+                        <div className="nb-discount-savings-badge">
+                          <Percent size={11} />
+                          <span>
+                            {discountType === "percent"
+                              ? t("bills.savesAmount", "Save {{amt}} ({{pct}}% off)", { amt: money(discountAmount), pct: formatNum(discount) })
+                              : t("bills.savesAmountFlat", "Save {{amt}} off", { amt: money(discountAmount) })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: Payment Mode */}
+                  <div className="nb-payment-col">
+                    <div className="nb-payment-header">
+                      <label className="nb-payment-label">
+                        <CreditCard size={13} style={{ color: "#0f172a" }} />
+                        <span>{t("bills.paymentMode", "Payment Mode")}</span>
+                      </label>
+                    </div>
+                    <select
+                      value={payment}
+                      onChange={(e) => { setPayment(e.target.value); paymentPickedRef.current = true }}
+                      className="nb-payment-select"
+                    >
+                      {paymentOptions.map((m) => (
+                        <option key={m.id} value={m.id}>{t(m.labelKey, m.label)}</option>
+                      ))}
+                      {/* an older bill being edited keeps its mode even if the shop no longer offers it */}
+                      {payment && !paymentOptions.some((m) => m.id === payment) && (
+                        <option value={payment}>{tDb(payment)}</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {/* UPI: QR code from the shop's UPI ID with the exact bill amount, for the customer to scan */}
+                {payment === "UPI" && (
+                  <UpiPayCard
+                    upiId={shop?.upi_id}
+                    payeeName={shop?.name}
+                    amount={total}
+                    note={customBillNumber ? `Bill ${customBillNumber}` : (shop?.name ? `${shop.name} bill` : "")}
+                    onAddUpiId={user?.staff_of ? undefined : () => {
+                      sessionStorage.setItem("slipzo_scroll_to", "payment-modes-section")
+                      sessionStorage.setItem("slipzo_focus_target", "shop-upi-id")
+                      setView?.("shop")
+                      window.dispatchEvent(new CustomEvent("slipzo-scroll-to-target", { detail: "shop-upi-id" }))
+                    }}
+                  />
+                )}
+
+                {/* Instant Totals Breakdown */}
+                <div className="nb-totals-summary">
+                  <div className="nb-total-row">
+                    <span>{t("bills.subtotal", "Subtotal")}</span>
+                    <span>{money(subtotal)}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="nb-total-row discount-row">
+                      <span>{t("bills.discount", "Discount")} {discountType === "percent" ? `(${formatNum(discount)}%)` : ""}</span>
+                      <span>-{money(discountAmount)}</span>
+                    </div>
+                  )}
+
+                  {/* GST Split (CGST + SGST & Total GST %) */}
+                  {showGst && gstData && gstData.gst > 0 && (
+                    <div className="nb-summary-gst-box" style={{ background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "8px", padding: "0.4rem 0.6rem", margin: "0.45rem 0", fontSize: "0.78rem" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "#64748b", marginBottom: "0.2rem" }}>
+                        <span>{t("bills.taxableValue", "Taxable Value")}</span>
+                        <span>{money(gstData.taxable)}</span>
+                      </div>
+                      {gstData.groups?.map((g) => (
+                        <React.Fragment key={g.rate}>
+                          <div style={{ display: "flex", justifyContent: "space-between", color: "#475569", marginBottom: "0.15rem" }}>
+                            <span>CGST ({g.cgstRate}%)</span>
+                            <span>{money(g.cgst)}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", color: "#475569", marginBottom: "0.15rem" }}>
+                            <span>SGST ({g.sgstRate}%)</span>
+                            <span>{money(g.sgst)}</span>
+                          </div>
+                        </React.Fragment>
+                      ))}
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "#0369a1", fontWeight: 700, borderTop: "1px dashed #e2e8f0", paddingTop: "0.25rem", marginTop: "0.2rem" }}>
+                        <span>{t("bills.totalGstIncluded", "Total GST ({{rate}}% Included)", { rate: gstData.totalRate || 18 })}</span>
+                        <span>{money(gstData.gst)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="nb-total-row grand-total-row">
+                    <span>{t("bills.grandTotal", "Total Payable")}</span>
+                    <span className="nb-grand-total-val">{money(total)}</span>
+                  </div>
                 </div>
 
                 {saveError && (
@@ -1903,6 +2434,18 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           isOpen={Boolean(stockItem)}
           onClose={() => setStockItem(null)}
           onSaved={handleStockSaved}
+        />
+      )}
+
+      {looseEntry && (
+        <LooseQtyModal
+          item={looseEntry.menuItem}
+          rate={menuItemRate(looseEntry.menuItem, shop)}
+          initialQty={looseEntry.initialQty}
+          isEdit={Boolean(looseEntry.lineId)}
+          maxQty={maxQtyFor(findMenuItemFor(looseEntry.menuItem) || looseEntry.menuItem)}
+          onConfirm={handleLooseConfirm}
+          onClose={() => setLooseEntry(null)}
         />
       )}
 

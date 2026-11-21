@@ -3,6 +3,7 @@ import { MapPin, Phone } from "lucide-react"
 import { money, formatNumberByLang } from "../lib/utils"
 import { useDbTranslation } from "../lib/translator"
 import { Code128Barcode } from "../lib/code128"
+import { unitLabel } from "../lib/units"
 
 // Fits the barcode inside narrow (58mm) rolls without the card chrome it has in the barcode modal
 const RECEIPT_BARCODE_STYLE = { padding: 0, border: "none", borderRadius: 0, maxWidth: "100%" }
@@ -58,10 +59,74 @@ export function RealisticReceiptView({ template }) {
   }
 
   const items = Array.isArray(data.items) ? data.items : []
-  const totalUnits = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0)
+  // a loose line (2.5 kg) counts as one item
+  const totalUnits = items.reduce((sum, it) => sum + (unitLabel(it.unit) ? 1 : (Number(it.qty) || 0)), 0)
+  // "2.5 kg" for loose items, "2" for pieces
+  const qtyOf = (item) => {
+    const u = unitLabel(item?.unit)
+    return u ? `${formatNum(item.qty)} ${u}` : formatNum(item.qty)
+  }
   const rawTableNumber = data.tableNumber || data.table_number || data.table || data.tableName || ""
   const cleanTableNum = String(rawTableNumber).replace(/^(?:table|टेबल)[-_\s]*/i, "")
   const tableNumber = rawTableNumber ? (/^\d+$/.test(cleanTableNum) ? formatNum(cleanTableNum) : rawTableNumber) : ""
+
+  const renderGstHeader = () => {
+    if (!data.showGstOnBill || !data.gst) return null
+    return (
+      <p className="receipt-gstin" style={{ fontSize: "0.78rem", color: "#1e293b", fontWeight: 700, margin: "0.15rem 0 0" }}>
+        {lbl("GSTIN:", "जीएसटी:", "जीएसटी:")} {data.gst}
+      </p>
+    )
+  }
+
+  const renderGstBreakdown = () => {
+    if (!data.showGstOnBill || !data.gstSummary || !data.gstSummary.gst) return null
+    const summary = data.gstSummary
+    const groups = Array.isArray(summary.groups) && summary.groups.length > 0 ? summary.groups : [
+      {
+        rate: summary.totalRate || 18,
+        cgstRate: (summary.totalRate || 18) / 2,
+        sgstRate: (summary.totalRate || 18) / 2,
+        cgst: summary.cgst ?? Math.round((summary.gst / 2) * 100) / 100,
+        sgst: summary.sgst ?? Math.round((summary.gst - (summary.cgst ?? Math.round((summary.gst / 2) * 100) / 100)) * 100) / 100,
+        taxable: summary.taxable,
+        gst: summary.gst
+      }
+    ]
+    const totalRate = summary.totalRate || (groups.length === 1 ? groups[0].rate : (summary.taxable > 0 ? Math.round((summary.gst / summary.taxable) * 1000) / 10 : 0))
+    const totalRateText = totalRate ? ` (${totalRate}%)` : ""
+
+    return (
+      <div className="receipt-gst-box classic-gst-box" style={{ borderTop: "1px dashed #cbd5e1", borderBottom: "1px dashed #cbd5e1", padding: "0.3rem 0", margin: "0.35rem 0", fontSize: "0.76rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
+          <span>{lbl("Taxable Value", "करपात्र मूल्य", "कर योग्य मूल्य")}</span>
+          <span>{money(summary.taxable)}</span>
+        </div>
+        {groups.map((g) => {
+          const cgRate = g.cgstRate ?? Math.round((g.rate / 2) * 100) / 100
+          const sgRate = g.sgstRate ?? Math.round((g.rate / 2) * 100) / 100
+          const cgAmt = g.cgst ?? Math.round((g.gst / 2) * 100) / 100
+          const sgAmt = g.sgst ?? Math.round((g.gst - cgAmt) * 100) / 100
+          return (
+            <React.Fragment key={g.rate}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
+                <span>{lbl(`CGST (${cgRate}%)`, `सीजीएसटी (${cgRate}%)`, `सीजीएसटी (${cgRate}%)`)}</span>
+                <span>{money(cgAmt)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
+                <span>{lbl(`SGST (${sgRate}%)`, `एसजीएसटी (${sgRate}%)`, `एसजीएसटी (${sgRate}%)`)}</span>
+                <span>{money(sgAmt)}</span>
+              </div>
+            </React.Fragment>
+          )
+        })}
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, color: "#0f172a", marginTop: "0.15rem" }}>
+          <span>{lbl(`Total GST${totalRateText} (Included)`, `एकूण जीएसटी${totalRateText} (समाविष्ट)`, `कुल जीएसटी${totalRateText} (शामिल)`)}</span>
+          <span>{money(summary.gst)}</span>
+        </div>
+      </div>
+    )
+  }
 
   // =========================================================================
   // 1. MINIMAL CLEAN BILL (58mm Minimalist)
@@ -84,6 +149,7 @@ export function RealisticReceiptView({ template }) {
             <p style={{ color: "#1e293b", fontSize: "0.82rem", fontWeight: 600, margin: "0.2rem 0 0", lineHeight: 1.3 }}>
               {[formatNum(data.phone), tDb(data.address)].filter(Boolean).join(" · ")}
             </p>
+            {renderGstHeader()}
           </div>
 
           {/* Bill Meta - Safe Wrap without text overlap */}
@@ -107,7 +173,7 @@ export function RealisticReceiptView({ template }) {
               <div className="minimal-item-entry" key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.3rem 0", borderBottom: "1px solid #e2e8f0" }}>
                 <div className="minimal-item-info" style={{ flex: 1, minWidth: 0, paddingRight: "0.4rem" }}>
                   <div className="minimal-item-title" style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>{tDb(item.name)}</div>
-                  <small className="minimal-item-sub" style={{ fontSize: "0.78rem", color: "#334155", fontWeight: 600 }}>{formatNum(item.qty)} × {money(item.rate)}</small>
+                  <small className="minimal-item-sub" style={{ fontSize: "0.78rem", color: "#334155", fontWeight: 600 }}>{qtyOf(item)} × {money(item.rate)}</small>
                 </div>
                 <span className="minimal-item-price" style={{ fontSize: "0.9rem", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>{money(item.total)}</span>
               </div>
@@ -126,6 +192,7 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
+            {renderGstBreakdown()}
             <div className="minimal-total-hero" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px solid #0f172a", marginTop: "0.35rem", paddingTop: "0.35rem", fontWeight: 900, fontSize: "1.08rem", color: "#0f172a" }}>
               <span>{lbl("TOTAL AMOUNT", "एकूण रक्कम", "कुल राशि")}</span>
               <span>{money(data.total)}</span>
@@ -171,6 +238,7 @@ export function RealisticReceiptView({ template }) {
             </h2>
             <p style={{ fontSize: "0.82rem", color: "#1e293b", fontWeight: 600, margin: "0.1rem 0" }}>{tDb(data.address)}</p>
             <p style={{ fontSize: "0.82rem", color: "#1e293b", fontWeight: 600, margin: "0.1rem 0" }}>{lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}</p>
+            {renderGstHeader()}
           </div>
 
           {/* Meta Grid */}
@@ -207,7 +275,7 @@ export function RealisticReceiptView({ template }) {
             {items.map((item, idx) => (
               <div className="receipt-item-row" key={idx} style={{ display: "grid", gridTemplateColumns: "1.7fr 0.45fr 0.85fr 1fr", gap: "6px", fontSize: "0.8rem", fontWeight: 600, padding: "0.35rem 0.85rem", borderBottom: "1px dotted #cbd5e1", color: "#0f172a" }}>
                 <span style={{ wordBreak: "break-word" }}>{tDb(item.name)}</span>
-                <span style={{ textAlign: "center", whiteSpace: "nowrap" }}>{formatNum(item.qty)}</span>
+                <span style={{ textAlign: "center", whiteSpace: "nowrap" }}>{qtyOf(item)}</span>
                 <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>{money(item.rate)}</span>
                 <span style={{ textAlign: "right", fontWeight: 700, whiteSpace: "nowrap" }}>{money(item.total)}</span>
               </div>
@@ -226,6 +294,7 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
+            {renderGstBreakdown()}
           </div>
 
           {/* Grand Total Banner */}
@@ -268,6 +337,7 @@ export function RealisticReceiptView({ template }) {
           <div style={{ textAlign: "center", fontSize: "0.8rem", fontWeight: 600, color: "#1e293b", marginBottom: "0.45rem", lineHeight: 1.3 }}>
             <div>{tDb(data.address)}</div>
             <div>{lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}</div>
+            {renderGstHeader()}
           </div>
 
           {/* Meta Bar */}
@@ -299,7 +369,7 @@ export function RealisticReceiptView({ template }) {
             {items.map((item, idx) => (
               <div className="receipt-item-row" key={idx} style={{ display: "grid", gridTemplateColumns: "1.7fr 0.45fr 0.85fr 1fr", gap: "6px", padding: "0.35rem 0.85rem", borderBottom: "1px solid #f1f5f9", fontSize: "0.8rem" }}>
                 <span style={{ fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>{tDb(item.name)}</span>
-                <span style={{ textAlign: "center", fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>{formatNum(item.qty)}</span>
+                <span style={{ textAlign: "center", fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>{qtyOf(item)}</span>
                 <span style={{ textAlign: "right", fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap" }}>{money(item.rate)}</span>
                 <span style={{ textAlign: "right", fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap" }}>{money(item.total)}</span>
               </div>
@@ -318,6 +388,7 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
+            {renderGstBreakdown()}
             <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "2.5px solid #2563eb", color: "#1d4ed8", padding: "0.5rem 0.85rem", fontWeight: 900, fontSize: "1.08rem", marginTop: "0.35rem" }}>
               <span>{lbl("NET PAYABLE", "निव्वळ देय", "शुद्ध देय राशि")}</span>
               <span>{money(data.total)}</span>
@@ -354,6 +425,7 @@ export function RealisticReceiptView({ template }) {
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1e293b", marginTop: "0.15rem" }}>
               <div>{tDb(data.address)}</div>
               <div>{lbl("TEL:", "फोन:", "फोन:")} {formatNum(data.phone)}</div>
+              {renderGstHeader()}
             </div>
           </div>
 
@@ -381,7 +453,7 @@ export function RealisticReceiptView({ template }) {
           <div className="eco-items-mono" style={{ display: "flex", flexDirection: "column", gap: "0.25rem", margin: "0.45rem 0" }}>
             {items.map((item, idx) => (
               <div className="eco-item-row-mono" key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#0f172a", padding: "0.1rem 0" }}>
-                <span style={{ wordBreak: "break-word" }}>{formatNum(item.qty)}x {tDb(item.name)} @ {money(item.rate)}</span>
+                <span style={{ wordBreak: "break-word" }}>{qtyOf(item)} × {tDb(item.name)} @ {money(item.rate)}</span>
                 <span style={{ whiteSpace: "nowrap", marginLeft: "0.4rem" }}>{money(item.total)}</span>
               </div>
             ))}
@@ -401,6 +473,7 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
+            {renderGstBreakdown()}
           </div>
 
           {/* Total Box */}
@@ -448,6 +521,7 @@ export function RealisticReceiptView({ template }) {
             <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#1e293b" }}>
               {lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}
             </div>
+            {renderGstHeader()}
           </div>
 
           {/* Meta Line */}
@@ -471,7 +545,7 @@ export function RealisticReceiptView({ template }) {
               <div className="modern-item-card" key={idx} style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "0.5rem 0.85rem", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
                 <div className="item-meta" style={{ flex: 1, minWidth: 0, paddingRight: "0.4rem" }}>
                   <div className="item-name" style={{ fontWeight: 700, fontSize: "0.85rem", color: "#0f172a", wordBreak: "break-word" }}>{tDb(item.name)}</div>
-                  <small className="item-details" style={{ fontSize: "0.75rem", fontWeight: 600, color: "#334155" }}>{formatNum(item.qty)} {lbl("qty", "नग", "मात्रा")} @ {money(item.rate)}</small>
+                  <small className="item-details" style={{ fontSize: "0.75rem", fontWeight: 600, color: "#334155" }}>{qtyOf(item)}{unitLabel(item.unit) ? "" : ` ${lbl("qty", "नग", "मात्रा")}`} @ {money(item.rate)}</small>
                 </div>
                 <span className="item-amt-badge" style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 800, fontSize: "0.85rem", padding: "0.15rem 0.5rem", borderRadius: "6px", whiteSpace: "nowrap" }}>{money(item.total)}</span>
               </div>
@@ -490,6 +564,7 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
+            {renderGstBreakdown()}
             <div style={{ display: "flex", justifyContent: "space-between", borderTop: "2px solid #0f172a", marginTop: "0.4rem", paddingTop: "0.4rem", fontWeight: 900, fontSize: "1.08rem", color: "#0f172a" }}>
               <span>{lbl("TOTAL AMOUNT", "एकूण रक्कम", "कुल राशि")}</span>
               <span>{money(data.total)}</span>
@@ -533,6 +608,7 @@ export function RealisticReceiptView({ template }) {
             <h4 style={{ fontSize: "0.9rem", fontWeight: 900, color: "#0f172a", margin: "0 0 0.1rem" }}>{tDb(data.shopName)}</h4>
             <p style={{ color: "#1e293b", margin: "0.05rem 0", fontSize: "0.78rem", fontWeight: 600 }}>{tDb(data.address)}</p>
             <p style={{ color: "#1e293b", margin: "0.05rem 0", fontSize: "0.78rem", fontWeight: 600 }}>{lbl("Tel:", "फोन:", "फोन:")} {formatNum(data.phone)}</p>
+            {renderGstHeader()}
           </div>
 
           {/* Customer / Buyer Card */}
@@ -570,7 +646,7 @@ export function RealisticReceiptView({ template }) {
               <div className="receipt-item-row" key={idx} style={{ display: "grid", gridTemplateColumns: "0.25fr 1.6fr 0.45fr 0.85fr 1fr", gap: "5px", fontSize: "0.8rem", fontWeight: 600, padding: "0.35rem 0.85rem", borderBottom: "1px solid #f1f5f9", color: "#0f172a" }}>
                 <span>{formatNum(idx + 1)}</span>
                 <span style={{ fontWeight: 700, wordBreak: "break-word" }}>{tDb(item.name)}</span>
-                <span style={{ textAlign: "center", whiteSpace: "nowrap" }}>{formatNum(item.qty)}</span>
+                <span style={{ textAlign: "center", whiteSpace: "nowrap" }}>{qtyOf(item)}</span>
                 <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>{money(item.rate)}</span>
                 <span style={{ textAlign: "right", fontWeight: 800, whiteSpace: "nowrap" }}>{money(item.total)}</span>
               </div>
@@ -589,6 +665,7 @@ export function RealisticReceiptView({ template }) {
                 <span>-{money(data.discount)}</span>
               </div>
             )}
+            {renderGstBreakdown()}
             <div className="receipt-grand-total" style={{ display: "flex", justifyContent: "space-between", borderTop: "2.5px solid #0284c7", color: "#0284c7", padding: "0.5rem 0.85rem", fontWeight: 900, fontSize: "1.08rem", marginTop: "0.35rem" }}>
               <span>{lbl("TOTAL INVOICE VALUE", "एकूण पावती मूल्य", "कुल चालान मूल्य")}</span>
               <span>{money(data.total)}</span>
@@ -628,7 +705,7 @@ export function RealisticReceiptView({ template }) {
         <div style={{ borderTop: "1.5px solid #0f172a", margin: "0.4rem 0" }} />
         {items.map((item, idx) => (
           <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 600, padding: "0.15rem 0", color: "#0f172a" }}>
-            <span style={{ wordBreak: "break-word" }}>{tDb(item.name)} × {formatNum(item.qty)}</span>
+            <span style={{ wordBreak: "break-word" }}>{tDb(item.name)} × {qtyOf(item)}</span>
             <span style={{ whiteSpace: "nowrap" }}>{money(item.total)}</span>
           </div>
         ))}

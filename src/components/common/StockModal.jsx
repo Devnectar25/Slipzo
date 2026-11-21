@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { X, Plus, Minus, PackagePlus, PackageMinus, ClipboardCheck, History, Boxes, AlertTriangle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { call, invalidateApiCache, stockInfo, formatQty, updateItemStockInStorageAndCache } from "../../lib/utils"
+import { formatQtyUnit, unitLabel } from "../../lib/units"
 import { ButtonLoader, Spinner } from "./Skeleton"
 import "../../styles/Stock.css"
 
@@ -23,6 +24,9 @@ const fmtDate = (iso) => {
  * onSaved({ id, stock_qty, track_stock, low_stock_alert }) is called after a change is saved.
  */
 export function StockModal({ item, isOpen, onClose, onSaved }) {
+  // loose items (kg, litre, ...) show their unit next to every count
+  const uLabel = unitLabel(item?.unit)
+  const fq = (n) => formatQtyUnit(n, item?.unit)
   const { t } = useTranslation()
   const info = stockInfo(item)
   const [mode, setMode] = useState("add")
@@ -112,16 +116,16 @@ export function StockModal({ item, isOpen, onClose, onSaved }) {
 
     const hasQty = qty !== ""
     if (!hasQty && !alertChanged) {
-      setError(mode === "set" ? t("stock.errSet", "Enter the stock count.") : t("stock.errQty", "Enter how many pieces."))
+      setError(mode === "set" ? t("stock.errSet", "Enter the stock count.") : (uLabel ? t("loose.errStockQty", "Enter how much ({{unit}}).", { unit: uLabel }) : t("stock.errQty", "Enter how many pieces.")))
       return
     }
     if (hasQty) {
       if (!Number.isFinite(amount) || amount < 0 || (mode !== "set" && amount === 0)) {
-        setError(t("stock.errQty", "Enter how many pieces."))
+        setError((uLabel ? t("loose.errStockQty", "Enter how much ({{unit}}).", { unit: uLabel }) : t("stock.errQty", "Enter how many pieces.")))
         return
       }
       if (mode === "remove" && amount > current) {
-        setError(t("stock.errTooMany", "Only {{n}} in stock.", { n: formatQty(current) }))
+        setError(t("stock.errTooMany", "Only {{n}} in stock.", { n: fq(current) }))
         return
       }
     }
@@ -178,7 +182,7 @@ export function StockModal({ item, isOpen, onClose, onSaved }) {
           <div className={`stock-now stock-now-${info.level}`}>
             <div>
               <span className="stock-now-label">{t("stock.currentStock", "Current stock")}</span>
-              <strong className="stock-now-qty">{info.tracked ? formatQty(info.qty) : "—"}</strong>
+              <strong className="stock-now-qty">{info.tracked ? fq(info.qty) : "—"}</strong>
             </div>
             <span className={`stock-chip stock-chip-${info.level}`}>
               {info.level === "low" || info.level === "out" ? <AlertTriangle size={12} /> : null}
@@ -212,7 +216,9 @@ export function StockModal({ item, isOpen, onClose, onSaved }) {
           </div>
 
           <label className="stock-label" htmlFor="stock-qty">
-            {mode === "set" ? t("stock.countLabel", "Pieces you have now") : mode === "add" ? t("stock.addLabel", "Pieces to add") : t("stock.removeLabel", "Pieces to remove")}
+            {uLabel
+              ? (mode === "set" ? t("loose.countLabel", "Stock you have now ({{unit}})", { unit: uLabel }) : mode === "add" ? t("loose.addLabel", "Add stock ({{unit}})", { unit: uLabel }) : t("loose.removeLabel", "Remove stock ({{unit}})", { unit: uLabel }))
+              : (mode === "set" ? t("stock.countLabel", "Pieces you have now") : mode === "add" ? t("stock.addLabel", "Pieces to add") : t("stock.removeLabel", "Pieces to remove"))}
           </label>
           <div className="stock-qty-row">
             <button type="button" className="stock-step" onClick={() => bump(-1)} disabled={saving} aria-label="-1"><Minus size={16} /></button>
@@ -241,7 +247,7 @@ export function StockModal({ item, isOpen, onClose, onSaved }) {
           {preview !== null && (
             <div className={`stock-preview ${preview < 0 ? "neg" : ""}`}>
               <span>{t("stock.newStock", "New stock")}</span>
-              <strong>{formatQty(current)} → {formatQty(preview)}</strong>
+              <strong>{fq(current)} → {fq(preview)}</strong>
             </div>
           )}
 
@@ -299,9 +305,9 @@ export function StockModal({ item, isOpen, onClose, onSaved }) {
                       <span className="stock-history-meta">{fmtDate(h.created_at)}{h.note ? ` · ${h.note}` : ""}</span>
                     </div>
                     <div className="stock-history-nums">
-                      <span className={`stock-history-change ${h.change < 0 ? "neg" : "pos"}`}>{h.change > 0 ? "+" : ""}{formatQty(h.change)}</span>
+                      <span className={`stock-history-change ${h.change < 0 ? "neg" : "pos"}`}>{h.change > 0 ? "+" : ""}{fq(h.change)}</span>
                       {h.balance_after !== null && h.balance_after !== undefined && (
-                        <span className="stock-history-bal">= {formatQty(h.balance_after)}</span>
+                        <span className="stock-history-bal">= {fq(h.balance_after)}</span>
                       )}
                     </div>
                   </li>
@@ -332,8 +338,8 @@ export function StockBadge({ item, compact = false, onClick }) {
     : info.level === "out"
       ? t("stock.outOfStock", "Out of stock")
       : info.level === "low"
-        ? t("stock.lowCount", "Low: {{n}} left", { n: formatQty(info.qty) })
-        : compact ? t("stock.countShort", "{{n}} in stock", { n: formatQty(info.qty) }) : t("stock.countShort", "{{n}} in stock", { n: formatQty(info.qty) })
+        ? t("stock.lowCount", "Low: {{n}} left", { n: formatQtyUnit(info.qty, item?.unit) })
+        : t("stock.countShort", "{{n}} in stock", { n: formatQtyUnit(info.qty, item?.unit) })
   const Tag = onClick ? "button" : "span"
   return (
     <Tag

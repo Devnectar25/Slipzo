@@ -47,13 +47,14 @@ async function freshQuota(userKey, quota) {
 
 // Asks our server to confirm the payment with Razorpay and add the prints. Nothing is added unless the server says yes.
 async function confirmPurchase(pending, user) {
-  const { paymentId, planName, amountInRupees, printCount } = pending
+  const { paymentId, planName, amountInRupees, printCount, planId } = pending
   const userKey = getCurrentUserKey(user)
   invalidateApiCache('/subscriptions')
   try {
     const subRes = await call("/subscriptions", {
       method: "POST",
       body: JSON.stringify({
+        plan_id: planId || undefined,
         plan_name: planName,
         amount: amountInRupees,
         prints_count: printCount,
@@ -230,7 +231,7 @@ const readNativeError = (err) => {
  * (bank pages and UPI need windows and app switches it does not handle), so the app asks the server for an order and
  * hands it to Razorpay's SDK. Returns true if the payment screen was opened, false if the web checkout should be used.
  */
-async function startNativePurchase({ planName, amountInRupees, printCount, user, onActivated, onDone }) {
+async function startNativePurchase({ planId, planName, amountInRupees, printCount, user, onActivated, onDone }) {
   let Checkout
   try {
     ;({ Checkout } = await import("capacitor-razorpay"))
@@ -242,7 +243,15 @@ async function startNativePurchase({ planName, amountInRupees, printCount, user,
   // 1. the server decides the price and opens the order
   let order
   try {
-    order = await call("/subscriptions/order", { method: "POST", body: JSON.stringify({ plan_name: planName, prints_count: printCount }) })
+    order = await call("/subscriptions/order", {
+      method: "POST",
+      body: JSON.stringify({
+        plan_id: planId || undefined,
+        plan_name: planName,
+        prints_count: printCount,
+        amount: amountInRupees
+      })
+    })
   } catch (err) {
     // The server answered with a web page (or "not found") instead of data: it does not have the in-app payment step yet
     const serverTooOld = err?.code === "HTML_RESPONSE" || err?.status === 404
@@ -307,6 +316,7 @@ async function startNativePurchase({ planName, amountInRupees, printCount, user,
     paymentId: paid.razorpay_payment_id,
     orderId: paid.razorpay_order_id || order.order_id,
     signature: paid.razorpay_signature || "",
+    planId: planId || null,
     planName,
     amountInRupees,
     printCount,
@@ -325,7 +335,7 @@ async function startNativePurchase({ planName, amountInRupees, printCount, user,
  * onDone()           - the person closed the "Payment Successful" message
  * Resolves true if the payment window was opened, false if it could not be (owner-only, no network, ...).
  */
-export async function startPrintPurchase({ planName, amountInRupees, printCount, user, onActivated, onDone }) {
+export async function startPrintPurchase({ planId, planName, amountInRupees, printCount, user, onActivated, onDone }) {
   // The server refuses plan purchases from workers, so stop before any money is taken
   if (user?.staff_of) {
     Swal.fire({
@@ -339,7 +349,7 @@ export async function startPrintPurchase({ planName, amountInRupees, printCount,
 
   // In the Android app Razorpay's native payment screen is used; the web checkout below is for browsers
   if (isNativeApp) {
-    const handled = await startNativePurchase({ planName, amountInRupees, printCount, user, onActivated, onDone })
+    const handled = await startNativePurchase({ planId, planName, amountInRupees, printCount, user, onActivated, onDone })
     if (handled !== null) return handled
   }
 
@@ -369,6 +379,7 @@ export async function startPrintPurchase({ planName, amountInRupees, printCount,
       contact: user?.phone || user?.shop_phone || ""
     },
     notes: {
+      plan_id: planId || "",
       plan_name: planName,
       prints: printCount
     },
@@ -379,6 +390,7 @@ export async function startPrintPurchase({ planName, amountInRupees, printCount,
       console.log("💳 Razorpay Payment Success:", response.razorpay_payment_id)
       const pending = {
         paymentId: response.razorpay_payment_id || `PAY_${Date.now()}`,
+        planId: planId || null,
         planName,
         amountInRupees,
         printCount,

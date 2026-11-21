@@ -16,7 +16,8 @@ import {
   invalidateApiCache,
   resetSingleStoredTable
 } from "../lib/utils"
-import { printReceiptElement, saveReceiptAsPdf } from "../lib/printReceipt"
+import { printReceiptElement } from "../lib/printReceipt"
+import { chargeAndSavePdf } from "../lib/directPrint"
 import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
@@ -128,6 +129,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
             name: it.name || "Item",
             qty,
             rate,
+            unit: it.unit || "",
             total: tot
           }
         })
@@ -267,6 +269,10 @@ export function Reprint({ billId, setView, requireAuth, user }) {
 
         success(t("bills.printedSuccess", "Printed successfully!"))
 
+        if (quota && Number(quota.printsRemaining) <= 10 && Number(quota.printsRemaining) > 0) {
+          window.dispatchEvent(new CustomEvent("slipzo-low-prints-reminder", { detail: { force: true, quota, printsRemaining: Number(quota.printsRemaining) } }))
+        }
+
         if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
           window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
         }
@@ -294,8 +300,13 @@ export function Reprint({ billId, setView, requireAuth, user }) {
 
   const handleDownloadPdf = async () => {
     try {
-      await saveReceiptAsPdf("receipt-to-print", {
-        pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
+      // saving a PDF counts as a print and uses a print credit
+      await chargeAndSavePdf({
+        user,
+        elementId: "receipt-to-print",
+        pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm"),
+        billNumber: bill?.number,
+        onNeedPlan: () => setView?.("pricing")
       })
     } catch (err) {
       console.error("PDF download failed:", err)

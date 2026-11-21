@@ -104,3 +104,11 @@ ehthumbs.db
 
 
 
+
+# Android template sample tests (not used)
+android/app/src/test/
+android/app/src/androidTest/
+
+# Firebase / push notification credentials (never commit)
+*firebase-adminsdk*.json
+*service-account*.json

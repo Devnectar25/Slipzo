@@ -5,13 +5,13 @@ import { printReceiptElement, saveReceiptAsPdf } from "./printReceipt"
 
 const t = (key, fallback, values) => i18n.t(key, fallback, values)
 
-// Printing straight from the billing screen (no separate preview page). The print dialog opens first; one print
-// credit is used once the receipt has printed. In the app the print screen says whether it printed, so a cancelled
-// print costs nothing there. A browser never says, and the person is not asked: once its dialog closes the receipt
-// counts as printed.
+// Printing from the bill result screen. The print dialog opens first; one print credit is used once the receipt
+// has printed. In the app the print screen says whether it printed, so a cancelled print costs nothing there.
+// A browser never says whether Print or Cancel was pressed, so once its print window closes the receipt counts as printed.
 // Resolves true when it was printed, "cancelled" when it was not, "failed" when it could not be printed (already
-// explained in a popup), false when there were no print credits. Only true counts as printed.
-export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNeedPlan, billNumber }) {
+// explained in a popup), false when there were no print credits, and (only with chargeLater) "sent" when a browser's
+// print window closed: no credit used yet. Only true counts as printed.
+export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNeedPlan, billNumber, chargeLater = false }) {
   const userKey = user?.email || user?.id || getCurrentUserKey(user)
 
   const askForPlan = (text) => Swal.fire({
@@ -37,6 +37,17 @@ export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNe
   const result = await printReceiptElement(elementId, { pageWidth })
   if (!result?.printed) return result?.cancelled ? "cancelled" : "failed"
 
+  // A browser's print window closes the same way for Print and Cancel and never says which was pressed.
+  // With chargeLater the caller uses the credit itself later (spendPrintCredit) and "sent" comes back;
+  // otherwise it counts as printed now. (The Android app's print screen reports a cancel: "cancelled" above.)
+  if (result?.unconfirmed && chargeLater) return "sent"
+  await spendPrintCredit(user)
+  return true
+}
+
+/** Uses one print credit for a receipt that printed, and shows the low-prints / no-prints reminders */
+export async function spendPrintCredit(user) {
+  const userKey = user?.email || user?.id || getCurrentUserKey(user)
   // It printed: now the credit is used
   let quota = null
   try {
@@ -50,13 +61,47 @@ export async function chargeAndPrint({ user, elementId, pageWidth = "80mm", onNe
     console.error("Print credit could not be used after printing:", err)
   }
 
+  if (quota && Number(quota.printsRemaining) <= 10 && Number(quota.printsRemaining) > 0) {
+    window.dispatchEvent(new CustomEvent("slipzo-low-prints-reminder", { detail: { force: true, quota, printsRemaining: Number(quota.printsRemaining) } }))
+  }
+
   if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
     window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
   }
   return true
 }
 
-// The bill as a PDF file, named after the bill number (no print credit used)
+/**
+ * Saving the bill as a PDF counts as a print: it needs a print credit and uses one once the file is saved.
+ * free: true when this bill's credit was already used (it was printed), so the PDF costs nothing more.
+ * Resolves true when the PDF was saved, false when there were no print credits or it was not saved.
+ */
+export async function chargeAndSavePdf({ user, elementId, pageWidth = "80mm", billNumber, onNeedPlan, free = false }) {
+  const userKey = user?.email || user?.id || getCurrentUserKey(user)
+  if (!free && !canPrintFree(userKey)) {
+    const plan = getActivePlanDetails(userKey)
+    if (plan?.isFreeTier) {
+      window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
+    } else {
+      Swal.fire({
+        title: t("bills.quotaTitle", "Print Quota Limit Reached"),
+        text: t("bills.quotaTextPdf", "Saving a bill as PDF uses a print credit. Please view pricing plans to add print credits."),
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: t("bills.viewPlans", "View Pricing Plans"),
+        cancelButtonText: t("common.cancel", "Cancel"),
+        confirmButtonColor: "#0284c7"
+      }).then((r) => { if (r.isConfirmed) onNeedPlan?.() })
+    }
+    return false
+  }
+  const res = await downloadReceiptPdf({ elementId, pageWidth, billNumber })
+  if (!res?.saved) return false
+  if (!free) await spendPrintCredit(user)
+  return true
+}
+
+// The bill as a PDF file, named after the bill number (no print credit used: see chargeAndSavePdf)
 export function downloadReceiptPdf({ elementId, pageWidth = "80mm", billNumber }) {
   const safe = String(billNumber || "").replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^_+|_+$/g, "")
   return saveReceiptAsPdf(elementId, {

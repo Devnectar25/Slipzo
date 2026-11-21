@@ -7,10 +7,11 @@ import {
   ScanBarcode, Layers, BarChart3, Receipt
 } from "lucide-react"
 import "../styles/WelcomeOnboarding.css"
+import { PolicyLinks } from "./PolicyLinks"
 
 const SLIDE_DURATION_MS = 4500
 
-export function WelcomeOnboarding({ onLogin, onSignUp }) {
+export function WelcomeOnboarding({ onLogin, onSignUp, onNavigate }) {
   const { t } = useTranslation()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [progress, setProgress] = useState(0)
@@ -434,6 +435,9 @@ export function WelcomeOnboarding({ onLogin, onSignUp }) {
           >
             {t("welcome.signup", "SIGN UP")}
           </button>
+        </div>
+        <div className="welcome-policy-row" onClick={(e) => e.stopPropagation()}>
+          <PolicyLinks onOpen={onNavigate} />
         </div>
       </div>
     </div>
