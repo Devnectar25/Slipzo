@@ -19,14 +19,19 @@ import {
   Barcode as BarcodeIcon,
   ChevronLeft,
   ChevronRight,
-  Printer
+  Printer,
+  Percent
 } from "lucide-react"
 import { BarcodeModal } from "./common/BarcodeModal"
 import { useTranslation } from "react-i18next"
-import { call, money, getStoredMenuItems, saveStoredMenuItems, isInventoryShop, formatQty } from "../lib/utils"
+import { call, money, getStoredMenuItems, saveStoredMenuItems, isInventoryShop, getCachedData, setCachedData } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { ButtonLoader } from "./common/Skeleton"
 import { VoiceInputButton } from "./common/VoiceInputButton"
+import { LooseUnitPicker } from "./common/LooseUnitPicker"
+import { GstPicker } from "./common/GstPicker"
+import { shopUsesGst, normalizeGstRate } from "../lib/gst"
+import { unitLabel, formatQtyUnit } from "../lib/units"
 import { useDbTranslation } from "../lib/translator"
 import { matchesItemFuzzy, cleanVoiceQuery } from "../lib/fuzzySearch"
 
@@ -385,6 +390,13 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   // low-stock alert level (stock shops) and whether the item's barcode is used for scanning (barcode shops),
   // the same choices the Menu page offers when an item is added
   const [lowAlertInput, setLowAlertInput] = useState("5")
+  // loose item (sold by kg, litre, ...): "" = counted in pieces
+  const [unitInput, setUnitInput] = useState("")
+  // GST % on the product (when the shop has GST turned on in its profile)
+  const usesGst = shopUsesGst(shop || getCachedData("/shop"))
+  const [gstInput, setGstInput] = useState("0")
+  const [showPriceGst, setShowPriceGst] = useState(false)
+  const [showCustomGst, setShowCustomGst] = useState(false)
   const usesBarcode = shopUsesBarcode(currentBType)
   const [barcodeActive, setBarcodeActive] = useState(usesBarcode)
 
@@ -401,6 +413,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   const [customPrice, setCustomPrice] = useState("")
   const [customStock, setCustomStock] = useState("")
   const [customLowAlert, setCustomLowAlert] = useState("5")
+  const [customUnit, setCustomUnit] = useState("")
+  const [customGst, setCustomGst] = useState("0")
   const [customBarcode, setCustomBarcode] = useState("")
   const [customBarcodeActive, setCustomBarcodeActive] = useState(usesBarcode)
   const [customFormError, setCustomFormError] = useState("")
@@ -430,6 +444,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     setCustomPrice("")
     setCustomStock("")
     setCustomLowAlert("5")
+    setCustomUnit("")
+    setCustomGst("0")
     setCustomBarcode("")
     setCustomBarcodeActive(usesBarcode)
     setCustomFormError("")
@@ -485,6 +501,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
       finalBarcode = `BC${Math.floor(1000000000 + Math.random() * 9000000000)}`
     }
 
+    const finalGst = normalizeGstRate(customGst)
+    if (finalGst > 0 && !usesGst) {
+      const updatedShop = { ...(getCachedData("/shop") || {}), gst_enabled: 1 }
+      setCachedData("/shop", updatedShop)
+      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: updatedShop }))
+      call("/shop", { method: "PUT", body: JSON.stringify(updatedShop) }).catch(() => {})
+    }
+
     const newProduct = {
       id: uniqueId,
       name: trimmedName,
@@ -497,6 +521,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
       barcode: finalBarcode || undefined,
       barcodeActive: usesBarcode ? customBarcodeActive : false,
       is_veg: true,
+      unit: customUnit || "",
+      gst_rate: finalGst,
       ...(isInventory ? {
         openingStock: stockNum,
         lowAlert: alertNum,
@@ -691,6 +717,11 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     setSellingPriceInput(String(defaultPrice))
     setStockInput("")
     setLowAlertInput("5")
+    setUnitInput(product.unit || "")
+    // a loose item has no GST unless the shop owner chooses a rate (the catalog's rate is not carried over)
+    const initialGst = product.unit ? "0" : String(normalizeGstRate(product.gst_rate))
+    setGstInput(initialGst)
+    setShowPriceGst(usesGst || Number(initialGst) > 0)
     setBarcodeActive(usesBarcode)
     setPriceModalError("")
     setStockModalError("")
@@ -748,9 +779,18 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
 
     // an item still in flight from a previous add lands straight away
     if (flyingItem) setSelectedItems((prev) => (prev.some((it) => it.id === flyingItem.id) ? prev : [...prev, flyingItem]))
+    const finalGst = normalizeGstRate(gstInput)
+    if (finalGst > 0 && !usesGst) {
+      const updatedShop = { ...(getCachedData("/shop") || {}), gst_enabled: 1 }
+      setCachedData("/shop", updatedShop)
+      window.dispatchEvent(new CustomEvent("slipzo_shop_updated", { detail: updatedShop }))
+      call("/shop", { method: "PUT", body: JSON.stringify(updatedShop) }).catch(() => {})
+    }
     setFlyingItem({
       ...settingPriceProduct,
       customPrice: num,
+      unit: unitInput || "",
+      gst_rate: finalGst,
       openingStock,
       lowAlert,
       ...(usesBarcode ? { barcodeActive } : {})
@@ -824,6 +864,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               image_url: item.image_url || "",
               is_custom: isCustom,
               ...(item.barcode ? { barcode: item.barcode } : {}),
+              ...(item.unit ? { unit: item.unit } : {}),
+              ...(item.gst_rate ? { gst_rate: item.gst_rate } : {}),
               ...(isInventory ? { stock_qty: item.openingStock !== undefined ? item.openingStock : 0 } : {}),
               ...(isInventory && item.lowAlert !== undefined ? { low_stock_alert: item.lowAlert } : {}),
               ...(item.barcodeActive !== undefined ? { barcode_active: item.barcodeActive } : {})
@@ -840,6 +882,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
               is_custom: isCustom,
               barcode: item.barcode,
               barcode_active: item.barcodeActive,
+              unit: item.unit || null,
+              gst_rate: item.gst_rate || 0,
               ...(isInventory ? { stock_qty: item.openingStock || 0, low_stock_alert: item.lowAlert || 5, track_stock: true } : {}),
               created_at: new Date().toISOString()
             }
@@ -1295,8 +1339,10 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                         ) : (
                           <span className="selected-readonly-price">
                             ₹{Number(item.customPrice !== undefined ? item.customPrice : item.price).toFixed(2)}
+                            {item.unit && <span className="loose-per-unit">/ {unitLabel(item.unit)}</span>}
+                            {usesGst && item.gst_rate > 0 && <span className="gst-incl">+ {item.gst_rate}% GST</span>}
                             {isInventory && item.openingStock !== undefined && (
-                              <span className="selected-stock-note"> · {t("stock.countShort", "{{n}} in stock", { n: formatQty(item.openingStock) })}</span>
+                              <span className="selected-stock-note"> · {t("stock.countShort", "{{n}} in stock", { n: formatQtyUnit(item.openingStock, item.unit) })}</span>
                             )}
                           </span>
                         )}
@@ -1453,7 +1499,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                 {/* User Personal Selling Price Input */}
                 <div className="set-price-field-wrap">
                   <label className="set-price-label" htmlFor="user-selling-price-input">
-                    {t("menu.yourSellingPrice", "Your Selling Price")}
+                    {unitInput
+                      ? t("loose.pricePer", "Your selling price per {{unit}}", { unit: unitLabel(unitInput) })
+                      : t("menu.yourSellingPrice", "Your Selling Price")}
                   </label>
                   <div className={`set-price-input-container ${priceModalError ? "error" : ""}`}>
                     <span className="set-price-currency">₹</span>
@@ -1478,12 +1526,88 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                   )}
                 </div>
 
+                {/* GST on this product: selling price + GST = total price */}
+                <div className="set-price-field-wrap">
+                  {usesGst ? (
+                    <GstPicker rate={gstInput} onChange={setGstInput} price={sellingPriceInput} unitLabel={unitLabel(unitInput)} />
+                  ) : (
+                    <div className="amm-gst-toggle-card">
+                      <div className="amm-gst-toggle-header" onClick={() => {
+                        const next = !showPriceGst
+                        setShowPriceGst(next)
+                        if (!next) setGstInput("0")
+                        else if (gstInput === "0") setGstInput("18")
+                      }}>
+                        <div className="amm-gst-toggle-left">
+                          <div className="amm-gst-icon-box">
+                            <Percent size={15} />
+                          </div>
+                          <div>
+                            <div className="amm-gst-toggle-title">{t("gst.addGstTitle", "Add GST (%) to this product")}</div>
+                            <div className="amm-gst-toggle-sub">
+                              {showPriceGst && Number(gstInput) > 0
+                                ? t("gst.gstRateApplied", "{{rate}}% GST applied", { rate: gstInput })
+                                : t("gst.addGstSub", "Optional tax percentage on selling price")}
+                            </div>
+                          </div>
+                        </div>
+                        <label className="sp-switch" style={{ position: "relative", display: "inline-block", width: "40px", height: "22px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={showPriceGst}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setShowPriceGst(checked)
+                              if (!checked) setGstInput("0")
+                              else if (gstInput === "0") setGstInput("18")
+                            }}
+                            style={{ opacity: 0, width: 0, height: 0 }}
+                          />
+                          <span className={`sp-slider ${showPriceGst ? "active" : ""}`} style={{
+                            position: "absolute",
+                            cursor: "pointer",
+                            inset: 0,
+                            backgroundColor: showPriceGst ? "#0284c7" : "#cbd5e1",
+                            borderRadius: "22px",
+                            transition: "0.25s"
+                          }}>
+                            <span style={{
+                              position: "absolute",
+                              content: '""',
+                              height: "16px",
+                              width: "16px",
+                              left: showPriceGst ? "21px" : "3px",
+                              bottom: "3px",
+                              backgroundColor: "white",
+                              borderRadius: "50%",
+                              transition: "0.25s",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                            }} />
+                          </span>
+                        </label>
+                      </div>
+                      {showPriceGst && (
+                        <div style={{ marginTop: "0.75rem", animation: "fadeIn 0.2s ease" }}>
+                          <GstPicker rate={gstInput} onChange={setGstInput} price={sellingPriceInput} unitLabel={unitLabel(unitInput)} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                <div className="set-price-field-wrap">
+                  <LooseUnitPicker unit={unitInput} onChange={(u) => { if (u && !unitInput) setGstInput("0"); setUnitInput(u) }} />
+                </div>
+
                 {isInventory && (
                   <div className="set-price-field-wrap">
                     <div className="set-price-stock-row">
                       <div className="set-price-stock-col">
                         <label className="set-price-label" htmlFor="user-opening-stock-input">
-                          {t("stock.openingRequired", "Opening stock *")}
+                          {unitInput
+                            ? t("loose.openingRequired", "Opening stock ({{unit}}) *", { unit: unitLabel(unitInput) })
+                            : t("stock.openingRequired", "Opening stock *")}
                         </label>
                         <div className={`set-price-input-container ${stockModalError ? "error" : ""}`}>
                           <input
@@ -1499,14 +1623,16 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                               if (stockModalError) setStockModalError("")
                             }}
                             onKeyDown={(e) => { if (e.key === "Enter") handleConfirmAddPrice(e) }}
-                            placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                            placeholder={unitInput
+                              ? t("loose.openingPlaceholder", "e.g. 100 {{unit}}", { unit: unitLabel(unitInput) })
+                              : t("stock.openingPlaceholder", "Pieces you have")}
                             className="set-price-input set-price-stock-input"
                           />
                         </div>
                       </div>
                       <div className="set-price-stock-col">
                         <label className="set-price-label" htmlFor="user-low-alert-input">
-                          {t("stock.alertLabel", "Low-stock alert at")}
+                          {t("stock.alertLabel", "Low-stock alert at")}{unitInput ? ` (${unitLabel(unitInput)})` : ""}
                         </label>
                         <div className="set-price-input-container">
                           <input
@@ -1677,7 +1803,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                 {/* Selling Price */}
                 <div className="custom-field-group">
                   <label className="set-price-label" htmlFor="custom-item-price-input">
-                    {t("menu.yourSellingPrice", "Your Selling Price (₹) *")}
+                    {customUnit
+                      ? t("loose.pricePerReq", "Your selling price per {{unit}} (₹) *", { unit: unitLabel(customUnit) })
+                      : t("menu.yourSellingPrice", "Your Selling Price (₹) *")}
                   </label>
                   <div className="custom-price-wrapper">
                     <span className="custom-price-currency">₹</span>
@@ -1698,13 +1826,89 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                   </div>
                 </div>
 
+                {/* GST on this product: selling price + GST = total price */}
+                <div className="custom-field-group">
+                  {usesGst ? (
+                    <GstPicker rate={customGst} onChange={setCustomGst} price={customPrice} unitLabel={unitLabel(customUnit)} />
+                  ) : (
+                    <div className="amm-gst-toggle-card">
+                      <div className="amm-gst-toggle-header" onClick={() => {
+                        const next = !showCustomGst
+                        setShowCustomGst(next)
+                        if (!next) setCustomGst("0")
+                        else if (customGst === "0") setCustomGst("18")
+                      }}>
+                        <div className="amm-gst-toggle-left">
+                          <div className="amm-gst-icon-box">
+                            <Percent size={15} />
+                          </div>
+                          <div>
+                            <div className="amm-gst-toggle-title">{t("gst.addGstTitle", "Add GST (%) to this product")}</div>
+                            <div className="amm-gst-toggle-sub">
+                              {showCustomGst && Number(customGst) > 0
+                                ? t("gst.gstRateApplied", "{{rate}}% GST applied", { rate: customGst })
+                                : t("gst.addGstSub", "Optional tax percentage on selling price")}
+                            </div>
+                          </div>
+                        </div>
+                        <label className="sp-switch" style={{ position: "relative", display: "inline-block", width: "40px", height: "22px", flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={showCustomGst}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setShowCustomGst(checked)
+                              if (!checked) setCustomGst("0")
+                              else if (customGst === "0") setCustomGst("18")
+                            }}
+                            style={{ opacity: 0, width: 0, height: 0 }}
+                          />
+                          <span className={`sp-slider ${showCustomGst ? "active" : ""}`} style={{
+                            position: "absolute",
+                            cursor: "pointer",
+                            inset: 0,
+                            backgroundColor: showCustomGst ? "#0284c7" : "#cbd5e1",
+                            borderRadius: "22px",
+                            transition: "0.25s"
+                          }}>
+                            <span style={{
+                              position: "absolute",
+                              content: '""',
+                              height: "16px",
+                              width: "16px",
+                              left: showCustomGst ? "21px" : "3px",
+                              bottom: "3px",
+                              backgroundColor: "white",
+                              borderRadius: "50%",
+                              transition: "0.25s",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                            }} />
+                          </span>
+                        </label>
+                      </div>
+                      {showCustomGst && (
+                        <div style={{ marginTop: "0.75rem", animation: "fadeIn 0.2s ease" }}>
+                          <GstPicker rate={customGst} onChange={setCustomGst} price={customPrice} unitLabel={unitLabel(customUnit)} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                <div className="custom-field-group">
+                  <LooseUnitPicker unit={customUnit} onChange={(u) => { if (u && !customUnit) setCustomGst("0"); setCustomUnit(u) }} />
+                </div>
+
                 {/* Stock Tracking (for inventory shops) */}
                 {isInventory && (
                   <div className="custom-field-group">
                     <div className="custom-stock-grid">
                       <div>
                         <label className="set-price-label" htmlFor="custom-opening-stock-input">
-                          {t("stock.openingRequired", "Opening stock *")}
+                          {customUnit
+                            ? t("loose.openingRequired", "Opening stock ({{unit}}) *", { unit: unitLabel(customUnit) })
+                            : t("stock.openingRequired", "Opening stock *")}
                         </label>
                         <input
                           id="custom-opening-stock-input"
@@ -1718,13 +1922,15 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                             setCustomStock(e.target.value)
                             if (customFormError) setCustomFormError("")
                           }}
-                          placeholder={t("stock.openingPlaceholder", "Pieces you have")}
+                          placeholder={customUnit
+                            ? t("loose.openingPlaceholder", "e.g. 100 {{unit}}", { unit: unitLabel(customUnit) })
+                            : t("stock.openingPlaceholder", "Pieces you have")}
                           className="custom-input-field"
                         />
                       </div>
                       <div>
                         <label className="set-price-label" htmlFor="custom-low-alert-input">
-                          {t("stock.alertLabel", "Low-stock alert at")}
+                          {t("stock.alertLabel", "Low-stock alert at")}{customUnit ? ` (${unitLabel(customUnit)})` : ""}
                         </label>
                         <input
                           id="custom-low-alert-input"

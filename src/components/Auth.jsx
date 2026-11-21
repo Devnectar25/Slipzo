@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { ButtonLoader } from "./common/Skeleton"
-import { ArrowRight, ArrowLeft, Receipt, X, Check, Eye, EyeOff, AlertCircle, CheckCircle2, Phone, Lock, Printer, Store, Mail, ExternalLink } from "lucide-react"
+import { ArrowRight, ArrowLeft, Receipt, X, Check, Eye, EyeOff, AlertCircle, CheckCircle2, Phone, Lock, Printer, Store, Mail, ExternalLink, QrCode } from "lucide-react"
 import { call } from "../lib/utils"
 import { usePageScrollLock } from "../hooks/usePageScrollLock"
 import "../styles/Auth.css"
 import { PASSWORD_RULES, normalizeMobile, sanitizeMobileInput, mobileProblem } from "../lib/authFields"
 import { OtpVerify, otpErrorText } from "./auth/OtpVerify"
 import { ForgotPassword } from "./auth/ForgotPassword"
+import { POLICY_DOCS } from "../lib/policyPages"
+import { PAYMENT_MODES } from "../lib/paymentModes"
+import { isValidUpiId, normalizeUpiId } from "../lib/upi"
+import { UpiQrImage } from "./common/UpiQr"
+
+const PAY_ICONS = { Cash: "💵", UPI: "📱", Card: "💳", Credit: "📒" }
 
 export { PASSWORD_RULES }
 
@@ -55,12 +61,57 @@ const PRINTER_FALLBACK = [
   { id: "pos-bt200", name: "Bluetooth POS Receipt Printer (80mm)", image: "/products/pos_printer.jpg" }
 ]
 
+// Sign up: while the typed password still misses a rule, a strength bar plus each rule ticked off as it is met
+// (nothing before typing starts, and nothing once every rule is met)
+const STRENGTH_LEVELS = [
+  { id: "weak", label: "Weak" },
+  { id: "fair", label: "Fair" },
+  { id: "good", label: "Good" }
+]
+function PasswordTrack({ password, t }) {
+  const results = PASSWORD_RULES.map((rule) => ({ rule, passed: rule.test(password) }))
+  const passed = results.filter((r) => r.passed).length
+  if (!password || passed === PASSWORD_RULES.length) return null
+  const level = STRENGTH_LEVELS[passed === 4 ? 2 : passed === 3 ? 1 : 0]
+  return (
+    <div className={`auth-pw-track is-${level.id}`} data-testid="auth-password-track">
+      <div className="auth-pw-meter">
+        <div className="auth-pw-bars" aria-hidden="true">
+          {PASSWORD_RULES.map((rule, i) => <span key={rule.id} className={i < passed ? "on" : ""} />)}
+        </div>
+        <span className="auth-pw-level" aria-live="polite">{t(`auth.strength_${level.id}`, level.label)}</span>
+      </div>
+      <ul className="auth-pw-rules">
+        {results.map(({ rule, passed: ok }) => (
+          <li key={rule.id} className={ok ? "ok" : "missing"}>
+            <span className="auth-pw-rule-icon" aria-hidden="true">
+              {ok ? <Check size={11} strokeWidth={3.5} /> : <X size={11} strokeWidth={3.5} />}
+            </span>
+            <span>{t(`auth.rule_${rule.id}`, rule.label)}</span>
+            <span className="sr-only">{ok ? t("auth.ruleMet", "done") : t("auth.ruleNotMet", "not yet")}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function Auth({ onLogin, onCancel, initialRegister = false }) {
   const { t } = useTranslation()
   const [isRegister, setIsRegister] = useState(initialRegister)
   const [step, setStep] = useState(1) // sign up only: 1 shop details, 2 printer, 3 password
-  const EMPTY_FORM = { shopName: "", category: "", phone: "", email: "", password: "", confirmPassword: "" }
+  const EMPTY_FORM = { shopName: "", category: "", phone: "", email: "", acceptPolicies: false, upiId: "", password: "", confirmPassword: "" }
   const [form, setForm] = useState(EMPTY_FORM)
+  // sign up: payment modes the shop takes (Cash and UPI to start with); at least one stays on
+  const [payModes, setPayModes] = useState(["Cash", "UPI"])
+  const togglePayMode = (id) => {
+    setPayModes((prev) => {
+      const next = prev.includes(id) ? prev.filter((m) => m !== id) : PAYMENT_MODES.map((m) => m.id).filter((m) => m === id || prev.includes(m))
+      return next.length ? next : prev
+    })
+    if (id === "UPI") setFieldErrors((prev) => ({ ...prev, upiId: "" }))
+    if (error) setError("")
+  }
   const [hasPrinter, setHasPrinter] = useState(null) // null = not answered yet
   const [printers, setPrinters] = useState(PRINTER_FALLBACK)
   const [myPrinterId, setMyPrinterId] = useState("") // printer picked from the list ("Yes, I have one")
@@ -77,11 +128,16 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
       case "category": return categoryProblem(f.category)
       case "phone": return mobileProblem(f.phone)
       case "email": return emailProblem(f.email)
+      case "acceptPolicies": return f.acceptPolicies ? null : ["auth.err_accept_policies", "Please accept the policies to continue"]
       case "password":
         if (!f.password) return ["auth.err_password_required", "Please enter your password"]
         if (isRegister && !PASSWORD_RULES.every((rule) => rule.test(f.password))) return ["auth.err_password_rules", "Password does not meet the security requirements"]
         if (!isRegister && f.password.length < 4) return ["auth.err_password_short", "Password must be at least 4 characters"]
         return null
+      case "upiId":
+        if (!isRegister || !payModes.includes("UPI")) return null
+        if (!String(f.upiId || "").trim()) return ["upi.errRequired", "Enter your UPI ID, or turn UPI off"]
+        return isValidUpiId(f.upiId) ? null : ["upi.errInvalid", "Please enter a valid UPI ID, for example yourname@okaxis"]
       case "confirmPassword":
         if (!f.confirmPassword) return ["auth.err_confirm_required", "Please re-enter your password"]
         return f.password === f.confirmPassword ? null : ["auth.err_mismatch", "Passwords do not match"]
@@ -182,7 +238,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     if (loading) return
     setError("")
     setOfferSignIn(false)
-    if (!checkFields(["shopName", "category", "phone", "email"])) return
+    if (!checkFields(["shopName", "category", "phone", "email", "acceptPolicies"])) return
     setLoading(true)
     try {
       const email = form.email.trim()
@@ -257,7 +313,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
     if (isRegister && step === 1) return goStep1Next()
     if (isRegister && step === 2) return goStep2Next()
 
-    const toCheck = isRegister ? ["password", "confirmPassword"] : ["phone", "password"]
+    const toCheck = isRegister ? ["upiId", "password", "confirmPassword"] : ["phone", "password"]
     if (!checkFields(toCheck)) {
       if (isRegister && form.password && !PASSWORD_RULES.every((rule) => rule.test(form.password))) setShowValidationPopup(true)
       return
@@ -276,7 +332,10 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           business_type: form.category,
           otp_token: otpToken,
           ...(hasPrinter === true ? { printer_name: (printers.find((pr) => pr.id === myPrinterId)?.name || myPrinterName).trim() } : {}),
-          ...(form.email.trim() ? { email: form.email.trim() } : {})
+          ...(form.email.trim() ? { email: form.email.trim() } : {}),
+          payment_modes: payModes,
+          default_payment_mode: payModes[0],
+          ...(payModes.includes("UPI") ? { upi_id: normalizeUpiId(form.upiId) } : {})
         }
       } else {
         body = {
@@ -337,7 +396,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
   const titles = {
     1: [t("auth.step1Eyebrow", "STEP 1 OF 3 · YOUR SHOP"), t("auth.step1Title", "Tell us about your shop"), t("auth.step1Sub", "Just the basics. You can add the rest later.")],
     2: [t("auth.step2Eyebrow", "STEP 2 OF 3 · PRINTER"), t("auth.step2Title", "Do you have a receipt printer?"), t("auth.step2Sub", "Slipzen works with 58mm and 80mm thermal printers.")],
-    3: [t("auth.step3Eyebrow", "STEP 3 OF 3 · PASSWORD"), t("auth.step3Title", "Set your password"), t("auth.step3Sub", "Last step. Then you will pick a plan and set up your items.")]
+    3: [t("auth.step3EyebrowPay", "STEP 3 OF 3 · PAYMENTS & PASSWORD"), t("auth.step3TitlePay", "Payments and password"), t("auth.step3SubPay", "How customers pay you, then a password. Then you pick a plan.")]
   }
   const [eyebrowText, headingText, subText] = isRegister
     ? (step === 1 && verifyingPhone
@@ -539,6 +598,32 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                   </div>
                   {fieldError("email")}
                 </label>
+
+                {/* Sign up: the person must tick this before continuing. The links open in a new tab so the half-filled form stays here. */}
+                <div className="auth-consent">
+                  <label className={`auth-consent-row ${fieldErrors.acceptPolicies ? "has-error" : ""}`}>
+                    <input
+                      type="checkbox"
+                      data-testid="auth-accept-policies"
+                      data-field="acceptPolicies"
+                      checked={form.acceptPolicies}
+                      onChange={(e) => set({ acceptPolicies: e.target.checked })}
+                    />
+                    <span className="auth-consent-text">
+                      {t("auth.acceptBefore", "I agree to the")}{" "}
+                      {POLICY_DOCS.map((d, i) => (
+                        <span key={d.id}>
+                          {i > 0 && (i === POLICY_DOCS.length - 1 ? ` ${t("auth.agreeAnd", "and")} ` : ", ")}
+                          <a href={d.path} target="_blank" rel="noopener noreferrer" data-testid={`auth-legal-${d.id}`}>
+                            {t(`legalPages.${d.id}`, d.navLabel)}
+                          </a>
+                        </span>
+                      ))}
+                      {t("auth.acceptAfter", ".")}
+                    </span>
+                  </label>
+                  {fieldError("acceptPolicies")}
+                </div>
               </>
             )}
 
@@ -676,6 +761,70 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               </label>
             )}
 
+            {/* Sign up step 3: how customers pay, and the UPI ID the bill's payment QR is made from */}
+            {isRegister && step === 3 && (
+              <>
+                <div className="auth-cats auth-pay" data-testid="auth-payment-modes">
+                  <span className="auth-label-text">{t("auth.payModes", "How do customers pay you?")} {required}</span>
+                  <div className="auth-cat-grid" role="group" aria-label={t("auth.payModes", "How do customers pay you?")}>
+                    {PAYMENT_MODES.map((m) => {
+                      const on = payModes.includes(m.id)
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={on}
+                          data-testid={`auth-pay-${m.id}`}
+                          className={`auth-cat ${on ? "active" : ""}`}
+                          onClick={() => togglePayMode(m.id)}
+                        >
+                          <span className="auth-cat-icon">{PAY_ICONS[m.id]}</span>
+                          <span className="auth-cat-label">{t(m.labelKey, m.label)}</span>
+                          {on && <Check size={14} strokeWidth={3} className="auth-pay-check" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <span className="auth-pay-hint">{t("auth.payModesHint", "Only these show on your bills. You can change them later in Shop profile.")}</span>
+                </div>
+
+                {payModes.includes("UPI") && (
+                  <label>
+                    <span className="auth-label-text">{t("upi.idLabel", "UPI ID for payment QR")} {required}</span>
+                    <div className="auth-field">
+                      <QrCode size={17} className="auth-field-icon" />
+                      <input
+                        data-testid="auth-upi-input"
+                        data-field="upiId"
+                        type="text"
+                        inputMode="email"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        maxLength={100}
+                        placeholder="yourname@okaxis"
+                        value={form.upiId}
+                        onBlur={() => checkField("upiId")}
+                        onChange={(e) => set({ upiId: e.target.value.replace(/\s/g, "") })}
+                        className={fieldErrors.upiId ? "input-error" : ""}
+                      />
+                    </div>
+                    {fieldError("upiId")}
+                    {isValidUpiId(form.upiId) && (
+                      <div className="upi-id-preview" data-testid="auth-upi-preview">
+                        <UpiQrImage upiId={form.upiId} payeeName={form.shopName.trim()} size={76} />
+                        <div className="upi-id-preview-text">
+                          <strong>{t("upi.previewTitle", "Your payment QR is ready")}</strong>
+                          <span>{t("upi.previewText", "On each bill it carries the exact amount to pay.")}</span>
+                        </div>
+                      </div>
+                    )}
+                  </label>
+                )}
+              </>
+            )}
+
             {(!isRegister || step === 3) && (
               <>
                 {isRegister && (
@@ -740,6 +889,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                   </div>
                   {fieldError("password")}
                 </label>
+                {isRegister && <PasswordTrack password={form.password} t={t} />}
 
                 {!isRegister && (
                   <div className="auth-forgot-row">
@@ -786,6 +936,18 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                       </button>
                     </div>
                     {fieldError("confirmPassword")}
+                    {/* live match check; a wrong letter shows at once, a still-unfinished re-entry shows nothing */}
+                    {!fieldErrors.confirmPassword && form.confirmPassword && (
+                      form.confirmPassword === form.password ? (
+                        <span className="auth-pw-match ok" data-testid="auth-password-match">
+                          <CheckCircle2 size={14} /> {t("auth.pwMatch", "Passwords match")}
+                        </span>
+                      ) : !form.password.startsWith(form.confirmPassword) ? (
+                        <span className="auth-pw-match bad" data-testid="auth-password-match">
+                          <AlertCircle size={14} /> {t("auth.err_mismatch", "Passwords do not match")}
+                        </span>
+                      ) : null
+                    )}
                   </label>
                 )}
               </>
@@ -837,6 +999,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
               )}
             </div>
             )}
+
           </form>
 
           <p className="switch">
@@ -920,247 +1083,6 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
           </div>
         </div>
       )}
-
-      <style>{`
-        /* Password input container with show/hide toggle */
-        .password-input-wrap {
-          position: relative !important;
-          display: flex !important;
-          align-items: center !important;
-          width: 100% !important;
-        }
-
-        .password-input-wrap .auth-field-icon {
-          position: absolute !important;
-          left: 0.95rem !important;
-          top: 50% !important;
-          transform: translateY(-50%) !important;
-          color: #94a3b8 !important;
-          pointer-events: none !important;
-          z-index: 3 !important;
-        }
-
-        .password-input-wrap:focus-within .auth-field-icon {
-          color: #0284c7 !important;
-        }
-
-        .password-input-wrap input {
-          width: 100% !important;
-          padding-left: 2.75rem !important;
-          padding-right: 2.9rem !important;
-        }
-
-        .password-toggle-btn {
-          position: absolute !important;
-          right: 0.5rem !important;
-          top: 50% !important;
-          transform: translateY(-50%) !important;
-          background: none !important;
-          border: none !important;
-          color: #64748b !important;
-          cursor: pointer !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          padding: 0.35rem !important;
-          border-radius: 6px !important;
-          transition: color 0.2s !important;
-          z-index: 4 !important;
-        }
-
-        .password-toggle-btn:hover {
-          color: #0f172a !important;
-        }
-
-        .auth-error-banner {
-          display: flex !important;
-          align-items: center !important;
-          gap: 0.45rem !important;
-          background: #FFE1E5 !important;
-          border: 1px solid #FFB8BD !important;
-          color: #b91c1c !important;
-          font-size: clamp(0.75rem, 2.2vw, 0.82rem) !important;
-          font-weight: 500 !important;
-          padding: 0.45rem 0.75rem !important;
-          border-radius: 8px !important;
-          margin-top: 0.15rem !important;
-          line-height: 1.3 !important;
-        }
-
-        /* Validation Failure Popup Overlay */
-        .validation-popup-overlay {
-          position: fixed !important;
-          inset: 0 !important;
-          background: rgba(15, 23, 42, 0.65) !important;
-          backdrop-filter: blur(4px) !important;
-          -webkit-backdrop-filter: blur(4px) !important;
-          z-index: 10000 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          padding: clamp(8px, 3vw, 16px) !important;
-          animation: fadeIn 0.2s ease !important;
-          overflow-y: auto !important;
-        }
-
-        .validation-popup-card {
-          background: #ffffff !important;
-          border-radius: 16px !important;
-          width: 100% !important;
-          max-width: 420px !important;
-          max-height: min(92vh, 92dvh) !important;
-          overflow-y: auto !important;
-          padding: clamp(1rem, 3.5vw, 1.4rem) !important;
-          box-shadow: 0 20px 48px rgba(15, 23, 42, 0.25) !important;
-          border: 1px solid #bae6fd !important;
-          animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-          box-sizing: border-box !important;
-        }
-
-        .validation-popup-header {
-          display: flex !important;
-          justify-content: space-between !important;
-          align-items: center !important;
-          margin-bottom: 0.65rem !important;
-        }
-
-        .popup-icon-title {
-          display: flex !important;
-          align-items: center !important;
-          gap: 0.55rem !important;
-        }
-
-        .popup-alert-icon {
-          width: 32px !important;
-          height: 32px !important;
-          border-radius: 8px !important;
-          background: #fee2e2 !important;
-          color: #ef4444 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          flex-shrink: 0 !important;
-        }
-
-        .popup-icon-title h3 {
-          font-size: clamp(1rem, 3.5vw, 1.12rem) !important;
-          font-weight: 700 !important;
-          color: #0C1F41 !important;
-          margin: 0 !important;
-        }
-
-        .popup-close-btn {
-          background: #f0f9ff !important;
-          border: 1px solid #bae6fd !important;
-          width: 28px !important;
-          height: 28px !important;
-          border-radius: 50% !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          color: #0284c7 !important;
-          cursor: pointer !important;
-          transition: all 0.2s !important;
-          flex-shrink: 0 !important;
-        }
-
-        .popup-close-btn:hover {
-          background: #e0f2fe !important;
-          color: #0369a1 !important;
-        }
-
-        .popup-desc {
-          font-size: clamp(0.78rem, 2.5vw, 0.85rem) !important;
-          color: #64748b !important;
-          line-height: 1.4 !important;
-          margin: 0 0 0.75rem 0 !important;
-        }
-
-        .popup-rules-list {
-          background: #f0f9ff !important;
-          border: 1px solid #bae6fd !important;
-          border-radius: 10px !important;
-          padding: 0.65rem 0.85rem !important;
-          display: flex !important;
-          flex-direction: column !important;
-          gap: 0.45rem !important;
-          margin-bottom: 1rem !important;
-        }
-
-        .popup-rule-row {
-          display: flex !important;
-          align-items: center !important;
-          gap: 0.55rem !important;
-          font-size: clamp(0.76rem, 2.4vw, 0.82rem) !important;
-          font-weight: 500 !important;
-        }
-
-        .popup-rule-row.passed {
-          color: #059669 !important;
-        }
-
-        .popup-rule-row.missing {
-          color: #dc2626 !important;
-        }
-
-        .popup-rule-status {
-          width: 18px !important;
-          height: 18px !important;
-          border-radius: 50% !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          flex-shrink: 0 !important;
-        }
-
-        .popup-rule-row.passed .popup-rule-status {
-          background: #d1fae5 !important;
-          color: #059669 !important;
-        }
-
-        .popup-rule-row.missing .popup-rule-status {
-          background: #fee2e2 !important;
-          color: #dc2626 !important;
-        }
-
-        .popup-rule-text {
-          line-height: 1.25 !important;
-        }
-
-        .popup-ok-btn {
-          width: 100% !important;
-          padding: 0.65rem 1rem !important;
-          background: #0284c7 !important;
-          color: #ffffff !important;
-          border: none !important;
-          border-radius: 9px !important;
-          font-weight: 600 !important;
-          font-size: clamp(0.84rem, 2.5vw, 0.9rem) !important;
-          cursor: pointer !important;
-          transition: all 0.2s !important;
-          min-height: 38px !important;
-        }
-
-        .popup-ok-btn:hover {
-          background: #0369a1 !important;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes scaleUp {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-      `}</style>
     </div>
   )
 }

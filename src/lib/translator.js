@@ -161,6 +161,7 @@ export const DICTIONARY = {
   "Custom Menu": { mr: "कस्टम मेनू", hi: "कस्टम मेनू" },
   "Create Custom Menu": { mr: "कस्टम मेनू तयार करा", hi: "कस्टम मेनू बनाएं" },
   "Custom Item": { mr: "कस्टम वस्तू", hi: "कस्टम आइटम" },
+  "Add Your Item": { mr: "तुमची वस्तू जोडा", hi: "अपना आइटम जोड़ें" },
   "Create Custom Item": { mr: "कस्टम वस्तू तयार करा", hi: "कस्टम आइटम बनाएं" },
   "Create Custom Product": { mr: "कस्टम उत्पादन तयार करा", hi: "कस्टम उत्पाद बनाएं" },
   "Product Image (Optional)": { mr: "वस्तूचे छायाचित्र (पर्यायी)", hi: "उत्पाद की फोटो (वैकल्पिक)" },

@@ -6,6 +6,7 @@ import {
   Bluetooth, CheckCircle2, Ticket, Boxes, MonitorCheck, Crown, UserRound, PackageCheck, ChefHat, ConciergeBell, Check, UserCheck
 } from "lucide-react"
 import { PublicNavbar, PUBLIC_NAV_LINKS } from "./PublicNavbar"
+import { PolicyLinks, PoweredBy } from "./PolicyLinks"
 import { RealisticReceiptView } from "./RealisticReceiptView"
 import { FEATURE_PAGES } from "../lib/featurePages"
 import { FeatureArt } from "./landing/FeatureArt"
@@ -704,7 +705,11 @@ export function DesktopLanding({ onLogin, onSignUp, onNavigate }) {
           </nav>
         </div>
         <div className="dl-container lp-footer-legal">
-          <span><Store size={13} /> © {new Date().getFullYear()} {t("landing.rights", "Slipzen. All rights reserved.")}</span>
+          <div className="pp-legal-left">
+            <span><Store size={13} /> © {new Date().getFullYear()} {t("landing.rights", "Slipzen. All rights reserved.")}</span>
+            <PoweredBy />
+          </div>
+          <PolicyLinks onOpen={onNavigate} className="dl-footer-policies" />
         </div>
       </footer>
     </div>

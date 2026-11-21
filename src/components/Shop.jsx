@@ -24,8 +24,18 @@ import {
   Mail,
   Printer,
   ShieldCheck,
-  Loader2
+  Loader2,
+  Wallet,
+  Banknote,
+  QrCode,
+  CreditCard,
+  NotebookPen
 } from "lucide-react"
+import { PAYMENT_MODES, parsePaymentModes, shopDefaultPaymentMode } from "../lib/paymentModes"
+import { isValidUpiId, normalizeUpiId } from "../lib/upi"
+import { UpiQrImage } from "./common/UpiQr"
+
+const PAYMENT_MODE_ICONS = { Cash: Banknote, UPI: QrCode, Card: CreditCard, Credit: NotebookPen }
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
@@ -134,6 +144,9 @@ export function Shop({ user, setView } = {}) {
       name: data?.name || "",
       address: data?.address || "",
       phone: data?.phone || "",
+      gstin: data?.gstin || "",
+      gst_enabled: data?.gst_enabled !== undefined ? Boolean(Number(data.gst_enabled)) : false,
+      gst_on_bill: data?.gst_on_bill !== undefined ? Boolean(Number(data.gst_on_bill)) : false,
       invoice_prefix: data?.invoice_prefix || "HB",
       invoice_sequence: data?.invoice_sequence || 7,
       invoice_format: data?.invoice_format || "PREFIX-DATE-SEQ",
@@ -143,6 +156,9 @@ export function Shop({ user, setView } = {}) {
       tax_rate: data?.tax_rate !== undefined ? data.tax_rate : 0,
       logo_url: data?.logo_url || "",
       business_type: data?.business_type || "small_business",
+      payment_modes: parsePaymentModes(data?.payment_modes),
+      default_payment_mode: data ? shopDefaultPaymentMode(data) : "Cash",
+      upi_id: data?.upi_id || "",
     }
   })
 
@@ -206,6 +222,12 @@ export function Shop({ user, setView } = {}) {
     let errorMsg = ""
     const val = String(value || "").trim()
 
+    if (key === "upi_id") {
+      if (val && !isValidUpiId(val)) {
+        errorMsg = t("upi.errInvalid", "Please enter a valid UPI ID, for example yourname@okaxis")
+      }
+    }
+
     if (key === "name") {
       if (!val) {
         errorMsg = t("validation.nameRequired", "Shop name is required.")
@@ -256,7 +278,7 @@ export function Shop({ user, setView } = {}) {
 
   const validateAll = (dataToValidate = shop) => {
     const newErrors = {}
-    const keys = ["name", "phone", "address", "invoice_prefix", "invoice_sequence"]
+    const keys = ["name", "phone", "address", "invoice_prefix", "invoice_sequence", "upi_id"]
 
     keys.forEach((k) => {
       const err = validateField(k, dataToValidate[k], dataToValidate)
@@ -319,6 +341,9 @@ export function Shop({ user, setView } = {}) {
             name: data.name || "",
             address: data.address || "",
             phone: data.phone || "",
+            gstin: data.gstin || "",
+            gst_enabled: data.gst_enabled !== undefined ? Boolean(Number(data.gst_enabled)) : false,
+            gst_on_bill: data.gst_on_bill !== undefined ? Boolean(Number(data.gst_on_bill)) : false,
             invoice_prefix: data.invoice_prefix || "HB",
             invoice_sequence: data.invoice_sequence || 7,
             invoice_format: data.invoice_format || "PREFIX-DATE-SEQ",
@@ -329,6 +354,9 @@ export function Shop({ user, setView } = {}) {
             logo_url: data.logo_url || "",
             business_type: data.business_type || "small_business",
             table_count: data.table_count !== undefined ? data.table_count : 10,
+            payment_modes: parsePaymentModes(data.payment_modes),
+            default_payment_mode: shopDefaultPaymentMode(data),
+            upi_id: data.upi_id || "",
           }
           setShop(loadedShop)
           setCachedData("/shop", loadedShop)
@@ -346,29 +374,79 @@ export function Shop({ user, setView } = {}) {
     loadShop()
   }, [])
 
-  // Auto-scroll to App Settings section if redirected from language setting option
+  // Auto-scroll to section/field if redirected (e.g. from UPI ID / App Settings)
   useEffect(() => {
-    const scrollToAppSettings = () => {
-      const el = document.getElementById("app-settings-section")
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" })
-        const selectEl = el.querySelector("select")
-        if (selectEl) {
-          selectEl.focus()
+    const handleScrollTarget = (e) => {
+      const targetId = e?.detail || sessionStorage.getItem("slipzo_scroll_to") || sessionStorage.getItem("slipzo_focus_target")
+      if (!targetId) return
+
+      // If target is UPI ID or payment modes, make sure UPI mode is active so the input is visible!
+      if (targetId === "payment-modes-section" || targetId === "shop-upi-id") {
+        setShop((prev) => {
+          const currentModes = parsePaymentModes(prev.payment_modes)
+          if (!currentModes.includes("UPI")) {
+            return { ...prev, payment_modes: [...currentModes, "UPI"] }
+          }
+          return prev
+        })
+      }
+
+      sessionStorage.removeItem("slipzo_scroll_to")
+      sessionStorage.removeItem("slipzo_focus_target")
+
+      const tryScroll = (attempts = 0) => {
+        const inputEl = document.getElementById("shop-upi-id")
+        const sectionEl = document.getElementById(targetId) || document.getElementById("payment-modes-section")
+        const targetEl = (targetId === "shop-upi-id" && inputEl) ? inputEl : (inputEl || sectionEl)
+
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
+          if (targetEl.tagName === "INPUT" || targetEl.tagName === "SELECT") {
+            targetEl.focus()
+            targetEl.select?.()
+          } else {
+            const innerInput = targetEl.querySelector("input, select")
+            if (innerInput) {
+              innerInput.focus()
+              innerInput.select?.()
+            }
+          }
+          targetEl.classList.add("sp-field-flash")
+          setTimeout(() => targetEl.classList.remove("sp-field-flash"), 2200)
+        } else if (attempts < 5) {
+          setTimeout(() => tryScroll(attempts + 1), 120)
         }
       }
+
+      setTimeout(() => tryScroll(0), 150)
     }
 
-    if (sessionStorage.getItem("slipzo_scroll_to") === "app-settings-section") {
-      sessionStorage.removeItem("slipzo_scroll_to")
-      setTimeout(scrollToAppSettings, 150)
+    if (sessionStorage.getItem("slipzo_scroll_to") || sessionStorage.getItem("slipzo_focus_target")) {
+      handleScrollTarget()
     }
 
-    window.addEventListener("slipzo-scroll-to-app-settings", scrollToAppSettings)
+    window.addEventListener("slipzo-scroll-to-target", handleScrollTarget)
+    window.addEventListener("slipzo-scroll-to-app-settings", () => handleScrollTarget({ detail: "app-settings-section" }))
     return () => {
-      window.removeEventListener("slipzo-scroll-to-app-settings", scrollToAppSettings)
+      window.removeEventListener("slipzo-scroll-to-target", handleScrollTarget)
+      window.removeEventListener("slipzo-scroll-to-app-settings", () => handleScrollTarget({ detail: "app-settings-section" }))
     }
   }, [])
+
+  // payment modes the shop takes; at least one stays on, and the default is always one of them
+  const payModes = parsePaymentModes(shop.payment_modes)
+  const payDefault = shopDefaultPaymentMode(shop)
+  const updatePayment = (modes, def) => {
+    edited.current = true
+    setHasUnsaved(true)
+    setShop((prev) => ({ ...prev, payment_modes: modes, default_payment_mode: modes.includes(def) ? def : modes[0] }))
+  }
+  const togglePayMode = (id) => {
+    const next = payModes.includes(id) ? payModes.filter((m) => m !== id) : PAYMENT_MODES.map((m) => m.id).filter((m) => m === id || payModes.includes(m))
+    if (!next.length) return
+    updatePayment(next, payDefault)
+  }
+  const setPayDefault = (id) => updatePayment(payModes, id)
 
   const handleChange = (key, value) => {
     edited.current = true
@@ -446,7 +524,10 @@ export function Shop({ user, setView } = {}) {
     const sanitizedShop = {
       ...shop,
       invoice_prefix: (shop.invoice_prefix || "SLP").trim().toUpperCase(),
-      invoice_sequence: shop.invoice_sequence && !isNaN(Number(shop.invoice_sequence)) && Number(shop.invoice_sequence) >= 1 ? Number(shop.invoice_sequence) : 1
+      invoice_sequence: shop.invoice_sequence && !isNaN(Number(shop.invoice_sequence)) && Number(shop.invoice_sequence) >= 1 ? Number(shop.invoice_sequence) : 1,
+      gstin: (shop.gstin || "").trim().toUpperCase(),
+      gst_enabled: shop.gst_enabled ? 1 : 0,
+      gst_on_bill: shop.gst_enabled && shop.gst_on_bill ? 1 : 0
     }
 
     setTouched({
@@ -454,7 +535,8 @@ export function Shop({ user, setView } = {}) {
       phone: true,
       address: true,
       invoice_prefix: true,
-      invoice_sequence: true
+      invoice_sequence: true,
+      upi_id: true
     })
 
     const validationErrors = validateAll(sanitizedShop)
@@ -546,7 +628,9 @@ export function Shop({ user, setView } = {}) {
         shopName: (shop.name || "HYDRABADI BIRYANI , CHOPDA").trim(),
         address: (shop.address || "Shop no:12 , Hated Road Parisar , Lasur").trim(),
         phone: (shop.phone || "8329300932").trim(),
-        gst: (shop.gstin || "").trim(),
+        gst: shop.gst_on_bill ? (shop.gstin || "").trim() : "",
+        showGstOnBill: Boolean(shop.gst_on_bill),
+        gstSummary: shop.gst_on_bill ? { taxable: 504.24, gst: 90.76, totalRate: 18, cgst: 45.38, sgst: 45.38, groups: [{ rate: 18, cgstRate: 9, sgstRate: 9, cgst: 45.38, sgst: 45.38, taxable: 504.24, gst: 90.76 }] } : null,
         invoiceNo: liveInvoicePreview,
         date: new Date().toLocaleDateString(getDateLocale(), { day: "2-digit", month: "short", year: "numeric" }),
         items: [
@@ -562,7 +646,7 @@ export function Shop({ user, setView } = {}) {
         footer: matched.footer || "Thank you for shopping with us!"
       }
     }
-  }, [templates, shop.default_template_id, shop.name, shop.address, shop.phone, shop.gstin, liveInvoicePreview, receiptMath])
+  }, [templates, shop.default_template_id, shop.name, shop.address, shop.phone, shop.gstin, shop.gst_on_bill, liveInvoicePreview, receiptMath])
 
   // Workers do not manage the owner's settings
   if (user?.staff_of) {
@@ -1110,7 +1194,163 @@ export function Shop({ user, setView } = {}) {
             </div>
           </div>
 
-          {/* Card 2: Invoice Sequencing */}
+          {/* Card 2: GST & Tax Settings */}
+          <div className="sp-card" id="gst-settings-section">
+            <div className="sp-card-header">
+              <div className="sp-icon-box emerald" style={{ background: "#ecfdf5", color: "#059669" }}>
+                <Percent size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">{t("profile.gstSettingsTitle", "GST & Tax Settings")}</h3>
+                <p className="sp-card-subtitle">{t("profile.gstSettingsSub", "Product GST rates, bill tax breakdown & GSTIN")}</p>
+              </div>
+            </div>
+
+            {/* Toggle 1: Enable GST for Products */}
+            <div className="sp-toggle-card" style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0.9rem 1rem",
+              borderRadius: "10px",
+              background: shop.gst_enabled ? "#f0fdf4" : "#f8fafc",
+              border: `1.5px solid ${shop.gst_enabled ? "#86efac" : "#e2e8f0"}`,
+              marginBottom: shop.gst_enabled ? "1rem" : "0",
+              transition: "all 0.2s ease"
+            }}>
+              <div style={{ flex: 1, minWidth: 0, paddingRight: "0.75rem" }}>
+                <div style={{ fontSize: "0.92rem", fontWeight: 700, color: "#0f172a", marginBottom: "0.2rem" }}>
+                  {t("profile.enableGst", "Enable GST for Products")}
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "#64748b", lineHeight: 1.35 }}>
+                  {t("profile.enableGstSub", "Assign GST percentages (0%, 5%, 12%, 18%, 28%) to products in your inventory.")}
+                </div>
+              </div>
+              <label className="sp-switch" style={{ position: "relative", display: "inline-block", width: "44px", height: "24px", flexShrink: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(shop.gst_enabled)}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    handleChange("gst_enabled", checked)
+                    if (!checked) handleChange("gst_on_bill", false)
+                  }}
+                  style={{ opacity: 0, width: 0, height: 0 }}
+                />
+                <span className={`sp-slider ${shop.gst_enabled ? "active" : ""}`} style={{
+                  position: "absolute",
+                  cursor: "pointer",
+                  inset: 0,
+                  backgroundColor: shop.gst_enabled ? "#10b981" : "#cbd5e1",
+                  borderRadius: "24px",
+                  transition: "0.25s"
+                }}>
+                  <span style={{
+                    position: "absolute",
+                    content: '""',
+                    height: "18px",
+                    width: "18px",
+                    left: shop.gst_enabled ? "23px" : "3px",
+                    bottom: "3px",
+                    backgroundColor: "white",
+                    borderRadius: "50%",
+                    transition: "0.25s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                  }} />
+                </span>
+              </label>
+            </div>
+
+            {shop.gst_enabled && (
+              <div className="sp-gst-extended-options" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {/* Toggle 2: Show GST breakdown on Bill */}
+                <div className="sp-toggle-card" style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "0.85rem 1rem",
+                  borderRadius: "10px",
+                  background: shop.gst_on_bill ? "#eff6ff" : "#f8fafc",
+                  border: `1.5px solid ${shop.gst_on_bill ? "#93c5fd" : "#e2e8f0"}`,
+                  transition: "all 0.2s ease"
+                }}>
+                  <div style={{ flex: 1, minWidth: 0, paddingRight: "0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
+                      <span style={{ fontSize: "0.92rem", fontWeight: 700, color: "#0f172a" }}>
+                        {t("profile.showGstOnBill", "Mention / Show GST on Bills")}
+                      </span>
+                      <span style={{
+                        fontSize: "0.68rem",
+                        padding: "1px 6px",
+                        borderRadius: "6px",
+                        fontWeight: 700,
+                        background: shop.gst_on_bill ? "#dbeafe" : "#f1f5f9",
+                        color: shop.gst_on_bill ? "#1d4ed8" : "#64748b"
+                      }}>
+                        {shop.gst_on_bill ? t("common.active", "Active") : t("common.off", "OFF")}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: "#64748b", lineHeight: 1.35 }}>
+                      {shop.gst_on_bill
+                        ? t("profile.showGstOnBillActive", "Printed bills will display itemized GST breakdown & tax analysis.")
+                        : t("profile.showGstOnBillInactive", "Bills charge total price directly without mentioning GST breakdown.")}
+                    </div>
+                  </div>
+                  <label className="sp-switch" style={{ position: "relative", display: "inline-block", width: "44px", height: "24px", flexShrink: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(shop.gst_on_bill)}
+                      onChange={(e) => handleChange("gst_on_bill", e.target.checked)}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span className={`sp-slider ${shop.gst_on_bill ? "active" : ""}`} style={{
+                      position: "absolute",
+                      cursor: "pointer",
+                      inset: 0,
+                      backgroundColor: shop.gst_on_bill ? "#0284c7" : "#cbd5e1",
+                      borderRadius: "24px",
+                      transition: "0.25s"
+                    }}>
+                      <span style={{
+                        position: "absolute",
+                        content: '""',
+                        height: "18px",
+                        width: "18px",
+                        left: shop.gst_on_bill ? "23px" : "3px",
+                        bottom: "3px",
+                        backgroundColor: "white",
+                        borderRadius: "50%",
+                        transition: "0.25s",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                      }} />
+                    </span>
+                  </label>
+                </div>
+
+                {/* GSTIN Input */}
+                <div className="sp-field-group">
+                  <label className="sp-label">{t("profile.gstin", "Shop GSTIN Number")}</label>
+                  <div className="sp-input-wrap">
+                    <input
+                      data-testid="shop-gstin-input"
+                      type="text"
+                      maxLength={15}
+                      placeholder={t("profile.gstinPlaceholder", "e.g. 27AAAAA0000A1Z5")}
+                      value={shop.gstin || ""}
+                      onChange={(e) => handleChange("gstin", e.target.value.toUpperCase())}
+                      className="sp-input"
+                      style={{ textTransform: "uppercase", letterSpacing: "1px", fontWeight: 600 }}
+                    />
+                  </div>
+                  <span className="sp-helper-text">
+                    {t("profile.gstinHelper", "Optional 15-character GST identification number for receipt headers.")}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: Invoice Sequencing */}
           <div className="sp-card sp-sequencing-card">
             <div className="sp-card-header">
               <div className="sp-icon-box purple">
@@ -1233,6 +1473,104 @@ export function Shop({ user, setView } = {}) {
                 {liveInvoicePreview}
               </span>
             </div>
+          </div>
+
+          {/* Card: Payment modes the shop takes (shown in the bill's Payment Mode list) */}
+          <div className="sp-card" id="payment-modes-section">
+            <div className="sp-card-header">
+              <div className="sp-icon-box green">
+                <Wallet size={18} />
+              </div>
+              <div className="sp-card-titles">
+                <h3 className="sp-card-title">{t("profile.paymentModesTitle", "Payment Modes")}</h3>
+                <p className="sp-card-subtitle">{t("profile.paymentModesSub", "Choose how customers can pay you. Only these show on your bills.")}</p>
+              </div>
+            </div>
+
+            <div className="sp-pay-grid" role="group" aria-label={t("profile.paymentModesTitle", "Payment Modes")}>
+              {PAYMENT_MODES.map((m) => {
+                const Icon = PAYMENT_MODE_ICONS[m.id]
+                const on = payModes.includes(m.id)
+                const isDefault = payDefault === m.id
+                const onlyOne = on && payModes.length === 1
+                return (
+                  <div key={m.id} className={`sp-pay-option ${on ? "on" : ""}`}>
+                    <button
+                      type="button"
+                      className="sp-pay-toggle"
+                      role="checkbox"
+                      aria-checked={on}
+                      disabled={onlyOne}
+                      title={onlyOne ? t("profile.paymentModesKeepOne", "Keep at least one payment mode") : undefined}
+                      data-testid={`pay-mode-${m.id}`}
+                      onClick={() => togglePayMode(m.id)}
+                    >
+                      <span className="sp-pay-icon"><Icon size={18} /></span>
+                      <span className="sp-pay-name">{t(m.labelKey, m.label)}</span>
+                      <span className="sp-pay-check">{on && <Check size={13} strokeWidth={3} />}</span>
+                    </button>
+                    {on && (
+                      <button
+                        type="button"
+                        className={`sp-pay-default ${isDefault ? "is-default" : ""}`}
+                        onClick={() => setPayDefault(m.id)}
+                        aria-pressed={isDefault}
+                        data-testid={`pay-default-${m.id}`}
+                      >
+                        {isDefault ? t("profile.paymentDefault", "Default") : t("profile.paymentMakeDefault", "Make default")}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <span className="sp-helper-text" style={{ display: "block", marginTop: "0.6rem" }}>
+              {t("profile.paymentModesHelper", "New bills start with the default mode. Remember to save.")}
+            </span>
+
+            {/* UPI ID: bills show a QR code made from it, with the exact amount, when UPI is chosen */}
+            {payModes.includes("UPI") && (
+              <div className="sp-field-group full-width" style={{ marginTop: "0.9rem" }}>
+                <label className="sp-label" htmlFor="shop-upi-id">{t("upi.idLabel", "UPI ID for payment QR")}</label>
+                <div className={`sp-input-wrap ${touched.upi_id && errors.upi_id ? "error" : ""}`}>
+                  <QrCode size={16} className="sp-input-icon" />
+                  <input
+                    id="shop-upi-id"
+                    type="text"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    maxLength={100}
+                    placeholder="yourname@okaxis"
+                    value={shop.upi_id || ""}
+                    onChange={(e) => handleChange("upi_id", e.target.value.replace(/\s/g, ""))}
+                    onBlur={() => handleBlur("upi_id")}
+                    className="sp-input"
+                    data-testid="shop-upi-id"
+                  />
+                </div>
+                {touched.upi_id && errors.upi_id ? (
+                  <span className="sp-field-error"><AlertCircle size={12} /> {errors.upi_id}</span>
+                ) : !shop.upi_id ? (
+                  <span className="sp-field-error" style={{ color: "#b45309" }}>
+                    <AlertCircle size={12} /> {t("upi.idMissing", "Add your UPI ID so bills can show a payment QR.")}
+                  </span>
+                ) : (
+                  <span className="sp-helper-text">{t("upi.idHelper", "Find it in your UPI app (GPay, PhonePe, Paytm) under your profile.")}</span>
+                )}
+                {isValidUpiId(shop.upi_id) && (
+                  <div className="upi-id-preview">
+                    <UpiQrImage upiId={shop.upi_id} payeeName={shop.name} size={84} />
+                    <div className="upi-id-preview-text">
+                      <strong>{t("upi.previewTitle", "Your payment QR is ready")}</strong>
+                      <span>{normalizeUpiId(shop.upi_id)}</span>
+                      <span>{t("upi.previewText", "On each bill it carries the exact amount to pay.")}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Card 3: App Settings */}
@@ -1713,6 +2051,88 @@ export function Shop({ user, setView } = {}) {
           color: #0284c7;
         }
 
+        .sp-pay-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.6rem;
+        }
+        .sp-pay-option {
+          display: flex;
+          flex-direction: column;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 12px;
+          background: #f8fafc;
+          overflow: hidden;
+          transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        .sp-pay-option.on {
+          border-color: #7dd3fc;
+          background: #f0f9ff;
+        }
+        .sp-pay-toggle {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          width: 100%;
+          padding: 0.7rem 0.75rem;
+          border: none;
+          background: transparent;
+          text-align: left;
+          cursor: pointer;
+        }
+        .sp-pay-toggle:disabled { cursor: not-allowed; }
+        .sp-pay-icon {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          background: #e2e8f0;
+          color: #64748b;
+        }
+        .sp-pay-option.on .sp-pay-icon { background: #e0f2fe; color: #0284c7; }
+        .sp-pay-name {
+          flex: 1;
+          min-width: 0;
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #475569;
+        }
+        .sp-pay-option.on .sp-pay-name { color: #0c1f41; }
+        .sp-pay-check {
+          flex: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
+          border: 1.5px solid #cbd5e1;
+          border-radius: 6px;
+          background: #ffffff;
+          color: #ffffff;
+        }
+        .sp-pay-option.on .sp-pay-check { border-color: #0284c7; background: #0284c7; }
+        .sp-pay-default {
+          margin: 0 0.75rem 0.65rem;
+          padding: 0.25rem 0.6rem;
+          align-self: flex-start;
+          border: 1px dashed #93c5fd;
+          border-radius: 999px;
+          background: #ffffff;
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #0369a1;
+          cursor: pointer;
+        }
+        .sp-pay-default.is-default {
+          border-style: solid;
+          border-color: #0284c7;
+          background: #0284c7;
+          color: #ffffff;
+          cursor: default;
+        }
         .sp-icon-box.green {
           background: #f0f9ff;
           border: 1.5px solid #bae6fd;

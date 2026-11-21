@@ -4,8 +4,11 @@ import { Shell } from "./components/Shell"
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider, useToast } from "./components/common/Toast"
+import { initPush, stopPush } from "./lib/push"
+import { prefetchTodayAnalytics } from "./lib/todayAnalytics"
 import { TopProgressBar } from "./components/common/TopProgressBar"
 import { featurePageByView, featurePageByPath } from "./lib/featurePages"
+import { policyDocByView, policyDocByPath } from "./lib/policyPages"
 import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData, setCachedData } from "./lib/utils"
 import i18n from "./i18n/i18n"
 import PolicyGate from "./components/PolicyGate"
@@ -73,6 +76,7 @@ const Reprint = lazyNamed(() => import("./components/Reprint"), "Reprint")
 const Pricing = lazyNamed(() => import("./components/Pricing"), "Pricing")
 const Contact = lazyNamed(() => import("./components/Contact"), "Contact")
 const UserGuide = lazyNamed(() => import("./components/UserGuide"), "UserGuide")
+const PolicyPage = lazyNamed(() => import("./components/PolicyPage"), "PolicyPage")
 const ShopMenu = lazyNamed(() => import("./components/Menu"), "Menu")
 const TableManagement = lazyNamed(() => import("./components/tables/TableManagement"), "TableManagement")
 const ShopOnboardingModal = lazyNamed(() => import("./components/ShopOnboardingModal"), "ShopOnboardingModal")
@@ -169,6 +173,8 @@ const pathToView = (pathname) => {
   if (clean === "/guide" || clean === "/user-guide" || clean === "/help") return "guide"
   if (clean === "/reprint") return "reprint"
   if (clean === "/overview" || clean === "/dashboard" || clean === "/") return "dashboard"
+  const policy = policyDocByPath(clean)
+  if (policy) return policy.view
   const feature = featurePageByPath(clean)
   if (feature) return feature.view
   return "dashboard"
@@ -190,7 +196,7 @@ const isAuthPath = (pathname) => isLoginPath(pathname) || isRegisterPath(pathnam
 const publicViewFromPath = () => {
   if (typeof window === "undefined") return "dashboard"
   const v = pathToView(window.location.pathname)
-  return v === "pricing" || v === "contact" || featurePageByView(v) ? v : "dashboard"
+  return v === "pricing" || v === "contact" || featurePageByView(v) || policyDocByView(v) ? v : "dashboard"
 }
 
 const viewToPath = (viewName) => {
@@ -208,6 +214,9 @@ const viewToPath = (viewName) => {
     case "feature_token":
     case "feature_inventory":
     case "feature_pos": return featurePageByView(viewName)?.path
+    case "policy_terms":
+    case "policy_privacy":
+    case "policy_cookies": return policyDocByView(viewName)?.path
     case "guide": return "/user-guide"
     case "reprint": return "/reprint"
     case "admin_login":
@@ -286,7 +295,7 @@ function AppContent() {
     return () => window.removeEventListener("slipzo_shop_updated", handleShopUpdate)
   }, [])
 
-  const { error: toastError } = useToast()
+  const { error: toastError, warning: toastWarning, info: toastInfo } = useToast()
   const isClaimingRewardRef = useRef(false)
 
   const handleCompleteOnboarding = async () => {
@@ -515,7 +524,10 @@ function AppContent() {
         localStorage.removeItem("slipzo_free_print_count")
 
         const userKey = userData.email || userData.id
-        
+
+        // Home page numbers start loading now, while the account is still being checked
+        prefetchTodayAnalytics()
+
         // Sync subscription quota from DB backend
         try {
           const subRes = await call("/subscriptions/my")
@@ -631,15 +643,99 @@ function AppContent() {
       }
     }
 
+    let lastLowToastTime = 0
+    let lastLowToastCount = -1
+    const handleLowPrints = (e) => {
+      const rem = Number(e.detail?.printsRemaining)
+      if (Number.isFinite(rem) && rem <= 10 && rem > 0) {
+        const now = Date.now()
+        if (now - lastLowToastTime < 3000 && lastLowToastCount === rem) return
+        lastLowToastTime = now
+        lastLowToastCount = rem
+
+        if (rem === 10) {
+          toastWarning?.(i18n.t("bills.lowPrintsTenToast", "Reminder: Only last 10 prints remaining in your plan! Please recharge soon."))
+        } else {
+          toastWarning?.(i18n.t("bills.lowPrintsToast", "Low Print Balance: Only {{n}} prints left in your plan. Recharge soon!", { n: rem }))
+        }
+      }
+    }
+
+    let lastExpiryToastTime = 0
+    let lastExpiryToastDay = null
+    const handlePlanExpiry = (e) => {
+      const q = e.detail?.quota || {}
+      const days = Number(q.daysRemaining)
+      const isExpired = Boolean(q.isExpired)
+      const planName = q.planName || "plan"
+      const now = Date.now()
+      if (now - lastExpiryToastTime < 3000 && lastExpiryToastDay === days) return
+      lastExpiryToastTime = now
+      lastExpiryToastDay = days
+
+      // Realtime Toast Alert (Jio/Airtel style)
+      if (isExpired || days < 0) {
+        toastError?.(i18n.t("expiry.expiredToast", "Your {{plan}} has expired. Please recharge to continue.", { plan: planName }))
+      } else if (days === 0) {
+        toastWarning?.(i18n.t("expiry.todayToast", "🚨 Final Alert: Your {{plan}} expires today! Renew now to avoid interruption.", { plan: planName }))
+      } else if (days === 1) {
+        toastWarning?.(i18n.t("expiry.day1Toast", "🔴 Urgent: Last 1 day remaining! Your {{plan}} expires tomorrow.", { plan: planName }))
+      } else if (days === 2) {
+        toastWarning?.(i18n.t("expiry.day2Toast", "🟠 Alert: Only 2 days left in your {{plan}}. Renew your plan today.", { plan: planName }))
+      } else if (days <= 3) {
+        toastWarning?.(i18n.t("expiry.day3Toast", "🟡 Reminder: Only {{n}} days left in your {{plan}}. Recharge now to enjoy uninterrupted billing.", { n: days, plan: planName }))
+      }
+
+      // SweetAlert2 Modal Popup (once per day/session per user)
+      const currentUser = userRef.current
+      const userKey = e.detail?.userKey || currentUser?.email || currentUser?.id || "guest"
+      const swalKey = `slipzo_expiry_popup_day_${days}_${userKey}`
+      if (!sessionStorage.getItem(swalKey)) {
+        sessionStorage.setItem(swalKey, "1")
+        const title = isExpired
+          ? i18n.t("expiry.swalTitleExpired", "Subscription Expired")
+          : (days === 0
+              ? i18n.t("expiry.swalTitleToday", "Plan Expires Today!")
+              : (days === 1
+                  ? i18n.t("expiry.swalTitleDay1", "Last 1 Day Remaining!")
+                  : i18n.t("expiry.swalTitleDays", "Plan Validity Reminder ({{n}} Days Left)", { n: days })))
+        const text = isExpired
+          ? i18n.t("expiry.swalTextExpired", "Your {{plan}} has expired. Renew today to keep generating and printing bills without disruption.", { plan: planName })
+          : (days === 0
+              ? i18n.t("expiry.swalTextToday", "Your {{plan}} will expire by end of today. Recharge now for uninterrupted billing services.", { plan: planName })
+              : (days === 1
+                  ? i18n.t("expiry.swalTextDay1", "Urgent reminder: Only 1 day remaining in your {{plan}}. Avoid service disruption by renewing now.", { plan: planName })
+                  : i18n.t("expiry.swalTextDays", "Your {{plan}} will expire in {{n}} days. Recharge now to enjoy continuous billing benefits.", { n: days, plan: planName })))
+
+        Swal.fire({
+          title,
+          text,
+          icon: isExpired || days <= 1 ? "error" : "warning",
+          showCancelButton: true,
+          confirmButtonText: i18n.t("expiry.renewBtn", "Recharge Now"),
+          cancelButtonText: i18n.t("common.later", "Remind Me Later"),
+          confirmButtonColor: "#0284c7"
+        }).then((res) => {
+          if (res.isConfirmed) {
+            setView("pricing")
+          }
+        })
+      }
+    }
+
     window.addEventListener("slipzo_auth_unauthorized", handleUnauthorized)
     window.addEventListener("popstate", handlePopState)
     window.addEventListener("slipzo-show-free-reward-expired", handleShowExpiry)
+    window.addEventListener("slipzo-low-prints-reminder", handleLowPrints)
+    window.addEventListener("slipzo-plan-expiry-reminder", handlePlanExpiry)
     return () => {
       window.removeEventListener("slipzo_auth_unauthorized", handleUnauthorized)
       window.removeEventListener("popstate", handlePopState)
       window.removeEventListener("slipzo-show-free-reward-expired", handleShowExpiry)
+      window.removeEventListener("slipzo-low-prints-reminder", handleLowPrints)
+      window.removeEventListener("slipzo-plan-expiry-reminder", handlePlanExpiry)
     }
-  }, [])
+  }, [toastWarning, toastError])
 
   const modalStatesRef = useRef({
     showAuth,
@@ -744,6 +840,31 @@ function AppContent() {
 
   const loggingOutRef = useRef(false)
 
+  // Push notifications (Android app): register this phone once someone is signed in.
+  // A tapped notification opens the page it points to; one arriving while the app is open shows as a toast.
+  useEffect(() => {
+    if (user?.id) initPush()
+  }, [user?.id])
+
+  useEffect(() => {
+    const PUSH_VIEWS = new Set(["pricing", "dashboard", "history", "menu", "shop", "bills", "products"])
+    const onOpen = (e) => {
+      const view = e?.detail?.view
+      if (view && PUSH_VIEWS.has(view) && userRef.current) setView(view)
+    }
+    const onReceived = (e) => {
+      const { title, body } = e?.detail || {}
+      if (title || body) toastInfo?.([title, body].filter(Boolean).join(": "), 7000)
+    }
+    window.addEventListener("slipzo_push_open", onOpen)
+    window.addEventListener("slipzo_push_received", onReceived)
+    return () => {
+      window.removeEventListener("slipzo_push_open", onOpen)
+      window.removeEventListener("slipzo_push_received", onReceived)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toastInfo])
+
   // Signing out happens on the phone straight away. The server is told in the background, so a slow or missing
   // connection can never leave the person stuck on the screen (or signed back in later).
   const handleLogout = () => {
@@ -752,6 +873,8 @@ function AppContent() {
 
     let token = null
     try { token = localStorage.getItem("slipzo_token") } catch (e) {}
+    // this phone stops getting push notifications for the account
+    stopPush(token)
     try {
       call("/auth/logout", {
         method: "POST",
@@ -819,14 +942,14 @@ function AppContent() {
     setShowAuth(false)
     const userKey = userData?.email || userData?.id
 
-    try {
-      const subRes = await call("/subscriptions/my", { noCache: true })
-      if (subRes && subRes.quota) {
-        syncUserQuota(subRes.quota, userKey)
-      }
-    } catch (subErr) {
-      console.warn("Could not sync DB subscriptions on login:", subErr)
-    }
+    // Home page numbers start loading now, together with the account checks below (not after them)
+    if (!isNewUser) prefetchTodayAnalytics()
+
+    // the plan check runs alongside the shop checks instead of before them
+    const planSync = call("/subscriptions/my", { noCache: true })
+      .then((subRes) => { if (subRes && subRes.quota) syncUserQuota(subRes.quota, userKey) })
+      .catch((subErr) => console.warn("Could not sync DB subscriptions on login:", subErr))
+    if (isNewUser) await planSync
 
     if (isNewUser) {
       if (userKey) {
@@ -845,6 +968,7 @@ function AppContent() {
       // Someone who signed up but never paid or finished setup picks up where they stopped (same check as a page reload)
       try {
         await Promise.all([
+          planSync,
           syncShopContext(userData),
           withTimeout(checkShopSetupNeeded(userData), 8000)
         ])
@@ -931,6 +1055,25 @@ function AppContent() {
       else handleOpenAuth(true)
     }
     const publicSetShowAuth = (open) => (open ? handleOpenAuth(true) : handleCloseAuth())
+
+    const policyDoc = policyDocByView(view)
+    if (policyDoc) {
+      return (
+        <ErrorBoundary onGoHome={() => setView("dashboard")}>
+          <Suspense fallback={<PageLoader />}>
+            <PublicPageShell
+              activeView={view}
+              setView={setView}
+              onLogin={() => handleOpenAuth(false)}
+              onSignUp={() => handleOpenAuth(true)}
+            >
+              <PolicyPage doc={policyDoc.id} onOpen={setView} onContact={() => setView("contact")} />
+            </PublicPageShell>
+          </Suspense>
+          <PwaInstallPrompt />
+        </ErrorBoundary>
+      )
+    }
 
     const featurePage = featurePageByView(view)
     if (featurePage) {
@@ -1066,6 +1209,9 @@ function AppContent() {
         {view === "pricing" && <Pricing setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "contact" && <Contact setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "guide" && <UserGuide setView={setView} user={user} />}
+        {policyDocByView(view) && (
+          <PolicyPage doc={policyDocByView(view).id} onOpen={setView} onContact={() => setView("contact")} />
+        )}
         {view === "reprint" && (
           <Reprint
             billId={selectedBillId}

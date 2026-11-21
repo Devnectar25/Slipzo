@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { 
   ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, 
-  ShieldCheck, Printer, Crown, Layers, Percent, TrendingUp 
+  ShieldCheck, Printer, Crown, Layers, Percent, TrendingUp,
+  Clock, Calendar
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { ButtonLoader } from "./common/Skeleton"
@@ -20,6 +21,36 @@ export function Pricing({ setView, setShowAuth, user }) {
   const [buyingPlan, setBuyingPlan] = useState(null)
   const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
+
+  const [pricingCategory, setPricingCategory] = useState("time")
+  const [serverTimePlans, setServerTimePlans] = useState([])
+  const [serverPrintPlans, setServerPrintPlans] = useState([])
+  const [loadingPlans, setLoadingPlans] = useState(false)
+
+  // Fetch dynamic plans configured from the Admin Panel
+  useEffect(() => {
+    let isMounted = true
+    const fetchPlans = async () => {
+      setLoadingPlans(true)
+      try {
+        const res = await call("/subscriptions/plans", { noCache: true })
+        if (res && res.success && isMounted) {
+          if (Array.isArray(res.timePlans) && res.timePlans.length > 0) {
+            setServerTimePlans(res.timePlans)
+          }
+          if (Array.isArray(res.printPlans) && res.printPlans.length > 0) {
+            setServerPrintPlans(res.printPlans)
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load dynamic plans, using fallback presets:", err)
+      } finally {
+        if (isMounted) setLoadingPlans(false)
+      }
+    }
+    fetchPlans()
+    return () => { isMounted = false }
+  }, [])
 
   // Finish a payment that was made earlier but never confirmed, with no second charge
   useEffect(() => {
@@ -72,17 +103,32 @@ export function Pricing({ setView, setShowAuth, user }) {
     }
   }, [user])
 
-  const handleBuyPlan = async (planName, amountInRupees, printCount) => {
+  const handleBuyPlan = async (planOrName, amount, prints) => {
     if (buyingPlan) return
-    // Someone who is not signed in can look at the prices, but buying needs an account: send them to sign up first
     if (!user) {
       if (typeof setShowAuth === "function") setShowAuth(true)
       return
     }
+    let planId = undefined
+    let planName = ""
+    let amountInRupees = 0
+    let printCount = 0
+
+    if (typeof planOrName === "object" && planOrName !== null) {
+      planId = planOrName.id
+      planName = planOrName.rawName || planOrName.name
+      amountInRupees = Number(planOrName.numericPrice || 0)
+      printCount = Number(planOrName.numericPrints || 0)
+    } else {
+      planName = String(planOrName)
+      amountInRupees = Number(amount || 0)
+      printCount = Number(prints || 0)
+    }
+
     setBuyingPlan(planName)
     try {
-      // Opens Razorpay; prints are only added once the server has confirmed the payment
       await startPrintPurchase({
+        planId,
         planName,
         amountInRupees,
         printCount,
@@ -91,15 +137,95 @@ export function Pricing({ setView, setShowAuth, user }) {
         onActivated: (updated) => { if (updated) setActivePlan(updated) }
       })
     } finally {
-      // Razorpay shows its own screen from here on
       setBuyingPlan(null)
     }
   }
 
-  // Preset plans: Starter Pack (1,000), Pro Growth (2,000), Business Super (5,000)
-  const plans = [
+  // Preset Default Time-Based Plans (1 Month, 3 Months, 1 Year)
+  const defaultTimePlans = [
     {
-      id: "starter",
+      id: "time_1m",
+      name: t("pricing.month1Plan", "1 Month Plan"),
+      rawName: "1 Month Plan",
+      durationLabel: t("pricing.month1Validity", "1 Month Validity (30 Days)"),
+      price: "₹299",
+      numericPrice: 299,
+      originalPrice: "₹399",
+      numericPrints: 0,
+      description: t("pricing.month1Desc", "Ideal for standard billing with unlimited prints for 30 full days."),
+      features: [
+        t("pricing.featureUnlimitedPrints", "Unlimited prints for 30 days"),
+        t("pricing.featureThermalPOS", "Thermal & POS printer support"),
+        t("pricing.featureAllTemplates", "All receipt templates included"),
+        t("pricing.featureShopBranding", "Custom shop branding & logo"),
+        t("pricing.featureSalesAnalytics", "Sales analytics & CSV export"),
+        t("pricing.featureEmailChat", "Email & chat support")
+      ],
+      cta: t("pricing.getPlanNow", "Get 1 Month Plan"),
+      popular: false,
+      savings: t("pricing.save100", "Save ₹100 (25% OFF)"),
+      cardClass: "card-starter",
+      btnClass: "btn-starter",
+      iconType: "starter"
+    },
+    {
+      id: "time_3m",
+      name: t("pricing.month3Plan", "3 Months Plan"),
+      rawName: "3 Months Plan",
+      durationLabel: t("pricing.month3Validity", "3 Months Validity (90 Days)"),
+      price: "₹799",
+      numericPrice: 799,
+      originalPrice: "₹1,199",
+      numericPrints: 0,
+      description: t("pricing.month3Desc", "Our most popular quarterly plan with unlimited billing and priority support."),
+      features: [
+        t("pricing.featureUnlimitedPrints90", "Unlimited prints for 90 days"),
+        t("pricing.save400Quarterly", "Save ₹400 vs monthly renewal"),
+        t("pricing.featureThermalPOS", "Thermal & POS printer support"),
+        t("pricing.featureDynamicUpi", "Dynamic UPI QR payment codes"),
+        t("pricing.featureWhatsappShare", "WhatsApp receipt sharing"),
+        t("pricing.featureSalesAnalytics", "Sales analytics & Excel export"),
+        t("pricing.featurePrioritySupport", "Priority customer support")
+      ],
+      cta: t("pricing.getPlanNow", "Get 3 Months Plan"),
+      popular: true,
+      savings: t("pricing.save400", "Save ₹400 (33% OFF)"),
+      cardClass: "card-pro popular-plan-card",
+      btnClass: "btn-starter",
+      iconType: "pro"
+    },
+    {
+      id: "time_1y",
+      name: t("pricing.year1Plan", "1 Year Plan"),
+      rawName: "1 Year Plan",
+      durationLabel: t("pricing.year1Validity", "1 Year Validity (365 Days)"),
+      price: "₹2,499",
+      numericPrice: 2499,
+      originalPrice: "₹3,599",
+      numericPrints: 0,
+      description: t("pricing.year1Desc", "Maximum savings: Complete hassle-free billing for full 365 days (~₹6.8/day)."),
+      features: [
+        t("pricing.featureUnlimitedPrints365", "Full 365 days unlimited billing"),
+        t("pricing.save1100Annual", "Save ₹1,100 (Best Value)"),
+        t("pricing.featureMultiDevice", "Multi-device & counter sync"),
+        t("pricing.featureDynamicUpi", "Dynamic UPI QR payment codes"),
+        t("pricing.featureProPlus", "Everything in 3 Months Plan"),
+        t("pricing.featureCloudBackup", "Automatic cloud backups"),
+        t("pricing.featureDedicatedManager", "Dedicated VIP support manager")
+      ],
+      cta: t("pricing.getPlanNow", "Get 1 Year Plan"),
+      popular: false,
+      savings: t("pricing.save1100", "Save ₹1,100 (30% OFF)"),
+      cardClass: "card-business",
+      btnClass: "btn-starter",
+      iconType: "business"
+    }
+  ]
+
+  // Preset Default Print-Based Plans: Starter Pack (1,000), Pro Growth (2,000), Business Super (5,000)
+  const defaultPrintPlans = [
+    {
+      id: "print_starter",
       name: t("pricing.starterPack", "Starter Pack"),
       rawName: "Starter Pack",
       prints: `1,000 ${t("pricing.prints", "prints")}`,
@@ -125,7 +251,7 @@ export function Pricing({ setView, setShowAuth, user }) {
       iconType: "starter"
     },
     {
-      id: "pro",
+      id: "print_pro",
       name: t("pricing.proGrowth", "Pro Growth"),
       rawName: "Pro Growth",
       prints: `2,000 ${t("pricing.prints", "prints")}`,
@@ -152,7 +278,7 @@ export function Pricing({ setView, setShowAuth, user }) {
       iconType: "pro"
     },
     {
-      id: "business",
+      id: "print_business",
       name: t("pricing.businessSuper", "Business Super"),
       rawName: "Business Super",
       prints: `5,000 ${t("pricing.prints", "prints")}`,
@@ -180,6 +306,72 @@ export function Pricing({ setView, setShowAuth, user }) {
       iconType: "business"
     }
   ]
+
+  // Helper to parse features from server if stored as string/array
+  const parseFeaturesList = (feat) => {
+    if (Array.isArray(feat)) return feat
+    if (!feat) return []
+    try {
+      const parsed = JSON.parse(feat)
+      return Array.isArray(parsed) ? parsed : [String(feat)]
+    } catch (_) {
+      return String(feat).split("\n").map(s => s.trim()).filter(Boolean)
+    }
+  }
+
+  // Active Time Plans (from server if loaded, else default)
+  const displayTimePlans = serverTimePlans.length > 0
+    ? serverTimePlans.map(p => ({
+        id: p.id,
+        name: p.name,
+        rawName: p.name,
+        durationLabel: p.duration_label || (p.duration_months === 12 ? "1 Year Validity (365 Days)" : `${p.duration_months} Months Validity`),
+        price: `₹${Number(p.price || 0).toLocaleString("en-IN")}`,
+        numericPrice: Number(p.price || 0),
+        originalPrice: p.original_price ? `₹${Number(p.original_price).toLocaleString("en-IN")}` : null,
+        numericPrints: Number(p.prints_count || 0),
+        description: p.description || "",
+        features: parseFeaturesList(p.features),
+        popular: Boolean(p.is_popular),
+        savings: p.original_price && p.original_price > p.price 
+          ? `Save ₹${(p.original_price - p.price).toLocaleString("en-IN")}` 
+          : null,
+        cta: `Get ${p.name}`,
+        cardClass: p.is_popular ? "card-pro popular-plan-card" : (p.duration_months >= 12 ? "card-business" : "card-starter"),
+        btnClass: "btn-starter",
+        iconType: p.duration_months >= 12 ? "business" : (p.is_popular ? "pro" : "starter")
+      }))
+    : defaultTimePlans
+
+  // Active Print Plans (from server if loaded, else default)
+  const displayPrintPlans = serverPrintPlans.length > 0
+    ? serverPrintPlans.map(p => {
+        const printsCount = Number(p.prints_count || 1000)
+        const priceNum = Number(p.price || 0)
+        const perPrint = (priceNum / (printsCount || 1)).toFixed(2).replace(/\.00$/, "")
+        return {
+          id: p.id,
+          name: p.name,
+          rawName: p.name,
+          prints: `${printsCount.toLocaleString("en-IN")} ${t("pricing.prints", "prints")}`,
+          numericPrints: printsCount,
+          price: `₹${priceNum.toLocaleString("en-IN")}`,
+          numericPrice: priceNum,
+          originalPrice: p.original_price ? `₹${Number(p.original_price).toLocaleString("en-IN")}` : null,
+          description: p.description || "",
+          features: parseFeaturesList(p.features),
+          popular: Boolean(p.is_popular),
+          savings: p.original_price && p.original_price > p.price 
+            ? `Save ₹${(p.original_price - p.price).toLocaleString("en-IN")}` 
+            : null,
+          perPrintCost: `₹${perPrint} ${t("pricing.perPrint", "/ print")}`,
+          cardClass: p.is_popular ? "card-pro popular-plan-card" : (printsCount >= 5000 ? "card-business" : "card-starter"),
+          btnClass: "btn-starter",
+          iconType: printsCount >= 5000 ? "business" : (p.is_popular ? "pro" : "starter"),
+          cta: t("pricing.getPrints", { count: printsCount.toLocaleString("en-IN"), defaultValue: `Get ${printsCount.toLocaleString("en-IN")} Prints` })
+        }
+      })
+    : defaultPrintPlans
 
   // Calculate dynamic self-pricing for custom print count
   const calculateSelfPrice = (count) => {
@@ -287,25 +479,60 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div className="pricing-usage-left">
               <div className="usage-plan-badge-row">
                 <span className={`usage-plan-pill ${activePlan.isFreeTier ? 'pill-free-tier' : 'pill-active-tier'}`}>
-                  <Sparkles size={13} /> {translatePlanName(activePlan.name) || t("pricing.freeStarterTier", "FREE STARTER TIER")}
+                  <Sparkles size={13} /> {translatePlanName(activePlan.name) || activePlan.planName || t("pricing.freeStarterTier", "FREE STARTER TIER")}
                 </span>
                 <span className="usage-active-label">{t("pricing.activePlan", "Active Plan")}</span>
+                {activePlan.hasActiveTimePlan && (
+                  <span className={`usage-expiry-status-badge ${activePlan.isExpired ? 'expired' : (activePlan.daysRemaining <= 3 ? 'expiring' : 'valid')}`}>
+                    {activePlan.isExpired ? t("expiry.expiredBadge", "Expired") : `${activePlan.daysRemaining} ${t("sidebar.daysLeft", "days left")}`}
+                  </span>
+                )}
               </div>
-              <h2 className="usage-prints-heading">
-                <Printer size={22} className="usage-printer-icon" />
-                <span>{formatNum((activePlan.printsRemaining || 0).toLocaleString())} {t("pricing.printsRemaining", "prints remaining")}</span>
-              </h2>
+              {activePlan.hasActiveTimePlan ? (
+                <h2 className="usage-prints-heading">
+                  <Clock size={22} className="usage-printer-icon" style={{ color: (activePlan.daysRemaining <= 3 ? '#ef4444' : '#0284c7') }} />
+                  <span>
+                    {activePlan.isExpired
+                      ? t("expiry.planExpired", "Plan Expired")
+                      : (activePlan.daysRemaining === 0
+                          ? t("expiry.todayNotice", "Expires Today!")
+                          : t("expiry.daysRemainingHeading", "{{n}} days validity remaining", { n: activePlan.daysRemaining }))}
+                  </span>
+                </h2>
+              ) : (
+                <h2 className="usage-prints-heading">
+                  <Printer size={22} className="usage-printer-icon" />
+                  <span>{formatNum((activePlan.printsRemaining || 0).toLocaleString())} {t("pricing.printsRemaining", "prints remaining")}</span>
+                </h2>
+              )}
             </div>
 
             <div className="pricing-usage-stats-right">
-              <div className="usage-stat-box">
-                <span className="stat-label">{t("pricing.totalQuota", "TOTAL QUOTA")}</span>
-                <span className="stat-value">{formatNum((activePlan.totalPrints || 0).toLocaleString())} {t("pricing.prints", "prints")}</span>
-              </div>
-              <div className="usage-stat-box">
-                <span className="stat-label">{t("pricing.printsUsed", "PRINTS USED")}</span>
-                <span className="stat-value used-value">{formatNum((activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString())} {t("pricing.prints", "prints")}</span>
-              </div>
+              {activePlan.hasActiveTimePlan ? (
+                <>
+                  <div className="usage-stat-box">
+                    <span className="stat-label">{t("expiry.validityStatus", "VALID UNTIL")}</span>
+                    <span className="stat-value">{activePlan.expiresAt ? new Date(activePlan.expiresAt).toLocaleDateString() : "--"}</span>
+                  </div>
+                  <div className="usage-stat-box">
+                    <span className="stat-label">{t("expiry.daysLeftLabel", "DAYS REMAINING")}</span>
+                    <span className={`stat-value ${activePlan.daysRemaining <= 3 ? 'used-value' : ''}`}>
+                      {activePlan.isExpired ? "0" : formatNum(String(activePlan.daysRemaining))} {t("pricing.days", "days")}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="usage-stat-box">
+                    <span className="stat-label">{t("pricing.totalQuota", "TOTAL QUOTA")}</span>
+                    <span className="stat-value">{formatNum((activePlan.totalPrints || 0).toLocaleString())} {t("pricing.prints", "prints")}</span>
+                  </div>
+                  <div className="usage-stat-box">
+                    <span className="stat-label">{t("pricing.printsUsed", "PRINTS USED")}</span>
+                    <span className="stat-value used-value">{formatNum((activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString())} {t("pricing.prints", "prints")}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -329,10 +556,41 @@ export function Pricing({ setView, setShowAuth, user }) {
         </div>
       </section>}
 
-      {/* 3. Pricing Plan Cards (3 Cards in one row) */}
+      {/* Category Switcher Tabs: Time-Based vs Print-Based */}
+      <section className="pricing-category-tabs-section">
+        <div className="pricing-category-tabs-wrapper">
+          <div className="pricing-category-tabs">
+            <button
+              type="button"
+              className={`pricing-category-tab ${pricingCategory === "time" ? "active" : ""}`}
+              onClick={() => setPricingCategory("time")}
+            >
+              <Clock size={16} />
+              <span>{t("pricing.timePlansTab", "Time-Based Plans")}</span>
+              <span className="tab-pill-badge">{t("pricing.validityBadge", "1 Mo • 3 Mo • 1 Yr")}</span>
+            </button>
+            <button
+              type="button"
+              className={`pricing-category-tab ${pricingCategory === "print" ? "active" : ""}`}
+              onClick={() => setPricingCategory("print")}
+            >
+              <Printer size={16} />
+              <span>{t("pricing.printPlansTab", "Print-Based Plans")}</span>
+              <span className="tab-pill-badge">{t("pricing.payPerPrint", "Pay Per Print")}</span>
+            </button>
+          </div>
+          <p className="pricing-category-subtitle">
+            {pricingCategory === "time" 
+              ? t("pricing.timePlansSubtitle", "Enjoy unlimited bills and prints for a fixed monthly, quarterly, or yearly duration.") 
+              : t("pricing.printPlansSubtitle", "Pay only for what you print with permanent credits that never expire.")}
+          </p>
+        </div>
+      </section>
+
+      {/* 3. Pricing Plan Cards */}
       <section className="pricing-cards-section">
         <div className="pricing-cards-grid">
-          {plans.map((plan) => (
+          {(pricingCategory === "time" ? displayTimePlans : displayPrintPlans).map((plan) => (
             <div className={`pricing-plan-card ${plan.cardClass}`} key={plan.id}>
               {plan.popular && (
                 <div className="floating-popular-badge">
@@ -361,6 +619,18 @@ export function Pricing({ setView, setShowAuth, user }) {
                 </div>
 
                 <h3 className="plan-title">{plan.name}</h3>
+                {plan.durationLabel && (
+                  <div className="plan-duration-badge">
+                    <Clock size={12} />
+                    <span>{formatNum(plan.durationLabel)}</span>
+                  </div>
+                )}
+                {plan.prints && !plan.durationLabel && (
+                  <div className="plan-duration-badge" style={{ background: '#f8fafc', borderColor: '#cbd5e1', color: '#334155' }}>
+                    <Printer size={12} />
+                    <span>{formatNum(plan.prints)}</span>
+                  </div>
+                )}
                 <p className="plan-desc">{plan.description}</p>
               </div>
 
@@ -371,16 +641,18 @@ export function Pricing({ setView, setShowAuth, user }) {
                   {plan.originalPrice && (
                     <span className="plan-price-strike">{formatNum(plan.originalPrice)}</span>
                   )}
-                  {!plan.originalPrice && (
+                  {!plan.originalPrice && plan.perPrintCost && (
                     <span className="plan-unit-rate-side">{formatNum(plan.perPrintCost)}</span>
                   )}
                 </div>
 
                 {plan.originalPrice && (
                   <div className="plan-rate-savings-strip">
-                    <span className={`plan-unit-rate-badge ${plan.id === "pro" ? "badge-rate-blue" : "badge-rate-purple"}`}>
-                      {formatNum(plan.perPrintCost)}
-                    </span>
+                    {plan.perPrintCost && (
+                      <span className={`plan-unit-rate-badge ${plan.id?.includes("pro") ? "badge-rate-blue" : "badge-rate-purple"}`}>
+                        {formatNum(plan.perPrintCost)}
+                      </span>
+                    )}
                     {plan.savings && (
                       <span className="plan-savings-pill-green">
                         <Sparkles size={12} /> {formatNum(plan.savings)}
@@ -392,9 +664,9 @@ export function Pricing({ setView, setShowAuth, user }) {
 
               {/* Feature Checklist */}
               <div className="plan-features-list">
-                {plan.features.map((feature, idx) => (
+                {(plan.features || []).map((feature, idx) => (
                   <div className="plan-feature-item" key={idx}>
-                    <div className={`feature-check-dot ${plan.id === "business" ? "dot-purple" : "dot-blue"}`}>
+                    <div className={`feature-check-dot ${plan.cardClass?.includes("business") ? "dot-purple" : "dot-blue"}`}>
                       <Check size={13} />
                     </div>
                     <span>{formatNum(feature)}</span>
@@ -404,15 +676,15 @@ export function Pricing({ setView, setShowAuth, user }) {
 
               {/* CTA Button */}
               <button 
-                className={`plan-cta-button ${plan.btnClass}`}
-                onClick={() => handleBuyPlan(plan.rawName || plan.name, plan.numericPrice, plan.numericPrints)}
+                className={`plan-cta-button ${plan.btnClass || "btn-starter"}`}
+                onClick={() => handleBuyPlan(plan)}
                 disabled={Boolean(buyingPlan)}
               >
                 {buyingPlan === (plan.rawName || plan.name) ? (
                   <ButtonLoader text={t("pricing.openingPayment", "Opening payment...")} />
                 ) : (
                   <>
-                    <span>{formatNum(plan.cta)}</span>
+                    <span>{formatNum(plan.cta || t("pricing.getPlanNow", "Get Plan Now"))}</span>
                     <ArrowRight size={15} />
                   </>
                 )}
@@ -420,10 +692,34 @@ export function Pricing({ setView, setShowAuth, user }) {
             </div>
           ))}
         </div>
+
+        {/* Extra Highlights when in Time-Based Mode */}
+        {pricingCategory === "time" && (
+          <div className="time-plans-highlights-grid">
+            <div className="time-highlight-card">
+              <div className="time-hl-icon icon-blue"><Zap size={20} /></div>
+              <h4 className="time-hl-title">{t("pricing.unlimitedBillsTitle", "Unlimited Daily Billing")}</h4>
+              <p className="time-hl-desc">{t("pricing.unlimitedBillsDesc", "Create and print unlimited customer bills during your active validity without checking print balances.")}</p>
+            </div>
+            <div className="time-highlight-card">
+              <div className="time-hl-icon icon-cyan"><Clock size={20} /></div>
+              <h4 className="time-hl-title">{t("pricing.peaceOfMindTitle", "Zero Checkout Interruption")}</h4>
+              <p className="time-hl-desc">{t("pricing.peaceOfMindDesc", "Never get paused during busy store rush hours. Perfect for 30, 90 or 365 days of worry-free retail sales.")}</p>
+            </div>
+            <div className="time-highlight-card">
+              <div className="time-hl-icon icon-purple"><Crown size={20} /></div>
+              <h4 className="time-hl-title">{t("pricing.prioritySupportTitle", "Priority POS Support")}</h4>
+              <p className="time-hl-desc">{t("pricing.prioritySupportDesc", "Direct phone and WhatsApp assistance for setting up Bluetooth & USB POS thermal printers and multi-devices.")}</p>
+            </div>
+          </div>
+        )}
       </section>
 
-      {/* 4. Interactive Custom Self-Pricing Calculator */}
-      <section className="pricing-calculator-section">
+      {/* 4 & 5: Print-Based Custom Calculator and Comparison Table (shown in Print mode) */}
+      {pricingCategory === "print" && (
+        <>
+          {/* 4. Interactive Custom Self-Pricing Calculator */}
+          <section className="pricing-calculator-section">
         <div className="pricing-calculator-box">
           {/* Top Eyebrow */}
           <div className="calc-eyebrow-row">
@@ -716,6 +1012,8 @@ export function Pricing({ setView, setShowAuth, user }) {
           </div>
         </div>
       </section>
+      </>
+      )}
 
       {/* 6. Final CTA Section */}
       <section className="pricing-final-cta-section">

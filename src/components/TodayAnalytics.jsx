@@ -1,14 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { IndianRupee, ReceiptText, Calculator, Package, TrendingUp, TrendingDown, RefreshCw, Clock, BarChart3, Trophy, Hourglass, Printer, Utensils, Boxes, ChevronRight, Plus, Sun, LineChart, History } from "lucide-react"
+import { IndianRupee, ReceiptText, Calculator, Package, TrendingUp, TrendingDown, RefreshCw, Clock, BarChart3, Trophy, Hourglass, Printer, Utensils, Boxes, ChevronRight, Plus, Sun, LineChart, History, Landmark } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { call, money, getActivePlanDetails, getCurrentUserKey, getCachedData, getStoredMenuItems } from "../lib/utils"
 import "../styles/TodayAnalytics.css"
+import { localMidnight, fetchTodayAnalytics, takePrefetchedAnalytics, readSavedAnalytics } from "../lib/todayAnalytics"
+import { shopUsesGst } from "../lib/gst"
 
-const localMidnight = (d = new Date()) => {
-  const m = new Date(d)
-  m.setHours(0, 0, 0, 0)
-  return m
-}
 
 const hourLabel = (h) => {
   const suffix = h < 12 ? "am" : "pm"
@@ -26,18 +23,7 @@ const hourLabel = (h) => {
 export function TodayAnalytics({ user, variant = "compact", isRestaurant = false, onNavigate }) {
   const { t, i18n } = useTranslation()
   const full = variant === "full"
-  const [data, setData] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem("slipzo_today_analytics")
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed && parsed._day === localMidnight().toDateString() && parsed.data) {
-          return parsed.data
-        }
-      }
-    } catch (_) {}
-    return null
-  })
+  const [data, setData] = useState(() => readSavedAnalytics())
   const [loading, setLoading] = useState(() => !data)
   const [refreshing, setRefreshing] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -57,29 +43,22 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
     const from = localMidnight()
     dayRef.current = from.getTime()
     try {
-      const res = await call(
-        `/bills/analytics/today?from=${encodeURIComponent(from.toISOString())}`,
-        manual || fresh ? { noCache: true } : {}
-      )
+      // the first load after sign in reuses the request sign in already started (no second wait)
+      const early = manual || fresh ? null : takePrefetchedAnalytics()
+      const res = (early && await early) || await fetchTodayAnalytics({ noCache: manual || fresh })
       if (full && isRestaurant) {
         call("/restaurant/tables", manual ? { noCache: true } : {})
           .then((list) => { if (Array.isArray(list)) setTables(list) })
-          .catch(() => {})
+          .catch(() => { })
       }
       if (full) {
         call("/menu", { noCache: true })
           .then((list) => { if (Array.isArray(list)) setMenuItems(list) })
-          .catch(() => {})
+          .catch(() => { })
       }
       if (res && typeof res === "object") {
         setData(res)
         setFailed(false)
-        try {
-          sessionStorage.setItem("slipzo_today_analytics", JSON.stringify({
-            _day: from.toDateString(),
-            data: res
-          }))
-        } catch (_) {}
       }
     } catch (_) {
       setFailed(true)
@@ -110,7 +89,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
         } else {
           call("/menu", { noCache: true }).then((list) => {
             if (Array.isArray(list)) setMenuItems(list)
-          }).catch(() => {})
+          }).catch(() => { })
         }
       }
     }
@@ -210,6 +189,13 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
     .sort((a, b) => Number(a.stock_qty) - Number(b.stock_qty))
   const outOfStock = lowStock.filter((it) => Number(it.stock_qty) <= 0).length
 
+  // GST collected in today's bills (what the shop owes for the day). Always shown; with GST off in the shop
+  // profile it says so and opens the profile.
+  const gstToday = data?.gst || null
+  const gstTotal = Number(gstToday?.total || 0)
+  const gstOn = shopUsesGst(getCachedData("/shop")) || gstTotal > 0
+  const gstRatesText = (gstToday?.by_rate || []).map((g) => `${g.rate}%`).join(", ")
+
   const glance = [
     {
       key: "waiting",
@@ -234,6 +220,20 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
       label: t("todayStats.printedBills", "Printed bills"),
       value: billsText(printedCount),
       sub: money(data?.printed?.total || 0)
+    },
+    {
+      key: "gst",
+      icon: Landmark,
+      label: t("todayStats.gstToPay", "GST to pay today"),
+      value: money(gstTotal),
+      sub: gstTotal > 0
+        ? t("todayStats.gstSplit", "CGST {{c}} · SGST {{s}}", { c: money(gstToday.cgst || 0), s: money(gstToday.sgst || 0) }) + (gstRatesText ? ` · ${gstRatesText}` : "")
+        : (gstOn ? t("todayStats.gstNone", "No GST in today's bills") : t("todayStats.gstOff", "Turn on GST in Shop profile")),
+      view: gstOn ? undefined : "shop",
+      title: gstTotal > 0
+        ? t("todayStats.gstTitle", "On taxable sales of {{v}}. Add up each day for your GST return.", { v: money(gstToday.taxable || 0) })
+        : undefined,
+      tone: null
     },
     {
       key: "credits",
@@ -438,7 +438,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
               <span className="ta-start-side-label">{t("todayStats.startListTitle", "After your first bill you will see")}</span>
               <ul>
                 <li><span><IndianRupee size={15} /></span>{t("todayStats.startList1", "Today's sales, bill count and average bill")}</li>
-                <li><span><LineChart size={15} /></span>{t("todayStats.startList2", "Sales hour by hour, and your busiest hour")}</li>
+                <li><span><LineChart size={15} /></span>{t("todayStats.startList2", "Hour-by-hour sales chart & peak business time")}</li>
                 <li><span><Trophy size={15} /></span>{t("todayStats.startList3", "Your best-selling items")}</li>
               </ul>
             </div>
@@ -507,9 +507,9 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
             </>
           )
           return clickable ? (
-            <button key={row.key} type="button" role="listitem" className="ta-glance-tile clickable" onClick={() => onNavigate(row.view)}>{body}</button>
+            <button key={row.key} type="button" role="listitem" className="ta-glance-tile clickable" title={row.title} onClick={() => onNavigate(row.view)}>{body}</button>
           ) : (
-            <div key={row.key} role="listitem" className="ta-glance-tile">{body}</div>
+            <div key={row.key} role="listitem" className="ta-glance-tile" title={row.title}>{body}</div>
           )
         })}
       </div>

@@ -198,7 +198,12 @@ export function PrintModal({
           onPrinted(quota)
         }
 
+        if (quota && Number(quota.printsRemaining) <= 10 && Number(quota.printsRemaining) > 0) {
+          window.dispatchEvent(new CustomEvent("slipzo-low-prints-reminder", { detail: { force: true, quota, printsRemaining: Number(quota.printsRemaining) } }))
+        }
+
         // Show expiry popup if user just reached 0 remaining prints on free tier
+
         if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
           window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
         }
@@ -300,6 +305,10 @@ export function PrintModal({
         onClose()
         if (onPrinted) {
           onPrinted(quota)
+        }
+
+        if (quota && Number(quota.printsRemaining) <= 10 && Number(quota.printsRemaining) > 0) {
+          window.dispatchEvent(new CustomEvent("slipzo-low-prints-reminder", { detail: { force: true, quota, printsRemaining: Number(quota.printsRemaining) } }))
         }
 
         if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {

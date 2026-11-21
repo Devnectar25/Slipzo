@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { Store } from "lucide-react"
 import { PublicNavbar, PUBLIC_NAV_LINKS } from "./PublicNavbar"
+import { PolicyLinks, PoweredBy } from "./PolicyLinks"
 import "../styles/DesktopLanding.css"
 
 export function PublicPageShell({
@@ -55,7 +56,11 @@ export function PublicPageShell({
           </nav>
         </div>
         <div className="dl-container dl-footer-legal">
-          <span><Store size={13} /> © {new Date().getFullYear()} {t("landing.rights", "Slipzen. All rights reserved.")}</span>
+          <div className="pp-legal-left">
+            <span><Store size={13} /> © {new Date().getFullYear()} {t("landing.rights", "Slipzen. All rights reserved.")}</span>
+            <PoweredBy />
+          </div>
+          <PolicyLinks onOpen={setView} className="dl-footer-policies" />
         </div>
       </footer>
     </div>
