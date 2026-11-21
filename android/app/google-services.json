@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "878499451709",
+    "project_id": "slipzen-f9506",
+    "storage_bucket": "slipzen-f9506.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:878499451709:android:983ff25f650e32a1596b54",
+        "android_client_info": {
+          "package_name": "com.slipzo.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoERvQAED_sX2e9fP6u1LBY5IHL53FVYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
