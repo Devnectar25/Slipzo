@@ -24,8 +24,12 @@ const PENDING_KEY = "slipzo_pending_payment"
 const savePending = (pending) => {
   try { localStorage.setItem(PENDING_KEY, JSON.stringify({ ...pending, savedAt: Date.now() })) } catch (_) { /* storage can be unavailable */ }
 }
-const clearPending = () => {
-  try { localStorage.removeItem(PENDING_KEY) } catch (_) { /* ignore */ }
+// Only this payment's own note: a newer payment may have been written down in the meantime
+const clearPending = (paymentId) => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PENDING_KEY) || "null")
+    if (!raw || raw.paymentId === paymentId) localStorage.removeItem(PENDING_KEY)
+  } catch (_) { /* ignore */ }
 }
 export const getPendingPayment = (user) => {
   try {
@@ -76,7 +80,7 @@ async function confirmPurchase(pending, user) {
     if (!updated) {
       updated = activatePlan(planName, printCount, userKey)
     }
-    clearPending()
+    clearPending(paymentId)
     return { ok: true, subRes, updated }
   } catch (err) {
     // "already used" can mean an earlier try did go through but its answer never reached us: look before giving up
@@ -88,9 +92,11 @@ async function confirmPurchase(pending, user) {
           if (mine.quota) updated = syncUserQuota(mine.quota, userKey)
           if (!updated) updated = await freshQuota(userKey, mine.quota)
           if (!updated) updated = activatePlan(planName, printCount, userKey)
-          clearPending()
-          return { ok: true, subRes: mine, updated }
+          clearPending(paymentId)
+          return { ok: true, alreadyDone: true, subRes: mine, updated }
         }
+        // The server has this payment saved, but not for this account: asking again can never change that
+        if (err.code === "PAYMENT_USED") clearPending(paymentId)
       } catch (_) { /* fall through to the error */ }
     }
     console.warn("⚠️ Could not confirm the purchase with the server:", err)
@@ -156,11 +162,35 @@ const successPopup = ({ paymentId, planName, printCount }) => {
   })
 }
 
+// Payments being confirmed in this tab right now, so one payment is never asked about twice at the same time
+// (a page opened twice, React running an effect twice, opening Pricing while a purchase is being confirmed)
+const confirmingNow = new Set()
+
+async function oncePerPayment(paymentId, run) {
+  if (confirmingNow.has(paymentId)) return false
+  confirmingNow.add(paymentId)
+  try {
+    return await run()
+  } finally {
+    confirmingNow.delete(paymentId)
+  }
+}
+
+const announceQuota = (updated, user) => {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent("slipzo-quota-update", {
+    detail: { quota: updated, plan: updated, userKey: getCurrentUserKey(user) }
+  }))
+}
+
 /**
  * Confirms a payment with the server, with the same "Try again" available as long as it keeps failing.
  * Resolves true once the prints were added.
  */
-async function confirmWithRetry(pending, user, { onActivated, onDone } = {}) {
+const confirmWithRetry = (pending, user, callbacks) =>
+  oncePerPayment(pending.paymentId, () => confirmLoop(pending, user, callbacks))
+
+async function confirmLoop(pending, user, { onActivated, onDone } = {}) {
   for (;;) {
     Swal.fire({
       title: tr("pricing.activatingPlan", "Activating your plan..."),
@@ -170,18 +200,10 @@ async function confirmWithRetry(pending, user, { onActivated, onDone } = {}) {
     })
     const result = await confirmPurchase(pending, user)
     if (result.ok) {
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("slipzo-quota-update", {
-          detail: { quota: result.updated, plan: result.updated, userKey: getCurrentUserKey(user) }
-        }))
-      }
+      announceQuota(result.updated, user)
       onActivated?.(result.updated, result.subRes)
       await successPopup(pending)
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("slipzo-quota-update", {
-          detail: { quota: result.updated, plan: result.updated, userKey: getCurrentUserKey(user) }
-        }))
-      }
+      announceQuota(result.updated, user)
       onDone?.()
       return true
     }
@@ -206,10 +228,52 @@ async function confirmWithRetry(pending, user, { onActivated, onDone } = {}) {
   }
 }
 
-/** Picks up a payment that was made but never confirmed (for example the server was not ready), without charging again. */
+// A payment that still cannot be confirmed is mentioned once per browser session, in a corner, not on every visit
+const firstNotice = (paymentId) => {
+  const key = `slipzo_pending_notice_${paymentId}`
+  try {
+    if (sessionStorage.getItem(key)) return false
+    sessionStorage.setItem(key, "1")
+  } catch (_) { /* storage can be unavailable */ }
+  return true
+}
+
+/**
+ * Picks up a payment that was made but never confirmed (for example the server was not ready), without charging again.
+ * Runs when a page opens, so it works quietly in the background: nobody pressed anything, and nothing blocks the page.
+ */
 export async function resumePendingPurchase({ user, onActivated, onDone }) {
   const pending = getPendingPayment(user)
   if (!pending || !user || user.staff_of) return false
+
+  const result = await oncePerPayment(pending.paymentId, () => confirmPurchase(pending, user))
+  if (!result) return false
+
+  if (result.ok) {
+    announceQuota(result.updated, user)
+    onActivated?.(result.updated, result.subRes)
+    // Prints that were added just now are worth a message; ones that were already there are not
+    if (!result.alreadyDone && !Swal.isVisible()) await successPopup(pending)
+    onDone?.()
+    return true
+  }
+
+  // Forgotten (it can never be confirmed for this account), another message is open, or already mentioned
+  if (getPendingPayment(user)?.paymentId !== pending.paymentId || Swal.isVisible() || !firstNotice(pending.paymentId)) return false
+  const choice = await Swal.fire({
+    toast: true,
+    position: "bottom-end",
+    icon: "warning",
+    title: tr("pricing.confirmFailedTitle", "We could not confirm your payment yet"),
+    html: `${escapeHtml(tr("pay.paymentId", "Payment ID:"))} <code>${escapeHtml(pending.paymentId)}</code>`,
+    showConfirmButton: true,
+    confirmButtonText: tr("pay.tryAgain", "Try again"),
+    confirmButtonColor: "#0284c7",
+    showCloseButton: true,
+    timer: 15000,
+    timerProgressBar: true
+  })
+  if (!choice.isConfirmed) return false
   return confirmWithRetry(pending, user, { onActivated, onDone })
 }
 

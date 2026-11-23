@@ -21,6 +21,10 @@ export function Pricing({ setView, setShowAuth, user }) {
   const [buyingPlan, setBuyingPlan] = useState(null)
   const userKey = getCurrentUserKey(user)
   const [activePlan, setActivePlan] = useState(() => getActivePlanDetails(userKey))
+  // 0 used is a real answer, so only a missing count is worked out from what is left
+  const totalPrints = Number(activePlan?.totalPrints || 0)
+  const usedPrints = Math.max(0, Number(activePlan?.usedPrints ?? (totalPrints - Number(activePlan?.printsRemaining || 0))) || 0)
+  const usedPercent = totalPrints > 0 ? Math.min(100, (usedPrints / totalPrints) * 100) : 0
 
   const [pricingCategory, setPricingCategory] = useState("time")
   const [serverTimePlans, setServerTimePlans] = useState([])
@@ -529,7 +533,7 @@ export function Pricing({ setView, setShowAuth, user }) {
                   </div>
                   <div className="usage-stat-box">
                     <span className="stat-label">{t("pricing.printsUsed", "PRINTS USED")}</span>
-                    <span className="stat-value used-value">{formatNum((activePlan.usedPrints || (10 - activePlan.printsRemaining)).toLocaleString())} {t("pricing.prints", "prints")}</span>
+                    <span className="stat-value used-value">{formatNum(usedPrints.toLocaleString())} {t("pricing.prints", "prints")}</span>
                   </div>
                 </>
               )}
@@ -541,14 +545,14 @@ export function Pricing({ setView, setShowAuth, user }) {
             <div className="progress-labels-strip">
               <span>{t("pricing.quotaConsumption", "Print Quota Consumption")}</span>
               <span className="progress-pct">
-                {formatNum(activePlan.totalPrints > 0 ? Math.round(((activePlan.usedPrints || Math.max(0, activePlan.totalPrints - (activePlan.printsRemaining || 0))) / activePlan.totalPrints) * 100) : 0)}% {t("pricing.used", "Used")}
+                {formatNum(Math.round(usedPercent))}% {t("pricing.used", "Used")}
               </span>
             </div>
             <div className="pricing-progress-track">
               <div 
                 className="pricing-progress-fill" 
                 style={{ 
-                  width: `${activePlan.totalPrints > 0 ? Math.min(100, Math.max(0, ((activePlan.usedPrints || Math.max(0, activePlan.totalPrints - (activePlan.printsRemaining || 0))) / activePlan.totalPrints) * 100)) : 0}%` 
+                  width: `${usedPercent}%` 
                 }} 
               />
             </div>

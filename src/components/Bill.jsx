@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef, lazy, Suspense } from "react"
+import { useEffect, useLayoutEffect, useMemo, useState, useRef, lazy, Suspense } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
 import { chargeAndPrint, spendPrintCredit, chargeAndSavePdf, printWidthOf } from "../lib/directPrint"
 import { Capacitor } from "@capacitor/core"
@@ -340,6 +340,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
   // In-Page Flow Step: "bill" (Steps 1, 2, 3) | "success" (Step 4)
   const [flowStep, setFlowStep] = useState("bill")
+  // The bill and its result screen swap on the same page, so the page would keep its scroll position
+  // and the next screen would open part way down. Every step opens at the top, before it is painted.
+  const shownStepRef = useRef(flowStep)
+  useLayoutEffect(() => {
+    if (shownStepRef.current === flowStep) return
+    shownStepRef.current = flowStep
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+  }, [flowStep])
   // what the result screen reports: "saved" (not printed yet) or "printed"
   const [doneAction, setDoneAction] = useState("saved")
 
@@ -1372,7 +1380,6 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     // going back to change the bill: what was sent to the print window is not charged
     unchargedPrintRef.current = null
     setFlowStep("bill")
-    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   const handleCreateNewBill = () => {
