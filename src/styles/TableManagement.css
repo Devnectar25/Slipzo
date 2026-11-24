@@ -109,16 +109,17 @@
 .tables-manage-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px !important; /* stays square on phones, where buttons are 44px tall */
+  padding: 0;
   background: #ffffff;
   color: #0284c7;
-  font-weight: 700;
-  font-size: 0.88rem;
-  padding: 0.65rem 1.15rem;
-  border-radius: 12px;
-  border: 1.5px solid #bae6fd;
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.08);
+  box-shadow: 0 1px 4px rgba(14, 165, 233, 0.08);
   transition: all 0.2s ease;
 }
 
@@ -126,7 +127,7 @@
   background: #f0f9ff;
   border-color: #0ea5e9;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.16);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.14);
 }
 
 /* ============================================================
@@ -403,7 +404,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
   margin-bottom: 0.85rem;
+}
+
+/* the status moves under the name when both do not fit */
+.table-card-header .table-number-title,
+.table-card-header .table-status-badge {
+  white-space: nowrap;
 }
 
 .table-number-title {
@@ -1630,5 +1639,216 @@
 
   .table-total-amount {
     font-size: 0.95rem;
+  }
+}
+
+/* ============ Table billing step 1: added items (name + quantity) ============ */
+.tb-order-col {
+  align-self: start;
+}
+
+@media (min-width: 768px) {
+  .tb-order-col {
+    position: sticky;
+    top: 84px;
+  }
+}
+
+.tb-order-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.tb-order-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tb-order-head h4 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #0C1F41;
+}
+
+.tb-order-count {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.tb-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 120px;
+  max-height: max(200px, calc(100vh - 380px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem 4px 0.25rem;
+}
+
+.tb-order-empty {
+  margin: auto;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.selected-item-card.tb-order-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.65rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #e0f2fe;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+/* a new item whose picture is still in the air */
+.tb-order-row[data-flying] {
+  visibility: hidden;
+}
+
+.tb-order-thumb {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f0f9ff;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tb-order-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tb-order-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.tb-order-qty {
+  flex-shrink: 0;
+  min-width: 2.4rem;
+  text-align: center;
+  padding: 0.22rem 0.5rem;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.nb-save-bill-btn.tb-view-bill-btn {
+  margin-top: 0.75rem;
+}
+
+/* the fixed top bar must not cover the page when a step opens */
+.table-billing-workspace {
+  scroll-margin-top: 90px;
+}
+
+/* step 2: the bill on its own, centred */
+.tb-bill-step {
+  width: 100%;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.tb-order-bar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .tb-order-bar {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(74px + var(--app-safe-bottom, 0px));
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+    border: none;
+    border-radius: 14px;
+    background: #0284c7;
+    color: #ffffff;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(2, 132, 199, 0.4);
+  }
+
+  .tb-order-bar-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* the bar must not cover the end of the list */
+  .main-content-scroll:has(.has-order-bar) {
+    padding-bottom: calc(146px + var(--app-safe-bottom, 0px)) !important;
+  }
+
+  .tb-view-bill-btn {
+    display: none !important;
+  }
+}
+
+/* a popup is open: the bar steps aside, like the bottom navigation */
+body:has(.table-modal-backdrop) .tb-order-bar,
+body:has(.modal-backdrop) .tb-order-bar {
+  display: none;
+}
+
+/* phones: large amounts and large text wrap inside their cards and buttons */
+@media (max-width: 768px) {
+  .metric-value {
+    overflow-wrap: anywhere;
+  }
+
+  .metric-content {
+    flex: 1;
+  }
+
+  .table-modal-footer {
+    flex-wrap: wrap;
+  }
+
+  .table-modal-footer > button {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0;
+    padding-left: 0.6rem !important;
+    padding-right: 0.6rem !important;
   }
 }

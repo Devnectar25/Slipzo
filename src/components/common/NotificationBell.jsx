@@ -1,15 +1,29 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Bell, Megaphone, BadgePercent, CalendarClock, Boxes, Settings2, CheckCheck, X } from "lucide-react"
+import {
+  Bell,
+  Megaphone,
+  BadgePercent,
+  CalendarClock,
+  Boxes,
+  Settings2,
+  CheckCheck,
+  X,
+  Copy,
+  Check,
+  Clock,
+  ArrowRight,
+  Sparkles
+} from "lucide-react"
 import { call } from "../../lib/utils"
 import "../../styles/NotificationBell.css"
 
-const KIND_ICON = {
-  announcement: Megaphone,
-  discount: BadgePercent,
-  plan_reminder: CalendarClock,
-  stock: Boxes,
-  setup: Settings2
+const KIND_META = {
+  announcement: { icon: Megaphone, label: "Announcement", colorClass: "kind-announcement" },
+  discount: { icon: BadgePercent, label: "Special Offer", colorClass: "kind-discount" },
+  plan_reminder: { icon: CalendarClock, label: "Plan Reminder", colorClass: "kind-plan_reminder" },
+  stock: { icon: Boxes, label: "Stock Alert", colorClass: "kind-stock" },
+  setup: { icon: Settings2, label: "Shop Setup", colorClass: "kind-setup" }
 }
 
 const timeAgo = (iso, t) => {
@@ -27,8 +41,7 @@ const timeAgo = (iso, t) => {
 
 /**
  * Bell in the app header: messages from Slipzen (offers, announcements) and the shop's own notices
- * (plan ending, prints running low, low stock, setup). Opening it marks everything as read.
- * onNavigate(view): a notification that points somewhere (e.g. Pricing) opens that page.
+ * (plan ending, prints running low, low stock, setup).
  */
 export function NotificationBell({ user, onNavigate }) {
   const { t } = useTranslation()
@@ -36,6 +49,7 @@ export function NotificationBell({ user, onNavigate }) {
   const [items, setItems] = useState([])
   const [unread, setUnread] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [copiedCode, setCopiedCode] = useState("")
   const wrapRef = useRef(null)
 
   const load = async () => {
@@ -58,7 +72,6 @@ export function NotificationBell({ user, onNavigate }) {
     if (!user?.id) return undefined
     load()
     const tick = setInterval(() => { if (document.visibilityState === "visible") load() }, 120000)
-    // a push notification arrived while the app is open, or a plan / stock change
     const refresh = () => load()
     window.addEventListener("slipzo_push_received", refresh)
     window.addEventListener("slipzo-quota-update", refresh)
@@ -74,7 +87,11 @@ export function NotificationBell({ user, onNavigate }) {
 
   useEffect(() => {
     if (!open) return undefined
-    const onDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false) }
+    const onDown = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false)
+      }
+    }
     const onKey = (e) => { if (e.key === "Escape") setOpen(false) }
     document.addEventListener("mousedown", onDown)
     document.addEventListener("touchstart", onDown, { passive: true })
@@ -92,13 +109,19 @@ export function NotificationBell({ user, onNavigate }) {
     if (next) {
       load()
       if (unread > 0) {
-        // opening the list reads everything; the dots stay until it is closed so new ones can still be spotted
         setUnread(0)
         call("/notifications/read", { method: "POST" }).catch(() => {})
       }
     } else {
       setItems((prev) => prev.map((n) => ({ ...n, unread: false })))
     }
+  }
+
+  const markAllAsRead = (e) => {
+    e?.stopPropagation?.()
+    setUnread(0)
+    setItems((prev) => prev.map((n) => ({ ...n, unread: false })))
+    call("/notifications/read", { method: "POST" }).catch(() => {})
   }
 
   const openItem = (n) => {
@@ -109,7 +132,19 @@ export function NotificationBell({ user, onNavigate }) {
     }
   }
 
+  const copyPromoCode = (code, e) => {
+    e.stopPropagation()
+    if (!code) return
+    try {
+      navigator.clipboard?.writeText(code)
+      setCopiedCode(code)
+      setTimeout(() => setCopiedCode(""), 2000)
+    } catch (_) {}
+  }
+
   if (!user) return null
+
+  const hasUnread = items.some((i) => i.unread)
 
   return (
     <div className="nbell" ref={wrapRef}>
@@ -121,50 +156,151 @@ export function NotificationBell({ user, onNavigate }) {
         aria-expanded={open}
         data-testid="notification-bell"
       >
-        <Bell size={20} />
+        <Bell size={19} className="nbell-btn-icon" />
         {unread > 0 && <span className="nbell-badge" data-testid="notification-count">{unread > 9 ? "9+" : unread}</span>}
       </button>
 
       {open && (
-        <div className="nbell-panel" role="dialog" aria-label={t("notif.title", "Notifications")}>
-          <div className="nbell-head">
-            <strong>{t("notif.title", "Notifications")}</strong>
-            <button type="button" className="nbell-close" onClick={toggle} aria-label={t("common.close", "Close")}><X size={16} /></button>
-          </div>
+        <>
+          {/* Subtle backdrop overlay to focus attention and prevent visual clashing with underlying page cards */}
+          <div className="nbell-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />
 
-          {items.length === 0 ? (
-            <div className="nbell-empty">
-              <CheckCheck size={26} />
-              <span>{loading ? t("notif.loading", "Loading…") : t("notif.empty", "You're all caught up")}</span>
+          <div className="nbell-panel" role="dialog" aria-label={t("notif.title", "Notifications")}>
+            {/* Header */}
+            <div className="nbell-head">
+              <div className="nbell-head-left">
+                <div className="nbell-head-icon-box">
+                  <Bell size={16} />
+                </div>
+                <div className="nbell-head-text">
+                  <strong className="nbell-head-title">{t("notif.title", "Notifications")}</strong>
+                  {items.length > 0 && (
+                    <span className="nbell-head-pill">
+                      {hasUnread ? `${items.filter(i => i.unread).length} new` : `${items.length} total`}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="nbell-head-right">
+                {hasUnread && (
+                  <button
+                    type="button"
+                    className="nbell-mark-btn"
+                    onClick={markAllAsRead}
+                    title="Mark all as read"
+                  >
+                    <CheckCheck size={13} />
+                    <span>{t("notif.markRead", "Mark read")}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="nbell-close"
+                  onClick={toggle}
+                  aria-label={t("common.close", "Close")}
+                >
+                  <X size={15} />
+                </button>
+              </div>
             </div>
-          ) : (
-            <ul className="nbell-list">
-              {items.map((n) => {
-                const Icon = KIND_ICON[n.kind] || Bell
-                const clickable = Boolean(n.view && onNavigate)
-                return (
-                  <li key={n.id}>
-                    <button
-                      type="button"
-                      className={`nbell-item kind-${n.kind} ${n.unread ? "unread" : ""} ${clickable ? "clickable" : ""}`}
-                      onClick={() => openItem(n)}
-                      disabled={!clickable}
-                    >
-                      <span className="nbell-icon"><Icon size={16} /></span>
-                      <span className="nbell-text">
-                        <span className="nbell-item-title">{n.title}</span>
-                        <span className="nbell-item-body">{n.body}</span>
-                        {n.code && <span className="nbell-code">{t("notif.code", "Code")}: <b>{n.code}</b></span>}
-                        <span className="nbell-time">{timeAgo(n.created_at, t)}</span>
-                      </span>
-                      {n.unread && <span className="nbell-dot" aria-hidden="true" />}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
+
+            {/* List */}
+            {items.length === 0 ? (
+              <div className="nbell-empty">
+                <div className="nbell-empty-graphic">
+                  <CheckCheck size={28} />
+                </div>
+                <h4>{loading ? t("notif.loading", "Loading…") : t("notif.empty", "You're all caught up")}</h4>
+                <p>{t("notif.emptySub", "No new alerts or announcements right now.")}</p>
+              </div>
+            ) : (
+              <div className="nbell-list-wrapper">
+                <ul className="nbell-list">
+                  {items.map((n) => {
+                    const meta = KIND_META[n.kind] || KIND_META.announcement
+                    const Icon = meta.icon
+                    const clickable = Boolean(n.view && onNavigate)
+
+                    return (
+                      <li key={n.id} className="nbell-list-item">
+                        <div
+                          className={`nbell-card ${meta.colorClass} ${n.unread ? "unread" : ""} ${clickable ? "clickable" : ""}`}
+                          onClick={() => openItem(n)}
+                          role={clickable ? "button" : undefined}
+                          tabIndex={clickable ? 0 : undefined}
+                        >
+                          <div className={`nbell-icon-box ${meta.colorClass}`}>
+                            <Icon size={16} />
+                          </div>
+
+                          <div className="nbell-card-body">
+                            <div className="nbell-meta-row">
+                              <span className={`nbell-category-pill ${meta.colorClass}`}>
+                                {meta.label}
+                              </span>
+                              <div className="nbell-time-wrap">
+                                <Clock size={11} className="nbell-clock-icon" />
+                                <span className="nbell-time">{timeAgo(n.created_at, t)}</span>
+                              </div>
+                              {n.unread && <span className="nbell-dot" title="Unread" />}
+                            </div>
+
+                            <h4 className="nbell-item-title">{n.title}</h4>
+                            <p className="nbell-item-body">{n.body}</p>
+
+                            {n.code && (
+                              <div
+                                className="nbell-coupon-chip"
+                                onClick={(e) => copyPromoCode(n.code, e)}
+                                title="Click to copy code"
+                              >
+                                <div className="nbell-coupon-left">
+                                  <span className="nbell-coupon-lbl">{t("notif.code", "Code")}:</span>
+                                  <span className="nbell-coupon-val">{n.code}</span>
+                                </div>
+                                <button type="button" className="nbell-coupon-copy-btn">
+                                  {copiedCode === n.code ? (
+                                    <>
+                                      <Check size={12} className="text-emerald-600" />
+                                      <span>Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy size={12} />
+                                      <span>Copy</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
+
+                            {clickable && (
+                              <div className="nbell-action-row">
+                                <span className="nbell-action-text">
+                                  {t("common.viewDetails", "View details")}
+                                  <ArrowRight size={12} className="nbell-action-arrow" />
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="nbell-footer">
+              <span className="nbell-footer-msg">
+                <Sparkles size={13} className="nbell-footer-sparkle" />
+                {t("notif.footerText", "Official notifications & account updates")}
+              </span>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

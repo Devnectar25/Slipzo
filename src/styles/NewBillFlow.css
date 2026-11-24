@@ -2687,3 +2687,24 @@
 }
 .nbd-back-btn:hover { border-color: #93c5fd; color: #0284c7; background: #ffffff; }
 .nbd-back-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* phones: "Back to bill" has its own line, so it never covers the tick; buttons grow with large text */
+@media (max-width: 480px) {
+  .nbd-back-btn {
+    position: static;
+    margin: 12px 0 0 12px;
+    height: auto;
+    min-height: 38px !important;
+  }
+
+  .nbd-btn {
+    height: auto;
+    min-height: 46px !important;
+    padding: 8px 10px;
+    line-height: 1.2;
+  }
+
+  .nbd-back-btn + .nbd-hero {
+    padding-top: 12px;
+  }
+}

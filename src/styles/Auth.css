@@ -1390,7 +1390,7 @@
   font-weight: 700;
   text-decoration: none;
 }
-.auth-overlay .auth-consent-text a:hover { text-decoration: underline; }
+.auth-overlay .auth-consent-text a:hover { color: #075985; text-decoration: none !important; }
 
 /* ---------- Sign up: password strength track ---------- */
 .auth-overlay .auth-pw-track {
@@ -1750,3 +1750,14 @@
 }
 .auth-overlay .auth-form .upi-id-preview { margin-top: 4px !important; }
 .auth-overlay .auth-form .upi-id-preview-text { font-weight: 500 !important; }
+
+/* phones: Back and Continue / Verify go on two lines when they do not fit, instead of widening the form */
+@media (max-width: 480px) {
+  .auth-overlay .auth-actions { flex-wrap: wrap !important; }
+  .auth-overlay .auth-form .auth-actions > button.primary.full,
+  .auth-overlay .auth-form .auth-actions > button,
+  .auth-overlay .auth-actions > button { flex: 1 1 auto !important; width: auto !important; min-width: max-content !important; max-width: 100% !important; }
+  .auth-overlay .otp-panel, .auth-overlay .otp-boxes, .auth-overlay .otp-sent { min-width: 0; max-width: 100%; }
+  .auth-overlay .auth-form input.otp-box { width: 100% !important; min-width: 0 !important; }
+  .auth-overlay .otp-sent > * { min-width: 0; }
+}

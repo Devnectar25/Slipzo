@@ -1,5 +1,5 @@
 import { Utensils, ShoppingBag, ArrowRight } from "lucide-react"
-import { money, getTableDisplayName } from "../../lib/utils"
+import { money, saneAmount, getTableDisplayName } from "../../lib/utils"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../../lib/translator"
 
@@ -29,11 +29,11 @@ export function TableCard({ table, onSelectTable }) {
 
   const computedTotal = currentItems.reduce((sum, it) => {
     const q = Number(it.quantity !== undefined ? it.quantity : (it.qty !== undefined ? it.qty : 1)) || 1
-    const r = Number(it.rate !== undefined ? it.rate : (it.price !== undefined ? it.price : 0)) || 0
+    const r = saneAmount(it.rate !== undefined ? it.rate : (it.price !== undefined ? it.price : 0), 1e6)
     return sum + (q * r)
   }, 0)
 
-  const totalAmount = Number(table.total_amount) > 0 ? Number(table.total_amount) : computedTotal
+  const totalAmount = saneAmount(table.total_amount) || computedTotal
 
   return (
     <div

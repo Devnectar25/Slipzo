@@ -170,5 +170,5 @@
   border-radius: 12px;
   background: #f8fafc;
 }
-.upi-id-preview-text { display: flex; flex-direction: column; gap: 2px; font-size: 0.76rem; color: #475569; }
+.upi-id-preview-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; font-size: 0.76rem; color: #475569; }
 .upi-id-preview-text strong { font-size: 0.82rem; color: #0c1f41; }

@@ -136,7 +136,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
         return null
       case "upiId":
         if (!isRegister || !payModes.includes("UPI")) return null
-        if (!String(f.upiId || "").trim()) return ["upi.errRequired", "Enter your UPI ID, or turn UPI off"]
+        if (!String(f.upiId || "").trim()) return null // optional: it can be added later in the shop profile
         return isValidUpiId(f.upiId) ? null : ["upi.errInvalid", "Please enter a valid UPI ID, for example yourname@okaxis"]
       case "confirmPassword":
         if (!f.confirmPassword) return ["auth.err_confirm_required", "Please re-enter your password"]
@@ -579,7 +579,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
                 </label>
 
                 <label>
-                  <span className="auth-label-text">{t("auth.email", "Email")} <span className="auth-optional">{t("auth.optional", "(optional)")}</span></span>
+                  <span className="auth-label-text">{t("auth.email", "Email")}</span>
                   <div className="auth-field">
                     <Mail size={17} className="auth-field-icon" />
                     <input
@@ -791,7 +791,7 @@ export function Auth({ onLogin, onCancel, initialRegister = false }) {
 
                 {payModes.includes("UPI") && (
                   <label>
-                    <span className="auth-label-text">{t("upi.idLabel", "UPI ID for payment QR")} {required}</span>
+                    <span className="auth-label-text">{t("upi.idLabel", "UPI ID for payment QR")}</span>
                     <div className="auth-field">
                       <QrCode size={17} className="auth-field-icon" />
                       <input

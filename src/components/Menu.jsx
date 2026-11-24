@@ -35,7 +35,6 @@ import {
   Link as LinkIcon,
   Image as ImageIcon,
   Barcode as BarcodeIcon,
-  Lock,
   Percent
 } from "lucide-react"
 import { call, money, getCachedData, setCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, updateItemStockInStorageAndCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo, formatQty } from "../lib/utils"
@@ -48,14 +47,14 @@ import { VoiceInputButton } from "./common/VoiceInputButton"
 import { useSpeechInput } from "../hooks/useSpeechInput"
 import { BarcodeModal } from "./common/BarcodeModal"
 import { useShowBarcode } from "../hooks/useShowBarcode"
-import { productGroupOf, productGroupChips, productGroupLabelKey } from "../lib/productGroups"
+import { productGroupOf, productGroupChips, productGroupLabel } from "../lib/productGroups"
 import { StockModal, StockBadge, InventorySummary } from "./common/StockModal"
 import Swal from "sweetalert2"
 import "../styles/Menu.css"
 import { LooseUnitPicker } from "./common/LooseUnitPicker"
 import { GstPicker } from "./common/GstPicker"
 import { shopUsesGst, normalizeGstRate, withGst } from "../lib/gst"
-import { unitLabel, formatQtyUnit } from "../lib/units"
+import { unitLabel, formatQtyUnit, isLooseItem } from "../lib/units"
 
 const getCustomItemCategoryIcon = (category) => {
   const c = String(category || "").toLowerCase()
@@ -145,8 +144,10 @@ function MenuImageThumbnail({ src, alt, className = "mob-item-thumb", wrapClassN
 }
 
 const MENU_VIEW_KEY = "slipzo_menu_view"
+const OWN_CATEGORY = "__own__" // "+ Add your own category" in the category list
 
-// A custom item belongs to the shop's own category (the one chosen at sign up / in the shop profile)
+// "Add Your Item" starts on the shop's own category (chosen at sign up / in the shop profile); the owner can pick
+// another one or type their own
 const SHOP_CATEGORY_LABELS = {
   small_business: "Small Business / Cafe & Tea",
   kirana_grocery: "Kirana / Grocery Shop",
@@ -203,6 +204,8 @@ export function Menu({ setView, requireAuth, user }) {
   const isMenu = isMenuCategory(selectedBusinessType)
   // Kirana / grocery and cloth shops keep stock for every item
   const isInventory = isInventoryShop(selectedBusinessType)
+  // Loose items (kg, litre, ...) are for those two shop types only, not cafe / hotel / restaurant
+  const usesLoose = isInventory
   const [stockItem, setStockItem] = useState(null) // item whose stock popup is open
   const [stockFilter, setStockFilter] = useState("all") // "all" | "low" | "out" | "untracked"
   const [addStockQty, setAddStockQty] = useState("")
@@ -425,6 +428,7 @@ export function Menu({ setView, requireAuth, user }) {
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
   const [customName, setCustomName] = useState("")
   const [customCat, setCustomCat] = useState(() => shopCategoryLabel(defaultBusinessType) || "General")
+  const [customCatOwn, setCustomCatOwn] = useState("") // category typed by the owner (customCat is OWN_CATEGORY)
   const [customItemPrice, setCustomItemPrice] = useState("")
   const [customBarcode, setCustomBarcode] = useState("")
   const [customBarcodeActive, setCustomBarcodeActive] = useState(() => isDefaultBarcodeActiveForBusinessType(defaultBusinessType))
@@ -458,6 +462,7 @@ export function Menu({ setView, requireAuth, user }) {
   const handleOpenCustomModal = () => {
     setCustomName("")
     setCustomCat(shopCategoryLabel(selectedBusinessType))
+    setCustomCatOwn("")
     setCustomItemPrice("")
     setCustomBarcode("")
     setCustomBarcodeActive(isDefaultBarcodeActiveForBusinessType(selectedBusinessType))
@@ -476,6 +481,7 @@ export function Menu({ setView, requireAuth, user }) {
     setIsCustomModalOpen(false)
     setCustomName("")
     setCustomCat(shopCategoryLabel(selectedBusinessType))
+    setCustomCatOwn("")
     setCustomItemPrice("")
     setCustomBarcode("")
     setCustomBarcodeActive(isDefaultBarcodeActiveForBusinessType(selectedBusinessType))
@@ -543,6 +549,17 @@ export function Menu({ setView, requireAuth, user }) {
       return
     }
 
+    let itemCategory = customCat.trim() || "General"
+    if (customCat === OWN_CATEGORY) {
+      const typed = customCatOwn.trim().replace(/\s+/g, " ")
+      if (!typed) {
+        setCustomFormError("Please enter a category name.")
+        return
+      }
+      // typed an existing category in another spelling ("starters"): keep one category, not two
+      itemCategory = customCategoryOptions.find((c) => c.toLowerCase() === typed.toLowerCase()) || typed
+    }
+
     const customStock = readOpeningStock(customStockQty, customLowAlert)
     if (customStock.error) {
       setCustomFormError(customStock.error)
@@ -563,11 +580,12 @@ export function Menu({ setView, requireAuth, user }) {
       const finalImage = customImagePreview || customImageUrl || ""
       const payload = {
         name: trimmedName,
-        category: customCat.trim() || "General",
+        category: itemCategory,
         custom_price: numPrice,
         price: numPrice,
         image_url: finalImage,
-        barcode: customBarcode.trim() || undefined,
+        // the barcode field is hidden for a loose item, so a code typed before switching is not kept
+        barcode: (!customUnit && customBarcode.trim()) || undefined,
         barcode_active: customBarcodeActive,
         is_custom: true,
         unit: customUnit || null,
@@ -584,12 +602,13 @@ export function Menu({ setView, requireAuth, user }) {
         id: res?.id || res?.menu_item_id || `custom_${Date.now()}`,
         menu_item_id: res?.id || res?.menu_item_id || `custom_${Date.now()}`,
         name: trimmedName,
-        category: customCat.trim() || "General",
+        category: itemCategory,
+        own_category: !catalogItems.some((c) => (c.category || "").trim().toLowerCase() === itemCategory.toLowerCase()),
         price: numPrice,
         custom_price: numPrice,
         is_active: true,
         image_url: finalImage,
-        barcode: customBarcode.trim() || res?.barcode || `BC${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+        barcode: (!customUnit && customBarcode.trim()) || res?.barcode || `BC${Math.floor(1000000000 + Math.random() * 9000000000)}`,
         barcode_active: customBarcodeActive,
         unit: customUnit || "",
         gst_rate: normalizeGstRate(customGst),
@@ -772,7 +791,7 @@ export function Menu({ setView, requireAuth, user }) {
   const myMenuCategories = useMemo(() => {
     const list = [{ id: "all", label: t("menu.allItems", "All Items") }]
     productGroupChips(items, selectedBusinessType).forEach((g) => {
-      list.push({ id: g.id, label: t(productGroupLabelKey(selectedBusinessType, g.id), g.label), icon: g.icon })
+      list.push({ id: g.id, label: productGroupLabel(t, selectedBusinessType, g), icon: g.icon })
     })
     return list
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -797,6 +816,20 @@ export function Menu({ setView, requireAuth, user }) {
     })
     return list
   }, [catalogItems, items])
+
+  // Category list of "Add Your Item": the shop's own category first, then the ones already in use
+  const customCategoryOptions = useMemo(() => {
+    const shopCat = shopCategoryLabel(selectedBusinessType)
+    const seen = new Set([shopCat.toLowerCase()])
+    const rest = []
+    catalogCategories.forEach(({ id }) => {
+      const key = id.toLowerCase()
+      if (id === "all" || seen.has(key)) return
+      seen.add(key)
+      rest.push(id)
+    })
+    return [shopCat, ...rest.sort((a, b) => a.localeCompare(b))]
+  }, [catalogCategories, selectedBusinessType])
 
   // Added item ids
   const addedMenuItemIds = useMemo(() => {
@@ -841,7 +874,7 @@ export function Menu({ setView, requireAuth, user }) {
   }, [search, selectedCategory, myMenuSort])
 
   // The Add Menu screen lists the master catalog plus the shop's own custom items. A custom item is created
-  // from this screen ("Create Custom Menu") but lives only in My Menu, so searching for it here used to say
+  // from this screen ("Add Your Item") but lives only in My Menu, so searching for it here used to say
   // "No matching items found" right after it was made. They show as "Added", like added catalog items.
   const addMenuItems = useMemo(() => {
     const catalogIds = new Set(catalogItems.map((c) => c.id))
@@ -957,9 +990,9 @@ export function Menu({ setView, requireAuth, user }) {
     setAddFormError("")
     setAddStockQty("")
     setAddLowAlert("5")
-    setAddUnit(catalogItem?.unit || "")
+    setAddUnit(usesLoose ? catalogItem?.unit || "" : "")
     // a loose item has no GST unless the shop owner chooses a rate (the catalog's rate is not carried over)
-    const initialGst = catalogItem?.unit ? "0" : String(normalizeGstRate(catalogItem?.gst_rate))
+    const initialGst = usesLoose && catalogItem?.unit ? "0" : String(normalizeGstRate(catalogItem?.gst_rate))
     setAddGst(initialGst)
     setShowAddGst(usesGst || Number(initialGst) > 0)
   }
@@ -1063,7 +1096,8 @@ export function Menu({ setView, requireAuth, user }) {
     setEditUnit(userItem?.unit || "")
     const initialGst = String(normalizeGstRate(userItem?.gst_rate))
     setEditGst(initialGst)
-    setShowEditGst(usesGst || Number(initialGst) > 0)
+    // shop GST off: starts off even if the item still remembers a rate
+    setShowEditGst(usesGst)
     setEditFormError("")
   }
 
@@ -1133,8 +1167,9 @@ export function Menu({ setView, requireAuth, user }) {
         return next
       })
 
+      // only when the owner turned GST on in this form; a rate the item had before must not switch shop GST back on
       const finalGst = normalizeGstRate(editGst)
-      if (finalGst > 0 && !usesGst) {
+      if (finalGst > 0 && !usesGst && showEditGst) {
         const updatedShop = { ...(getCachedData("/shop") || {}), gst_enabled: 1 }
         setCachedData("/shop", updatedShop)
         setGstShop(updatedShop)
@@ -1256,11 +1291,11 @@ export function Menu({ setView, requireAuth, user }) {
                 type="button"
                 className="mob-menu-btn mob-menu-custom-btn"
                 onClick={handleOpenCustomModal}
-                title={isMenu ? tDb("Create Custom Menu") : tDb("Create Custom Item")}
+                title={tDb("Add Your Item")}
               >
                 <Sparkles size={14} />
-                <span className="mob-btn-text-full">{isMenu ? tDb("Custom Menu") : tDb("Add Your Item")}</span>
-                <span className="mob-btn-text-short">{isMenu ? tDb("Custom Menu") : tDb("Add Your Item")}</span>
+                <span className="mob-btn-text-full">{tDb("Add Your Item")}</span>
+                <span className="mob-btn-text-short">{tDb("Add Your Item")}</span>
               </button>
             </div>
 
@@ -1776,7 +1811,7 @@ export function Menu({ setView, requireAuth, user }) {
                   onClick={handleOpenCustomModal}
                   style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
                 >
-                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{isMenu ? tDb("Custom Menu") : tDb("Add Your Item")}</span>
+                  <Sparkles size={16} style={{ color: "#0284c7" }} /> <span>{tDb("Add Your Item")}</span>
                 </button>
               </div>
             </div>
@@ -1948,7 +1983,7 @@ export function Menu({ setView, requireAuth, user }) {
                         </div>
 
                         <div className="user-menu-card-actions">
-                          {showBarcode && Boolean(item.barcode) && item.barcode_active !== false && item.barcode_active !== 0 && item.barcode_active !== "0" && item.barcode_active !== "false" && (
+                          {showBarcode && !isLooseItem(item) && Boolean(item.barcode) && item.barcode_active !== false && item.barcode_active !== 0 && item.barcode_active !== "0" && item.barcode_active !== "false" && (
                             <button
                               type="button"
                               className="menu-action-btn barcode-btn"
@@ -2062,7 +2097,7 @@ export function Menu({ setView, requireAuth, user }) {
               onClick={handleOpenCustomModal}
               style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 0.85rem", fontSize: "0.85rem" }}
             >
-              <Plus size={16} /> <span>{isMenu ? tDb("Create Custom Menu") : tDb("Create Custom Item")}</span>
+              <Plus size={16} /> <span>{tDb("Add Your Item")}</span>
             </button>
           </div>
 
@@ -2403,9 +2438,11 @@ export function Menu({ setView, requireAuth, user }) {
                 </div>
 
                 {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                {usesLoose && (
                 <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
                   <LooseUnitPicker unit={addUnit} onChange={(u) => { if (u && !addUnit) setAddGst("0"); setAddUnit(u) }} />
                 </div>
+                )}
 
                 {isInventory && (
                 <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
@@ -2449,7 +2486,7 @@ export function Menu({ setView, requireAuth, user }) {
                 </div>
                 )}
 
-                {showBarcode && (
+                {showBarcode && !addUnit && (
 <>
 {/* Barcode Active / Deactive toggle */}
                 <div className="menu-modal-field" style={{ marginTop: "1rem" }}>
@@ -2683,9 +2720,12 @@ export function Menu({ setView, requireAuth, user }) {
                 </div>
 
                 {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                {/* an item already saved as loose keeps the switch so it can be turned off */}
+                {(usesLoose || isLooseItem(editingItem)) && (
                 <div className="menu-modal-field" style={{ marginTop: "0.9rem" }}>
                   <LooseUnitPicker unit={editUnit} onChange={setEditUnit} disabled={isUpdatingPrice} />
                 </div>
+                )}
 
                 {/* Stock: add pieces while editing (kirana / grocery and cloth shops) */}
                 {isInventory && (() => {
@@ -2740,7 +2780,7 @@ export function Menu({ setView, requireAuth, user }) {
                   )
                 })()}
 
-                {showBarcode && (
+                {showBarcode && !editUnit && (
 <>
 {/* Barcode Active / Deactive toggle */}
                 <div className="menu-modal-field" style={{ marginTop: "1rem" }}>
@@ -2832,7 +2872,7 @@ export function Menu({ setView, requireAuth, user }) {
         <div className="menu-modal-backdrop" onClick={handleCloseCustomModal}>
           <div className="menu-modal-card custom-product-card" onClick={(e) => e.stopPropagation()}>
             <div className="menu-modal-header">
-              <h3 className="menu-modal-title">{isMenu ? tDb("Create Custom Menu") : tDb("Create Custom Item")}</h3>
+              <h3 className="menu-modal-title">{tDb("Add Your Item")}</h3>
               <button className="menu-modal-close-btn" onClick={handleCloseCustomModal}>
                 <X size={18} />
               </button>
@@ -2977,19 +3017,33 @@ export function Menu({ setView, requireAuth, user }) {
 
                 {/* 3. Category */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>
-                  <label className="menu-modal-label">{tDb("Category")}</label>
-                  {/* set from the shop's business type; not editable here */}
-                  <div
-                    className="cp-category-select-btn cp-category-locked"
-                    aria-readonly="true"
-                    title={tDb("Category comes from your shop type")}
+                  <label className="menu-modal-label" htmlFor="cp-category">{tDb("Category")}</label>
+                  <select
+                    id="cp-category"
+                    className="menu-modal-input cp-category-select"
+                    value={customCat}
+                    onChange={(e) => { setCustomCat(e.target.value); setCustomFormError("") }}
                   >
-                    <div className="cp-category-selected-info">
-                      <span className="cp-category-icon">{getCustomItemCategoryIcon(customCat)}</span>
-                      <span className="cp-category-text">{tDb(customCat)}</span>
-                    </div>
-                    <Lock size={14} className="cp-category-lock" aria-hidden="true" />
-                  </div>
+                    {customCategoryOptions.map((c) => (
+                      <option key={c} value={c}>{getCustomItemCategoryIcon(c)} {tDb(c)}</option>
+                    ))}
+                    <option value={OWN_CATEGORY}>{tDb("+ Add your own category")}</option>
+                  </select>
+                  {customCat === OWN_CATEGORY && (
+                    <input
+                      type="text"
+                      className="menu-modal-input"
+                      data-testid="cp-own-category"
+                      aria-label={tDb("Enter category name")}
+                      placeholder={tDb("Enter category name")}
+                      value={customCatOwn}
+                      onChange={(e) => { setCustomCatOwn(e.target.value); setCustomFormError("") }}
+                      maxLength={40}
+                      required
+                      autoFocus
+                      style={{ height: "35px", fontSize: "0.85rem", marginTop: "0.4rem" }}
+                    />
+                  )}
                 </div>
 
                 {/* 4. Selling Price */}
@@ -3085,9 +3139,11 @@ export function Menu({ setView, requireAuth, user }) {
                 </div>
 
                 {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                {usesLoose && (
                 <div className="menu-modal-field" style={{ margin: 0 }}>
                   <LooseUnitPicker unit={customUnit} onChange={(u) => { if (u && !customUnit) setCustomGst("0"); setCustomUnit(u) }} />
                 </div>
+                )}
 
                 {isInventory && (
                 <div className="menu-modal-field" style={{ margin: 0 }}>
@@ -3131,7 +3187,7 @@ export function Menu({ setView, requireAuth, user }) {
                 </div>
                 )}
 
-                {showBarcode && (
+                {showBarcode && !customUnit && (
 <>
 {/* 5. Barcode / SKU */}
                 <div className="menu-modal-field" style={{ margin: 0 }}>

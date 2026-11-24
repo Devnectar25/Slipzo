@@ -10192,6 +10192,7 @@ body.is-native-app .public-footer,
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    flex-direction: column !important;
     gap: 0.3rem !important;
     min-width: 0 !important;
     box-sizing: border-box !important;
@@ -10216,9 +10217,9 @@ body.is-native-app .public-footer,
   .feature-badge-label {
     font-size: clamp(0.62rem, 2.2vw, 0.72rem) !important;
     font-weight: 700 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    line-height: 1.2 !important;
     text-align: center !important;
     color: #1e293b !important;
   }
@@ -10936,7 +10937,7 @@ body.is-native-app .public-footer,
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  max-width: 600px;
+  max-width: 680px;
   width: 100%;
   text-align: center;
 }
@@ -11089,8 +11090,15 @@ body.is-native-app .public-footer,
   .pricing-category-tab {
     flex: 1;
     justify-content: center;
-    padding: 0.55rem 0.75rem;
+    min-width: 0;
+    gap: 0.35rem;
+    padding: 0.5rem 0.4rem;
     font-size: 0.82rem;
+    line-height: 1.2;
+    white-space: normal;
+  }
+  .pricing-category-tab svg {
+    flex-shrink: 0;
   }
   .pricing-category-tab .tab-pill-badge {
     display: none;
@@ -21877,4 +21885,35 @@ textarea,
   background: #fef2f2;
   color: #dc2626;
   border: 1px solid #fecaca;
+}
+
+/* ============ Phones: controls that were stretched or cut off ============ */
+@media (max-width: 768px) {
+  /* every button is at least 44px tall on phones, which made the round close buttons oval */
+  .loose-qty-close,
+  .nbell-close,
+  .upi-big-close,
+  .stock-modal-close,
+  .modal-close-btn,
+  .popup-close-btn,
+  .auth-overlay .auth-close,
+  .custom-product-card .menu-modal-close-btn {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    flex-shrink: 0;
+  }
+
+  /* large text on the phone: buttons wrap their words instead of cutting them */
+  .menu-modal-footer > button,
+  .tb-pdf-btn,
+  .tb-reset-btn,
+  .nb-save-bill-btn {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    white-space: normal !important;
+    line-height: 1.2;
+  }
 }

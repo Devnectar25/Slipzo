@@ -104,7 +104,7 @@ async function confirmPurchase(pending, user) {
   }
 }
 
-const successPopup = ({ paymentId, planName, printCount }) => {
+const successPopup = ({ paymentId, planName, printCount, validity }) => {
   const planLabel = PLAN_LABEL_KEYS[planName] ? tr(PLAN_LABEL_KEYS[planName], planName) : planName
   const prints = Number(printCount || 0).toLocaleString("en-IN")
   return Swal.fire({
@@ -115,7 +115,7 @@ const successPopup = ({ paymentId, planName, printCount }) => {
           <svg width="38" height="38" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <h2 class="ps-title">${escapeHtml(tr("pay.successTitleClean", "Payment successful!"))}</h2>
-        <p class="ps-sub">${escapeHtml(tr("pay.successSub", "Your prints are ready. Happy billing!"))}</p>
+        <p class="ps-sub">${escapeHtml(validity ? tr("pay.successSubTime", "Your plan is active. Happy billing!") : tr("pay.successSub", "Your prints are ready. Happy billing!"))}</p>
       </div>
       <div class="ps-body">
         <div class="ps-summary">
@@ -124,8 +124,8 @@ const successPopup = ({ paymentId, planName, printCount }) => {
             <b>${escapeHtml(planLabel)}</b>
           </div>
           <div class="ps-stat">
-            <span>${escapeHtml(tr("pay.printsAdded", "Prints added"))}</span>
-            <b class="ps-big">+${escapeHtml(prints)}</b>
+            <span>${escapeHtml(validity ? tr("pay.validity", "Validity") : tr("pay.printsAdded", "Prints added"))}</span>
+            <b class="ps-big">${escapeHtml(validity || `+${prints}`)}</b>
           </div>
         </div>
         <div class="ps-payid">
@@ -133,7 +133,7 @@ const successPopup = ({ paymentId, planName, printCount }) => {
           <code id="ps-payid-value">${escapeHtml(paymentId)}</code>
           <button type="button" class="ps-copy" id="ps-copy-btn">${escapeHtml(tr("pay.copy", "Copy"))}</button>
         </div>
-        <p class="ps-note">${escapeHtml(tr("pay.neverExpire", "Prints never expire. Keep the payment ID for your records."))}</p>
+        <p class="ps-note">${escapeHtml(validity ? tr("pay.keepId", "Keep the payment ID for your records.") : tr("pay.neverExpire", "Prints never expire. Keep the payment ID for your records."))}</p>
       </div>
     `,
     showConfirmButton: true,
@@ -295,7 +295,7 @@ const readNativeError = (err) => {
  * (bank pages and UPI need windows and app switches it does not handle), so the app asks the server for an order and
  * hands it to Razorpay's SDK. Returns true if the payment screen was opened, false if the web checkout should be used.
  */
-async function startNativePurchase({ planId, planName, amountInRupees, printCount, user, onActivated, onDone }) {
+async function startNativePurchase({ planId, planName, amountInRupees, printCount, validity, user, onActivated, onDone }) {
   let Checkout
   try {
     ;({ Checkout } = await import("capacitor-razorpay"))
@@ -339,7 +339,7 @@ async function startNativePurchase({ planId, planName, amountInRupees, printCoun
       currency: order.currency || "INR",
       order_id: order.order_id,
       name: "Slipzen Print Credits",
-      description: `${planName} (${printCount.toLocaleString()} prints)`,
+      description: validity ? planName : `${planName} (${printCount.toLocaleString()} prints)`,
       prefill: { name: user?.name || "", email: user?.email || "", contact: user?.phone || user?.shop_phone || "" },
       theme: { color: "#0284c7" }
     })
@@ -384,6 +384,7 @@ async function startNativePurchase({ planId, planName, amountInRupees, printCoun
     planName,
     amountInRupees,
     printCount,
+    ...(validity ? { validity } : {}),
     userId: user?.id || null
   }
   savePending(pending)
@@ -394,12 +395,13 @@ async function startNativePurchase({ planId, planName, amountInRupees, printCoun
 /**
  * Opens Razorpay for a print pack and, once the server has confirmed the payment, adds the prints.
  * Used by the Pricing page and by the plan step shown right after sign up.
+ * validity: for a plan bought for a time ("1 Month"), shown after paying instead of a number of prints.
  *
  * onActivated(plan)  - the server confirmed the payment and the prints were added
  * onDone()           - the person closed the "Payment Successful" message
  * Resolves true if the payment window was opened, false if it could not be (owner-only, no network, ...).
  */
-export async function startPrintPurchase({ planId, planName, amountInRupees, printCount, user, onActivated, onDone }) {
+export async function startPrintPurchase({ planId, planName, amountInRupees, printCount, validity, user, onActivated, onDone }) {
   // The server refuses plan purchases from workers, so stop before any money is taken
   if (user?.staff_of) {
     Swal.fire({
@@ -413,7 +415,7 @@ export async function startPrintPurchase({ planId, planName, amountInRupees, pri
 
   // In the Android app Razorpay's native payment screen is used; the web checkout below is for browsers
   if (isNativeApp) {
-    const handled = await startNativePurchase({ planId, planName, amountInRupees, printCount, user, onActivated, onDone })
+    const handled = await startNativePurchase({ planId, planName, amountInRupees, printCount, validity, user, onActivated, onDone })
     if (handled !== null) return handled
   }
 
@@ -435,7 +437,7 @@ export async function startPrintPurchase({ planId, planName, amountInRupees, pri
     amount: amountInRupees * 100, // Amount in paise
     currency: "INR",
     name: "Slipzen Print Credits",
-    description: `${planName} (${printCount.toLocaleString()} prints)`,
+    description: validity ? planName : `${planName} (${printCount.toLocaleString()} prints)`,
     image: "/logo.png",
     prefill: {
       name: user?.name || "",
@@ -458,6 +460,7 @@ export async function startPrintPurchase({ planId, planName, amountInRupees, pri
         planName,
         amountInRupees,
         printCount,
+        ...(validity ? { validity } : {}),
         userId: user?.id || null
       }
       // Written down before the server is asked, so a failed or interrupted confirmation can be finished later

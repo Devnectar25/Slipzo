@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { usePageScrollLock } from "../hooks/usePageScrollLock"
 import { shopUsesBarcode } from "../hooks/useShowBarcode"
-import { productGroupOf, productGroupChips, productGroupLabelKey } from "../lib/productGroups"
+import { productGroupOf, productGroupChips, productGroupLabel } from "../lib/productGroups"
 import {
   Utensils,
   Shirt,
@@ -31,7 +31,8 @@ import { VoiceInputButton } from "./common/VoiceInputButton"
 import { LooseUnitPicker } from "./common/LooseUnitPicker"
 import { GstPicker } from "./common/GstPicker"
 import { shopUsesGst, normalizeGstRate } from "../lib/gst"
-import { unitLabel, formatQtyUnit } from "../lib/units"
+import { unitLabel, formatQtyUnit, isLooseItem } from "../lib/units"
+import { flyThumb } from "../lib/flyThumb"
 import { useDbTranslation } from "../lib/translator"
 import { matchesItemFuzzy, cleanVoiceQuery } from "../lib/fuzzySearch"
 
@@ -386,6 +387,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
   const [stockModalError, setStockModalError] = useState("")
   // kirana / grocery and cloth shops: pieces in hand when the item is added
   const isInventory = isInventoryShop(currentBType)
+  // loose items (kg, litre, ...) are for those two shop types only, not cafe / hotel / restaurant
+  const usesLoose = isInventory
   const [stockInput, setStockInput] = useState("")
   // low-stock alert level (stock shops) and whether the item's barcode is used for scanning (barcode shops),
   // the same choices the Menu page offers when an item is added
@@ -496,7 +499,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     const isOther = customCat === "__other__"
     const finalCat = isOther ? (customCatCustom.trim() || "General") : (customCat || "General").trim()
 
-    let finalBarcode = customBarcode.trim()
+    // the barcode field is hidden for a loose item, so a code typed before switching is not kept
+    let finalBarcode = customUnit ? "" : customBarcode.trim()
     if (options.printBarcode && !finalBarcode) {
       finalBarcode = `BC${Math.floor(1000000000 + Math.random() * 9000000000)}`
     }
@@ -513,6 +517,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
       id: uniqueId,
       name: trimmedName,
       category: finalCat,
+      own_category: isOther && !availableCategoryOptions.some((c) => c.toLowerCase() === finalCat.toLowerCase()),
       price: numPrice,
       customPrice: numPrice,
       user_price: numPrice,
@@ -546,8 +551,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     }
   }
 
-  // "Fly to Selected Items" animation: the item's picture is thrown into Selected Items like a real object
-  // (steady sideways speed, gravity up-and-down, tilting along its path, a faint trail) and squashes as it lands.
+  // "Fly to Selected Items" animation (see lib/flyThumb).
   // The item only joins the list (and gets its card) once it has landed, so no empty box appears before the drop.
   const flySourceRef = useRef(null)
   const [justAddedId, setJustAddedId] = useState(null)
@@ -558,9 +562,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     const source = flySourceRef.current
     flySourceRef.current = null
     const reduceMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-    let ghost = null
+    let cancelFlight = null
     let startTimer = null
-    let landTimer = null
     let landed = false
 
     // the item joins Selected Items now
@@ -605,83 +608,14 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
         : source.querySelector(".product-thumbnail-fallback, .product-thumbnail") || source
       if (!to) { commit(); return }
 
-      const from = startEl.getBoundingClientRect()
-      const size = Math.max(40, Math.min(56, from.width || 48))
-
-      const x0 = from.left + from.width / 2 - size / 2
-      const y0 = from.top + from.height / 2 - size / 2
-      const x2 = to.left + to.width / 2 - size / 2
-      const y2 = to.top + to.height / 2 - size / 2
-      const dist = Math.hypot(x2 - x0, y2 - y0)
-      const duration = Math.round(Math.max(650, Math.min(950, 520 + dist * 0.45)))
-      const apex = Math.max(70, Math.min(170, dist * 0.32)) // how high it is thrown above the straight line
-      const endScale = Math.max(0.6, Math.min(1, (to.width || size) / size))
-
-      // position at time t (0..1): steady sideways speed, gravity on the way up and down (a true parabola)
-      const at = (t) => ({
-        x: x0 + (x2 - x0) * t,
-        y: y0 + (y2 - y0) * t - 4 * apex * t * (1 - t)
-      })
-      const frames = []
-      const N = 36
-      for (let i = 0; i <= N; i++) {
-        const t = i / N
-        const { x, y } = at(t)
-        const ahead = at(Math.min(1, t + 0.02))
-        const tilt = Math.max(-18, Math.min(18, Math.atan2(ahead.y - y, ahead.x - x) * (180 / Math.PI) * 0.35))
-        const scale = t < 0.12 ? 1 + 0.14 * (t / 0.12) : 1.14 - (1.14 - endScale) * ((t - 0.12) / 0.88)
-        frames.push({ transform: `translate3d(${x}px, ${y}px, 0) rotate(${tilt}deg) scale(${scale})`, offset: t })
-      }
-
-      const makeFlyer = (extraClass) => {
-        const el = document.createElement("div")
-        el.className = `fly-thumb ${extraClass || ""}`
-        const pic = startEl.cloneNode(true)
-        pic.removeAttribute("style")
-        pic.className = "fly-thumb-pic"
-        el.appendChild(pic)
-        Object.assign(el.style, { width: `${size}px`, height: `${size}px`, left: "0px", top: "0px" })
-        document.body.appendChild(el)
-        return el
-      }
-
-      // a faint trail of copies following a moment behind
-      const trail = [0.32, 0.18, 0.08].map((opacity, i) => {
-        const el = makeFlyer("fly-thumb-trail")
-        el.style.opacity = String(opacity)
-        el.animate(frames, { duration, delay: (i + 1) * 34, easing: "linear", fill: "both" })
-          .finished.then(() => el.remove()).catch(() => el.remove())
-        return el
-      })
-      ghost = makeFlyer()
-      ghost._trail = trail
-
-      // the picture left behind in the row gives a little "pick up" pop
-      startEl.animate?.([{ transform: "scale(1)" }, { transform: "scale(0.86)" }, { transform: "scale(1)" }], { duration: 260, easing: "ease-out" })
-
-      const anim = ghost.animate(frames, { duration, easing: "linear", fill: "forwards" })
-      anim.onfinish = () => {
-        const g = ghost
-        ghost = null
-        const end = `translate3d(${x2}px, ${y2}px, 0)`
-        // squash on impact; the card appears under it
-        g.animate([
-          { transform: `${end} scale(${endScale})`, opacity: 1 },
-          { transform: `${end} scale(${endScale * 1.18}, ${endScale * 0.8})`, opacity: 1, offset: 0.45 },
-          { transform: `${end} scale(${endScale * 0.92}, ${endScale * 1.06})`, opacity: 0.6, offset: 0.8 },
-          { transform: `${end} scale(${endScale})`, opacity: 0 }
-        ], { duration: 220, easing: "ease-out", fill: "forwards" }).finished.then(() => g.remove()).catch(() => g.remove())
-        landTimer = setTimeout(commit, 70)
-      }
+      cancelFlight = flyThumb({ startEl, to, onLand: commit })
     }
 
     // let the price popup close first so the row is in plain view when it lifts off
     startTimer = setTimeout(() => requestAnimationFrame(run), 140)
     return () => {
       clearTimeout(startTimer)
-      clearTimeout(landTimer)
-      ghost?._trail?.forEach((el) => el.remove())
-      ghost?.remove()
+      cancelFlight?.()
       commit() // never lose an item, even if the popup closes mid-flight
     }
   }, [flyingItem])
@@ -717,9 +651,9 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
     setSellingPriceInput(String(defaultPrice))
     setStockInput("")
     setLowAlertInput("5")
-    setUnitInput(product.unit || "")
+    setUnitInput(usesLoose ? product.unit || "" : "")
     // a loose item has no GST unless the shop owner chooses a rate (the catalog's rate is not carried over)
-    const initialGst = product.unit ? "0" : String(normalizeGstRate(product.gst_rate))
+    const initialGst = usesLoose && product.unit ? "0" : String(normalizeGstRate(product.gst_rate))
     setGstInput(initialGst)
     setShowPriceGst(usesGst || Number(initialGst) > 0)
     setBarcodeActive(usesBarcode)
@@ -1077,7 +1011,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                         e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
                       }}
                     >
-                      <span aria-hidden="true">{g.icon}</span> {t(productGroupLabelKey(currentBType, g.id), g.label)}
+                      <span aria-hidden="true">{g.icon}</span> {productGroupLabel(t, currentBType, g)}
                     </button>
                   ))}
                 </div>
@@ -1352,7 +1286,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                     {/* Actions (Edit and Delete) when not inline-editing */}
                     {editingItemId !== item.id && (
                       <div className="selected-item-actions">
-                        {item.barcode && (
+                        {item.barcode && !isLooseItem(item) && (
                           <button
                             type="button"
                             className="selected-barcode-btn"
@@ -1596,9 +1530,11 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                 </div>
 
                 {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                {usesLoose && (
                 <div className="set-price-field-wrap">
                   <LooseUnitPicker unit={unitInput} onChange={(u) => { if (u && !unitInput) setGstInput("0"); setUnitInput(u) }} />
                 </div>
+                )}
 
                 {isInventory && (
                   <div className="set-price-field-wrap">
@@ -1660,7 +1596,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                   </div>
                 )}
 
-                {usesBarcode && (
+                {usesBarcode && !unitInput && (
                   <div className="set-price-field-wrap">
                     <span className="set-price-label">{t("menu.barcodeStatus", "Barcode Status")}</span>
                     <div className="set-price-barcode-toggle" role="radiogroup" aria-label={t("menu.barcodeStatus", "Barcode Status")}>
@@ -1896,9 +1832,11 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                 </div>
 
                 {/* Loose item: sold by kg, litre, ... instead of pieces */}
+                {usesLoose && (
                 <div className="custom-field-group">
                   <LooseUnitPicker unit={customUnit} onChange={(u) => { if (u && !customUnit) setCustomGst("0"); setCustomUnit(u) }} />
                 </div>
+                )}
 
                 {/* Stock Tracking (for inventory shops) */}
                 {isInventory && (
@@ -1951,8 +1889,8 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                   </div>
                 )}
 
-                {/* Barcode (for barcode shops) */}
-                {usesBarcode && (
+                {/* Barcode (for barcode shops; a loose item has none) */}
+                {usesBarcode && !customUnit && (
                   <div className="custom-field-group">
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", gap: "8px", flexWrap: "wrap" }}>
                       <label className="set-price-label" htmlFor="custom-barcode-input" style={{ margin: 0 }}>
@@ -2028,7 +1966,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                 >
                   {t("common.cancel", "Cancel")}
                 </button>
-                {usesBarcode && (
+                {usesBarcode && !customUnit && (
                   <button
                     type="button"
                     onClick={(e) => handleSaveCustomItem(e, { printBarcode: true })}
@@ -3432,6 +3370,37 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
           }
 
           /* Mobile & Tablet Responsive Styles */
+          /* phones: the item's name gets two lines, its price sits above the Add button */
+          @media (max-width: 520px) {
+            .add-menu-product-row { gap: 8px; }
+            .product-row-left { flex: 1 1 0; }
+            .product-name-line { align-items: flex-start; }
+            .product-name {
+              white-space: normal !important;
+              overflow-wrap: anywhere;
+              line-height: 1.25;
+              display: -webkit-box;
+              -webkit-box-orient: vertical;
+              -webkit-line-clamp: 3;
+            }
+            .product-row-right { flex-direction: column; align-items: flex-end; gap: 4px; }
+            .add-menu-section-head { flex-wrap: wrap; gap: 8px; }
+            .add-custom-item-trigger-btn { white-space: normal; line-height: 1.2; }
+            .set-price-footer, .custom-item-modal .set-price-footer { flex-wrap: wrap !important; }
+            .set-price-footer > button {
+              flex: 1 1 40% !important;
+              min-width: 0 !important;
+              height: auto !important;
+              min-height: 44px !important;
+              padding-left: 8px !important;
+              padding-right: 8px !important;
+              white-space: normal !important;
+              line-height: 1.2 !important;
+            }
+            /* three buttons: Cancel and Add & Print share a line, the main button has its own */
+            .set-price-footer > .set-price-print-btn + .set-price-confirm-btn { flex-basis: 100% !important; }
+          }
+
           @media (max-width: 860px) {
             /* phone: stay clear of the status bar (top) and the navigation bar (bottom) */
             .add-menu-modal-backdrop {

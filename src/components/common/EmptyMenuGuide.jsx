@@ -23,7 +23,7 @@ export function EmptyMenuGuide({ businessType = "", onAddItems }) {
 
   const steps = isMenu
     ? [
-        t("bills.guideStep1Menu", "Go to the Menu tab and tap Add Menu (or create a Custom Menu)"),
+        t("bills.guideStep1Menu", "Go to the Menu tab and tap Add Menu (or Add Your Item)"),
         t("bills.guideStep2Menu", "Pick your menu items, set your selling price, and save them to My Menu"),
         t("bills.guideStep3", "Come back to New Bill and tap + Add (or search) to add items to the bill"),
         t("bills.guideStep4", "Adjust quantities or payment mode, then tap Print or Save Bill")
