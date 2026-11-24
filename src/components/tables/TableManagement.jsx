@@ -16,6 +16,7 @@ import { useDbTranslation } from "../../lib/translator"
 import {
   call,
   money,
+  saneAmount,
   getCachedData,
   setCachedData,
   getStoredTables,
@@ -331,7 +332,7 @@ export function TableManagement({
     const occupied = tables.filter((t) => isTableOccupied(t))
     const occupiedCount = occupied.length
     const availableCount = Math.max(0, totalCount - occupiedCount)
-    const activeTotalRevenue = occupied.reduce((sum, t) => sum + (Number(t.total_amount) || 0), 0)
+    const activeTotalRevenue = occupied.reduce((sum, t) => sum + saneAmount(t.total_amount), 0)
 
     return {
       totalCount,
@@ -407,9 +408,10 @@ export function TableManagement({
               type="button"
               className="tables-manage-btn"
               onClick={() => setIsManageModalOpen(true)}
+              title={t("tables.manageTables", "Manage Tables")}
+              aria-label={t("tables.manageTables", "Manage Tables")}
             >
               <SlidersHorizontal size={16} />
-              <span>{t("tables.manageTables", "Manage Tables")}</span>
             </button>
           </div>
         </div>

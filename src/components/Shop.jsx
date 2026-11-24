@@ -451,9 +451,10 @@ export function Shop({ user, setView } = {}) {
   const handleChange = (key, value) => {
     edited.current = true
     setHasUnsaved(true)
-    const updatedShop = { ...shop, [key]: value }
-    setShop(updatedShop)
+    // built on the latest values, so two changes in one click (GST off also turns off "show on bills") both count
+    setShop((prev) => ({ ...prev, [key]: value }))
 
+    const updatedShop = { ...shop, [key]: value }
     if (touched[key] || errors[key]) {
       const fieldError = validateField(key, value, updatedShop)
       setErrors((prev) => ({ ...prev, [key]: fieldError }))

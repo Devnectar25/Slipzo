@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState, useRef, lazy, Suspense } from "react"
+import { useEffect, useLayoutEffect, useMemo, useState, useRef, lazy, Suspense, Fragment } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
 import { chargeAndPrint, spendPrintCredit, chargeAndSavePdf, printWidthOf } from "../lib/directPrint"
 import { Capacitor } from "@capacitor/core"
@@ -82,7 +82,7 @@ import { UpiPayCard } from "./common/UpiQr"
 import { shopUsesGst, shopShowsGstOnBill, itemGstRate, menuItemRate, gstSummary } from "../lib/gst"
 import { isLooseItem, normalizeUnit, unitLabel, formatQtyUnit, roundQty } from "../lib/units"
 import { EmptyMenuGuide } from "./common/EmptyMenuGuide"
-import { productGroupOf, productGroupChips, productGroupLabelKey } from "../lib/productGroups"
+import { productGroupOf, productGroupChips, productGroupLabel, shopKindOf } from "../lib/productGroups"
 
 function generateClientBillNumber(prefix = "SLP", sequence = 1001, format = "PREFIX-DATE-SEQ") {
   const cleanPrefix = (prefix || "SLP").trim().toUpperCase()
@@ -125,6 +125,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   // Cafe / tea / small business and hotel / restaurant shops do not use barcodes at all
   const showBarcode = useShowBarcode(shop?.business_type ? shop : null)
   const isMenu = isMenuCategory(shop)
+  // Small business / cafe & tea shops see the live bill itself on the right, instead of the bill summary
+  const showBillPreview = Boolean(shop?.business_type) && shopKindOf(shop.business_type) === "cafe"
 
   const setShop = (updater) => {
     setShopState((prev) => {
@@ -253,9 +255,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   const [editingBillId, setEditingBillId] = useState(null)
 
   // paper size for printing, chosen on the bill and remembered on this device (the printer belongs to the device).
-  // "" = use the receipt template's width
+  // 80 mm until another size is picked
   const [paperSize, setPaperSizeState] = useState(() => {
-    try { return localStorage.getItem("slipzo_paper_size") || "" } catch (_) { return "" }
+    try { return localStorage.getItem("slipzo_paper_size") || "80mm" } catch (_) { return "80mm" }
   })
   const setPaperSize = (size) => {
     setPaperSizeState(size)
@@ -346,7 +348,16 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
   useLayoutEffect(() => {
     if (shownStepRef.current === flowStep) return
     shownStepRef.current = flowStep
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+    const toTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+      // the page can also scroll inside these (they clip sideways, which makes them scroll containers)
+      ;[document.documentElement, document.body, document.getElementById("root"), document.querySelector(".main-content-scroll")]
+        .forEach((el) => { if (el && el.scrollTop) el.scrollTop = 0 })
+    }
+    toTop()
+    // once more after the new step is laid out, in case the browser moved the page to keep its old place
+    const frame = requestAnimationFrame(toTop)
+    return () => cancelAnimationFrame(frame)
   }, [flowStep])
   // what the result screen reports: "saved" (not printed yet) or "printed"
   const [doneAction, setDoneAction] = useState("saved")
@@ -1490,6 +1501,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       {/* ====================================================================
           TOP HEADER: Slipzo branding, Live Invoice Number, and Top-Right Print
           ==================================================================== */}
+      {/* not on the result screen: that one starts at the top with its own card */}
+      {flowStep !== "success" && (
       <header className="nb-top-header">
         <div className="nb-header-left">
           <div className="nb-header-icon-box">
@@ -1503,6 +1516,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           </div>
         </div>
       </header>
+      )}
 
       {/* ====================================================================
           STEP 4: SUCCESS & PRINT SCREEN (When Bill is Saved)
@@ -1863,7 +1877,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                           e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
                         }}
                       >
-                        <span aria-hidden="true">{g.icon}</span> {t(productGroupLabelKey(shop?.business_type, g.id), g.label)}
+                        <span aria-hidden="true">{g.icon}</span> {productGroupLabel(t, shop?.business_type, g)}
                       </button>
                     ))}
                   </div>
@@ -2058,7 +2072,30 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
             {/* RIGHT COLUMN: Bill Summary */}
             <div className="nb-right-col">
               <div className="nb-summary-card">
+                {showBillPreview && (
+                  <>
+                    <div className="tb-preview-head">
+                      <span className="tb-preview-title">{t("bills.billPreview", "Bill Preview")}</span>
+                      <span className="tb-preview-template">
+                        {tDb(templateForPrint?.name || "Classic Receipt")} · {currentPaperWidth === "a4" ? "A4" : currentPaperWidth.replace("mm", " mm")}
+                      </span>
+                    </div>
+                    {items.length === 0 ? (
+                      <p className="tb-preview-empty" style={{ marginBottom: "0.8rem" }}>{t("tables.previewEmpty", "Add items to see the bill preview.")}</p>
+                    ) : (
+                      <div
+                        className={`receipt-preview-content tb-preview-paper format-${templateForPrint?.width || "80mm"}`}
+                        data-testid="bill-live-preview"
+                        aria-label={t("bills.billPreview", "Bill Preview")}
+                      >
+                        <RealisticReceiptView template={templateForPrint} />
+                      </div>
+                    )}
+                  </>
+                )}
+
                 {/* Bill Summary Header */}
+                {!showBillPreview && (
                 <div className="nb-summary-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.65rem", borderBottom: "1px solid #e2e8f0", marginBottom: "0.65rem" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#0284c7" }}>
@@ -2077,9 +2114,10 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                     {t("bills.itemsCount", "{{n}} items", { n: totalItemsInBill })}
                   </span>
                 </div>
+                )}
 
                 {/* Items in Bill Summary */}
-                {items.length === 0 ? (
+                {showBillPreview ? null : items.length === 0 ? (
                   <div style={{ padding: "1.75rem 1rem", textAlign: "center", color: "#94a3b8" }}>
                     <ShoppingBag size={28} style={{ margin: "0 auto 0.4rem", opacity: 0.45, display: "block" }} />
                     <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: 600 }}>{t("bills.emptyCart", "No items added yet")}</p>
@@ -2237,7 +2275,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                   />
                 )}
 
-                {/* Instant Totals Breakdown */}
+                {/* Instant Totals Breakdown (the bill preview already shows them) */}
+                {!showBillPreview && (
                 <div className="nb-totals-summary">
                   <div className="nb-total-row">
                     <span>{t("bills.subtotal", "Subtotal")}</span>
@@ -2258,7 +2297,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                         <span>{money(gstData.taxable)}</span>
                       </div>
                       {gstData.groups?.map((g) => (
-                        <React.Fragment key={g.rate}>
+                        <Fragment key={g.rate}>
                           <div style={{ display: "flex", justifyContent: "space-between", color: "#475569", marginBottom: "0.15rem" }}>
                             <span>CGST ({g.cgstRate}%)</span>
                             <span>{money(g.cgst)}</span>
@@ -2267,7 +2306,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                             <span>SGST ({g.sgstRate}%)</span>
                             <span>{money(g.sgst)}</span>
                           </div>
-                        </React.Fragment>
+                        </Fragment>
                       ))}
                       <div style={{ display: "flex", justifyContent: "space-between", color: "#0369a1", fontWeight: 700, borderTop: "1px dashed #e2e8f0", paddingTop: "0.25rem", marginTop: "0.2rem" }}>
                         <span>{t("bills.totalGstIncluded", "Total GST ({{rate}}% Included)", { rate: gstData.totalRate || 18 })}</span>
@@ -2281,6 +2320,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                     <span className="nb-grand-total-val">{money(total)}</span>
                   </div>
                 </div>
+                )}
 
                 {saveError && (
                   <div style={{ color: "#ef4444", fontSize: "0.82rem", background: "#FFE1E5", padding: "0.5rem 0.75rem", borderRadius: "6px", marginTop: "0.75rem" }}>

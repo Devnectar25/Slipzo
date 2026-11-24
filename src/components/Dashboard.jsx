@@ -622,9 +622,40 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
             font-size: 0.78rem;
           }
 
+          /* two lines: bill number and date, then the amount and the buttons */
           .home-bill-row {
-            padding: 8px 10px;
+            flex-wrap: wrap;
+            padding: 10px 12px;
             gap: 8px;
+          }
+
+          .home-bill-left {
+            flex: 1 1 100%;
+          }
+
+          .home-bill-right {
+            flex: 1 1 100%;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #eef2f7;
+          }
+
+          .home-bill-financials {
+            align-items: flex-start;
+          }
+
+          .home-bill-number,
+          .home-bill-date {
+            white-space: normal;
+            overflow: visible;
+            overflow-wrap: anywhere;
+          }
+
+          .home-bill-edit-pill-btn {
+            height: 36px;
+            min-height: 36px !important;
           }
 
           .home-bill-badge {
@@ -647,13 +678,14 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
           }
 
           .home-bill-amount {
-            font-size: 0.86rem;
+            font-size: 1rem;
           }
 
           .home-bill-print-btn {
-            width: 28px;
-            height: 28px;
-            border-radius: 7px;
+            width: 36px;
+            height: 36px;
+            min-height: 36px !important;
+            border-radius: 8px;
           }
 
           .home-bill-print-btn svg {
@@ -774,7 +806,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
                       <Receipt size={18} />
                     </div>
                     <div className="home-bill-info">
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "2px 6px" }}>
                         <p className="home-bill-number">{formatNum(billNumberDisplay)}</p>
                         {bill.table_number && (
                           <span style={{ fontSize: "0.68rem", fontWeight: "600", padding: "1px 5px", borderRadius: "4px", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", whiteSpace: "nowrap" }}>

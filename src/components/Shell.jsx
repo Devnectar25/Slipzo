@@ -471,7 +471,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
                 title={t("shell.ariaPlans", "Click to view pricing plans")}
               >
                 {activePlan?.hasActiveTimePlan ? (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '4px 8px', marginBottom: '0.4rem' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
                       <div style={{
                         width: '24px',
@@ -498,6 +498,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
                       border: '1px solid #bae6fd',
                       padding: '2px 8px',
                       borderRadius: '6px',
+                      whiteSpace: 'nowrap',
                       fontVariantNumeric: 'tabular-nums'
                     }}>
                       {activePlan.isExpired
@@ -508,7 +509,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
                     </span>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '4px 8px', marginBottom: '0.4rem' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
                       <div style={{
                         width: '24px',
@@ -535,6 +536,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
                       border: '1px solid #bae6fd',
                       padding: '2px 8px',
                       borderRadius: '6px',
+                      whiteSpace: 'nowrap',
                       fontVariantNumeric: 'tabular-nums'
                     }}>
                       {formatNumberByLang((activePlan.printsRemaining || 0).toLocaleString(), currentLang)} / {formatNumberByLang((activePlan.totalPrints || 0).toLocaleString(), currentLang)} {t("sidebar.printsLeft", "left")}
@@ -1422,13 +1424,22 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             max-height: 100dvh !important;
             overflow: hidden !important;
             padding: max(calc(var(--app-safe-top) + 28px), 32px) 1rem calc(max(0.65rem, var(--app-safe-bottom)) + 0.5rem) 1rem !important;
-            box-shadow: -4px 0 24px rgba(12, 31, 65, 0.12) !important;
+            /* only while open: the closed menu's shadow used to show along the right edge of every page */
+            box-shadow: none !important;
             width: 280px !important;
             max-width: 85vw !important;
           }
 
           .app-shell aside.open {
             transform: translateX(0) !important;
+            box-shadow: -4px 0 24px rgba(12, 31, 65, 0.12) !important;
+          }
+
+          /* fades out at the bottom, so a box that continues below does not look cut off */
+          .side-scroll {
+            -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
+            padding-bottom: 24px;
           }
 
           .app-shell aside,
@@ -1511,7 +1522,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             gap: 2px;
             background: transparent;
             border: none;
-            padding: 0.2rem 0.35rem;
+            padding: 0.2rem 0;
             color: #575B6B;
             font-size: 0.65rem;
             font-weight: 500;
@@ -1544,9 +1555,10 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             font-size: 0.65rem;
             font-weight: 600;
             color: #575B6B;
-            letter-spacing: 0.1px;
+            letter-spacing: 0;
             line-height: 1.2;
             white-space: nowrap;
+            max-width: 100%;
           }
 
           .mobile-nav-btn.active {

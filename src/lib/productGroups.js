@@ -5,6 +5,8 @@
 // A product is placed by its category first; categories that say nothing about the product ("General",
 // "Small Business / Cafe & Tea", ...) and custom categories that match no group are placed by the product's name.
 // Anything still unmatched goes to the shop type's last group ("... & Others").
+//
+// A category the shop owner typed themselves ("Add Your Item") is a group of its own, with its own chip.
 
 // Categories that describe the shop, not the product: ignored, the name decides instead
 const VAGUE_CATEGORIES = [
@@ -90,9 +92,26 @@ const matchGroup = (groups, text) => {
   }) || null
 }
 
-// The group a product belongs to (always one of the shop type's groups)
+// The category the owner typed for this item, or "" when it belongs to the shop type's groups.
+// own_category comes from the server; menus kept on the phone from before it existed are recognised by the
+// barcode the server gives to custom items (CUST-...) and a category that matches no group.
+const ownCategoryOf = (item, groups) => {
+  const category = String(item?.category || "").trim()
+  const key = category.toLowerCase()
+  if (!category || VAGUE_CATEGORIES.includes(key)) return ""
+  if (groups.some((g) => g.label.toLowerCase() === key)) return ""
+  const isOwn = item.own_category === undefined
+    ? /^CUST-/i.test(item.barcode || "") && !matchGroup(groups, category)
+    : item.own_category === true
+  return isOwn ? category : ""
+}
+const ownGroupId = (category) => `own:${category.toLowerCase()}`
+
+// The group a product belongs to: one of the shop type's groups, or the owner's own category ("own:...")
 export function productGroupOf(item, businessType) {
   const groups = GROUPS[shopKindOf(businessType)]
+  const own = ownCategoryOf(item, groups)
+  if (own) return ownGroupId(own)
   const category = String(item?.category || "").trim()
   const isVague = !category || VAGUE_CATEGORIES.includes(category.toLowerCase())
   const byCategory = isVague ? null : matchGroup(groups, category)
@@ -107,11 +126,25 @@ export function productGroupsFor(businessType) {
   return DISPLAY_ORDER[kind].map((id) => ({ id, label: byId[id].label, icon: byId[id].icon }))
 }
 
-// Filter chips for a list of products: "all" first, then only the groups that have products in this list
+// Filter chips for a list of products: only the groups that have products in this list, then the owner's own categories
 export function productGroupChips(items, businessType) {
-  const used = new Set((items || []).map((it) => productGroupOf(it, businessType)))
-  return productGroupsFor(businessType).filter((g) => used.has(g.id))
+  const groups = GROUPS[shopKindOf(businessType)]
+  const used = new Set()
+  const own = new Map()
+  ;(items || []).forEach((it) => {
+    used.add(productGroupOf(it, businessType))
+    const category = ownCategoryOf(it, groups)
+    if (category && !own.has(ownGroupId(category))) own.set(ownGroupId(category), { id: ownGroupId(category), label: category, icon: "🏷️", own: true })
+  })
+  return [
+    ...productGroupsFor(businessType).filter((g) => used.has(g.id)),
+    ...[...own.values()].sort((a, b) => a.label.localeCompare(b.label))
+  ]
 }
+
+// A chip's text: groups are translated, the owner's own category is shown as it was typed
+export const productGroupLabel = (t, businessType, group) =>
+  group.own ? group.label : t(productGroupLabelKey(businessType, group.id), group.label)
 
 // The translation key of a group's label
 export const productGroupLabelKey = (businessType, groupId) => `productGroups.${shopKindOf(businessType)}.${groupId}`

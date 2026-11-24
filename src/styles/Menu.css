@@ -2852,6 +2852,17 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   background: #ffffff;
 }
 
+/* "Add Your Item": category list */
+.custom-product-card select.cp-category-select {
+  height: 35px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding-top: 0;
+  padding-bottom: 0;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
 /* custom item category: fixed to the shop type, shown read-only */
 .cp-category-select-btn.cp-category-locked,
 .cp-category-select-btn.cp-category-locked:hover {
@@ -3186,7 +3197,8 @@ body:has(.add-menu-modal-backdrop) .shell-main {
   }
 
   .custom-product-card .menu-modal-footer button {
-    height: 48px !important;
+    height: auto !important;
+    min-height: 48px !important;
     border-radius: 12px !important;
     font-size: 0.92rem !important;
   }

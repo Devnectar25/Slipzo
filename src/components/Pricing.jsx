@@ -136,6 +136,7 @@ export function Pricing({ setView, setShowAuth, user }) {
         planName,
         amountInRupees,
         printCount,
+        validity: typeof planOrName === "object" ? planOrName?.durationLabel || undefined : undefined,
         user,
         t,
         onActivated: (updated) => { if (updated) setActivePlan(updated) }

@@ -256,6 +256,12 @@
 .ta-glance-sub { font-size: 0.74rem; color: var(--ta-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ta-glance-sub.warn { color: #b45309; font-weight: 600; }
 .ta-glance-go { flex: none; color: #cbd5e1; }
+/* wide screens: always one line, however many tiles there are; long text wraps instead of being cut off */
+@media (min-width: 1101px) {
+  .ta-glance { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  .ta-glance-tile { padding: 14px 12px; gap: 10px; }
+  .ta-glance-label, .ta-glance-value, .ta-glance-sub { white-space: normal; line-height: 1.25; overflow-wrap: break-word; }
+}
 .ta-glance-tile.clickable:hover .ta-glance-go { color: var(--ta-blue); }
 
 /* ---------- 3. chart + top items ---------- */
@@ -384,8 +390,12 @@
 }
 .ta-tip span { font-size: 0.92rem; font-weight: 800; color: var(--ta-ink); }
 .ta-tip em { font-style: normal; font-weight: 500; color: #64748b; }
-.ta-xaxis { display: flex; gap: 6px; height: 26px; align-items: flex-end; }
-.ta-xaxis span { flex: 1; min-width: 0; text-align: center; font-size: 0.72rem; color: var(--ta-ink-3); white-space: nowrap; overflow: visible; }
+.ta-col.edge-left .ta-col-label, .ta-col.edge-left .ta-tip { left: 0; transform: none; }
+.ta-col.edge-right .ta-col-label, .ta-col.edge-right .ta-tip { left: auto; right: 0; transform: none; }
+/* labels are placed under their bars by HourAxis; the gap must match .ta-cols */
+.ta-xaxis { position: relative; column-gap: 6px; height: 26px; }
+.ta-xaxis span { position: absolute; bottom: 0; transform: translateX(-50%); font-size: 0.72rem; line-height: 1.2; color: var(--ta-ink-3); white-space: nowrap; }
+.ta-xaxis .ta-xaxis-sample { left: 0; visibility: hidden; transform: none; }
 
 /* top items */
 .ta-rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
@@ -523,11 +533,12 @@
   .ta-spark { height: 44px; }
   .ta-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
   .ta-glance-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
-  .ta-glance-label, .ta-glance-sub { white-space: normal; line-height: 1.25; }
-  .ta-xaxis.dense span:nth-child(even) { visibility: hidden; }
+  .ta-glance-label, .ta-glance-value, .ta-glance-sub { white-space: normal; line-height: 1.25; }
   .ta-glance-tile { padding: 11px 12px; gap: 10px; border-radius: 14px; }
   .ta-glance-icon { width: 32px; height: 32px; }
   .ta-glance-value { font-size: 0.95rem; }
+  .ta-glance-label, .ta-glance-value, .ta-glance-sub { overflow: visible; overflow-wrap: anywhere; }
+  .ta-card-head { flex-wrap: wrap; row-gap: 6px; }
   .ta-grid { gap: 12px; margin-top: 12px; }
   .ta-card { min-height: 0; padding: 16px; border-radius: 16px; }
   .ta-hchart { min-height: 210px; }
@@ -539,4 +550,11 @@
   .ta-start-title { font-size: 1.2rem; }
   .ta-start-sub { font-size: 0.86rem; }
   .ta-start-cta { width: 100%; justify-content: center; }
+}
+
+/* small phones: the icon sits above the text, so the words get the tile's full width */
+@media (max-width: 480px) {
+  .ta-glance-tile { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .ta-glance-text { width: 100%; flex: none; }
+  .ta-glance-go { position: absolute; top: 18px; right: 12px; }
 }

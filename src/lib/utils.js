@@ -459,6 +459,12 @@ export const getItemRate = (item) => {
   return isNaN(val) ? 0 : val
 }
 
+/** An amount a table order can really have, else 0 (an old price bug stored values like 8e+262 or Infinity) */
+export const saneAmount = (n, limit = 1e7) => {
+  const v = Number(n)
+  return v > 0 && v < limit ? v : 0
+}
+
 export const money = (n, customLang) => {
   const formatted = Number(n || 0).toFixed(2)
   const lang = (customLang || getAppLanguage()).toLowerCase()

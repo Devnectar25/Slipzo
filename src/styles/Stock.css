@@ -415,4 +415,6 @@ button.stock-badge {
 }
 @media (max-width: 768px) {
   button.stock-badge { padding: 4px 9px !important; font-size: 0.72rem !important; }
+  .stock-badge { max-width: 100%; white-space: normal; text-align: left; }
+  .stock-badge svg { flex-shrink: 0; }
 }

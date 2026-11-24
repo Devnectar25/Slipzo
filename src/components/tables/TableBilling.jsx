@@ -1,6 +1,8 @@
-import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react"
+import { useState, useMemo, useEffect, useRef, lazy, Suspense, Fragment } from "react"
+import { createPortal } from "react-dom"
 import {
   ArrowLeft,
+  ArrowRight,
   Download,
   Utensils,
   Search,
@@ -27,13 +29,14 @@ import {
   getCachedData,
   findTemplateMatch,
   getItemRate,
+  saneAmount,
   getStoredMenuItems,
   removeCachedData,
   invalidateApiCache,
   resetSingleStoredTable,
   getTableDisplayName
 } from "../../lib/utils"
-import { shopUsesGst, shopShowsGstOnBill, itemGstRate, menuItemRate, gstSummary } from "../../lib/gst"
+import { shopUsesGst, shopShowsGstOnBill, itemGstRate, menuItemRate, normalizeGstRate, gstSummary } from "../../lib/gst"
 import { BUILTIN_TEMPLATES } from "../Templates"
 import { RealisticReceiptView } from "../RealisticReceiptView"
 import { chargeAndPrint, chargeAndSavePdf, printWidthOf } from "../../lib/directPrint"
@@ -50,9 +53,12 @@ import Swal from "sweetalert2"
 import { Spinner } from "../common/Skeleton"
 import "../../styles/NewBillFlow.css"
 import { EmptyMenuGuide } from "../common/EmptyMenuGuide"
-import { productGroupOf, productGroupChips, productGroupLabelKey } from "../../lib/productGroups"
+import { productGroupOf, productGroupChips, productGroupLabel } from "../../lib/productGroups"
 import { shopPaymentModes, shopDefaultPaymentMode } from "../../lib/paymentModes"
 import { UpiPayCard } from "../common/UpiQr"
+import { flyThumb } from "../../lib/flyThumb"
+
+const orderKeyOf = (name) => (name || "").trim().toLowerCase()
 
 export function TableBilling({
   table,
@@ -116,7 +122,10 @@ export function TableBilling({
     }
     return list.map((it) => {
       const qty = Number(it.quantity !== undefined ? it.quantity : (it.qty !== undefined ? it.qty : 1)) || 1
-      const rate = menuItemRate(it, shopInfo)
+      // a line on the order already has GST in its rate (added once, in handleAddItem). Adding it here again
+      // grew the price on every sync with the table until it became Infinity, which is stored as 0.
+      // An impossible rate left over from that becomes 0 here, then is taken from the menu again (see below).
+      const rate = saneAmount(getItemRate(it), 1e6)
       return {
         id: it.id || (Date.now() + Math.floor(Math.random() * 1000)),
         name: (it.name || "").trim(),
@@ -124,7 +133,7 @@ export function TableBilling({
         rate: rate,
         price: rate,
         quantity: qty,
-        gst_rate: itemGstRate(it, shopInfo),
+        gst_rate: normalizeGstRate(it.gst_rate),
         qty: qty,
         category: it.category || "General",
         image_url: resolveItemImage(it)
@@ -150,6 +159,8 @@ export function TableBilling({
     if (!allowed || !paymentPickedRef.current) setPaymentMode(shopDefaultPaymentMode(shopInfo))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopInfo?.payment_modes, shopInfo?.default_payment_mode])
+  // "order": pick items, the right side only lists what was added; "bill": the bill summary with payment and print
+  const [step, setStep] = useState("order")
   const [isSaving, setIsSaving] = useState(false)
   const [busyAction, setBusyAction] = useState(null) // "save" | "print" while a request is running
   const [printedNumber, setPrintedNumber] = useState("") // real bill number once saved, shown on the receipt being printed
@@ -336,6 +347,23 @@ export function TableBilling({
     return ["all", ...Array.from(set)]
   }, [userMenuItems])
 
+  // Orders stored while the price bug above existed have lines without a usable price: take it from the menu again
+  useEffect(() => {
+    const isBroken = (rate) => saneAmount(rate, 1e6) === 0
+    if (!items.some((it) => isBroken(it.rate))) return
+    const menuByName = new Map(userMenuItems.map((m) => [orderKeyOf(m.name), m]))
+    let changed = false
+    const repaired = items.map((it) => {
+      if (!isBroken(it.rate)) return it
+      const menuItem = menuByName.get(orderKeyOf(it.name))
+      const rate = menuItem ? menuItemRate(menuItem, shopInfo) : 0
+      if (isBroken(rate)) return it
+      changed = true
+      return { ...it, rate, price: rate, gst_rate: itemGstRate(menuItem, shopInfo) }
+    })
+    if (changed) setItems(repaired)
+  }, [items, userMenuItems, shopInfo])
+
   // Map of added items by lowercase name
   const addedItemMap = useMemo(() => {
     const map = new Map()
@@ -366,8 +394,9 @@ export function TableBilling({
   // ==========================================
   // ITEM ADD / QUANTITY HANDLERS
   // ==========================================
+  // returns true when the item was added
   const handleAddItem = (menuItem) => {
-    if (!menuItem) return
+    if (!menuItem) return false
 
     if (menuItem.is_active === false || menuItem.is_available === false) {
       playScanErrorBeep()
@@ -377,7 +406,7 @@ export function TableBilling({
         icon: "warning",
         confirmButtonColor: "#0284c7"
       })
-      return
+      return false
     }
 
     const cleanName = (menuItem.name || "").trim()
@@ -406,7 +435,95 @@ export function TableBilling({
         ]
       }
     })
+    return true
   }
+
+  // ==========================================
+  // FLY TO THE ADDED ITEMS LIST
+  // The item is on the order at once (so nothing can be lost); only its row stays hidden until the picture lands.
+  // ==========================================
+  const [flyingKeys, setFlyingKeys] = useState([])
+  const flightsRef = useRef(new Map()) // item key -> stops its flight
+  const orderListRef = useRef(null)
+  const orderBarRef = useRef(null) // phones: the bar that stands in for the list
+  useEffect(() => {
+    const flights = flightsRef.current
+    return () => { flights.forEach((stop) => stop()); flights.clear() }
+  }, [])
+  const stopFlights = () => {
+    flightsRef.current.forEach((stop) => stop())
+    flightsRef.current.clear()
+    setFlyingKeys([])
+  }
+  const findOrderRow = (key) => orderListRef.current?.querySelector(`[data-order-key="${CSS.escape(key)}"]`)
+
+  const flyIntoOrder = (menuItem, card) => {
+    const key = orderKeyOf(menuItem.name)
+    flightsRef.current.get(key)?.()
+    // a new item's row appears when the picture lands; an item already listed stays in view
+    if (!addedItemMap.has(key)) setFlyingKeys((prev) => (prev.includes(key) ? prev : [...prev, key]))
+
+    const land = () => {
+      flightsRef.current.delete(key)
+      setFlyingKeys((prev) => prev.filter((k) => k !== key))
+      const row = findOrderRow(key)
+      if (row) {
+        row.classList.remove("just-added")
+        void row.offsetWidth // restarts the drop-in when the same item is added again
+        row.classList.add("just-added")
+        setTimeout(() => row.classList.remove("just-added"), 700)
+      }
+      orderBarRef.current?.animate?.(
+        [{ transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" }],
+        { duration: 300, easing: "ease-out" }
+      )
+    }
+
+    let stopFly = null
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        // where it lands: the item's own (still hidden) row, or on a phone the bar at the bottom
+        let to = null
+        const barRect = orderBarRef.current?.getBoundingClientRect()
+        if (barRect && barRect.width > 0) {
+          to = { left: barRect.left + 14, top: barRect.top + (barRect.height - 34) / 2, width: 34, height: 34 }
+        } else {
+          const row = findOrderRow(key)
+          const list = orderListRef.current
+          if (row && list) {
+            const lr = list.getBoundingClientRect()
+            const rr = row.getBoundingClientRect()
+            // scroll only the list itself, never the page
+            if (rr.bottom > lr.bottom) list.scrollTop += rr.bottom - lr.bottom
+            else if (rr.top < lr.top) list.scrollTop -= lr.top - rr.top
+            const r = (row.querySelector(".tb-order-thumb") || row).getBoundingClientRect()
+            to = { left: r.left, top: Math.max(8, Math.min(window.innerHeight - r.height - 8, r.top)), width: r.width, height: r.height }
+          }
+        }
+        const thumb = [...(card?.querySelectorAll(".nb-item-thumb, .nb-item-thumb-placeholder") || [])].find((el) => el.offsetParent !== null)
+        stopFly = flyThumb({ startEl: thumb || null, to, onLand: land })
+      })
+    })
+    flightsRef.current.set(key, () => { cancelAnimationFrame(frame); stopFly?.() })
+  }
+
+  const handleAddWithFly = (menuItem, e) => {
+    const card = e.currentTarget.closest(".nb-item-card")
+    if (handleAddItem(menuItem)) flyIntoOrder(menuItem, card)
+  }
+
+  const showBill = () => {
+    if (items.length === 0) return
+    stopFlights()
+    setStep("bill")
+  }
+  // both steps start at the top of the page
+  const workspaceRef = useRef(null)
+  const firstStepRender = useRef(true)
+  useEffect(() => {
+    if (firstStepRender.current) { firstStepRender.current = false; return }
+    workspaceRef.current?.scrollIntoView({ block: "start" })
+  }, [step])
 
   const handleUpdateQty = (itemName, delta) => {
     setItems((prev) => {
@@ -454,6 +571,7 @@ export function TableBilling({
   // ==========================================
   const handleConfirmReset = async () => {
     setItems([])
+    setStep("order")
     itemsRef.current = [] // a cleared order must never be re-saved while the screen closes
     if (onUpdateTableState) {
       onUpdateTableState(table.id || table.table_number, {
@@ -766,13 +884,18 @@ export function TableBilling({
   const isOccupied = items.length > 0
 
   return (
-    <div className="table-billing-workspace fade-in">
+    <div className={`table-billing-workspace fade-in ${step === "order" && items.length > 0 ? "has-order-bar" : ""}`} ref={workspaceRef}>
       {/* Top Header */}
       <div className="table-billing-header">
         <div className="table-billing-header-left">
-          <button type="button" className="table-billing-back-btn" onClick={handleBackClick}>
+          <button
+            type="button"
+            className="table-billing-back-btn"
+            onClick={step === "bill" ? () => setStep("order") : handleBackClick}
+            disabled={step === "bill" && isSaving}
+          >
             <ArrowLeft size={16} />
-            <span>{t("tables.backToTables", "Tables")}</span>
+            <span>{step === "bill" ? t("tables.backToItems", "Items") : t("tables.backToTables", "Tables")}</span>
           </button>
 
           <div className="table-billing-title-box">
@@ -797,8 +920,9 @@ export function TableBilling({
       </div>
 
       {/* Main Split Layout */}
-      <div className="nb-desktop-layout" style={{ marginTop: "1rem" }}>
+      <div className={step === "bill" ? "tb-bill-step" : "nb-desktop-layout"} style={{ marginTop: "1rem" }}>
         {/* LEFT COLUMN: Menu Items */}
+        {step === "order" && (
         <div className="nb-left-col">
           {/* Search & Inputs */}
           <div className="table-menu-search-row">
@@ -869,7 +993,7 @@ export function TableBilling({
                     className={`nb-group-chip ${selectedCategory === g.id ? "active" : ""}`}
                     onClick={() => setSelectedCategory(g.id)}
                   >
-                    <span aria-hidden="true">{g.icon}</span> {t(productGroupLabelKey(groupBType, g.id), g.label)}
+                    <span aria-hidden="true">{g.icon}</span> {productGroupLabel(t, groupBType, g)}
                   </button>
                 ))}
               </div>
@@ -958,7 +1082,7 @@ export function TableBilling({
                             <button
                               type="button"
                               className="nb-qty-btn"
-                              onClick={() => handleUpdateQty(item.name, 1)}
+                              onClick={(e) => handleAddWithFly(item, e)}
                               title={t("bills.increase", "Increase quantity")}
                               aria-label={t("bills.increase", "Increase quantity")}
                             >
@@ -978,7 +1102,7 @@ export function TableBilling({
                           <button
                             type="button"
                             className="nb-add-btn"
-                            onClick={() => handleAddItem(item)}
+                            onClick={(e) => handleAddWithFly(item, e)}
                             title={t("bills.addItemToBill", "Add item")}
                           >
                             <Plus size={14} /> {t("bills.add", "Add")}
@@ -993,8 +1117,11 @@ export function TableBilling({
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Add More Items Button & Bill Summary Card */}
-        <div className="nb-right-col">
+        )}
+
+        {/* RIGHT COLUMN, step 1: the items added to this table, with their quantity only */}
+        {step === "order" && (
+        <div className="nb-right-col tb-order-col">
           <button
             type="button"
             className="nb-add-more-items-summary-btn"
@@ -1006,6 +1133,40 @@ export function TableBilling({
             <Plus size={16} /> {t("bills.addMoreItems", "Add More Items")}
           </button>
 
+          <div className="nb-summary-card tb-order-card">
+            <div className="tb-order-head">
+              <h4>{t("tables.addedItems", "Added Items")}</h4>
+              <span className="tb-order-count">{t("bills.itemsCount", "{{n}} items", { n: formatNum(items.length) })}</span>
+            </div>
+
+            <div className="tb-order-list" ref={orderListRef}>
+              {items.length === 0 && <p className="tb-order-empty">{t("tables.addedItemsEmpty", "Tap Add on an item to see it here.")}</p>}
+              {items.map((it, idx) => {
+                const key = orderKeyOf(it.name)
+                return (
+                  <div key={`${key}-${idx}`} data-order-key={key} data-flying={flyingKeys.includes(key) || undefined} className="selected-item-card tb-order-row">
+                    <div className="tb-order-thumb">
+                      <Utensils size={16} />
+                      {it.image_url && <img src={it.image_url} alt="" onError={(e) => { e.currentTarget.style.display = "none" }} />}
+                    </div>
+                    <span className="tb-order-name" title={it.name}>{tDb(it.name)}</span>
+                    <span className="tb-order-qty">× {formatNum(it.quantity)}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <button type="button" className="nb-save-bill-btn tb-view-bill-btn" onClick={showBill} disabled={items.length === 0}>
+              <span>{t("tables.viewBill", "View Bill")}</span>
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+        )}
+
+        {/* Step 2: the bill */}
+        {step === "bill" && (
+        <div className="nb-right-col">
           {/* Bill Summary Card */}
           <div className="nb-summary-card">
             {/* Dedicated Print DOM Container */}
@@ -1209,7 +1370,7 @@ export function TableBilling({
                       <span>{money(gstData.taxable)}</span>
                     </div>
                     {gstData.groups?.map((g) => (
-                      <React.Fragment key={g.rate}>
+                      <Fragment key={g.rate}>
                         <div style={{ display: "flex", justifyContent: "space-between", color: "#475569", marginBottom: "0.15rem" }}>
                           <span>CGST ({g.cgstRate}%)</span>
                           <span>{money(g.cgst)}</span>
@@ -1218,7 +1379,7 @@ export function TableBilling({
                           <span>SGST ({g.sgstRate}%)</span>
                           <span>{money(g.sgst)}</span>
                         </div>
-                      </React.Fragment>
+                      </Fragment>
                     ))}
                     <div style={{ display: "flex", justifyContent: "space-between", color: "#0369a1", fontWeight: 700, borderTop: "1px dashed #e2e8f0", paddingTop: "0.25rem", marginTop: "0.2rem" }}>
                       <span>{t("bills.totalGstIncluded", "Total GST ({{rate}}% Included)", { rate: gstData.totalRate || 18 })}</span>
@@ -1335,7 +1496,17 @@ export function TableBilling({
             </div>
           </div>
         </div>
+        )}
       </div>
+
+      {/* Phones: the added items are below the menu, so this bar shows the count and opens the bill */}
+      {step === "order" && items.length > 0 && createPortal(
+        <button type="button" className="tb-order-bar" ref={orderBarRef} onClick={showBill}>
+          <span className="tb-order-bar-count">{t("bills.itemsCount", "{{n}} items", { n: formatNum(items.length) })}</span>
+          <span className="tb-order-bar-go">{t("tables.viewBill", "View Bill")} <ArrowRight size={16} /></span>
+        </button>,
+        document.body
+      )}
 
       {/* Reset Confirmation Modal */}
       <TableResetModal

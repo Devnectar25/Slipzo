@@ -1707,15 +1707,33 @@ export function History({ setView, setSelectedBillId, user }) {
             align-items: flex-start !important;
             justify-content: space-between !important;
             width: 100% !important;
-            gap: 0.5rem !important;
+            gap: 0.25rem 0.5rem !important;
+            /* the amount moves under the bill number when both do not fit on one line */
+            flex-wrap: wrap !important;
+          }
+
+          .page.history-page .filter-controls-group {
+            width: 100% !important;
+            flex-wrap: wrap !important;
+          }
+
+          .page.history-page .filter-controls-group .select-wrapper {
+            flex: 1 1 120px !important;
+            min-width: 0 !important;
+          }
+
+          .page.history-page .filter-select {
+            width: 100% !important;
+            text-overflow: ellipsis !important;
           }
 
           .history-main-info-group {
             display: flex !important;
             flex-direction: column !important;
             gap: 2px !important;
-            flex: 1 !important;
+            flex: 1 1 auto !important;
             min-width: 0 !important;
+            max-width: 100% !important;
           }
 
           .history-col-invoice {
@@ -1728,7 +1746,8 @@ export function History({ setView, setSelectedBillId, user }) {
             font-size: 0.88rem !important;
             font-weight: 700 !important;
             color: #0284c7 !important;
-            white-space: nowrap !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
             display: block !important;
             letter-spacing: -0.2px !important;
           }

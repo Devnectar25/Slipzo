@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { IndianRupee, ReceiptText, Calculator, Package, TrendingUp, TrendingDown, RefreshCw, Clock, BarChart3, Trophy, Hourglass, Printer, Utensils, Boxes, ChevronRight, Plus, Sun, LineChart, History, Landmark } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { call, money, getActivePlanDetails, getCurrentUserKey, getCachedData, getStoredMenuItems } from "../lib/utils"
+import { call, money, saneAmount, getActivePlanDetails, getCurrentUserKey, getCachedData, getStoredMenuItems } from "../lib/utils"
 import "../styles/TodayAnalytics.css"
 import { localMidnight, fetchTodayAnalytics, takePrefetchedAnalytics, readSavedAnalytics } from "../lib/todayAnalytics"
 import { shopUsesGst } from "../lib/gst"
@@ -11,6 +11,56 @@ const hourLabel = (h) => {
   const suffix = h < 12 ? "am" : "pm"
   const n = h % 12 === 0 ? 12 : h % 12
   return `${n}${suffix}`
+}
+
+/**
+ * Hour labels under the bars. The real width of the chart and of a label (which follows the phone's text size) are
+ * measured, and only as many hours are labelled as fit: every hour, every 2nd, 3rd, 4th or 6th. Each label is centred
+ * under its bar and kept inside the chart.
+ */
+function HourAxis({ hours }) {
+  const axisRef = useRef(null)
+  const sampleRef = useRef(null)
+  const [size, setSize] = useState({ width: 0, gap: 0, label: 0 })
+
+  useEffect(() => {
+    const axis = axisRef.current
+    if (!axis) return undefined
+    const measure = () => {
+      const next = {
+        width: axis.clientWidth,
+        gap: parseFloat(getComputedStyle(axis).columnGap) || 0,
+        label: Math.ceil(sampleRef.current?.getBoundingClientRect().width || 32)
+      }
+      setSize((prev) => (prev.width === next.width && prev.gap === next.gap && prev.label === next.label ? prev : next))
+    }
+    measure()
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure)
+      return () => window.removeEventListener("resize", measure)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(axis)
+    if (sampleRef.current) observer.observe(sampleRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  const { width, gap, label } = size
+  const pitch = hours.length ? (width + gap) / hours.length : 0 // from one bar to the next
+  const half = label / 2
+  const shift = Math.max(0, half - (pitch - gap) / 2) // how far the end labels are moved in to stay inside the chart
+  const every = [1, 2, 3, 4, 6].find((n) => n * pitch - shift >= label + 8) || 8
+
+  return (
+    <div className="ta-xaxis" ref={axisRef} aria-hidden="true">
+      <span className="ta-xaxis-sample" ref={sampleRef}>12pm</span>
+      {width > 0 && hours.map((h, i) => {
+        if (i % every !== 0) return null
+        const centre = i * pitch + (pitch - gap) / 2
+        return <span key={h.h} style={{ left: Math.max(half, Math.min(width - half, centre)) }}>{hourLabel(h.h)}</span>
+      })}
+    </div>
+  )
 }
 
 /**
@@ -142,8 +192,6 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
   }, [data])
   const bestHour = hours.reduce((best, h) => (h.total > (best?.total || 0) ? h : best), null)
   const maxHour = Math.max(0, ...hours.map((h) => h.total))
-  // label every hour on a short day, every 2nd or 3rd on a long one, so labels never collide
-  const labelEvery = hours.length > 12 ? 3 : hours.length > 7 ? 2 : 1
 
   const today = new Date()
   const dateText = today.toLocaleDateString(i18n.language === "en" ? "en-IN" : `${i18n.language}-IN`, { weekday: "short", day: "numeric", month: "short" })
@@ -166,7 +214,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
   const openTables = Array.isArray(tables)
     ? tables.filter((tb) => String(tb.status).toUpperCase() === "OCCUPIED" || (Array.isArray(tb.current_items) && tb.current_items.length > 0))
     : null
-  const openTablesTotal = (openTables || []).reduce((sum, tb) => sum + Number(tb.total_amount || 0), 0)
+  const openTablesTotal = (openTables || []).reduce((sum, tb) => sum + saneAmount(tb.total_amount), 0)
   const lastBillAt = (data?.bills || []).reduce((latest, b) => {
     const ms = new Date(b.created_at).getTime()
     return Number.isFinite(ms) && ms > latest ? ms : latest
@@ -244,7 +292,8 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
       tone: creditsLow ? "warn" : null,
       view: "pricing"
     },
-    {
+    // restaurants do not track stock (and have "Open tables" instead)
+    !isRestaurant && {
       key: "stock",
       icon: Boxes,
       label: t("todayStats.lowStock", "Low stock"),
@@ -377,7 +426,6 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
     if (v >= 1000) return `₹${(v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, "")}k`
     return `₹${Math.round(v)}`
   }
-  const hourEvery = hours.length > 10 ? 2 : 1
 
   // how today's sales built up, hour by hour, for the line inside the sales card (up to the current hour)
   const nowH = new Date().getHours()
@@ -540,14 +588,16 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
               <div className="ta-plot">
                 <div className="ta-gridlines" aria-hidden="true"><i /><i /><i /></div>
                 <div className="ta-cols" role="img" aria-label={t("todayStats.byHour", "Sales by hour")}>
-                  {hours.map((h) => {
+                  {hours.map((h, i) => {
+                    // the amount and the details box of the outer bars open inwards, so they stay inside the chart
+                    const edge = (i + 0.5) / hours.length < 0.12 ? "edge-left" : (i + 0.5) / hours.length > 0.88 ? "edge-right" : ""
                     const pct = h.total > 0 ? Math.max(2, (h.total / niceMax) * 100) : 0
                     const isBest = bestHour && h.h === bestHour.h && h.total > 0
                     const isHover = hoverHour === h.h
                     return (
                       <div
                         key={h.h}
-                        className={`ta-col ${isHover ? "hover" : ""} ${isBest ? "best" : ""}`}
+                        className={`ta-col ${isHover ? "hover" : ""} ${isBest ? "best" : ""} ${edge}`}
                         onMouseEnter={() => setHoverHour(h.h)}
                         onClick={() => setHoverHour(isHover ? null : h.h)}
                       >
@@ -569,11 +619,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
                     )
                   })}
                 </div>
-                <div className={`ta-xaxis ${hours.length > 6 ? "dense" : ""}`} aria-hidden="true">
-                  {hours.map((h, i) => (
-                    <span key={h.h}>{i % hourEvery === 0 ? hourLabel(h.h) : ""}</span>
-                  ))}
-                </div>
+                <HourAxis hours={hours} />
               </div>
             </div>
           ) : (
