@@ -71,6 +71,23 @@ const memoryCache = new Map()
 const CACHE_FRESH_MS = 30 * 1000 // 30 seconds fresh
 const CACHE_STALE_MS = 5 * 60 * 1000 // 5 minutes stale (can serve while revalidating)
 
+const signedInUser = () => {
+  try { return JSON.parse(localStorage.getItem('slipzo_user_info') || 'null') } catch (e) { return null }
+}
+
+/** Whose data is on screen: the shop's id (a worker: the owner's). "" when signed out or not known (older server) */
+export const actingShopId = () => {
+  const u = signedInUser()
+  if (!u?.id) return ""
+  return u.staff_of ? String(u.staff_of.shop_id || "") : String(u.id)
+}
+
+/** The signed-in person together with the shop they work for: what is kept on the phone for one is never used for another */
+export const accountScope = () => {
+  const u = signedInUser()
+  return u?.id ? `${u.id}|${u.staff_of ? u.staff_of.shop_id || u.staff_of.shop_name || "staff" : ""}` : ""
+}
+
 const getApiCacheScope = () => {
   if (typeof window === 'undefined') return 'ssr'
   try {
@@ -79,7 +96,7 @@ const getApiCacheScope = () => {
       const u = JSON.parse(userRaw)
       const idPart = u?.id || u?.email
       if (idPart) {
-        const staffPart = u?.staff_of?.shop_name ? `staff:${u.staff_of.shop_name}` : 'self'
+        const staffPart = u?.staff_of ? `staff:${u.staff_of.shop_id || u.staff_of.shop_name}` : 'self'
         return `${String(idPart).trim().toLowerCase()}:${staffPart}`
       }
     }
@@ -130,6 +147,13 @@ export const invalidateApiCache = (pattern) => {
   } catch (e) { }
 }
 
+// The shop is kept on the phone for longer, so the app can open with it at once after it was closed for hours; it is
+// loaded again right after. (The day's bill lists: see knownBills.js.)
+const keepFor = (path) => {
+  if (path === '/shop') return 7 * 24 * 60 * 60 * 1000
+  return CACHE_STALE_MS * 6
+}
+
 export const getCachedData = (path) => {
   const cacheKey = getScopedCacheKey(path)
   const mem = memoryCache.get(cacheKey)
@@ -140,8 +164,8 @@ export const getCachedData = (path) => {
     const raw = sessionStorage.getItem(`slipzo_cache_${cacheKey}`) || localStorage.getItem(`slipzo_cache_${cacheKey}`)
     if (raw) {
       const parsed = JSON.parse(raw)
-      // Allow up to 30 minutes stale window for instant initial render while revalidating
-      if (Date.now() - parsed.timestamp < CACHE_STALE_MS * 6) {
+      // A stale copy is fine for an instant first screen while it is loaded again (see keepFor)
+      if (Date.now() - parsed.timestamp < keepFor(path)) {
         memoryCache.set(cacheKey, parsed)
         return parsed.data
       }
@@ -292,6 +316,22 @@ const executeFetch = async (cleanPath, options = {}) => {
   }
 }
 
+// Billing requests say which shop they are for, so the server can refuse one that would land on another account
+// (a worker who was removed, or joined another shop, while a bill was open)
+const SHOP_PATHS = /^\/(bills|restaurant|tables|subscriptions\/consume-print)(\/|\?|$)/
+const withActingShop = (cleanPath, method, body) => {
+  if ((method !== 'POST' && method !== 'PUT') || !SHOP_PATHS.test(cleanPath)) return body
+  if (body !== undefined && typeof body !== 'string') return body
+  const shopId = actingShopId()
+  if (!shopId) return body
+  try {
+    const data = body ? JSON.parse(body) : {}
+    return data && typeof data === 'object' && !Array.isArray(data) ? JSON.stringify({ ...data, acting_shop: shopId }) : body
+  } catch (e) {
+    return body
+  }
+}
+
 const performFetch = async (cleanPath, options = {}) => {
   const url = `${API}${cleanPath}`
   const method = (options.method || 'GET').toUpperCase()
@@ -302,6 +342,8 @@ const performFetch = async (cleanPath, options = {}) => {
     : null
 
   const { headers: customHeaders, ...restOptions } = options
+  const shopBody = withActingShop(cleanPath, method, options.body)
+  if (shopBody !== undefined) restOptions.body = shopBody
 
   const defaultHeaders = {
     "Content-Type": "application/json",
@@ -351,7 +393,8 @@ const performFetch = async (cleanPath, options = {}) => {
       const errorMsg = Array.isArray(data.detail) ? data.detail[0]?.msg : data.detail || data.message || "Something went wrong"
       console.error(`❌ API Error (${response.status}):`, errorMsg)
 
-      if (response.status === 401) {
+      // keepSession: a background request that may be refused without it meaning that the person is signed out
+      if (response.status === 401 && !options.keepSession) {
         try {
           localStorage.removeItem('slipzo_token')
           localStorage.removeItem('slipzo_user_info')
@@ -370,6 +413,9 @@ const performFetch = async (cleanPath, options = {}) => {
       apiError.status = response.status
       apiError.code = data && data.code
       apiError.data = data // e.g. tries_left / retry_after for phone codes
+      if (apiError.code === 'SHOP_CHANGED' && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('slipzo_shop_changed'))
+      }
       throw apiError
     }
 
@@ -476,7 +522,18 @@ export const money = (n, customLang) => {
 
 export const now = () => new Date().toISOString()
 
-export const getCurrentUserKey = (user) => {
+// A worker's balance, items and tables are the shop's, not those of their own account: kept under a key of their own
+const withShop = (key) => {
+  if (!key || key.includes('@shop:')) return key
+  const u = typeof window !== 'undefined' ? signedInUser() : null
+  if (!u?.staff_of) return key
+  const mine = [u.email, u.id, u.phone, u.mobile].filter(Boolean).map((v) => String(v).trim().toLowerCase())
+  return mine.includes(key) ? `${key}@shop:${String(u.staff_of.shop_id || u.staff_of.shop_name).toLowerCase()}` : key
+}
+
+export const getCurrentUserKey = (user) => withShop(plainUserKey(user))
+
+const plainUserKey = (user) => {
   if (typeof user === 'number') return String(user)
   if (typeof user === 'string' && user.trim()) return user.trim().toLowerCase()
   if (user && typeof user === 'object') {

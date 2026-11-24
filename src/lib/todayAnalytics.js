@@ -1,7 +1,7 @@
 // Today's analytics data for the Home page, shared by the page and by sign in.
 // Sign in starts the request right away (prefetchTodayAnalytics) while the app is still checking the account,
 // so the Home page can show the numbers as soon as it appears instead of starting its own request then.
-import { call } from "./utils"
+import { call, accountScope as accountId } from "./utils"
 
 export const ANALYTICS_STORAGE_KEY = "slipzo_today_analytics"
 
@@ -11,6 +11,7 @@ export const localMidnight = (d = new Date()) => {
   return m
 }
 
+// Kept on the phone (not only for the session), so the Home page opens with today's last numbers after the app was closed
 let prefetched = null // { day, promise }
 
 /** GET today's analytics; keeps a copy for this session so the Home page opens with it */
@@ -20,7 +21,7 @@ export function fetchTodayAnalytics({ noCache = false } = {}) {
     .then((res) => {
       if (res && typeof res === "object") {
         try {
-          sessionStorage.setItem(ANALYTICS_STORAGE_KEY, JSON.stringify({ _day: from.toDateString(), data: res }))
+          localStorage.setItem(ANALYTICS_STORAGE_KEY, JSON.stringify({ _day: from.toDateString(), _account: accountId(), data: res }))
         } catch (_) { }
       }
       return res
@@ -47,13 +48,13 @@ export function takePrefetchedAnalytics() {
   return promise
 }
 
-/** Saved copy from earlier in this session (today only) */
+/** Saved copy from earlier today, of the account that is signed in */
 export function readSavedAnalytics() {
   try {
-    const saved = sessionStorage.getItem(ANALYTICS_STORAGE_KEY)
+    const saved = localStorage.getItem(ANALYTICS_STORAGE_KEY)
     if (saved) {
       const parsed = JSON.parse(saved)
-      if (parsed && parsed._day === localMidnight().toDateString() && parsed.data) return parsed.data
+      if (parsed && parsed._day === localMidnight().toDateString() && parsed._account === accountId() && parsed.data) return parsed.data
     }
   } catch (_) { }
   return null

@@ -16,6 +16,7 @@ import {
   Sparkles
 } from "lucide-react"
 import { call } from "../../lib/utils"
+import { pushState, initPush } from "../../lib/push"
 import "../../styles/NotificationBell.css"
 
 const KIND_META = {
@@ -51,6 +52,13 @@ export function NotificationBell({ user, onNavigate }) {
   const [loading, setLoading] = useState(false)
   const [copiedCode, setCopiedCode] = useState("")
   const wrapRef = useRef(null)
+  // Android app: whether notifications reach this phone when the app is closed
+  const [phonePush, setPhonePush] = useState(() => pushState())
+  useEffect(() => {
+    const onStatus = () => setPhonePush(pushState())
+    window.addEventListener("slipzo_push_status", onStatus)
+    return () => window.removeEventListener("slipzo_push_status", onStatus)
+  }, [])
 
   const load = async () => {
     if (!user) return
@@ -204,6 +212,21 @@ export function NotificationBell({ user, onNavigate }) {
                 </button>
               </div>
             </div>
+
+            {/* Android app: alerts would not be seen when the app is closed */}
+            {(phonePush === "blocked" || phonePush === "failed") && (
+              <div className="nbell-push" role="status" data-testid="bell-push-warning">
+                <div>
+                  <strong>{phonePush === "blocked" ? t("notif.pushOffTitle", "Phone notifications are off") : t("notif.pushFailTitle", "Phone notifications are not working yet")}</strong>
+                  <span>{phonePush === "blocked"
+                    ? t("notif.pushOffText", "You will not see alerts when the app is closed. Allow notifications for Slipzen in your phone's Settings > Apps.")
+                    : t("notif.pushFailText", "Alerts may not come when the app is closed. Check your internet and try again.")}</span>
+                </div>
+                <button type="button" onClick={() => initPush()}>
+                  {phonePush === "blocked" ? t("notif.pushTurnOn", "Turn on") : t("notif.pushRetry", "Try again")}
+                </button>
+              </div>
+            )}
 
             {/* List */}
             {items.length === 0 ? (

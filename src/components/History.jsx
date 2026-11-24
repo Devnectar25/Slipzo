@@ -22,7 +22,7 @@ import {
   CreditCard,
   Send
 } from "lucide-react"
-import { call, money, getCachedData, getTableDisplayName } from "../lib/utils"
+import { call, money, getTableDisplayName } from "../lib/utils"
 import { appSpeechLanguage } from "../hooks/useSpeechInput"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -30,27 +30,24 @@ import Swal from "sweetalert2"
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { VoiceInputButton } from "./common/VoiceInputButton"
-import { filterToday, todayBillsUrl } from "../lib/todayBills"
+import { todayBillsUrl } from "../lib/todayBills"
+import { readKnownBills, keepKnownBills, refreshKnownBills, toList } from "../lib/knownBills"
+import { printHolder } from "../lib/printClaim"
 
 export function History({ setView, setSelectedBillId, user }) {
   const { t } = useTranslation()
   const { tDb, formatNum, lang } = useDbTranslation()
-  const cachedSaved = getCachedData(todayBillsUrl({ isSaved: true }))
-  const cachedPrinted = getCachedData(todayBillsUrl({ isSaved: false }))
-
+  // what this phone last saw is shown at once; the current lists load behind it
+  const [known] = useState(() => ({ saved: readKnownBills(true), printed: readKnownBills(false) }))
 
   const [activeTab, setActiveTab] = useState("saved") // "saved" | "printed"
-  const [savedCount, setSavedCount] = useState(() => (cachedSaved && typeof cachedSaved.total !== "undefined" ? Number(cachedSaved.total) : 0))
-  const [printedCount, setPrintedCount] = useState(() => (cachedPrinted && typeof cachedPrinted.total !== "undefined" ? Number(cachedPrinted.total) : 0))
+  const [savedCount, setSavedCount] = useState(known.saved?.total || 0)
+  const [printedCount, setPrintedCount] = useState(known.printed?.total || 0)
 
-  const [bills, setBills] = useState(() => {
-    if (cachedSaved?.bills && Array.isArray(cachedSaved.bills)) return filterToday(cachedSaved.bills)
-    if (Array.isArray(cachedSaved)) return filterToday(cachedSaved)
-    return []
-  })
-  const [loading, setLoading] = useState(() => !cachedSaved)
-  const [totalRecords, setTotalRecords] = useState(() => cachedSaved?.total || (Array.isArray(cachedSaved) ? filterToday(cachedSaved).length : 0))
-  const [totalPages, setTotalPages] = useState(() => cachedSaved?.totalPages || 1)
+  const [bills, setBills] = useState(known.saved?.bills || [])
+  const [loading, setLoading] = useState(!known.saved)
+  const [totalRecords, setTotalRecords] = useState(known.saved?.total || 0)
+  const [totalPages, setTotalPages] = useState(known.saved?.totalPages || 1)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
   const [search, setSearch] = useState("")
@@ -96,64 +93,65 @@ export function History({ setView, setSelectedBillId, user }) {
   const pageRef = useRef(page)
   pageRef.current = page
 
+  const shownTabRef = useRef("saved")
+  const showList = (list) => {
+    setBills(list.bills)
+    setTotalRecords(list.total)
+    setTotalPages(list.totalPages)
+  }
+
   const loadBills = async ({ silent = false } = {}) => {
     const requestId = ++loadRequestRef.current
+    const isSaved = activeTab === "saved"
+    // the plain first page is the list that is kept on the phone
+    const plain = page === 1 && limit === 10 && !search.trim() && paymentMode === "All"
+    const setCount = isSaved ? setSavedCount : setPrintedCount
+    const setOtherCount = isSaved ? setPrintedCount : setSavedCount
     try {
-      if (!silent && (!Array.isArray(bills) || bills.length === 0)) setLoading(true)
-      const isSavedVal = activeTab === "saved" ? "true" : "false"
+      if (!silent) {
+        const last = plain ? readKnownBills(isSaved) : null
+        if (last) {
+          showList(last)
+          setLoading(false)
+        } else if (shownTabRef.current !== activeTab || bills.length === 0) {
+          // nothing known: the loader, never the other tab's bills
+          if (shownTabRef.current !== activeTab) setBills([])
+          setLoading(true)
+        }
+        shownTabRef.current = activeTab
+      }
       // `from` is worked out on every load, so the list starts again by itself after midnight (it reloads every 15s)
-      let url = todayBillsUrl({ isSaved: isSavedVal === "true", page, limit })
+      let url = todayBillsUrl({ isSaved, page, limit })
       if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`
       if (paymentMode !== "All") url += `&payment_mode=${encodeURIComponent(paymentMode)}`
 
-      // Primary bills request with SWR caching
-      const primaryPromise = call(url)
-      const oppositePromise = call(todayBillsUrl({ isSaved: activeTab !== "saved", page: 1, limit: 1 })).catch(() => ({}))
-
-      const data = await primaryPromise
-
-      if (requestId !== loadRequestRef.current) return
-
-      const curTotal = (data && typeof data === "object" && data.total !== undefined)
-        ? Number(data.total)
-        : (Array.isArray(data?.bills) ? data.bills.length : (Array.isArray(data) ? data.length : 0))
-
-      if (activeTab === "saved") {
-        setSavedCount(curTotal)
-      } else {
-        setPrintedCount(curTotal)
-      }
-
-      if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.bills)) {
-        const filtered = filterToday(data.bills)
-        setBills(filtered)
-        setTotalRecords(data.total !== undefined ? data.total : filtered.length)
-        setTotalPages(data.totalPages || 1)
-      } else {
-        const billsList = filterToday(Array.isArray(data) ? data : [])
-        setBills(billsList)
-        setTotalRecords(billsList.length)
-        setTotalPages(1)
-      }
-
-      // Update the other tab's count asynchronously without delaying bill display
-      oppositePromise.then((oppositeData) => {
-        if (requestId !== loadRequestRef.current || !oppositeData) return
-        const otherTotal = (typeof oppositeData === "object" && oppositeData.total !== undefined)
-          ? Number(oppositeData.total)
-          : 0
-        if (activeTab === "saved") {
-          setPrintedCount(otherTotal)
-        } else {
-          setSavedCount(otherTotal)
-        }
+      // Always the current list: the known one is already on screen
+      const primaryPromise = call(url, { noCache: true })
+      // The other tab: its whole first page when the page opens (so it is there when it is tapped), later only its count
+      const oppositePromise = silent
+        ? call(todayBillsUrl({ isSaved: !isSaved, page: 1, limit: 1 }), { noCache: true }).then((data) => {
+            const total = Number(data?.total)
+            if (!Number.isFinite(total)) return null
+            return total === readKnownBills(!isSaved)?.total ? total : refreshKnownBills(!isSaved).then((list) => list.total)
+          })
+        : refreshKnownBills(!isSaved).then((list) => list.total)
+      oppositePromise.then((total) => {
+        if (requestId === loadRequestRef.current && Number.isFinite(total)) setOtherCount(total)
       }).catch(() => {})
+
+      const list = toList(await primaryPromise)
+
+      if (plain) keepKnownBills(isSaved, list)
+      if (requestId !== loadRequestRef.current) return
+      setCount(list.total)
+      showList(list)
     } catch (err) {
       if (requestId !== loadRequestRef.current) return
       console.error("Failed to load bills:", err)
       if (!silent) {
         toastError(t("history.err_loadFailed", "Failed to load bill history"))
-        setBills([])
+        // what is already on screen stays
+        if (!(plain && readKnownBills(isSaved))) setBills([])
       }
     } finally {
       if (requestId === loadRequestRef.current) {
@@ -164,9 +162,20 @@ export function History({ setView, setSelectedBillId, user }) {
 
   loadBillsRef.current = loadBills
 
+  // the list this phone knows is there with the tap; loadBills (on the tab change) gets the current one
+  const switchTab = (tab) => {
+    if (activeTab === tab) return
+    shownTabRef.current = tab
+    setActiveTab(tab)
+    setPage(1)
+    const last = limit === 10 && !search.trim() && paymentMode === "All" ? readKnownBills(tab === "saved") : null
+    showList(last || { bills: [], total: 0, totalPages: 1 })
+    setLoading(!last)
+  }
+
   useEffect(() => {
     loadBills()
-  }, [page, limit, paymentMode, activeTab, user?.id, user?.staff_of?.shop_name])
+  }, [page, limit, paymentMode, activeTab, user?.id, user?.staff_of?.shop_id, user?.staff_of?.shop_name])
 
   // Debounced search
   useEffect(() => {
@@ -278,9 +287,14 @@ export function History({ setView, setSelectedBillId, user }) {
 
     try {
       setDeletingId(bill.id)
-      await call(`/bills/${bill.id}`, { method: "DELETE" })
+      await call(`/bills/${bill.id}?holder=${encodeURIComponent(printHolder())}`, { method: "DELETE" })
 
       toastSuccess(t("history.deletedOk", "Bill #{{n}} deleted successfully", { n: bill.number }))
+      // gone from what this phone knows too, so it does not come back while the list loads
+      const last = readKnownBills(activeTab === "saved")
+      if (last?.bills.some((b) => b.id === bill.id)) {
+        keepKnownBills(activeTab === "saved", { ...last, bills: last.bills.filter((b) => b.id !== bill.id), total: Math.max(0, last.total - 1) })
+      }
 
       if (bills.length === 1 && page > 1) {
         setPage((p) => p - 1)
@@ -374,19 +388,7 @@ export function History({ setView, setSelectedBillId, user }) {
             aria-selected={activeTab === "saved"}
             data-testid="history-tab-saved"
             className={`history-tab-btn ${activeTab === "saved" ? "active" : ""}`}
-            onClick={() => {
-              if (activeTab !== "saved") {
-                setActiveTab("saved")
-                setPage(1)
-                const c = getCachedData(todayBillsUrl({ isSaved: true }))
-                if (c && (Array.isArray(c.bills) || Array.isArray(c))) {
-                  const list = filterToday(Array.isArray(c.bills) ? c.bills : c)
-                  setBills(list)
-                  setTotalRecords(c.total !== undefined ? c.total : list.length)
-                  setTotalPages(c.totalPages || 1)
-                }
-              }
-            }}
+            onClick={() => switchTab("saved")}
           >
             <Bookmark size={15} />
             <span className="history-tab-text">{t("history.savedBills", tDb("Saved Bills"))}</span>
@@ -399,19 +401,7 @@ export function History({ setView, setSelectedBillId, user }) {
             aria-selected={activeTab === "printed"}
             data-testid="history-tab-printed"
             className={`history-tab-btn ${activeTab === "printed" ? "active" : ""}`}
-            onClick={() => {
-              if (activeTab !== "printed") {
-                setActiveTab("printed")
-                setPage(1)
-                const c = getCachedData(todayBillsUrl({ isSaved: false }))
-                if (c && (Array.isArray(c.bills) || Array.isArray(c))) {
-                  const list = filterToday(Array.isArray(c.bills) ? c.bills : c)
-                  setBills(list)
-                  setTotalRecords(c.total !== undefined ? c.total : list.length)
-                  setTotalPages(c.totalPages || 1)
-                }
-              }
-            }}
+            onClick={() => switchTab("printed")}
           >
             <Printer size={15} />
             <span className="history-tab-text">{t("history.printBills", tDb("Print Bills"))}</span>

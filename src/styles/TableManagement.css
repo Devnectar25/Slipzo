@@ -135,7 +135,7 @@
    ============================================================ */
 .tables-metrics-strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -1341,13 +1341,96 @@
   }
 
   .tables-hero-banner {
-    padding: 1.2rem 1rem;
+    padding: 0.85rem 0.95rem;
     border-radius: 14px;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tables-hero-grid {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+  }
+
+  .tables-hero-left {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .tables-eyebrow {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
   .tables-hero-heading {
-    font-size: 1.35rem;
+    font-size: 1.2rem;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  .tables-hero-subtext {
+    display: none;
+  }
+
+  .tables-hero-actions {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* 2 in a line clean grid layout for mobile */
+  .tables-metrics-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.55rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .tables-metric-card {
+    padding: 0.65rem 0.75rem;
+    gap: 0.6rem;
+    border-radius: 12px;
+    min-width: 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .tables-metric-card .metric-icon-box {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .tables-metric-card .metric-icon-box svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .tables-metric-card .metric-content {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .tables-metric-card .metric-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tables-metric-card .metric-value {
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .tables-grid {
@@ -1409,18 +1492,49 @@
 
 @media (max-width: 600px) {
   .tables-page-root {
-    padding: 0.5rem 0.35rem 0;
+    padding: 0.5rem 0.4rem 0;
   }
 
   .tables-hero-banner {
-    padding: 1rem 0.75rem;
+    padding: 0.75rem 0.85rem;
     border-radius: 12px;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.65rem;
   }
 
   .tables-hero-heading {
-    font-size: 1.2rem;
-    line-height: 1.2;
+    font-size: 1.15rem;
+    line-height: 1.25;
+  }
+
+  .tables-metrics-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tables-metric-card {
+    padding: 0.55rem 0.65rem;
+    gap: 0.5rem;
+    border-radius: 10px;
+  }
+
+  .tables-metric-card .metric-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+  }
+
+  .tables-metric-card .metric-icon-box svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .tables-metric-card .metric-label {
+    font-size: 0.62rem;
+  }
+
+  .tables-metric-card .metric-value {
+    font-size: 1.05rem;
   }
 
   .tables-hero-desc {

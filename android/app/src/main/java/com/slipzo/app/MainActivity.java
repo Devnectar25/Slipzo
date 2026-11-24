@@ -2,9 +2,12 @@ package com.slipzo.app;
 
 import android.app.Dialog;
 import android.app.DownloadManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -35,7 +38,32 @@ public class MainActivity extends BridgeActivity {
         // Android's print screen for receipts (a WebView ignores window.print())
         registerPlugin(NativePrintPlugin.class);
         super.onCreate(savedInstanceState);
+        createNotificationChannel();
         enablePaymentWindows();
+    }
+
+    /**
+     * Pre-creates the high-importance notification channel so Android immediately
+     * displays background FCM push notifications with sound, vibration, and banner.
+     */
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                "slipzen_alerts",
+                "Slipzen alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("Plan reminders, offers and announcements from Slipzen");
+            channel.enableLights(true);
+            channel.setLightColor(Color.parseColor("#0284c7"));
+            channel.enableVibration(true);
+            channel.setShowBadge(true);
+
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
+        }
     }
 
     /**

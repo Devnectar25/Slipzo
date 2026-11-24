@@ -32,7 +32,7 @@ import Swal from "sweetalert2"
 import "../styles/ConfirmDialog.css"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES } from "../i18n/i18n"
-import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, isMenuCategory, getCachedData } from "../lib/utils"
+import { getRemainingFreePrints, getActivePlanDetails, getCurrentUserKey, syncUserQuota, call, formatNumberByLang, isHotelRestaurant, isMenuCategory, getCachedData, isNativeApp } from "../lib/utils"
 import { HeaderSearch } from "./common/HeaderSearch"
 import { NotificationBell } from "./common/NotificationBell"
 
@@ -85,7 +85,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
     } else {
       setShop(getCachedData("/shop") || {})
     }
-  }, [parentShop, user?.id, user?.staff_of?.shop_name])
+  }, [parentShop, user?.id, user?.staff_of?.shop_id, user?.staff_of?.shop_name])
 
   useEffect(() => {
     const handleShopUpdate = (e) => {
@@ -839,13 +839,16 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             </div>
           )}
           {children}
-          <footer className="shell-legal-footer" data-testid="app-legal-footer">
-            <div className="pp-legal-left">
-              <span>© {new Date().getFullYear()} Slipzen</span>
-              <PoweredBy />
-            </div>
-            <PolicyLinks onOpen={setView} />
-          </footer>
+          {/* not in the Android app: the policies are in the menu and on Contact us there */}
+          {!isNativeApp && (
+            <footer className="shell-legal-footer" data-testid="app-legal-footer">
+              <div className="pp-legal-left">
+                <span>© {new Date().getFullYear()} Slipzen</span>
+                <PoweredBy />
+              </div>
+              <PolicyLinks onOpen={setView} />
+            </footer>
+          )}
         </div>
       </div>
 

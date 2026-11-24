@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { 
   ArrowRight, Check, Zap, Sparkles, Calculator, Sliders, 
-  ShieldCheck, Printer, Crown, Layers, Percent, TrendingUp,
+  ShieldCheck, Printer, Crown, Layers, Percent, 
   Clock, Calendar
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -720,11 +720,9 @@ export function Pricing({ setView, setShowAuth, user }) {
         )}
       </section>
 
-      {/* 4 & 5: Print-Based Custom Calculator and Comparison Table (shown in Print mode) */}
+      {/* 4. Print-Based Custom Calculator (shown in Print mode) */}
       {pricingCategory === "print" && (
-        <>
-          {/* 4. Interactive Custom Self-Pricing Calculator */}
-          <section className="pricing-calculator-section">
+        <section className="pricing-calculator-section">
         <div className="pricing-calculator-box">
           {/* Top Eyebrow */}
           <div className="calc-eyebrow-row">
@@ -859,165 +857,6 @@ export function Pricing({ setView, setShowAuth, user }) {
           </div>
         </div>
       </section>
-
-      {/* 5. Plan Comparison Table */}
-      <section className="pricing-comparison-section">
-        <div className="pricing-comparison-box">
-          <div className="comparison-header-wrap">
-            <h3 className="comparison-main-title">
-              <TrendingUp size={20} className="comp-title-icon" />
-              <span>{t("pricing.comparisonTitle", "Plan Comparison Summary")}</span>
-            </h3>
-            <span className="comparison-swipe-hint">
-              <span>{t("pricing.swipeToCompare", "Swipe to compare")}</span> →
-            </span>
-          </div>
-          
-          {/* Desktop Comparison Table (Visible on screens > 768px) */}
-          <div className="comparison-table-scroll-wrapper">
-            <table className="comparison-data-table">
-              <thead>
-                <tr>
-                  <th className="th-feature">{t("pricing.colFeature", "Feature / Plan")}</th>
-                  <th className="th-starter">{t("pricing.colStarter", "Starter Pack")}</th>
-                  <th className="th-pro">{t("pricing.colPro", "Pro Growth (2K)")}</th>
-                  <th className="th-business">{t("pricing.colBusiness", "Business (5K)")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="td-label">{t("pricing.rowTotalPrints", "Total Prints")}</td>
-                  <td className="td-val">{formatNum("1,000")}</td>
-                  <td className="td-val highlight-pro">{formatNum("2,000")}</td>
-                  <td className="td-val highlight-business">{formatNum("5,000")}</td>
-                </tr>
-                <tr>
-                  <td className="td-label">{t("pricing.rowPlanPrice", "Plan Price")}</td>
-                  <td className="td-val">{formatNum("₹250")}</td>
-                  <td className="td-val highlight-pro-price">{formatNum("₹450")}</td>
-                  <td className="td-val highlight-business-price">{formatNum("₹1,000")}</td>
-                </tr>
-                <tr>
-                  <td className="td-label">{t("pricing.rowUnitRate", "Effective Unit Rate")}</td>
-                  <td className="td-val">{formatNum("₹0.25")} {t("pricing.perPrint", "/ print")}</td>
-                  <td className="td-val highlight-pro">{formatNum("₹0.225")} {t("pricing.perPrint", "/ print")}</td>
-                  <td className="td-val highlight-business-green">{formatNum("₹0.20")} {t("pricing.perPrint", "/ print")}</td>
-                </tr>
-                <tr>
-                  <td className="td-label">{t("pricing.rowSavings", "Discount & Savings")}</td>
-                  <td className="td-val standard-base-text">{t("pricing.standardBase", "Standard Rate")}</td>
-                  <td className="td-val savings-pro-text">{t("pricing.save50", "Save ₹50 (10% OFF)")}</td>
-                  <td className="td-val savings-biz-text">{t("pricing.save250", "Save ₹250 (20% OFF)")}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Comparison Matrix (All data directly visible on mobile without scroll) */}
-          <div className="comparison-mobile-matrix">
-            {/* 3 Plan Headers */}
-            <div className="mobile-matrix-header-grid">
-              <div className="mm-head-card mm-head-starter">
-                <span className="mm-plan-badge mm-badge-starter">{t("pricingPage.pack", "Pack")}</span>
-                <span className="mm-plan-title">{t("pricing.colStarter", "Starter Pack")}</span>
-              </div>
-              <div className="mm-head-card mm-head-pro">
-                <span className="mm-plan-badge mm-badge-popular">{t("pricing.mostPopular", "Popular")}</span>
-                <span className="mm-plan-title">{t("pricing.colPro", "Pro Growth (2K)")}</span>
-              </div>
-              <div className="mm-head-card mm-head-business">
-                <span className="mm-plan-badge mm-badge-biz">20% OFF</span>
-                <span className="mm-plan-title">{t("pricing.colBusiness", "Business (5K)")}</span>
-              </div>
-            </div>
-
-            {/* Metric 1: Total Prints */}
-            <div className="mobile-matrix-block">
-              <div className="mm-block-label">
-                <span>{t("pricing.rowTotalPrints", "Total Prints")}</span>
-              </div>
-              <div className="mm-block-values-grid">
-                <div className="mm-val-cell mm-val-starter">
-                  <strong>{formatNum("1,000")}</strong>
-                </div>
-                <div className="mm-val-cell mm-val-pro highlight-pro">
-                  <strong>{formatNum("2,000")}</strong>
-                </div>
-                <div className="mm-val-cell mm-val-business highlight-business">
-                  <strong>{formatNum("5,000")}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Metric 2: Plan Price */}
-            <div className="mobile-matrix-block">
-              <div className="mm-block-label">
-                <span>{t("pricing.rowPlanPrice", "Plan Price")}</span>
-              </div>
-              <div className="mm-block-values-grid">
-                <div className="mm-val-cell mm-val-starter">
-                  <strong>{formatNum("₹250")}</strong>
-                </div>
-                <div className="mm-val-cell mm-val-pro highlight-pro-price">
-                  <strong>{formatNum("₹450")}</strong>
-                </div>
-                <div className="mm-val-cell mm-val-business highlight-business-price">
-                  <strong>{formatNum("₹1,000")}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Metric 3: Effective Unit Rate */}
-            <div className="mobile-matrix-block">
-              <div className="mm-block-label">
-                <span>{t("pricing.rowUnitRate", "Effective Unit Rate")}</span>
-              </div>
-              <div className="mm-block-values-grid">
-                <div className="mm-val-cell mm-val-starter">
-                  <span className="mm-rate-num">{formatNum("₹0.25")}</span>
-                  <span className="mm-rate-unit">{t("pricing.perPrint", "/ print")}</span>
-                </div>
-                <div className="mm-val-cell mm-val-pro highlight-pro">
-                  <span className="mm-rate-num">{formatNum("₹0.225")}</span>
-                  <span className="mm-rate-unit">{t("pricing.perPrint", "/ print")}</span>
-                </div>
-                <div className="mm-val-cell mm-val-business highlight-business-green">
-                  <span className="mm-rate-num">{formatNum("₹0.20")}</span>
-                  <span className="mm-rate-unit">{t("pricing.perPrint", "/ print")}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Metric 4: Discount & Savings */}
-            <div className="mobile-matrix-block">
-              <div className="mm-block-label">
-                <span>{t("pricing.rowSavings", "Discount & Savings")}</span>
-              </div>
-              <div className="mm-block-values-grid">
-                <div className="mm-val-cell mm-val-starter standard-base-text">
-                  <span>{t("pricing.standardBase", "Standard Rate")}</span>
-                </div>
-                <div className="mm-val-cell mm-val-pro savings-pro-text">
-                  <span>{t("pricing.save50", "Save ₹50 (10% OFF)")}</span>
-                </div>
-                <div className="mm-val-cell mm-val-business savings-biz-text">
-                  <span>{t("pricing.save250", "Save ₹250 (20% OFF)")}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Pro Tip Box */}
-          <div className="comparison-pro-tip-box">
-            <span className="pro-tip-bulb">💡</span>
-            <div className="pro-tip-content">
-              <strong>{t("pricing.proTipPrefix", "Pro Tip:")}</strong>{" "}
-              <span>{t("pricing.proTip", "Buy larger packs or use our Custom Pricing Calculator above to get volume discounts of up to 28% on bulk print orders!").replace(/^💡\s*(Pro\s*Tip|टीप|सुझाव)[\s*:]*\s*/i, "")}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-      </>
       )}
 
       {/* 6. Final CTA Section */}

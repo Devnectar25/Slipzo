@@ -8,7 +8,6 @@ import {
   cleanTextLines, 
   canPrintFree, 
   getActivePlanDetails, 
-  syncUserQuota, 
   incrementFreePrintCount, 
   getCurrentUserKey, 
   findTemplateMatch,
@@ -17,7 +16,8 @@ import {
   resetSingleStoredTable
 } from "../lib/utils"
 import { printReceiptElement } from "../lib/printReceipt"
-import { chargeAndSavePdf } from "../lib/directPrint"
+import { chargeAndSavePdf, hasCredits, spendPrintCredit } from "../lib/directPrint"
+import { claimPrint, releasePrint, markBillPrinted } from "../lib/printClaim"
 import { ReceiptSkeleton, ButtonLoader } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
@@ -49,7 +49,8 @@ export function Reprint({ billId, setView, requireAuth, user }) {
           setError(t("reprint.noBill", "No bill selected"))
           return
         }
-          const data = await call(`/bills/${actualBillId}`)
+          // always fresh: another device may have changed or printed it
+          const data = await call(`/bills/${actualBillId}`, { noCache: true })
           if (data && typeof data === "object") {
             let parsedItems = data.items
             if (typeof parsedItems === "string") {
@@ -174,17 +175,16 @@ export function Reprint({ billId, setView, requireAuth, user }) {
     }
   }, [bill, printFormat, lang])
 
-  const handleFinalizePrint = (printedBillId, printedBill) => {
+  // firstPrint: the bill had not printed before. A copy of an older bill leaves its table alone: new customers may sit there.
+  const handleFinalizePrint = (printedBillId, printedBill, firstPrint = true) => {
     if (printedBillId) {
-      call(`/bills/${printedBillId}/print`, { method: "POST" }).catch(() => {})
+      markBillPrinted(printedBillId).catch(() => {})
     }
 
+    // The server frees the table of this bill (and only when it still holds this bill's order). Other bills of the same
+    // table, which another worker may have waiting, are left alone.
     const tableLabel = printedBill?.table_number || printedBill?.table
-    if (tableLabel) {
-      // Reset table on server
-      call(`/restaurant/tables/reset/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => {})
-      call(`/bills/print-table/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => {})
-
+    if (tableLabel && firstPrint) {
       // Invalidate table caches
       removeCachedData("/restaurant/tables")
       removeCachedData("/tables")
@@ -214,7 +214,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
 
     const userAuthKey = getCurrentUserKey(user)
 
-    if (!canPrintFree(userAuthKey)) {
+    if (!(user ? await hasCredits(userAuthKey) : canPrintFree(userAuthKey))) {
       const plan = getActivePlanDetails(userAuthKey)
       if (plan?.isFreeTier) {
         window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true } }))
@@ -233,29 +233,26 @@ export function Reprint({ billId, setView, requireAuth, user }) {
       return
     }
 
+    // one device at a time prints a bill
+    const claim = user ? await claimPrint({ billId: actualBillId, firstPrint: Number(bill?.is_saved) !== 0, user }) : { ok: true }
+    if (!claim.ok) {
+      if (claim.quota) {
+        Swal.fire({
+          title: t("reprint.quotaReached", "Print Quota Reached"),
+          text: t("reprint.noCredits", "No print credits available"),
+          icon: "warning",
+          confirmButtonText: t("reprint.viewPlans", "View Plans"),
+          confirmButtonColor: "#0284c7"
+        }).then((r) => { if (r.isConfirmed) setView?.("pricing") })
+      }
+      setIsPrinting(false)
+      return
+    }
+    const firstPrint = claim.printed === undefined ? true : !claim.printed
+    let finished = false
+
     try {
       if (user) {
-        let quota = null
-        try {
-          const res = await call("/subscriptions/consume-print", { method: "POST" })
-          if (res && res.quota) {
-            quota = res.quota
-            syncUserQuota(res.quota, userAuthKey)
-          }
-        } catch (err) {
-          console.error("Print quota deduction failed:", err)
-          const errMsg = err?.detail || err?.message || t("reprint.noCredits", "No print credits available")
-          Swal.fire({
-            title: t("reprint.quotaReached", "Print Quota Reached"),
-            text: errMsg,
-            icon: "warning",
-            confirmButtonText: t("reprint.viewPlans", "View Plans"),
-            confirmButtonColor: "#0284c7"
-          })
-          setIsPrinting(false)
-          return
-        }
-
         const result = await printReceiptElement("receipt-to-print", {
           pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
         })
@@ -265,17 +262,12 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         }
 
         // Finalize print and reset table to AVAILABLE if table bill
-        handleFinalizePrint(actualBillId, bill)
+        finished = true
+        // it printed: only now the credit is used (a cancelled print costs nothing)
+        await spendPrintCredit(user, actualBillId)
+        handleFinalizePrint(actualBillId, bill, firstPrint)
 
         success(t("bills.printedSuccess", "Printed successfully!"))
-
-        if (quota && Number(quota.printsRemaining) <= 10 && Number(quota.printsRemaining) > 0) {
-          window.dispatchEvent(new CustomEvent("slipzo-low-prints-reminder", { detail: { force: true, quota, printsRemaining: Number(quota.printsRemaining) } }))
-        }
-
-        if (quota && quota.isFreeTier && Number(quota.printsRemaining) === 0) {
-          window.dispatchEvent(new CustomEvent("slipzo-show-free-reward-expired", { detail: { force: true, quota } }))
-        }
       } else {
         const result = await printReceiptElement("receipt-to-print", {
           pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm")
@@ -292,6 +284,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
       console.error("Printing failed:", err)
       toastError?.("Printing failed. Please check printer connection.")
     } finally {
+      if (user && !finished) releasePrint({ billId: actualBillId })
       setTimeout(() => {
         setIsPrinting(false)
       }, 800)
@@ -306,6 +299,7 @@ export function Reprint({ billId, setView, requireAuth, user }) {
         elementId: "receipt-to-print",
         pageWidth: printFormat === "55mm" ? "55mm" : (printFormat === "a4" ? "a4" : "80mm"),
         billNumber: bill?.number,
+        billId: actualBillId,
         onNeedPlan: () => setView?.("pricing")
       })
     } catch (err) {

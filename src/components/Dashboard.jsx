@@ -10,6 +10,7 @@ import {
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { TodayAnalytics } from "./TodayAnalytics"
+import { readKnownBills, keepKnownBills, toList } from "../lib/knownBills"
 import { call, money, getCachedData, isHotelRestaurant, getTableDisplayName } from "../lib/utils"
 
 export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
@@ -21,7 +22,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
 
   useEffect(() => {
     setShop(getCachedData("/shop") || {})
-  }, [user?.id, user?.staff_of?.shop_name])
+  }, [user?.id, user?.staff_of?.shop_id, user?.staff_of?.shop_name])
 
   useEffect(() => {
     const handleShopUpdate = (e) => {
@@ -50,7 +51,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
     )
   }
 
-  const cachedData = getCachedData(todayBillsUrl({ isSaved: true }))
+  const cachedData = getCachedData(todayBillsUrl({ isSaved: true })) || readKnownBills(true)
 
   const [bills, setBills] = useState(() => {
     if (cachedData?.bills && Array.isArray(cachedData.bills)) {
@@ -73,6 +74,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
 
       // Strictly query ONLY saved bills from database, made today
       const data = await call(todayBillsUrl({ isSaved: true }), fetchOpts)
+      keepKnownBills(true, toList(data)) // shown at once the next time the app is opened today
       let rawList = []
       if (data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.bills)) {
         rawList = data.bills
@@ -159,7 +161,7 @@ export function Dashboard({ setView, setSelectedBillId, requireAuth, user }) {
       window.removeEventListener("focus", handleVisibleSync)
       document.removeEventListener("visibilitychange", handleVisibleSync)
     }
-  }, [user?.id, user?.staff_of?.shop_name])
+  }, [user?.id, user?.staff_of?.shop_id, user?.staff_of?.shop_name])
 
   const handleReprint = (billId) => {
     setSelectedBillId?.(billId)

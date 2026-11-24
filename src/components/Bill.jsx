@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useState, useRef, lazy, Suspense, Fragment } from "react"
 import { printReceiptElement } from "../lib/printReceipt"
 import { chargeAndPrint, spendPrintCredit, chargeAndSavePdf, printWidthOf } from "../lib/directPrint"
+import { printHolder, markBillPrinted, explainDeviceConflict } from "../lib/printClaim"
 import { Capacitor } from "@capacitor/core"
 
 // The Android app's print screen says whether the receipt printed. A browser's print window does not (Print and
@@ -1023,6 +1024,17 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     { enabled: flowStep === "bill" && showBarcode }
   )
 
+  // The bill on screen was printed, is being printed, or was deleted on another device with the same account
+  const handleBillConflict = async (err) => {
+    if (!(await explainDeviceConflict(err))) return false
+    if (err.code === "BILL_GONE") {
+      // what is on screen can still be saved, as a new bill
+      setSaved(null)
+      setEditingBillId(null)
+    }
+    return true
+  }
+
   // ==========================================
   // HANDLERS: SAVE BILL (0 PRINT CREDITS)
   // ==========================================
@@ -1076,7 +1088,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       if (existingId) {
         bill = await call(`/bills/${existingId}`, {
           method: "PUT",
-          body: JSON.stringify(billData)
+          body: JSON.stringify({ ...billData, holder: printHolder() })
         })
         bill = { ...(saved || {}), ...(bill || {}), id: existingId }
         toastSuccess(t("bills.updatedOk", "Bill #{{n}} updated successfully!", { n: bill?.number || customBillNumber }))
@@ -1099,6 +1111,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       setFlowStep("success")
     } catch (err) {
       console.error("Failed to save bill:", err)
+      if (await handleBillConflict(err)) return
       const msg = err.detail || err.message || t("bills.err_saveFailed", "Failed to save bill. Please try again.")
       setSaveError(msg)
       toastError(msg)
@@ -1118,8 +1131,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     unchargedPrintRef.current = null
     if (bill.id && chargedBillIdsRef.current.has(bill.id)) return
     if (bill.id) chargedBillIdsRef.current.add(bill.id)
-    await spendPrintCredit(user)
-    if (bill.id) await call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
+    await spendPrintCredit(user, bill.id)
+    if (bill.id) await markBillPrinted(bill.id).catch(() => {})
     window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
   }
   // leaving the page with a bill sent to the printer still uses its credit
@@ -1127,7 +1140,8 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
   // Print from the result screen. The bill is already saved. Android app: marked printed (and a credit used) once
   // its print screen says it printed. Browser: see chargeSentPrint above.
-  // Resolves the chargeAndPrint result: true, "sent" (browser), "cancelled", "failed" or false (no print credits).
+  // Resolves the chargeAndPrint result: true, "sent" (browser), "cancelled", "failed", "busy" (refused because of
+  // another device) or false (no print credits).
   const printNow = async (bill) => {
     await new Promise((resolve) => setTimeout(resolve, 60)) // let the receipt pick up the saved bill number
     const ok = await chargeAndPrint({
@@ -1136,7 +1150,9 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       pageWidth: printWidthOf(templateForPrint?.width),
       onNeedPlan: () => setView("pricing"),
       billNumber: bill?.number || customBillNumber,
-      chargeLater: !PRINT_CONFIRMED
+      chargeLater: !PRINT_CONFIRMED,
+      billId: bill?.id,
+      firstPrint: doneAction !== "printed"
     })
     if (ok === "sent") {
       // the print window closed (printed, saved as PDF, or cancelled: a browser does not say which).
@@ -1154,7 +1170,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       return ok
     }
     if (ok !== true) return ok
-    if (bill?.id) await call(`/bills/${bill.id}/print`, { method: "POST" }).catch(() => {})
+    if (bill?.id) await markBillPrinted(bill.id).catch(() => {})
     refreshMenuStock()
     window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: bill }))
     toastSuccess(t("bills.printedSuccess", "Printed successfully!"))
@@ -1201,13 +1217,14 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       pageWidth: printWidthOf(templateForPrint?.width),
       billNumber: saved?.number || customBillNumber,
       onNeedPlan: () => setView("pricing"),
+      billId,
       free
     })
     if (!ok || free) return
     unchargedPrintRef.current = null
     if (billId) {
       chargedBillIdsRef.current.add(billId)
-      call(`/bills/${billId}/print`, { method: "POST" }).catch(() => {})
+      markBillPrinted(billId).catch(() => {})
       window.dispatchEvent(new CustomEvent("slipzo_bill_printed", { detail: saved }))
     }
   }
@@ -1304,10 +1321,12 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
         try {
           await call(`/bills/${existingId}`, {
             method: "PUT",
-            body: JSON.stringify(billData)
+            body: JSON.stringify({ ...billData, holder: printHolder() })
           })
           bill = { ...(saved || {}), ...billData, id: existingId, number: saved?.number || editingBillNumber || customBillNumber }
         } catch (updateErr) {
+          // refused by the server (changed, printed or deleted on another device, or short of stock): nothing is printed
+          if (updateErr?.status === 400 || updateErr?.status === 404 || updateErr?.status === 409) throw updateErr
           console.warn("Could not update bill in backend:", updateErr)
           bill = { ...(saved || {}), ...billData, id: existingId, number: saved?.number || editingBillNumber || customBillNumber }
         }
@@ -1330,6 +1349,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
       setFlowStep("success")
     } catch (err) {
       console.error("Failed to save and print bill:", err)
+      if (await handleBillConflict(err)) return
       const msg = err.detail || err.message || t("bills.err_saveFailed", "Failed to save bill. Please try again.")
       setSaveError(msg)
       toastError(msg)

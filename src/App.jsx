@@ -1,17 +1,21 @@
 import { useEffect, useState, useRef, lazy, Suspense } from "react"
 import { App as CapApp } from "@capacitor/app"
+import Swal from "sweetalert2"
 import { Shell } from "./components/Shell"
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt"
 import { ErrorBoundary } from "./components/common/ErrorBoundary"
 import { ToastProvider, useToast } from "./components/common/Toast"
-import { initPush, stopPush } from "./lib/push"
+import { initPush, stopPush, syncPushToken } from "./lib/push"
 import { prefetchTodayAnalytics } from "./lib/todayAnalytics"
+import { refreshKnownBillsSoon } from "./lib/knownBills"
+import { sendPrintReports } from "./lib/printReport"
 import { TopProgressBar } from "./components/common/TopProgressBar"
 import { featurePageByView, featurePageByPath } from "./lib/featurePages"
 import { policyDocByView, policyDocByPath } from "./lib/policyPages"
-import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData, setCachedData } from "./lib/utils"
+import { call, syncUserQuota, getActivePlanDetails, clearApiCache, isNativeApp, isHotelRestaurant, getCachedData, setCachedData, actingShopId } from "./lib/utils"
 import i18n from "./i18n/i18n"
 import PolicyGate from "./components/PolicyGate"
+import FirstWelcome from "./components/FirstWelcome"
 import { hasAcceptedPolicy } from "./lib/legalContent"
 import "./styles/App.css"
 import "./styles/BootLoader.css"
@@ -226,8 +230,28 @@ const viewToPath = (viewName) => {
   }
 }
 
+/**
+ * The person who was signed in when the app was last open, with everything the first screen needs (shop type, setup
+ * finished). The app then opens straight away and the account is checked in the background. null: show the loader.
+ */
+const readKnownUser = () => {
+  if (typeof window === "undefined" || window.location.pathname.startsWith("/admin")) return null
+  try {
+    if (!localStorage.getItem("slipzo_token")) return null
+    const known = JSON.parse(localStorage.getItem("slipzo_user_info") || "null")
+    const key = known?.email || known?.id
+    if (!known?.id || !key) return null
+    if (known.staff_of) return getCachedData("/shop")?.business_type ? known : null
+    const setupDone = localStorage.getItem(`slipzo_first_time_onboarding_${key}`) === "true" || Number(known.onboarding_reward_claimed || 0) >= 1
+    return setupDone && getCachedData("/shop")?.business_type ? known : null
+  } catch (_) {
+    return null
+  }
+}
+
 function AppContent() {
-  const [user, setUser] = useState(null)
+  const [knownUser] = useState(readKnownUser)
+  const [user, setUser] = useState(knownUser)
   const [view, setViewState] = useState(() => {
     if (typeof window !== "undefined") {
       const initialView = pathToView(window.location.pathname)
@@ -235,7 +259,7 @@ function AppContent() {
     }
     return "dashboard"
   })
-  const [checking, setChecking] = useState(true)
+  const [checking, setChecking] = useState(!knownUser)
   const [desktopWeb, setDesktopWeb] = useState(isDesktopWeb)
   useEffect(() => {
     const query = window.matchMedia(DESKTOP_QUERY)
@@ -252,6 +276,8 @@ function AppContent() {
   const [showShopOnboarding, setShowShopOnboarding] = useState(false)
   // New accounts must buy a print pack before the shop and item setup
   const [showPlanGate, setShowPlanGate] = useState(false)
+  // Android app: the welcome page a new account sees once, before the plan step
+  const [showFirstWelcome, setShowFirstWelcome] = useState(false)
   const [resolvingSetup, setResolvingSetup] = useState(false)
   const [adminUser, setAdminUser] = useState(null)
   const [adminToken, setAdminToken] = useState(null)
@@ -500,6 +526,15 @@ function AppContent() {
       }
     }
 
+    // The three questions are asked at the same time instead of one after the other
+    let hasToken = false
+    try { hasToken = Boolean(localStorage.getItem("slipzo_token")) } catch (_) {}
+    const quotaPromise = hasToken ? call("/subscriptions/my", { noCache: true }).catch(() => null) : null
+    if (hasToken && knownUser) {
+      prefetchTodayAnalytics()
+      syncShopContext(knownUser)
+    }
+
     try {
       console.log('🔐 Checking user authentication...')
       const userData = await call("/auth/me", { noCache: true })
@@ -510,13 +545,13 @@ function AppContent() {
           const prevRaw = localStorage.getItem("slipzo_user_info")
           if (prevRaw) prevUser = JSON.parse(prevRaw)
         } catch (_) {}
-        const prevStaffName = prevUser?.staff_of?.shop_name || null
-        const nextStaffName = userData?.staff_of?.shop_name || null
-        if (prevUser && (String(prevUser.id || "") !== String(userData.id || "") || prevStaffName !== nextStaffName)) {
+        const shopKey = (u) => (u?.staff_of ? String(u.staff_of.shop_id || u.staff_of.shop_name || "staff") : "")
+        const staffChanged = Boolean(prevUser) && shopKey(prevUser) !== shopKey(userData)
+        if (prevUser && (String(prevUser.id || "") !== String(userData.id || "") || staffChanged)) {
           clearApiCache()
         }
         localStorage.setItem("slipzo_user_info", JSON.stringify(userData))
-        if (prevUser && prevStaffName !== nextStaffName && typeof window !== "undefined") {
+        if (staffChanged && typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("slipzo_staff_changed", { detail: userData }))
         }
         // Remove legacy un-scoped keys if present from previous builds
@@ -529,14 +564,19 @@ function AppContent() {
         prefetchTodayAnalytics()
 
         // Sync subscription quota from DB backend
-        try {
-          const subRes = await call("/subscriptions/my")
-          if (subRes && subRes.quota) {
-            syncUserQuota(subRes.quota, userKey)
-          }
-        } catch (subErr) {
-          console.warn("Could not sync DB subscriptions:", subErr)
+        const saveQuota = (quotaPromise || call("/subscriptions/my"))
+          .then((subRes) => { if (subRes && subRes.quota) syncUserQuota(subRes.quota, userKey) })
+          .catch((subErr) => console.warn("Could not sync DB subscriptions:", subErr))
+
+        if (knownUser && String(knownUser.id) === String(userData.id)) {
+          // already on screen: only what changed is updated, and the person stays on the page they are on
+          if (JSON.stringify(knownUser) !== JSON.stringify(userData)) setUser(userData)
+          await saveQuota
+          return
         }
+        // a first start, or another account: it needs its shop before anything is shown
+        const shopPromise = syncShopContext(userData)
+        await saveQuota
 
         setUser(userData)
         const currentUrlView = pathToView(window.location.pathname)
@@ -547,7 +587,7 @@ function AppContent() {
         }
         // Wait for the answer (the loader stays up) so the dashboard never flashes before the plan or setup screen
         await Promise.all([
-          syncShopContext(userData),
+          shopPromise,
           withTimeout(checkShopSetupNeeded(userData), 8000)
         ])
       } else {
@@ -556,6 +596,8 @@ function AppContent() {
       }
     } catch (err) {
       console.log('❌ Not authenticated:', err.message)
+      // No internet or a slow server is not a sign out: someone who was signed in stays in the app
+      if (knownUser && err?.status !== 401 && err?.status !== 403) return
       clearUnauthSession()
     } finally {
       setChecking(false)
@@ -739,6 +781,7 @@ function AppContent() {
 
   const modalStatesRef = useRef({
     showAuth,
+    showFirstWelcome,
     showPlanGate,
     showShopOnboarding,
     showAddItemsModal,
@@ -748,12 +791,13 @@ function AppContent() {
   useEffect(() => {
     modalStatesRef.current = {
       showAuth,
+      showFirstWelcome,
       showPlanGate,
       showShopOnboarding,
       showAddItemsModal,
       showFreeRewardExpiredModal
     }
-  }, [showAuth, showPlanGate, showShopOnboarding, showAddItemsModal, showFreeRewardExpiredModal])
+  }, [showAuth, showFirstWelcome, showPlanGate, showShopOnboarding, showAddItemsModal, showFreeRewardExpiredModal])
 
   useEffect(() => {
     let removeListenerFunc = null
@@ -763,6 +807,7 @@ function AppContent() {
         const listener = await CapApp.addListener('backButton', () => {
           const {
             showAuth: authOpen,
+            showFirstWelcome: firstWelcomeOpen,
             showPlanGate: planGateOpen,
             showShopOnboarding: shopOnboardingOpen,
             showAddItemsModal: addItemsOpen,
@@ -772,6 +817,10 @@ function AppContent() {
           // 1. Close top-level App modals if open
           if (authOpen) {
             handleCloseAuth()
+            return
+          }
+          if (firstWelcomeOpen) {
+            setShowFirstWelcome(false)
             return
           }
           // The plan step cannot be backed out of
@@ -840,10 +889,98 @@ function AppContent() {
 
   const loggingOutRef = useRef(false)
 
-  // Push notifications (Android app): register this phone once someone is signed in.
-  // A tapped notification opens the page it points to; one arriving while the app is open shows as a toast.
+  // Push notifications (Android app):
+  // 1. Ask for permission & register with FCM as soon as app starts (even on first launch)
   useEffect(() => {
-    if (user?.id) initPush()
+    initPush()
+  }, [])
+
+  // History's lists are kept up to date in the background: a while after the app opens, and after every bill
+  useEffect(() => {
+    if (!user?.id) return undefined
+    refreshKnownBillsSoon(3000)
+    const onBill = () => refreshKnownBillsSoon()
+    window.addEventListener("slipzo_bill_saved", onBill)
+    window.addEventListener("slipzo_bill_printed", onBill)
+    return () => {
+      window.removeEventListener("slipzo_bill_saved", onBill)
+      window.removeEventListener("slipzo_bill_printed", onBill)
+    }
+  }, [user?.id])
+
+  // Several people print for one shop: the print balance follows the other devices, prints whose report could not be
+  // sent are sent again, and a worker who was added, removed or moved to another shop gets the right shop's data
+  useEffect(() => {
+    if (!user?.id) return undefined
+    let alive = true
+    let checkingShop = false
+    const checkShop = async () => {
+      if (checkingShop) return
+      checkingShop = true
+      try {
+        const me = await call("/auth/me", { noCache: true, isRevalidation: true })
+        if (!alive || !me?.id || String(me.id) !== String(user.id)) return
+        const now = me.staff_of ? String(me.staff_of.shop_id || "") : String(me.id)
+        if (!now || now === actingShopId()) return
+        // everything on screen belongs to another shop now: start again with the right one
+        clearApiCache()
+        localStorage.setItem("slipzo_user_info", JSON.stringify(me))
+        await Swal.fire({
+          icon: "info",
+          title: i18n.t("workers.shopChangedTitle", "Your shop has changed"),
+          text: me.staff_of
+            ? i18n.t("workers.nowWorkingFor", "You are now billing for {{shop}}.", { shop: me.staff_of.shop_name })
+            : i18n.t("workers.backToOwn", "You no longer bill for the other shop. Your own shop is open now."),
+          confirmButtonText: i18n.t("multi.ok", "OK"),
+          confirmButtonColor: "#0284c7",
+          allowOutsideClick: false
+        })
+        window.location.replace("/overview")
+      } catch (_) { /* no connection: checked again later */ } finally {
+        checkingShop = false
+      }
+    }
+    let lastRun = 0
+    const refresh = async () => {
+      if (document.visibilityState !== "visible" || Date.now() - lastRun < 5000) return
+      lastRun = Date.now()
+      sendPrintReports()
+      const mine = await call("/subscriptions/my", { noCache: true, isRevalidation: true }).catch(() => null)
+      if (!alive || !mine) return
+      const acting = actingShopId()
+      if (mine.acting_shop && acting && String(mine.acting_shop) !== acting) {
+        checkShop()
+        return
+      }
+      const key = user.email || user.id
+      const known = getActivePlanDetails(key)
+      const q = mine.quota
+      if (q && (Number(q.printsRemaining) !== Number(known.printsRemaining) || Number(q.usedPrints) !== Number(known.usedPrints) || Number(q.totalPrints) !== Number(known.totalPrints) || (q.expiresAt || null) !== (known.expiresAt || null))) {
+        syncUserQuota(q, key)
+      }
+    }
+    const first = setTimeout(sendPrintReports, 4000)
+    const timer = setInterval(refresh, 45000)
+    const onOnline = () => { lastRun = 0; refresh() }
+    document.addEventListener("visibilitychange", refresh)
+    window.addEventListener("online", onOnline)
+    window.addEventListener("slipzo_shop_changed", checkShop)
+    return () => {
+      alive = false
+      clearTimeout(first)
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", refresh)
+      window.removeEventListener("online", onOnline)
+      window.removeEventListener("slipzo_shop_changed", checkShop)
+    }
+  }, [user?.id, user?.email])
+
+  // 2. Associate phone token with user account once someone is signed in
+  useEffect(() => {
+    if (user?.id) {
+      initPush()
+      syncPushToken()
+    }
   }, [user?.id])
 
   useEffect(() => {
@@ -897,6 +1034,7 @@ function AppContent() {
     setUser(null)
     setIsRegister(false)
     setShowAuth(true)
+    setShowFirstWelcome(false)
     setShowPlanGate(false)
     setShowShopOnboarding(false)
     setShowAddItemsModal(false)
@@ -930,6 +1068,7 @@ function AppContent() {
 
     // A new account goes straight to the plan step, before anything else is awaited, so the dashboard never shows first.
     // A returning account sees the loader while we check whether it still has the plan or setup to finish.
+    setShowFirstWelcome(isNewUser && isNativeApp)
     if (isNewUser) {
       setShowPlanGate(true)
       setShowShopOnboarding(false)
@@ -1051,7 +1190,7 @@ function AppContent() {
 
     // On the public Pricing and Contact pages, anything that needs an account opens sign up instead
     const publicSetView = (target) => {
-      if (target === "pricing" || target === "contact" || target === "dashboard") setView(target)
+      if (target === "pricing" || target === "contact" || target === "dashboard" || policyDocByView(target)) setView(target)
       else handleOpenAuth(true)
     }
     const publicSetShowAuth = (open) => (open ? handleOpenAuth(true) : handleCloseAuth())
@@ -1067,7 +1206,7 @@ function AppContent() {
               onLogin={() => handleOpenAuth(false)}
               onSignUp={() => handleOpenAuth(true)}
             >
-              <PolicyPage doc={policyDoc.id} onOpen={setView} onContact={() => setView("contact")} />
+              <PolicyPage doc={policyDoc.id} onOpen={setView} onContact={() => setView("contact")} onBack={() => setView("dashboard")} />
             </PublicPageShell>
           </Suspense>
           <PwaInstallPrompt />
@@ -1210,7 +1349,7 @@ function AppContent() {
         {view === "contact" && <Contact setView={setView} setShowAuth={setShowAuth} user={user} />}
         {view === "guide" && <UserGuide setView={setView} user={user} />}
         {policyDocByView(view) && (
-          <PolicyPage doc={policyDocByView(view).id} onOpen={setView} onContact={() => setView("contact")} />
+          <PolicyPage doc={policyDocByView(view).id} onOpen={setView} onContact={() => setView("contact")} onBack={() => setView("dashboard")} />
         )}
         {view === "reprint" && (
           <Reprint
@@ -1224,7 +1363,8 @@ function AppContent() {
       </ErrorBoundary>
     </Shell>
     <Suspense fallback={null}>
-    {showPlanGate && <Suspense fallback={<div style={{ position: "fixed", inset: 0, zIndex: 1055, background: "#eaf6ff" }} />}><PlanGate
+    {showFirstWelcome && <FirstWelcome name={user?.name} onContinue={() => setShowFirstWelcome(false)} />}
+    {showPlanGate && !showFirstWelcome && <Suspense fallback={<div style={{ position: "fixed", inset: 0, zIndex: 1055, background: "#eaf6ff" }} />}><PlanGate
       user={user}
       shopName={cachedShop?.name && !String(cachedShop.name).endsWith("'s Shop") ? cachedShop.name : ""}
       onPurchased={handlePlanPurchased}

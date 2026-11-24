@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import "../styles/WelcomeOnboarding.css"
 import { PolicyLinks } from "./PolicyLinks"
+import { isNativeApp } from "../lib/utils"
 
 const SLIDE_DURATION_MS = 4500
 
@@ -436,9 +437,12 @@ export function WelcomeOnboarding({ onLogin, onSignUp, onNavigate }) {
             {t("welcome.signup", "SIGN UP")}
           </button>
         </div>
-        <div className="welcome-policy-row" onClick={(e) => e.stopPropagation()}>
-          <PolicyLinks onOpen={onNavigate} />
-        </div>
+        {/* the Android app asks for agreement to the policies before this screen */}
+        {!isNativeApp && (
+          <div className="welcome-policy-row" onClick={(e) => e.stopPropagation()}>
+            <PolicyLinks onOpen={onNavigate} />
+          </div>
+        )}
       </div>
     </div>
   )

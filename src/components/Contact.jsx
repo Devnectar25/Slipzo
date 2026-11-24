@@ -2,12 +2,16 @@ import { useState, useEffect } from "react"
 import { 
   ArrowRight, Mail, MessageCircle, Phone, MapPin, Send, 
   CheckCircle2, Zap, ShieldCheck, Heart, User, Printer, Store,
-  FileText, Smartphone, ChevronDown, ChevronRight
+  FileText, Smartphone, ChevronDown, ChevronRight, Cookie
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { ButtonLoader } from "./common/Skeleton"
-import { call } from "../lib/utils"
+import { call, isNativeApp } from "../lib/utils"
+import { POLICY_DOCS } from "../lib/policyPages"
+import "../styles/ContactPolicies.css"
 import { useToast } from "./common/Toast"
+
+const POLICY_ICONS = { terms: FileText, privacy: ShieldCheck, cookies: Cookie }
 
 export function Contact({ setView, setShowAuth, user }) {
   const { t } = useTranslation()
@@ -314,6 +318,25 @@ export function Contact({ setView, setShowAuth, user }) {
           ))}
         </div>
       </section>
+
+      {/* Policies (Android app: it has no footer) */}
+      {isNativeApp && (
+        <section className="contact-policies" aria-label={t("legalPages.policies", "Policies")}>
+          <h2>{t("legalPages.policies", "Policies")}</h2>
+          <div className="contact-policies-list">
+            {POLICY_DOCS.map((d) => {
+              const Icon = POLICY_ICONS[d.id] || FileText
+              return (
+                <button key={d.id} type="button" data-testid={`contact-policy-${d.id}`} onClick={() => setView?.(d.view)}>
+                  <span className="contact-policies-icon"><Icon size={18} /></span>
+                  <span className="contact-policies-name">{t(`legalPages.${d.id}`, d.navLabel)}</span>
+                  <ChevronRight size={18} className="contact-policies-go" />
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Contact Form & Perks Split Section */}
       <section className="contact-interactive-section">
