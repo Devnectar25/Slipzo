@@ -91,8 +91,10 @@ export function AdminPushNotifications() {
       Swal.fire({
         title: "Notification sent",
         text: `It is in the app's notification bell for ${target === "all" ? "all users" : "this user"}.` +
-          (res.configured ? ` Phone pop-up delivered to ${res.sent_count} phone(s)${res.failed_count ? `, ${res.failed_count} failed` : ""}.` : " Phone pop-ups are off until Firebase is set up."),
-        icon: "success",
+          (!res.configured ? " Phone pop-ups are off: this server has no Firebase service account (FIREBASE_SERVICE_ACCOUNT)."
+            : res.phones === 0 ? " No phone is registered yet, so there was no pop-up. Open the Android app, sign in and allow notifications."
+              : ` Phone pop-up delivered to ${res.sent_count} phone(s)${res.failed_count ? `, ${res.failed_count} failed (${Object.keys(res.reasons || {}).join(", ") || "unknown reason"})` : ""}.`),
+        icon: res.configured && res.sent_count > 0 ? "success" : "warning",
         confirmButtonColor: "#0284c7"
       })
       setTitle("")

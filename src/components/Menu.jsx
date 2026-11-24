@@ -411,6 +411,38 @@ export function Menu({ setView, requireAuth, user }) {
   const [catalogSort, setCatalogSort] = useState("Popular")
   const [catalogPage, setCatalogPage] = useState(1)
   const [catalogPageSize, setCatalogPageSize] = useState(12)
+
+  const scrollToMenuTop = () => {
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      document.documentElement.scrollTo({ top: 0, behavior: "smooth" })
+      document.body.scrollTo({ top: 0, behavior: "smooth" })
+      const catalogEl = document.querySelector(".menu-section-subheader") || document.querySelector(".menu-page-container") || document.querySelector(".menu-items-grid")
+      if (catalogEl) {
+        catalogEl.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+    } catch (e) {
+      window.scrollTo(0, 0)
+    }
+  }
+
+  const isFirstMountCatalog = useRef(true)
+  useEffect(() => {
+    if (isFirstMountCatalog.current) {
+      isFirstMountCatalog.current = false
+      return
+    }
+    scrollToMenuTop()
+  }, [catalogPage])
+
+  const isFirstMountMyMenu = useRef(true)
+  useEffect(() => {
+    if (isFirstMountMyMenu.current) {
+      isFirstMountMyMenu.current = false
+      return
+    }
+    scrollToMenuTop()
+  }, [myMenuPage])
   const [filterOpen, setFilterOpen] = useState(false)
   const [favorites, setFavorites] = useState(() => new Set())
 
@@ -2239,7 +2271,10 @@ export function Menu({ setView, requireAuth, user }) {
                     <button
                       type="button"
                       disabled={catalogPage <= 1}
-                      onClick={() => setCatalogPage(p => Math.max(1, p - 1))}
+                      onClick={() => {
+                        setCatalogPage(p => Math.max(1, p - 1))
+                        scrollToMenuTop()
+                      }}
                       className="menu-secondary-btn"
                       style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", opacity: catalogPage <= 1 ? 0.5 : 1, cursor: catalogPage <= 1 ? "not-allowed" : "pointer" }}
                     >
@@ -2258,7 +2293,10 @@ export function Menu({ setView, requireAuth, user }) {
                             <button
                               key={pageNum}
                               type="button"
-                              onClick={() => setCatalogPage(pageNum)}
+                              onClick={() => {
+                                setCatalogPage(pageNum)
+                                scrollToMenuTop()
+                              }}
                               style={{
                                 width: "32px",
                                 height: "32px",
@@ -2287,7 +2325,10 @@ export function Menu({ setView, requireAuth, user }) {
                     <button
                       type="button"
                       disabled={catalogPage >= totalCatalogPages}
-                      onClick={() => setCatalogPage(p => Math.min(totalCatalogPages, p + 1))}
+                      onClick={() => {
+                        setCatalogPage(p => Math.min(totalCatalogPages, p + 1))
+                        scrollToMenuTop()
+                      }}
                       className="menu-secondary-btn"
                       style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem", opacity: catalogPage >= totalCatalogPages ? 0.5 : 1, cursor: catalogPage >= totalCatalogPages ? "not-allowed" : "pointer" }}
                     >

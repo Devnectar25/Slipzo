@@ -38,10 +38,13 @@
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@mipmap/ic_launcher" />
+            android:resource="@drawable/ic_stat_slipzen" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/colorPrimary" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="slipzen_alerts" />
     </application>
 
     <!-- Permissions. Microphone and camera are asked from the person at the moment they use voice search or the barcode scanner. -->

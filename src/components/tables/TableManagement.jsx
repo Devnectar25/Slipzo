@@ -326,6 +326,35 @@ export function TableManagement({
     })
   }
 
+  // Another device may open, bill or clear tables: the list follows along while it is on screen
+  useEffect(() => {
+    if (selectedTable) return undefined
+    const refresh = async () => {
+      if (document.visibilityState !== "visible") return
+      const data = await call("/restaurant/tables", { noCache: true }).catch(() => null)
+      if (!Array.isArray(data) || data.length === 0) return
+      setTables((prev) => {
+        const next = data.map((remote) => {
+          const local = prev.find((p) => isTableMatch(p, remote.id) || isTableMatch(p, remote.table_number))
+          // the bill being edited for an open table is known on this device only
+          return local?.editing_bill_id && isTableOccupied(remote)
+            ? { ...remote, editing_bill_id: local.editing_bill_id, editing_bill_number: local.editing_bill_number }
+            : remote
+        })
+        if (JSON.stringify(next) === JSON.stringify(prev)) return prev
+        saveStoredTables(user, next)
+        return next
+      })
+    }
+    const timer = setInterval(refresh, 8000)
+    document.addEventListener("visibilitychange", refresh)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", refresh)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTable])
+
   // Metrics Calculations
   const metrics = useMemo(() => {
     const totalCount = tables.length

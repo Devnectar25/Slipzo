@@ -57,6 +57,8 @@ import { productGroupOf, productGroupChips, productGroupLabel } from "../../lib/
 import { shopPaymentModes, shopDefaultPaymentMode } from "../../lib/paymentModes"
 import { UpiPayCard } from "../common/UpiQr"
 import { flyThumb } from "../../lib/flyThumb"
+import { mergeOrders, sameOrder } from "../../lib/orderMerge"
+import { claimPrint, releasePrint, markBillPrinted, printHolder, explainDeviceConflict } from "../../lib/printClaim"
 
 const orderKeyOf = (name) => (name || "").trim().toLowerCase()
 
@@ -287,6 +289,61 @@ export function TableBilling({
   // What the server already holds for this table, so an unchanged order is not written again
   const savedOrderRef = useRef(orderSignature(normalizeItems(table?.current_items)))
 
+  // ==========================================
+  // THE SAME TABLE ON ANOTHER DEVICE
+  // baseRef is the order as the server had it when this screen last matched it. When another device changes the table,
+  // its changes and the ones made here are put together, so neither waiter's items are lost and items already billed
+  // elsewhere do not come back. (null: a bill opened from History, until the table was read once.)
+  // ==========================================
+  const baseRef = useRef(table?.editing_bill_id ? null : normalizeItems(table?.current_items))
+  const busyRef = useRef(false)
+
+  const readRemoteOrder = async () => {
+    const list = await call("/restaurant/tables", { noCache: true })
+    const mine = (Array.isArray(list) ? list : []).find((x) => String(x.id) === String(table.id)) ||
+      (Array.isArray(list) ? list : []).find((x) => Number(x.table_number) === Number(table.table_number))
+    return mine ? normalizeItems(mine.current_items) : null
+  }
+
+  // Resolves true when the order on this screen changed because of another device
+  const syncWithServer = async () => {
+    const theirs = await readRemoteOrder().catch(() => null)
+    if (!theirs) return false
+    if (baseRef.current === null) {
+      baseRef.current = theirs
+      return false
+    }
+    if (sameOrder(baseRef.current, theirs)) return false
+    const merged = normalizeItems(mergeOrders(baseRef.current, itemsRef.current, theirs))
+    baseRef.current = theirs
+    savedOrderRef.current = orderSignature(theirs)
+    if (sameOrder(merged, itemsRef.current)) return false
+    itemsRef.current = merged
+    setItems(merged)
+    if (merged.length === 0) setStep("order")
+    return true
+  }
+  const tellOrderChanged = () => toastInfo(itemsRef.current.length
+    ? t("multi.orderUpdated", "This table was changed on another device. The order is updated, please check it.")
+    : t("multi.orderBilled", "This table was billed on another device."))
+  const syncRef = useRef(syncWithServer)
+  syncRef.current = syncWithServer
+
+  useEffect(() => {
+    const check = async () => {
+      if (busyRef.current || document.visibilityState !== "visible") return
+      if (await syncRef.current()) tellOrderChanged()
+    }
+    check()
+    const timer = setInterval(check, 7000)
+    document.addEventListener("visibilitychange", check)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener("visibilitychange", check)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const keepOpenOrder = async ({ keepalive = false } = {}) => {
     const list = itemsRef.current.filter((it) => it.name && it.name.trim() && Number(it.quantity) > 0)
     if (list.length === 0) return false
@@ -303,8 +360,14 @@ export function TableBilling({
     const tableIdOrNum = table.id || table.table_number
     try {
       // keepalive lets the request finish even if the page is closing
-      const updated = await call(`/restaurant/tables/${tableIdOrNum}`, { method: "PUT", body: JSON.stringify(updates), keepalive })
-      if (onUpdateTableState) onUpdateTableState(tableIdOrNum, { ...updates, ...(updated || {}), status: "OCCUPIED" })
+      // base_items lets the server add another device's changes instead of writing over them
+      const body = baseRef.current ? { ...updates, base_items: baseRef.current } : updates
+      const updated = await call(`/restaurant/tables/${tableIdOrNum}`, { method: "PUT", body: JSON.stringify(body), keepalive })
+      if (Array.isArray(updated?.current_items)) {
+        baseRef.current = normalizeItems(updated.current_items)
+        savedOrderRef.current = orderSignature(baseRef.current)
+      }
+      if (onUpdateTableState) onUpdateTableState(tableIdOrNum, { ...updates, ...(updated || {}), status: updated?.status || "OCCUPIED" })
       return true
     } catch (e) {
       savedOrderRef.current = previous
@@ -572,6 +635,7 @@ export function TableBilling({
   const handleConfirmReset = async () => {
     setItems([])
     setStep("order")
+    baseRef.current = []
     itemsRef.current = [] // a cleared order must never be re-saved while the screen closes
     if (onUpdateTableState) {
       onUpdateTableState(table.id || table.table_number, {
@@ -651,7 +715,12 @@ export function TableBilling({
 
     setBusyAction("save")
     setIsSaving(true)
+    busyRef.current = true
     try {
+      if (await syncWithServer()) {
+        tellOrderChanged()
+        return
+      }
       const cachedTemplates = getCachedData("/templates") || BUILTIN_TEMPLATES
       const matchedTemplate = findTemplateMatch(cachedTemplates, shopInfo?.default_template_id) || cachedTemplates[0] || BUILTIN_TEMPLATES[0]
 
@@ -676,6 +745,8 @@ export function TableBilling({
         tax_amount: 0,
         total: total,
         payment_mode: paymentMode,
+        // one bill per table order, whichever of the shop's devices saves or prints it
+        table_order: true,
         is_saved: true
       }
 
@@ -685,18 +756,19 @@ export function TableBilling({
         try {
           savedBill = await call(`/bills/${table.editing_bill_id}`, {
             method: "PUT",
-            body: JSON.stringify(billData)
+            body: JSON.stringify({ ...billData, holder: printHolder() })
           })
-        } catch (_) {
+        } catch (err) {
+          if (err?.status === 409) throw err // being printed, or already printed, on another device
           savedBill = await call("/bills", {
             method: "POST",
-            body: JSON.stringify(billData)
+            body: JSON.stringify({ ...billData, holder: printHolder() })
           })
         }
       } else {
         savedBill = await call("/bills", {
           method: "POST",
-          body: JSON.stringify(billData)
+          body: JSON.stringify({ ...billData, holder: printHolder() })
         })
       }
 
@@ -717,8 +789,9 @@ export function TableBilling({
       try {
         updatedTable = await call(`/restaurant/tables/${tableIdOrNum}`, {
           method: "PUT",
-          body: JSON.stringify(tableUpdates)
+          body: JSON.stringify(baseRef.current ? { ...tableUpdates, base_items: baseRef.current } : tableUpdates)
         })
+        if (Array.isArray(updatedTable?.current_items)) baseRef.current = normalizeItems(updatedTable.current_items)
       } catch (e) {
         console.warn("Backend table update warning:", e)
       }
@@ -740,8 +813,10 @@ export function TableBilling({
       onBack()
     } catch (err) {
       console.error("Failed to save restaurant table bill:", err)
+      if (await explainDeviceConflict(err)) return
       toastError(err.detail || err.message || "Failed to save bill.")
     } finally {
+      busyRef.current = false
       setIsSaving(false)
       setBusyAction(null)
     }
@@ -766,7 +841,18 @@ export function TableBilling({
 
     setBusyAction("print")
     setIsSaving(true)
+    busyRef.current = true
+    const tableClaim = table.table_number || table.id
+    let claimed = false
     try {
+      // one device at a time bills a table, and it bills the order as it really is now
+      const claim = await claimPrint({ table: tableClaim, user })
+      if (!claim.ok) return
+      claimed = true
+      if (await syncWithServer()) {
+        tellOrderChanged()
+        return
+      }
       const cachedTemplates = getCachedData("/templates") || BUILTIN_TEMPLATES
       const matchedTemplate = findTemplateMatch(cachedTemplates, shopInfo?.default_template_id) || cachedTemplates[0] || BUILTIN_TEMPLATES[0]
 
@@ -791,6 +877,8 @@ export function TableBilling({
         tax_amount: 0,
         total: total,
         payment_mode: paymentMode,
+        // one bill per table order, whichever of the shop's devices saves or prints it
+        table_order: true,
         // kept as a saved bill until it has really printed (it is marked printed below, after printing)
         is_saved: true
       }
@@ -799,11 +887,14 @@ export function TableBilling({
       const existingId = table.editing_bill_id || printBillIdRef.current
       let savedBill = null
       if (existingId) {
-        savedBill = await call(`/bills/${existingId}`, { method: "PUT", body: JSON.stringify(billData) }).catch(() => null)
+        savedBill = await call(`/bills/${existingId}`, { method: "PUT", body: JSON.stringify({ ...billData, holder: printHolder() }) }).catch((err) => {
+          if (err?.status === 409) throw err // being printed, or already printed, on another device
+          return null
+        })
         if (savedBill && !savedBill.id) savedBill = { ...savedBill, id: existingId }
       }
       if (!savedBill) {
-        savedBill = await call("/bills", { method: "POST", body: JSON.stringify(billData) })
+        savedBill = await call("/bills", { method: "POST", body: JSON.stringify({ ...billData, holder: printHolder() }) })
       }
       printBillIdRef.current = savedBill?.id || null
 
@@ -815,7 +906,8 @@ export function TableBilling({
         elementId: "table-receipt-to-print",
         pageWidth: printWidthOf(previewTemplate?.width),
         onNeedPlan: () => setView?.("pricing"),
-        billNumber: savedBill?.number
+        billNumber: savedBill?.number,
+        billId: savedBill?.id
       })
       // not printed: the saved bill stays linked to this table, so printing later updates it instead of adding another
       if (printed !== true && savedBill?.id && onUpdateTableState) {
@@ -825,22 +917,24 @@ export function TableBilling({
         toastInfo(t("tables.savedPrintCancelled", "Print cancelled. The bill is saved and the table stays open."))
         return
       }
-      if (printed === "failed") return // the reason was already shown in a popup; the table stays open
+      if (printed === "failed" || printed === "busy") return // the reason was already shown in a popup; the table stays open
       if (printed !== true) {
         toastError(t("tables.savedNotPrinted", "The bill is saved but was not printed. Add print credits and press Print again."))
         return
       }
-      if (savedBill?.id) call(`/bills/${savedBill.id}/print`, { method: "POST" }).catch(() => { })
+      if (savedBill?.id) await markBillPrinted(savedBill.id).catch(() => { })
 
       // If this table had an active saved bill in saved_bills, mark as printed in backend so it's removed from Home screen
       const tableLabel = getTableDisplayName(table, t, formatNum)
-      call(`/bills/print-table/${encodeURIComponent(tableLabel)}`, { method: "POST" }).catch(() => { })
+      // (a server that keeps a table order as one bill has no other bill of this order left)
+      if (!savedBill?.table_linked) call(`/bills/print-table/${encodeURIComponent(table.name || `Table ${table.table_number}`)}`, { method: "POST" }).catch(() => { })
 
       // Printed: clear the table
       printBillIdRef.current = null
       setPrintedNumber("")
       setItems([])
       itemsRef.current = [] // a printed order is finished; leaving must not store it again
+      baseRef.current = []
       const tableIdOrNum = table.id || table.table_number
 
       if (onUpdateTableState) {
@@ -874,8 +968,11 @@ export function TableBilling({
       onBack?.()
     } catch (err) {
       console.error("Failed to print table bill:", err)
+      if (await explainDeviceConflict(err)) return
       toastError(err.detail || err.message || "Failed to process print.")
     } finally {
+      busyRef.current = false
+      if (claimed) releasePrint({ table: tableClaim }) // after the table was cleared, so the other device sees that
       setIsSaving(false)
       setBusyAction(null)
     }

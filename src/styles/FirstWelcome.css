@@ -1,0 +1,228 @@
+/* First page of a new account (Android app): a printer prints the welcome slip */
+
+.fw-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: calc(var(--app-safe-top) + 12px) 24px calc(var(--app-safe-bottom) + 14px);
+  background: linear-gradient(180deg, #cfeaff 0%, #eef8ff 46%, #ffffff 100%);
+  color: #0c1f41;
+  outline: none;
+}
+
+.fw-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(56px);
+  pointer-events: none;
+}
+.fw-glow-a { width: 300px; height: 300px; top: -110px; right: -90px; background: #7dd3fc; opacity: 0.6; }
+.fw-glow-b { width: 260px; height: 260px; bottom: 12%; left: -130px; background: #bae6fd; opacity: 0.7; }
+
+.fw-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  /* as wide as the screen, so the printer's shadow is never cut */
+  align-self: center;
+  box-sizing: border-box;
+  width: calc(100% + 48px);
+  max-width: 488px;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  gap: clamp(14px, 3.4vh, 30px);
+  overflow-y: auto;
+}
+
+/* !important: the app has global image rules that would stretch or left-align the logo */
+.fw-screen img.fw-logo {
+  display: block !important;
+  flex: 0 0 auto;
+  width: clamp(130px, 42vw, 180px) !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  object-fit: contain !important;
+  animation: fwRise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ---- printer ---- */
+.fw-printer {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(270px, 78vw);
+}
+.fw-slot {
+  position: relative;
+  z-index: 2;
+  height: 46px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #14325f 0%, #0c1f41 100%);
+  box-shadow: 0 14px 28px rgba(12, 31, 65, 0.26);
+}
+.fw-slot::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 9px;
+  height: 6px;
+  border-radius: 999px;
+  background: #050f22;
+}
+.fw-light {
+  position: absolute;
+  top: 12px;
+  right: 20px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 10px #34d399;
+  animation: fwBlink 1.4s ease-in-out 3;
+}
+/* the slip comes out below the slot, so everything above the slot's mouth is hidden */
+.fw-window {
+  position: relative;
+  z-index: 3;
+  margin: -12px 24px 0;
+  padding: 0 8px 18px;
+  overflow: hidden;
+}
+.fw-slip {
+  padding: 18px 16px 26px;
+  background: #ffffff;
+  box-shadow: 0 8px 14px rgba(12, 31, 65, 0.12);
+  /* torn paper edge */
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), 95% 100%, 90% calc(100% - 7px), 85% 100%, 80% calc(100% - 7px), 75% 100%, 70% calc(100% - 7px), 65% 100%, 60% calc(100% - 7px), 55% 100%, 50% calc(100% - 7px), 45% 100%, 40% calc(100% - 7px), 35% 100%, 30% calc(100% - 7px), 25% 100%, 20% calc(100% - 7px), 15% 100%, 10% calc(100% - 7px), 5% 100%, 0 calc(100% - 7px));
+  animation: fwPrint 1.7s cubic-bezier(0.3, 0.1, 0.3, 1) 0.35s both;
+}
+.fw-slip p { margin: 0; text-align: center; }
+.fw-slip .fw-slip-brand {
+  font-size: 1.02rem;
+  line-height: 1.25;
+  font-weight: 800;
+  color: #0c1f41;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fw-slip .fw-slip-sub { margin-top: 2px; font-size: 0.74rem; color: #64748b; }
+.fw-slip ul {
+  list-style: none;
+  margin: 12px 0;
+  padding: 10px 0;
+  border-top: 1.5px dashed #cbd5e1;
+  border-bottom: 1.5px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fw-slip li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  color: #334155;
+}
+.fw-slip li svg { flex: 0 0 auto; color: #059669; }
+.fw-bars {
+  height: 26px;
+  margin: 0 auto;
+  width: 78%;
+  background: repeating-linear-gradient(90deg, #0c1f41 0 2px, transparent 2px 5px, #0c1f41 5px 9px, transparent 9px 11px, #0c1f41 11px 12px, transparent 12px 16px);
+}
+
+/* ---- words ---- */
+.fw-copy { flex: 0 0 auto; text-align: center; animation: fwRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both; }
+.fw-copy h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 7.2vw, 1.95rem);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  color: #0c1f41;
+}
+.fw-copy p {
+  margin: 10px auto 0;
+  max-width: 320px;
+  font-size: 0.96rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+/* ---- bottom ---- */
+.fw-foot {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.fw-btn {
+  width: 100%;
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: none;
+  border-radius: 16px;
+  background: #0284c7;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 1.04rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(2, 132, 199, 0.3);
+  transition: transform 0.1s ease;
+}
+.fw-btn:active { transform: scale(0.985); }
+.fw-btn:focus-visible { outline: 3px solid #0c1f41; outline-offset: 3px; }
+.fw-screen .fw-powered { color: #64748b; font-size: 0.86rem; }
+.fw-screen .fw-powered strong { color: #0c1f41; font-weight: 800; }
+
+@keyframes fwPrint {
+  from { transform: translateY(-101%); }
+  to { transform: translateY(0); }
+}
+@keyframes fwRise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fwBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* short phones: a smaller slip, so nothing needs scrolling */
+@media (max-height: 640px) {
+  .fw-slip { padding: 14px 14px 20px; }
+  .fw-slip ul { margin: 8px 0; padding: 8px 0; gap: 5px; }
+  .fw-bars { display: none; }
+  .fw-window { padding-bottom: 10px; }
+  .fw-body { gap: 10px; }
+  .fw-copy h1 { font-size: 1.4rem; }
+  .fw-copy p { margin-top: 6px; font-size: 0.88rem; }
+  .fw-foot { gap: 10px; padding-top: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-slip, .fw-light, .fw-copy, .fw-screen img.fw-logo { animation: none !important; }
+}
