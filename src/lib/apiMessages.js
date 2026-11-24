@@ -4,6 +4,7 @@ import i18n from "../i18n/i18n"
 // The app shows the translated text; the original is kept on the error as `rawMessage`.
 const API_MESSAGES = {
   "Invalid credentials": "apiErrors.invalidCredentials",
+  "Wrong password. Check it and try again, or use Forgot password.": "apiErrors.wrongPassword",
   "This mobile number is already registered": "apiErrors.mobileTaken",
   "This email is already registered": "apiErrors.emailTaken",
   "Email already registered": "apiErrors.emailTaken",

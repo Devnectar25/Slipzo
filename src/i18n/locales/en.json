@@ -1429,6 +1429,7 @@
     "neverExpire": "Prints never expire. Keep the payment ID for your records."
   },
   "apiErrors": {
+    "wrongPassword": "Wrong password. Check it and try again, or use Forgot password.",
     "invalidCredentials": "Invalid credentials",
     "mobileTaken": "This mobile number is already registered",
     "emailTaken": "This email is already registered",
@@ -2117,7 +2118,22 @@
       "others": "Others"
     }
   },
+  "staffShop": {
+    "viewOnly": "You can view the shop profile. Only the owner can change it.",
+    "notAdded": "Not added",
+    "on": "On",
+    "off": "Off",
+    "tables": "Tables",
+    "upi": "UPI ID",
+    "gst": "GST on products",
+    "gstOnBill": "GST shown on bills",
+    "standard": "Standard",
+    "language": "Changes the language on this phone only.",
+    "failed": "The shop profile could not be loaded. Check your internet connection."
+  },
   "workers": {
+    "hasAccountTitle": "This number already has an account",
+    "hasAccountText": "Your worker signs in with their own password. If they do not remember it, they can use Forgot password on the sign-in screen.",
     "shopChangedTitle": "Your shop has changed",
     "nowWorkingFor": "You are now billing for {{shop}}.",
     "backToOwn": "You no longer bill for the other shop. Your own shop is open now.",
@@ -2143,6 +2159,9 @@
     "terms": "Terms & Conditions",
     "privacy": "Privacy Policy",
     "cookies": "Cookie Policy",
+    "termsShort": "Terms",
+    "privacyShort": "Privacy",
+    "cookiesShort": "Cookies",
     "effective": "Effective from",
     "onThisPage": "On this page",
     "questions": "Questions about this policy?",

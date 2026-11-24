@@ -49,6 +49,7 @@ import { ManageTablesModal } from "./tables/ManageTablesModal"
 import { SelectMenu } from "./common/SelectMenu"
 import { Skeleton, ButtonLoader } from "./common/Skeleton"
 import { StaffAccessCard, StaffMemberView } from "./StaffAccessCard"
+import { PoweredBy } from "./PolicyLinks"
 import "../styles/ShopProfile.css"
 
 function compressImage(file, maxWidth = 512, maxHeight = 512, quality = 0.88) {
@@ -3018,6 +3019,12 @@ export function Shop({ user, setView } = {}) {
           setShop((prev) => ({ ...prev, table_count: newCount }))
         }}
       />
+
+      {/* Powered by DevNectar Footer */}
+      <footer style={{ marginTop: '2.5rem', padding: '1.5rem 1rem 2rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+        <PoweredBy />
+        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Slipzen POS & Billing System</span>
+      </footer>
     </div>
   )
 }

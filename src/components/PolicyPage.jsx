@@ -1,16 +1,25 @@
-import { useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { FileText, ShieldCheck, Cookie, Mail, MapPin, Clock, ArrowUp, ArrowLeft } from "lucide-react"
+import { FileText, ShieldCheck, Cookie, Mail, MapPin, Clock, ArrowUp, ArrowLeft, List, ChevronDown } from "lucide-react"
 import { POLICY_DOCS } from "../lib/policyPages"
 import { POLICY_CONTACT, POLICY_EFFECTIVE_DATE, policyContentById } from "../lib/policyContent"
 import "../styles/PolicyPage.css"
 
+// the phone's three tabs fit side by side with these
+const SHORT = { terms: "Terms", privacy: "Privacy", cookies: "Cookies" }
+// "1. What Slipzen is" → ["1", "What Slipzen is"]
+const splitHeading = (h) => {
+  const m = String(h).match(/^(\d+)\.\s*(.*)$/)
+  return m ? [m[1], m[2]] : ["", String(h)]
+}
 const ICONS = { terms: FileText, privacy: ShieldCheck, cookies: Cookie }
 
 // One page for all three policies: tabs at the top switch between them (each has its own address)
 export function PolicyPage({ doc = "terms", onOpen, onContact, onBack }) {
   const { t, i18n } = useTranslation()
   const current = policyContentById(doc)
+  const pageRef = useRef(null)
+  const [listOpen, setListOpen] = useState(false) // phone: the list of sections
   const notEnglish = !String(i18n.language || "en").startsWith("en")
 
   useEffect(() => {
@@ -18,9 +27,14 @@ export function PolicyPage({ doc = "terms", onOpen, onContact, onBack }) {
     return () => { document.title = "Slipzen" }
   }, [current.title])
 
+  useEffect(() => { setListOpen(false) }, [current.id])
+
   const jumpTo = (id) => {
-    const el = document.getElementById(`pp-${current.id}-${id}`)
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+    setListOpen(false)
+    // after the list has closed: it is tall, and the page moves up when it goes
+    setTimeout(() => {
+      document.getElementById(`pp-${current.id}-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 60)
   }
 
   const handleBack = () => {
@@ -34,7 +48,7 @@ export function PolicyPage({ doc = "terms", onOpen, onContact, onBack }) {
   }
 
   return (
-    <div className="pp-page" data-testid="policy-page">
+    <div ref={pageRef} className="pp-page" data-testid="policy-page">
       <header className="pp-hero">
         <div className="pp-wrap">
           <div className="pp-top-actions">
@@ -67,7 +81,8 @@ export function PolicyPage({ doc = "terms", onOpen, onContact, onBack }) {
                   onClick={() => onOpen?.(d.view)}
                 >
                   <Icon size={16} />
-                  <span>{t(`legalPages.${d.id}`, d.navLabel)}</span>
+                  <span className="pp-tab-full">{t(`legalPages.${d.id}`, d.navLabel)}</span>
+                  <span className="pp-tab-short">{t(`legalPages.${d.id}Short`, SHORT[d.id])}</span>
                 </button>
               )
             })}
@@ -75,25 +90,32 @@ export function PolicyPage({ doc = "terms", onOpen, onContact, onBack }) {
         </div>
       </header>
 
-      {/* Mobile quick-jump horizontal chip bar */}
-      <div className="pp-mobile-toc-bar" aria-label={t("legalPages.onThisPage", "Sections")}>
-        <div className="pp-wrap">
-          <div className="pp-mobile-toc-inner">
-            <span className="pp-mobile-toc-title">{t("legalPages.onThisPage", "Sections")}:</span>
-            <div className="pp-mobile-toc-chips">
-              {current.sections.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className="pp-mobile-toc-chip"
-                  onClick={() => jumpTo(s.id)}
-                >
-                  {s.h.replace(/^\d+\.\s*/, "")}
+      {/* Phone: the sections open as a list */}
+      <div className="pp-mobile-toc">
+        <button
+          type="button"
+          className="pp-mobile-toc-btn"
+          aria-expanded={listOpen}
+          data-testid="policy-sections-button"
+          onClick={() => setListOpen((open) => !open)}
+        >
+          <List size={18} />
+          <span>{t("legalPages.onThisPage", "On this page")}</span>
+          <span className="pp-mobile-toc-count">{current.sections.length}</span>
+          <ChevronDown size={18} className={`pp-mobile-toc-arrow ${listOpen ? "open" : ""}`} />
+        </button>
+        {listOpen && (
+          <ol className="pp-mobile-toc-list">
+            {current.sections.map((s) => (
+              <li key={s.id}>
+                <button type="button" onClick={() => jumpTo(s.id)}>
+                  <span className="pp-mobile-toc-num">{splitHeading(s.h)[0]}</span>
+                  <span>{splitHeading(s.h)[1]}</span>
                 </button>
-              ))}
-            </div>
-          </div>
-        </div>
+              </li>
+            ))}
+          </ol>
+        )}
       </div>
 
       <div className="pp-wrap pp-body">
@@ -118,7 +140,10 @@ export function PolicyPage({ doc = "terms", onOpen, onContact, onBack }) {
 
           {current.sections.map((s) => (
             <section key={s.id} id={`pp-${current.id}-${s.id}`} className="pp-section">
-              <h2>{s.h}</h2>
+              <h2>
+                {splitHeading(s.h)[0] && <span className="pp-num">{splitHeading(s.h)[0]}</span>}
+                <span>{splitHeading(s.h)[1]}</span>
+              </h2>
               {s.p?.map((text, i) => <p key={i}>{text}</p>)}
               {s.list && (
                 <ul>
@@ -160,7 +185,7 @@ export function PolicyPage({ doc = "terms", onOpen, onContact, onBack }) {
           <button
             type="button"
             className="pp-top"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            onClick={() => pageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
           >
             <ArrowUp size={14} /> {t("legalPages.backToTop", "Back to top")}
           </button>

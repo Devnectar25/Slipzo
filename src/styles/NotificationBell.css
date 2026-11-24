@@ -1,6 +1,7 @@
 /* ============================================================
-   NOTIFICATION BELL & DROPDOWN PANEL
+   NOTIFICATION BELL & MODERN BOTTOM SHEET / DROPDOWN PANEL
    ============================================================ */
+
 .nbell {
   position: relative;
   flex: none;
@@ -73,10 +74,10 @@
   position: fixed;
   inset: 0;
   z-index: 1180;
-  background: rgba(15, 23, 42, 0.16);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  animation: nbellFadeIn 0.15s ease-out;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: nbellFadeIn 0.18s ease-out;
 }
 
 @keyframes nbellFadeIn {
@@ -84,11 +85,13 @@
   to { opacity: 1; }
 }
 
-/* Panel popover */
+/* ============================================================
+   PANEL - DESKTOP (Floating Dropdown)
+   ============================================================ */
 .nbell-panel {
   position: absolute;
   top: calc(100% + 10px);
-  right: -70px;
+  right: -10px;
   z-index: 1200;
   width: 410px;
   max-width: calc(100vw - 24px);
@@ -98,31 +101,16 @@
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: 20px;
   background: #ffffff;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12),
-              0 25px 50px -12px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.18),
+              0 0 0 1px rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  animation: nbellIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: nbellDropdownIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Caret pointing up towards bell */
-.nbell-panel::before {
-  content: "";
-  position: absolute;
-  top: -6px;
-  right: 82px;
-  width: 12px;
-  height: 12px;
-  background: #ffffff;
-  border-left: 1px solid rgba(226, 232, 240, 0.9);
-  border-top: 1px solid rgba(226, 232, 240, 0.9);
-  transform: rotate(45deg);
-  z-index: 2;
-}
-
-@keyframes nbellIn {
+@keyframes nbellDropdownIn {
   from {
     opacity: 0;
-    transform: translateY(-8px) scale(0.98);
+    transform: translateY(-8px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -130,16 +118,19 @@
   }
 }
 
+.nbell-sheet-handle {
+  display: none;
+}
+
 /* Panel Header */
 .nbell-head {
-  position: relative;
-  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 16px 20px;
   border-bottom: 1px solid #f1f5f9;
   background: #ffffff;
+  flex-shrink: 0;
 }
 
 .nbell-head-left {
@@ -148,40 +139,30 @@
   gap: 10px;
 }
 
-.nbell-head-icon-box {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-  color: #0284c7;
-}
-
-.nbell-head-text {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .nbell-head-title {
-  font-size: 0.96rem;
+  margin: 0;
+  font-size: 1.12rem;
   font-weight: 800;
   color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+.nbell-head-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  background: #f1f5f9;
+  color: #64748b;
   letter-spacing: -0.01em;
 }
 
-.nbell-head-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1d4ed8;
-  font-size: 0.72rem;
-  font-weight: 700;
+.nbell-head-badge.unread {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
 }
 
 .nbell-head-right {
@@ -194,10 +175,10 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #ffffff;
+  padding: 6px 11px;
+  border: 1px solid #e0f2fe;
+  border-radius: 999px;
+  background: #f0f9ff;
   color: #0284c7;
   font-size: 0.74rem;
   font-weight: 700;
@@ -206,8 +187,8 @@
 }
 
 .nbell-mark-btn:hover {
-  background: #f0f9ff;
-  border-color: #bae6fd;
+  background: #e0f2fe;
+  border-color: #7dd3fc;
   color: #0369a1;
 }
 
@@ -215,45 +196,40 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 50%;
-  background: #f1f5f9;
+  background: #f8fafc;
   color: #64748b;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .nbell-close:hover {
-  background: #e2e8f0;
+  background: #f1f5f9;
   color: #0f172a;
-  transform: scale(1.05);
 }
 
-/* List container */
+/* ============================================================
+   NOTIFICATION LIST & CARDS
+   ============================================================ */
 .nbell-list-wrapper {
+  flex: 1;
   overflow-y: auto;
-  max-height: 410px;
-  padding: 10px 12px 14px 12px;
-  overscroll-behavior: contain;
+  padding: 12px 16px 18px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nbell-list-wrapper::-webkit-scrollbar {
   width: 5px;
 }
-
 .nbell-list-wrapper::-webkit-scrollbar-track {
   background: transparent;
 }
-
 .nbell-list-wrapper::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 999px;
-}
-
-.nbell-list-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  border-radius: 4px;
 }
 
 .nbell-list {
@@ -262,7 +238,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .nbell-list-item {
@@ -270,20 +246,17 @@
   padding: 0;
 }
 
-/* Notification Card */
+/* Modern Card Layout */
 .nbell-card {
-  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  width: 100%;
-  padding: 13px 14px;
-  border-radius: 14px;
-  border: 1px solid #f1f5f9;
+  padding: 14px;
+  border-radius: 16px;
   background: #ffffff;
-  text-align: left;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
   transition: all 0.18s ease;
-  box-sizing: border-box;
 }
 
 .nbell-card.clickable {
@@ -291,69 +264,36 @@
 }
 
 .nbell-card.clickable:hover {
-  background: #fafafa;
+  background: #f8fafc;
   border-color: #cbd5e1;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
 }
 
 .nbell-card.unread {
-  background: linear-gradient(145deg, #f0f9ff 0%, #ffffff 100%);
+  background: #f8fafc;
   border-color: #bae6fd;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.06);
+  border-left: 4px solid #0284c7;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08);
 }
 
-.nbell-card.unread.clickable:hover {
-  background: linear-gradient(145deg, #e0f2fe 0%, #f8fafc 100%);
-  border-color: #7dd3fc;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.12);
-}
-
-/* Icon box */
+/* Icon Box */
 .nbell-icon-box {
-  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  transition: transform 0.15s ease;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
 }
 
-.nbell-card.clickable:hover .nbell-icon-box {
-  transform: scale(1.06);
-}
-
-.nbell-icon-box.kind-announcement {
-  background: #f5f3ff;
-  color: #7c3aed;
-  border: 1px solid #ddd6fe;
-}
-
-.nbell-icon-box.kind-discount {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
-}
-
-.nbell-icon-box.kind-plan_reminder {
-  background: #fffbeb;
-  color: #d97706;
-  border: 1px solid #fde68a;
-}
-
-.nbell-icon-box.kind-stock {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.nbell-icon-box.kind-setup {
-  background: #f0f9ff;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
-}
+.nbell-icon-box.kind-announcement { background: #ede9fe; color: #7c3aed; }
+.nbell-icon-box.kind-discount { background: #dcfce7; color: #15803d; }
+.nbell-icon-box.kind-plan_reminder { background: #fef3c7; color: #d97706; }
+.nbell-icon-box.kind-stock { background: #fee2e2; color: #dc2626; }
+.nbell-icon-box.kind-setup { background: #e0f2fe; color: #0284c7; }
 
 /* Card Body */
 .nbell-card-body {
@@ -364,23 +304,20 @@
   gap: 4px;
 }
 
-/* Meta Top Row (Category Tag + Time + Unread Dot) */
+/* Meta row: category tag, time, unread dot */
 .nbell-meta-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 2px;
 }
 
 .nbell-category-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 7px;
-  border-radius: 5px;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 6px;
 }
 
 .nbell-category-pill.kind-announcement { background: #ede9fe; color: #6d28d9; }
@@ -409,68 +346,69 @@
   height: 7px;
   border-radius: 50%;
   background: #0284c7;
-  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.25);
+  box-shadow: 0 0 0 2.5px rgba(14, 165, 233, 0.25);
 }
 
 /* Title & Body */
 .nbell-item-title {
-  margin: 0;
-  font-size: 0.88rem;
-  font-weight: 700;
+  margin: 2px 0 0;
+  font-size: 0.94rem;
+  font-weight: 750;
   color: #0f172a;
   line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
 .nbell-item-body {
   margin: 0;
-  font-size: 0.80rem;
+  font-size: 0.82rem;
   color: #475569;
-  line-height: 1.45;
+  line-height: 1.48;
   word-break: break-word;
 }
 
 /* Coupon Chip */
-.nbell-promo-box {
+.nbell-coupon-chip {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-top: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 10px;
   background: #f0fdf4;
-  border: 1px dashed #86efac;
+  border: 1.5px dashed #86efac;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.nbell-promo-box:hover {
+.nbell-coupon-chip:hover {
   background: #dcfce7;
   border-color: #4ade80;
 }
 
-.nbell-promo-left {
+.nbell-coupon-left {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.nbell-promo-tag {
-  font-size: 0.65rem;
+.nbell-coupon-lbl {
+  font-size: 0.68rem;
   font-weight: 800;
   color: #16a34a;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
-.nbell-promo-code {
+.nbell-coupon-val {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   font-weight: 800;
   color: #15803d;
   letter-spacing: 0.06em;
 }
 
-.nbell-promo-copy-btn {
+.nbell-coupon-copy-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -479,28 +417,22 @@
   border-radius: 6px;
   background: #ffffff;
   color: #15803d;
-  font-size: 0.70rem;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.nbell-promo-box:hover .nbell-promo-copy-btn {
-  border-color: #86efac;
-  background: #ffffff;
-  box-shadow: 0 1px 4px rgba(22, 163, 74, 0.15);
-}
-
 /* Action Link Row */
 .nbell-action-row {
-  margin-top: 4px;
+  margin-top: 5px;
 }
 
 .nbell-action-text {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: #0284c7;
 }
@@ -510,7 +442,7 @@
 }
 
 .nbell-card.clickable:hover .nbell-action-arrow {
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 
 /* Empty State */
@@ -519,7 +451,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 36px 20px;
+  padding: 44px 20px;
   gap: 8px;
 }
 
@@ -527,76 +459,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 52px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   background: #f0f9ff;
   color: #0284c7;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12);
 }
 
 .nbell-empty h4 {
   margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 1.02rem;
+  font-weight: 800;
   color: #0f172a;
 }
 
 .nbell-empty p {
   margin: 0;
-  font-size: 0.80rem;
+  font-size: 0.82rem;
   color: #64748b;
   max-width: 260px;
+  line-height: 1.45;
 }
 
-/* Footer */
-.nbell-footer {
-  padding: 10px 18px;
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nbell-footer-msg {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.nbell-footer-sparkle {
-  color: #0284c7;
-}
-
-/* ============================================================
-   RESPONSIVE DESIGN
-   ============================================================ */
-@media (max-width: 640px) {
-  .nbell-panel {
-    position: fixed;
-    top: 66px;
-    right: 12px;
-    left: 12px;
-    width: auto;
-    max-width: none;
-    max-height: calc(100vh - 82px);
-    border-radius: 18px;
-  }
-
-  .nbell-panel::before {
-    display: none;
-  }
-
-  .nbell-list-wrapper {
-    max-height: calc(100vh - 190px);
-  }
-}
-
-/* Android app: phone notifications are off or not registered */
+/* Push Warning Bar */
 .nbell-push {
   display: flex;
   align-items: center;
@@ -631,4 +518,61 @@
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+/* ============================================================
+   RESPONSIVE DESIGN - MOBILE NATIVE BOTTOM SHEET
+   ============================================================ */
+@media (max-width: 640px) {
+  .nbell-panel {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: 82vh;
+    border-radius: 24px 24px 0 0;
+    border: none;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.28);
+    animation: nbellSheetUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  }
+
+  @keyframes nbellSheetUp {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .nbell-sheet-handle {
+    display: block;
+    width: 38px;
+    height: 4.5px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    margin: 10px auto 4px;
+    flex-shrink: 0;
+  }
+
+  .nbell-head {
+    padding: 12px 18px 14px;
+  }
+
+  .nbell-list-wrapper {
+    padding: 10px 14px 14px;
+    max-height: calc(82vh - 85px);
+  }
+
+  .nbell-card {
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
 }
