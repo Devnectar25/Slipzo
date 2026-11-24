@@ -170,24 +170,22 @@ export function NotificationBell({ user, onNavigate }) {
 
       {open && (
         <>
-          {/* Subtle backdrop overlay to focus attention and prevent visual clashing with underlying page cards */}
+          {/* Subtle backdrop overlay with blur to focus attention */}
           <div className="nbell-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />
 
           <div className="nbell-panel" role="dialog" aria-label={t("notif.title", "Notifications")}>
+            {/* Mobile Sheet Drag Handle */}
+            <div className="nbell-sheet-handle" aria-hidden="true" />
+
             {/* Header */}
             <div className="nbell-head">
               <div className="nbell-head-left">
-                <div className="nbell-head-icon-box">
-                  <Bell size={16} />
-                </div>
-                <div className="nbell-head-text">
-                  <strong className="nbell-head-title">{t("notif.title", "Notifications")}</strong>
-                  {items.length > 0 && (
-                    <span className="nbell-head-pill">
-                      {hasUnread ? `${items.filter(i => i.unread).length} new` : `${items.length} total`}
-                    </span>
-                  )}
-                </div>
+                <h3 className="nbell-head-title">{t("notif.title", "Notifications")}</h3>
+                {items.length > 0 && (
+                  <span className={`nbell-head-badge ${hasUnread ? "unread" : ""}`}>
+                    {hasUnread ? `${items.filter(i => i.unread).length} new` : items.length}
+                  </span>
+                )}
               </div>
 
               <div className="nbell-head-right">
@@ -196,9 +194,9 @@ export function NotificationBell({ user, onNavigate }) {
                     type="button"
                     className="nbell-mark-btn"
                     onClick={markAllAsRead}
-                    title="Mark all as read"
+                    title={t("notif.markRead", "Mark read")}
                   >
-                    <CheckCheck size={13} />
+                    <CheckCheck size={14} />
                     <span>{t("notif.markRead", "Mark read")}</span>
                   </button>
                 )}
@@ -208,7 +206,7 @@ export function NotificationBell({ user, onNavigate }) {
                   onClick={toggle}
                   aria-label={t("common.close", "Close")}
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
               </div>
             </div>
@@ -232,7 +230,7 @@ export function NotificationBell({ user, onNavigate }) {
             {items.length === 0 ? (
               <div className="nbell-empty">
                 <div className="nbell-empty-graphic">
-                  <CheckCheck size={28} />
+                  <CheckCheck size={32} />
                 </div>
                 <h4>{loading ? t("notif.loading", "Loading…") : t("notif.empty", "You're all caught up")}</h4>
                 <p>{t("notif.emptySub", "No new alerts or announcements right now.")}</p>
@@ -254,7 +252,7 @@ export function NotificationBell({ user, onNavigate }) {
                           tabIndex={clickable ? 0 : undefined}
                         >
                           <div className={`nbell-icon-box ${meta.colorClass}`}>
-                            <Icon size={16} />
+                            <Icon size={18} />
                           </div>
 
                           <div className="nbell-card-body">
@@ -302,7 +300,7 @@ export function NotificationBell({ user, onNavigate }) {
                               <div className="nbell-action-row">
                                 <span className="nbell-action-text">
                                   {t("common.viewDetails", "View details")}
-                                  <ArrowRight size={12} className="nbell-action-arrow" />
+                                  <ArrowRight size={13} className="nbell-action-arrow" />
                                 </span>
                               </div>
                             )}
@@ -314,14 +312,6 @@ export function NotificationBell({ user, onNavigate }) {
                 </ul>
               </div>
             )}
-
-            {/* Footer */}
-            <div className="nbell-footer">
-              <span className="nbell-footer-msg">
-                <Sparkles size={13} className="nbell-footer-sparkle" />
-                {t("notif.footerText", "Official notifications & account updates")}
-              </span>
-            </div>
           </div>
         </>
       )}

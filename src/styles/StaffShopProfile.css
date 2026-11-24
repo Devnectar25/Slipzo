@@ -1,0 +1,142 @@
+/* The shop profile as workers see it: read only */
+.ssp-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 14px 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #334155;
+}
+
+.app-shell .ssp-page .ssp-head {
+  position: static !important;
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+  height: auto !important;
+  padding: 2px 4px !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.ssp-logo {
+  flex: 0 0 auto;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #e0f2fe;
+  color: #0284c7;
+}
+.ssp-logo img { width: 100% !important; height: 100% !important; object-fit: cover !important; margin: 0 !important; }
+.ssp-head-text { min-width: 0; }
+.ssp-head h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  font-weight: 800;
+  color: #0c1f41;
+  overflow-wrap: anywhere;
+}
+.ssp-head p { margin: 2px 0 0; font-size: 0.88rem; color: #64748b; }
+
+.ssp-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.ssp-note svg { flex: none; margin-top: 2px; }
+.ssp-failed { margin: 0; padding: 18px; text-align: center; color: #64748b; font-size: 0.9rem; }
+
+.ssp-card {
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+}
+.ssp-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0c1f41;
+}
+.ssp-card-title svg { flex: none; color: #0284c7; }
+.ssp-card dl { margin: 0; }
+.ssp-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid #f1f5f9;
+}
+.ssp-row:first-child { border-top: none; }
+.ssp-row dt { margin: 0; font-size: 0.86rem; line-height: 1.4; font-weight: 400; color: #64748b; }
+.ssp-row dd { margin: 0; font-size: 0.92rem; line-height: 1.4; font-weight: 600; color: #0f172a; text-align: right; overflow-wrap: anywhere; }
+.ssp-row dd.ssp-empty { font-weight: 400; color: #94a3b8; }
+
+.ssp-modes { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 8px 0 4px; padding: 0; }
+.ssp-modes li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.ssp-modes li span { color: #0284c7; font-size: 0.78rem; }
+.ssp-modes + dl { margin-top: 6px; border-top: 1px solid #f1f5f9; }
+
+.ssp-langs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.ssp-langs button {
+  min-height: 44px;
+  padding: 0 6px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #475569;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ssp-langs button.active { background: #0284c7; border-color: #0284c7; color: #ffffff; }
+
+.ssp-help { margin: 8px 0 0; font-size: 0.82rem; color: #64748b; }
+
+.ssp-leave { text-align: center; padding: 18px 16px; }
+.ssp-leave p { margin: 0 0 14px; font-size: 0.88rem; line-height: 1.5; color: #64748b; }
+.ssp-leave button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid #fecaca;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #dc2626;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ssp-leave button:disabled { cursor: not-allowed; opacity: 0.7; }

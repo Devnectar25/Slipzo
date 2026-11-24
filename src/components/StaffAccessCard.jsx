@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
-import { Users, Phone, Trash2, UserPlus, ShieldCheck, Printer, AlertCircle, Copy, Check, KeyRound, RefreshCw, LogOut, Store, X, CheckCircle2, Sparkles } from "lucide-react"
+import { Users, Phone, Trash2, UserPlus, ShieldCheck, Printer, AlertCircle, Copy, Check, RefreshCw, LogOut, Store, X, CheckCircle2, Sparkles } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import Swal from "sweetalert2"
 import { call, clearApiCache, clearStoredMenuItems } from "../lib/utils"
 import { useDbTranslation } from "../lib/translator"
 import { useToast } from "./common/Toast"
+import { StaffShopProfile } from "./StaffShopProfile"
 import { ButtonLoader, Skeleton, Spinner } from "./common/Skeleton"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -74,9 +75,6 @@ export function StaffAccessCard({ user }) {
   const [copied, setCopied] = useState(false)
   const [busyId, setBusyId] = useState(null)
   const [prints, setPrints] = useState(null) // { workers, today, month }: prints per person
-  const [joinCode, setJoinCode] = useState("")
-  const [joinError, setJoinError] = useState("")
-  const [joining, setJoining] = useState(false)
 
   // Registration modal for new staff
   const [showRegisterModal, setShowRegisterModal] = useState(false)
@@ -213,12 +211,23 @@ export function StaffAccessCard({ user }) {
       setEmailError("")
       setUnregisteredPhone(null)
       setShowRegisterModal(false)
-      setNewStaffCredentials({
-        phone: registerForm.phone,
-        name: registerForm.name.trim(),
-        password: password
-      })
-      success(t("profile.staffCreatedSuccess", "Staff registered and added to your shop successfully!"))
+      if (res.is_new) {
+        setNewStaffCredentials({
+          phone: registerForm.phone,
+          name: registerForm.name.trim(),
+          password: res.temp_password || password
+        })
+        success(t("profile.staffCreatedSuccess", "Staff registered and added to your shop successfully!"))
+      } else {
+        // the number already has an account: the password typed here was not used, so it must not be shown as the login
+        if (res.is_invite) showInvite(memberLabel(res.member), res.invite_code)
+        Swal.fire({
+          icon: "info",
+          title: t("workers.hasAccountTitle", "This number already has an account"),
+          text: t("workers.hasAccountText", "Your worker signs in with their own password. If they do not remember it, they can use Forgot password on the sign-in screen."),
+          confirmButtonColor: "#0284c7"
+        })
+      }
     } catch (err) {
       setRegisterError(err?.message || t("profile.staffActionFailed", "Something went wrong. Please try again."))
     } finally {
@@ -295,28 +304,7 @@ export function StaffAccessCard({ user }) {
     }
   }
 
-  const handleJoin = async () => {
-    if (!joinCode.trim()) return setJoinError(t("profile.staffJoinRequired", "Please enter your invite code."))
-    const answer = await Swal.fire({
-      title: t("profile.staffJoinConfirmTitle", "Join this shop?"),
-      text: t("profile.staffJoinConfirmText", "You will bill and print for that shop instead of your own. Your own shop stays saved, and you can leave at any time."),
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: t("profile.staffJoinBtn", "Join Shop"),
-      cancelButtonText: t("common.cancel", "Cancel"),
-      confirmButtonColor: "#0284c7",
-    })
-    if (!answer.isConfirmed) return
-    setJoining(true)
-    setJoinError("")
-    try {
-      const res = await call("/shop/staff/join", { method: "POST", body: JSON.stringify({ code: joinCode.trim() }) })
-      reloadWithFreshData(user, res?.staff_of)
-    } catch (err) {
-      setJoinError(err?.message || t("profile.staffActionFailed", "Something went wrong. Please try again."))
-      setJoining(false)
-    }
-  }
+
 
   return (
     <div className="sp-card sp-subusers-card">
@@ -578,7 +566,7 @@ export function StaffAccessCard({ user }) {
           </div>
           <ol style={{ listStyle: "decimal", margin: "0.3rem 0 0.2rem", paddingLeft: "1.1rem", fontSize: "0.74rem", color: "#334155", lineHeight: 1.5 }}>
             <li>{t("profile.staffStep1", "Your worker logs in to Slipzen with this mobile number.")}</li>
-            <li>{t("profile.staffStep2", "They open Shop Profile and enter this code under \"Joining a shop?\".")}</li>
+            <li>{t("profile.staffStep2", "They open Shop Profile and accept the invitation to join your shop.")}</li>
           </ol>
           <p style={{ fontSize: "0.72rem", color: "#92400e", margin: "0.3rem 0 0", fontWeight: 600 }}>
             {t("profile.staffCodeOnce", "Note it down now: it is shown only once and works for 7 days.")}
@@ -785,57 +773,15 @@ export function StaffAccessCard({ user }) {
         </div>
       )}
 
-      {/* For someone who was invited by another shop */}
-      <div style={{ marginTop: "1.1rem", paddingTop: "0.9rem", borderTop: "1px solid #e2e8f0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.82rem", fontWeight: 700, color: "#334155" }}>
-          <KeyRound size={14} style={{ color: "#0284c7" }} />
-          <span>{t("profile.staffJoinTitle", "Joining a shop?")}</span>
-        </div>
-        <p style={{ fontSize: "0.74rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
-          {t("profile.staffJoinHelp", "If a shop owner gave you an invite code, enter it here.")}
-        </p>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "stretch" }}>
-          <div className={`sp-input-wrap ${joinError ? "error" : ""}`} style={{ flex: 1, minWidth: "160px" }}>
-            <KeyRound size={16} className="sp-input-icon" />
-            <input
-              type="text"
-              className="sp-input"
-              data-testid="staff-join-input"
-              autoComplete="off"
-              placeholder="ABCD-EFGH"
-              value={joinCode}
-              onChange={(e) => {
-                setJoinCode(e.target.value)
-                if (joinError) setJoinError("")
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  handleJoin()
-                }
-              }}
-            />
-          </div>
-          <button type="button" data-testid="staff-join-button" onClick={handleJoin} disabled={joining} style={{ background: "#ffffff", color: "#0284c7", border: "1.5px solid #7dd3fc", borderRadius: "10px", padding: "0 1rem", minHeight: "44px", fontWeight: 700, fontSize: "0.84rem", cursor: joining ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>
-            {joining ? <ButtonLoader text={t("profile.staffJoining", "Joining...")} /> : t("profile.staffJoinBtn", "Join Shop")}
-          </button>
-        </div>
-        {joinError && (
-          <div style={{ color: "#ef4444", fontSize: "0.76rem", marginTop: "0.35rem", display: "flex", alignItems: "flex-start", gap: "0.25rem" }}>
-            <AlertCircle size={12} style={{ flexShrink: 0, marginTop: "2px" }} /> <span>{joinError}</span>
-          </div>
-        )}
-      </div>
     </div>
   )
 }
 
-/** What a worker sees instead of the shop settings, which only the owner can change. */
+/** What a worker sees instead of the shop settings: the profile to read, and leaving the shop. */
 export function StaffMemberView({ user }) {
   const { t } = useTranslation()
   const { error: toastError } = useToast()
   const [leaving, setLeaving] = useState(false)
-  const shopName = user?.staff_of?.shop_name
 
   const handleLeave = async () => {
     const answer = await Swal.fire({
@@ -859,22 +805,13 @@ export function StaffMemberView({ user }) {
   }
 
   return (
-    <div className="page shop-page fade-in">
-      {/* Styled inline: the .sp-* rules are in a style block that only Shop's full settings view renders */}
-      <div data-testid="staff-member-view" style={{ maxWidth: "520px", margin: "1.5rem auto", padding: "2rem 1.5rem", textAlign: "center", background: "#ffffff", border: "1px solid #bae6fd", borderRadius: "16px", boxShadow: "0 4px 16px rgba(15, 23, 42, 0.04)" }}>
-        <div style={{ width: "52px", height: "52px", margin: "0 auto 0.85rem", borderRadius: "14px", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Store size={24} />
-        </div>
-        <h3 style={{ margin: "0 0 0.4rem", fontSize: "1.15rem", fontWeight: 800, color: "#0C1F41" }}>
-          {t("profile.staffWorkingFor", "You are working for")} {shopName}
-        </h3>
-        <p style={{ margin: "0 0 1.25rem", fontSize: "0.86rem", lineHeight: 1.55, color: "#64748b" }}>
-          {t("profile.staffOwnerManages", "You can create bills, print and manage tables for this shop. Its settings, menu and plans are managed by the owner.")}
-        </p>
-        <button type="button" data-testid="staff-leave-button" onClick={handleLeave} disabled={leaving} style={{ background: "#ffffff", color: "#ef4444", border: "1.5px solid #fecaca", borderRadius: "10px", padding: "0.55rem 1.1rem", fontWeight: 700, fontSize: "0.84rem", cursor: leaving ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-          {leaving ? <ButtonLoader text={t("profile.staffLeaving", "Leaving...")} /> : <><LogOut size={15} /> {t("profile.staffLeaveBtn", "Leave Shop")}</>}
+    <StaffShopProfile user={user}>
+      <section className="ssp-card ssp-leave">
+        <p>{t("profile.staffOwnerManages", "You can create bills, print and manage tables for this shop. Its settings, menu and plans are managed by the owner.")}</p>
+        <button type="button" data-testid="staff-leave-button" onClick={handleLeave} disabled={leaving}>
+          {leaving ? <ButtonLoader text={t("profile.staffLeaving", "Leaving...")} /> : <><LogOut size={16} /> {t("profile.staffLeaveBtn", "Leave Shop")}</>}
         </button>
-      </div>
-    </div>
+      </section>
+    </StaffShopProfile>
   )
 }

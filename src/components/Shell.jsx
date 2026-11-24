@@ -666,6 +666,11 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             <LogOut size={15} /> {t("nav.signOut", "Sign out")}
           </button>
         </div>
+
+        <div style={{ marginTop: 'auto', paddingTop: '0.65rem', borderTop: '1px solid #f1f5f9', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+          <PoweredBy />
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>v1.0.0</span>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -839,16 +844,13 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             </div>
           )}
           {children}
-          {/* not in the Android app: the policies are in the menu and on Contact us there */}
-          {!isNativeApp && (
-            <footer className="shell-legal-footer" data-testid="app-legal-footer">
-              <div className="pp-legal-left">
-                <span>© {new Date().getFullYear()} Slipzen</span>
-                <PoweredBy />
-              </div>
-              <PolicyLinks onOpen={setView} />
-            </footer>
-          )}
+          <footer className="shell-legal-footer" data-testid="app-legal-footer">
+            <div className="pp-legal-left">
+              <span>© {new Date().getFullYear()} Slipzen</span>
+              <PoweredBy />
+            </div>
+            <PolicyLinks onOpen={setView} />
+          </footer>
         </div>
       </div>
 
