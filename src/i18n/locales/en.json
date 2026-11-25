@@ -1,5 +1,12 @@
 {
   "common": {
+    "later": "Remind Me Later",
+    "previous": "Previous",
+    "next": "Next",
+    "clear": "Clear",
+    "active": "Active",
+    "off": "OFF",
+    "viewDetails": "View details",
     "save": "Save",
     "saving": "Saving...",
     "cancel": "Cancel",
@@ -63,6 +70,8 @@
     "home": "Home"
   },
   "sidebar": {
+    "timePlan": "Validity Plan",
+    "daysLeft": "days left",
     "freePrints": "Free prints",
     "subscription": "Subscription",
     "printsLeft": "left",
@@ -74,6 +83,15 @@
     "print": "print"
   },
   "profile": {
+    "templatePicked": "\"{{name}}\" selected as your receipt template. Press Save to keep it.",
+    "staffInviteSent": "Invitation sent to worker with push notification!",
+    "workerAddedSuccess": "Worker added as active staff!",
+    "staffNameRequired": "Please enter the staff member's name.",
+    "staffPassLength": "Password must be at least 4 characters.",
+    "staffCreatedSuccess": "Staff registered and added to your shop successfully!",
+    "acceptInviteTitle": "Join {{shop}}?",
+    "acceptInviteText": "You will bill and print for that shop instead of your own. Your own shop stays saved, and you can leave at any time.",
+    "staffCodeRegenerated": "New invite code generated and notification sent!",
     "staffOf": "Staff at",
     "staffLeaving": "Leaving...",
     "staffOwnerManages": "You can create bills, print and manage tables for this shop. Its settings, menu and plans are managed by the owner.",
@@ -372,6 +390,16 @@
     "confirmFailedText": "If money was deducted, your prints will be added once the payment is confirmed. Please keep this payment ID and contact support if they do not appear."
   },
   "bills": {
+    "usingTemplate": "Using the \"{{name}}\" template",
+    "removeItemTitle": "Remove this item?",
+    "removeItemText": "\"{{name}}\" will be removed from this bill.",
+    "removeItemTextGeneric": "This item will be removed from this bill.",
+    "removeItemYes": "Yes, remove",
+    "paperSize": "Paper size",
+    "emptyCart": "No items added yet",
+    "selectFromMenuHint": "Add items from the menu to build the bill",
+    "yourShop": "Your Shop",
+    "quotaTextPdf": "Saving a bill as PDF uses a print credit. Please view pricing plans to add print credits.",
     "newBillTitle": "New Bill",
     "newBillSubtitle": "Add items and create a bill",
     "newBillMenuSubtitle": "Select from your menu and create a bill",
@@ -419,9 +447,6 @@
     "cancelledPrint": "No, Cancelled",
     "noItemsAdded": "No items added",
     "billSummary": "Bill Summary",
-    "paymentCollected": "Payment Collected",
-    "paymentCollectedSuccess": "Payment Collected Successfully",
-    "paidVia": "Paid via {{mode}}",
     "taxableValue": "Taxable Value",
     "totalGstIncluded": "Total GST ({{rate}}% Included)",
     "itemsInBill": "Items in Bill",
@@ -625,6 +650,23 @@
     "freeDelivery": "Free Delivery"
   },
   "menu": {
+    "enterItemName": "Please enter item name.",
+    "enterValidPrice": "Please enter a valid price.",
+    "addCustomItem": "Add Custom Item",
+    "addAsCustom": "Add \"{{name}}\" as Custom Item",
+    "customItem": "Custom Item",
+    "customBadge": "Custom",
+    "printBarcode": "Print Barcode Label",
+    "category": "Category",
+    "otherCategory": "+ Add New / Other Category...",
+    "enterCustomCategory": "Enter category name",
+    "barcodeOptional": "Barcode (Optional)",
+    "generateBarcode": "Generate Random",
+    "addAndPrint": "Add and print barcode label",
+    "toastUpdatedStock": "Updated \"{{name}}\": {{n}} in stock",
+    "item": "item",
+    "items": "items",
+    "sort": "Sort",
     "eyebrow": "SHOP MENU",
     "eyebrowItem": "SHOP ITEM",
     "title": "Menu",
@@ -1463,6 +1505,11 @@
     "verifyPhone": "Please verify your mobile number with the code we sent."
   },
   "shell": {
+    "language": "Language",
+    "account": "Account",
+    "profileMenu": "Profile and settings",
+    "mainNav": "Main pages",
+    "user": "User",
     "ariaFooterNav": "Footer navigation",
     "ariaHomeDash": "Return to Home Dashboard",
     "ariaPlans": "Click to view pricing plans",
@@ -1562,6 +1609,7 @@
     "lockedNote": "Chosen at sign-up. You can change it later in Shop profile."
   },
   "addItems": {
+    "customAdded": "Custom item \"{{name}}\" added to your selected items!",
     "title": "Add Menu Items",
     "intro": "Search and add items from your menu to get started. You can adjust the price before adding.",
     "close": "Close",
@@ -1686,6 +1734,10 @@
     "noCredits": "No print credits available"
   },
   "productsPage": {
+    "eachInclGst": "each, GST included",
+    "gstIncludedLine": "Includes GST ({{rate}}%)",
+    "delivery": "Delivery",
+    "totalToPay": "Total to pay:",
     "hardware": "Hardware & POS Supplies",
     "tested": "Tested & Certified for Slipzen",
     "testedText": "All thermal receipt printers and paper rolls sold on Slipzen are pre-tested for plug-and-play speed with our thermal engine.",
@@ -1762,6 +1814,8 @@
     "language": "Language"
   },
   "stock": {
+    "outAddStock": "Out of stock. Tap to add stock",
+    "addStockShort": "Add stock",
     "title": "Manage stock",
     "currentStock": "Current stock",
     "notTracked": "Stock not tracked",
@@ -2239,6 +2293,8 @@
     "showCustomer": "Show to customer"
   },
   "notif": {
+    "markRead": "Mark read",
+    "emptySub": "No new alerts or announcements right now.",
     "pushOffTitle": "Phone notifications are off",
     "pushOffText": "You will not see alerts when the app is closed. Allow notifications for Slipzen in your phone's Settings > Apps.",
     "pushTurnOn": "Turn on",

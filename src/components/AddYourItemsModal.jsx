@@ -29,9 +29,10 @@ import { useToast } from "./common/Toast"
 import { ButtonLoader } from "./common/Skeleton"
 import { VoiceInputButton } from "./common/VoiceInputButton"
 import { LooseUnitPicker } from "./common/LooseUnitPicker"
+import { StockQtyInput } from "./common/StockQtyInput"
 import { GstPicker } from "./common/GstPicker"
 import { shopUsesGst, normalizeGstRate } from "../lib/gst"
-import { unitLabel, formatQtyUnit, isLooseItem } from "../lib/units"
+import { unitLabel, formatStockQty, isLooseItem } from "../lib/units"
 import { flyThumb } from "../lib/flyThumb"
 import { useDbTranslation } from "../lib/translator"
 import { matchesItemFuzzy, cleanVoiceQuery } from "../lib/fuzzySearch"
@@ -1276,7 +1277,7 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                             {item.unit && <span className="loose-per-unit">/ {unitLabel(item.unit)}</span>}
                             {usesGst && item.gst_rate > 0 && <span className="gst-incl">+ {item.gst_rate}% GST</span>}
                             {isInventory && item.openingStock !== undefined && (
-                              <span className="selected-stock-note"> · {t("stock.countShort", "{{n}} in stock", { n: formatQtyUnit(item.openingStock, item.unit) })}</span>
+                              <span className="selected-stock-note"> · {t("stock.countShort", "{{n}} in stock", { n: formatStockQty(item.openingStock, item.unit) })}</span>
                             )}
                           </span>
                         )}
@@ -1541,26 +1542,21 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                     <div className="set-price-stock-row">
                       <div className="set-price-stock-col">
                         <label className="set-price-label" htmlFor="user-opening-stock-input">
-                          {unitInput
-                            ? t("loose.openingRequired", "Opening stock ({{unit}}) *", { unit: unitLabel(unitInput) })
-                            : t("stock.openingRequired", "Opening stock *")}
+                          {t("stock.openingRequired", "Opening stock *")}
                         </label>
                         <div className={`set-price-input-container ${stockModalError ? "error" : ""}`}>
-                          <input
+                          <StockQtyInput
+                            unit={unitInput}
                             id="user-opening-stock-input"
-                            type="number"
-                            inputMode="decimal"
-                            min="0"
-                            step="any"
                             required
                             value={stockInput}
-                            onChange={(e) => {
-                              setStockInput(e.target.value)
+                            onChange={(v) => {
+                              setStockInput(v)
                               if (stockModalError) setStockModalError("")
                             }}
                             onKeyDown={(e) => { if (e.key === "Enter") handleConfirmAddPrice(e) }}
                             placeholder={unitInput
-                              ? t("loose.openingPlaceholder", "e.g. 100 {{unit}}", { unit: unitLabel(unitInput) })
+                              ? "100"
                               : t("stock.openingPlaceholder", "Pieces you have")}
                             className="set-price-input set-price-stock-input"
                           />
@@ -1568,18 +1564,15 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                       </div>
                       <div className="set-price-stock-col">
                         <label className="set-price-label" htmlFor="user-low-alert-input">
-                          {t("stock.alertLabel", "Low-stock alert at")}{unitInput ? ` (${unitLabel(unitInput)})` : ""}
+                          {t("stock.alertLabel", "Low-stock alert at")}
                         </label>
                         <div className="set-price-input-container">
-                          <input
+                          <StockQtyInput
+                            unit={unitInput}
                             id="user-low-alert-input"
-                            type="number"
-                            inputMode="decimal"
-                            min="0"
-                            step="any"
                             value={lowAlertInput}
-                            onChange={(e) => {
-                              setLowAlertInput(e.target.value)
+                            onChange={(v) => {
+                              setLowAlertInput(v)
                               if (stockModalError) setStockModalError("")
                             }}
                             onKeyDown={(e) => { if (e.key === "Enter") handleConfirmAddPrice(e) }}
@@ -1844,40 +1837,32 @@ export function AddYourItemsModal({ isOpen, onClose, user, shop, onContinue }) {
                     <div className="custom-stock-grid">
                       <div>
                         <label className="set-price-label" htmlFor="custom-opening-stock-input">
-                          {customUnit
-                            ? t("loose.openingRequired", "Opening stock ({{unit}}) *", { unit: unitLabel(customUnit) })
-                            : t("stock.openingRequired", "Opening stock *")}
+                          {t("stock.openingRequired", "Opening stock *")}
                         </label>
-                        <input
+                        <StockQtyInput
+                          unit={customUnit}
                           id="custom-opening-stock-input"
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="any"
                           required
                           value={customStock}
-                          onChange={(e) => {
-                            setCustomStock(e.target.value)
+                          onChange={(v) => {
+                            setCustomStock(v)
                             if (customFormError) setCustomFormError("")
                           }}
                           placeholder={customUnit
-                            ? t("loose.openingPlaceholder", "e.g. 100 {{unit}}", { unit: unitLabel(customUnit) })
+                            ? "100"
                             : t("stock.openingPlaceholder", "Pieces you have")}
                           className="custom-input-field"
                         />
                       </div>
                       <div>
                         <label className="set-price-label" htmlFor="custom-low-alert-input">
-                          {t("stock.alertLabel", "Low-stock alert at")}{customUnit ? ` (${unitLabel(customUnit)})` : ""}
+                          {t("stock.alertLabel", "Low-stock alert at")}
                         </label>
-                        <input
+                        <StockQtyInput
+                          unit={customUnit}
                           id="custom-low-alert-input"
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="any"
                           value={customLowAlert}
-                          onChange={(e) => setCustomLowAlert(e.target.value)}
+                          onChange={(v) => setCustomLowAlert(v)}
                           placeholder="5"
                           className="custom-input-field"
                         />

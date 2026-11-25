@@ -5,6 +5,7 @@ import { call, money, saneAmount, getActivePlanDetails, getCurrentUserKey, getCa
 import "../styles/TodayAnalytics.css"
 import { localMidnight, fetchTodayAnalytics, takePrefetchedAnalytics, readSavedAnalytics } from "../lib/todayAnalytics"
 import { shopUsesGst } from "../lib/gst"
+import { useDbTranslation } from "../lib/translator"
 
 
 const hourLabel = (h) => {
@@ -18,7 +19,7 @@ const hourLabel = (h) => {
  * measured, and only as many hours are labelled as fit: every hour, every 2nd, 3rd, 4th or 6th. Each label is centred
  * under its bar and kept inside the chart.
  */
-function HourAxis({ hours }) {
+function HourAxis({ hours, hourText }) {
   const axisRef = useRef(null)
   const sampleRef = useRef(null)
   const [size, setSize] = useState({ width: 0, gap: 0, label: 0 })
@@ -53,11 +54,11 @@ function HourAxis({ hours }) {
 
   return (
     <div className="ta-xaxis" ref={axisRef} aria-hidden="true">
-      <span className="ta-xaxis-sample" ref={sampleRef}>12pm</span>
+      <span className="ta-xaxis-sample" ref={sampleRef}>{hourText(12)}</span>
       {width > 0 && hours.map((h, i) => {
         if (i % every !== 0) return null
         const centre = i * pitch + (pitch - gap) / 2
-        return <span key={h.h} style={{ left: Math.max(half, Math.min(width - half, centre)) }}>{hourLabel(h.h)}</span>
+        return <span key={h.h} style={{ left: Math.max(half, Math.min(width - half, centre)) }}>{hourText(h.h)}</span>
       })}
     </div>
   )
@@ -71,7 +72,11 @@ function HourAxis({ hours }) {
  * isRestaurant: also show how many tables are open. onNavigate(view): rows in "at a glance" open the matching page.
  */
 export function TodayAnalytics({ user, variant = "compact", isRestaurant = false, onNavigate }) {
-  const { t, i18n } = useTranslation()
+  const { t: translate, i18n } = useTranslation()
+  const { tDb, formatNum } = useDbTranslation()
+  // every number on this page is written in the digits of the app's language, also inside sentences
+  const t = (...args) => formatNum(translate(...args))
+  const hourText = (h) => formatNum(hourLabel(h))
   const full = variant === "full"
   const [data, setData] = useState(() => readSavedAnalytics())
   const [loading, setLoading] = useState(() => !data)
@@ -194,7 +199,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
   const maxHour = Math.max(0, ...hours.map((h) => h.total))
 
   const today = new Date()
-  const dateText = today.toLocaleDateString(i18n.language === "en" ? "en-IN" : `${i18n.language}-IN`, { weekday: "short", day: "numeric", month: "short" })
+  const dateText = formatNum(today.toLocaleDateString(i18n.language === "en" ? "en-IN" : `${i18n.language}-IN`, { weekday: "short", day: "numeric", month: "short" }))
 
   const sales = Number(data?.total_sales || 0)
   const ySales = Number(data?.yesterday?.total_sales || 0)
@@ -224,7 +229,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
     const mins = Math.max(0, Math.round((Date.now() - lastBillAt) / 60000))
     if (mins < 1) return t("todayStats.justNow", "Just now")
     if (mins < 60) return t("todayStats.minsAgo", "{{n}} min ago", { n: mins })
-    return new Date(lastBillAt).toLocaleTimeString(i18n.language === "en" ? "en-IN" : `${i18n.language}-IN`, { hour: "numeric", minute: "2-digit" })
+    return formatNum(new Date(lastBillAt).toLocaleTimeString(i18n.language === "en" ? "en-IN" : `${i18n.language}-IN`, { hour: "numeric", minute: "2-digit" }))
   })()
 
   // stock: items that track stock and are at or below their alert level
@@ -242,7 +247,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
   const gstToday = data?.gst || null
   const gstTotal = Number(gstToday?.total || 0)
   const gstOn = shopUsesGst(getCachedData("/shop")) || gstTotal > 0
-  const gstRatesText = (gstToday?.by_rate || []).map((g) => `${g.rate}%`).join(", ")
+  const gstRatesText = formatNum((gstToday?.by_rate || []).map((g) => `${g.rate}%`).join(", "))
 
   const glance = [
     {
@@ -287,7 +292,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
       key: "credits",
       icon: Printer,
       label: t("todayStats.creditsLeft", "Print credits left"),
-      value: String(creditsLeft),
+      value: formatNum(creditsLeft),
       sub: creditsLow ? t("todayStats.creditsLow", "Running low · buy more") : t("todayStats.creditsOk", "Enough for now"),
       tone: creditsLow ? "warn" : null,
       view: "pricing"
@@ -304,7 +309,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
         ? t("todayStats.stockSetup", "Set up stock in Menu")
         : (outOfStock > 0
           ? t("todayStats.outOfStock", "{{n}} out of stock", { n: outOfStock })
-          : (lowStock.length > 0 ? lowStock.slice(0, 2).map((it) => it.name).join(", ") : t("todayStats.stockOk", "Nothing running low"))),
+          : (lowStock.length > 0 ? lowStock.slice(0, 2).map((it) => tDb(it.name)).join(", ") : t("todayStats.stockOk", "Nothing running low"))),
       tone: stockTracked === 0 ? null : (lowStock.length > 0 ? "warn" : "ok"),
       view: "menu"
     },
@@ -366,7 +371,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
     ? t("todayStats.discounts", "{{v}} discount given", { v: money(data.discount_total) })
     : t("todayStats.perBill", "per bill today")
   const itemsSubText = bestHour && bestHour.total > 0
-    ? t("todayStats.busiest", "Busiest at {{h}}", { h: hourLabel(bestHour.h) })
+    ? t("todayStats.busiest", "Busiest at {{h}}", { h: hourText(bestHour.h) })
     : t("todayStats.noSalesYet", "No sales yet")
 
   // ---------------- History page: the four boxes ----------------
@@ -392,7 +397,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
           <div className="ta-stat">
             <span className="ta-stat-icon"><ReceiptText size={16} /></span>
             <span className="ta-stat-label">{t("todayStats.bills", "Bills")}</span>
-            <strong className="ta-stat-value">{billCount}</strong>
+            <strong className="ta-stat-value">{formatNum(billCount)}</strong>
             <span className="ta-stat-sub">{printedSavedText}</span>
           </div>
           <div className="ta-stat">
@@ -404,7 +409,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
           <div className="ta-stat">
             <span className="ta-stat-icon"><Package size={16} /></span>
             <span className="ta-stat-label">{t("todayStats.itemsSold", "Items sold")}</span>
-            <strong className="ta-stat-value">{Number(data?.items_sold || 0)}</strong>
+            <strong className="ta-stat-value">{formatNum(Number(data?.items_sold || 0))}</strong>
             <span className="ta-stat-sub">{itemsSubText}</span>
           </div>
         </div>
@@ -422,9 +427,9 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
   })()
   const shortMoney = (n) => {
     const v = Number(n || 0)
-    if (v >= 100000) return `₹${(v / 100000).toFixed(v >= 1000000 ? 0 : 1).replace(/\.0$/, "")}L`
-    if (v >= 1000) return `₹${(v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, "")}k`
-    return `₹${Math.round(v)}`
+    if (v >= 100000) return formatNum(`₹${(v / 100000).toFixed(v >= 1000000 ? 0 : 1).replace(/\.0$/, "")}L`)
+    if (v >= 1000) return formatNum(`₹${(v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(/\.0$/, "")}k`)
+    return formatNum(`₹${Math.round(v)}`)
   }
 
   // how today's sales built up, hour by hour, for the line inside the sales card (up to the current hour)
@@ -516,7 +521,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
             <span className="ta-kpi-icon"><ReceiptText size={18} /></span>
             <span className="ta-kpi-label">{t("todayStats.bills", "Bills")}</span>
           </div>
-          <strong className="ta-kpi-value">{billCount}</strong>
+          <strong className="ta-kpi-value">{formatNum(billCount)}</strong>
           <span className="ta-kpi-sub">{printedSavedText}</span>
         </div>
         <div className="ta-kpi tint-teal">
@@ -532,7 +537,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
             <span className="ta-kpi-icon"><Package size={18} /></span>
             <span className="ta-kpi-label">{t("todayStats.itemsSold", "Items sold")}</span>
           </div>
-          <strong className="ta-kpi-value">{Number(data?.items_sold || 0)}</strong>
+          <strong className="ta-kpi-value">{formatNum(Number(data?.items_sold || 0))}</strong>
           <span className="ta-kpi-sub">{itemsSubText}</span>
         </div>
       </div>
@@ -571,7 +576,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
               <h3 className="ta-card-title"><BarChart3 size={16} /> {t("todayStats.byHour", "Sales by hour")}</h3>
               <p className="ta-card-sub">
                 {bestHour && bestHour.total > 0
-                  ? <>{t("todayStats.bestHour", "Best hour")} <strong>{hourLabel(bestHour.h)}</strong> · {money(bestHour.total)}</>
+                  ? <>{t("todayStats.bestHour", "Best hour")} <strong>{hourText(bestHour.h)}</strong> · {money(bestHour.total)}</>
                   : t("todayStats.noSalesYet", "No sales yet")}
               </p>
             </div>
@@ -583,7 +588,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
               <div className="ta-yaxis" aria-hidden="true">
                 <span>{shortMoney(niceMax)}</span>
                 <span>{shortMoney(niceMax / 2)}</span>
-                <span>₹0</span>
+                <span>{shortMoney(0)}</span>
               </div>
               <div className="ta-plot">
                 <div className="ta-gridlines" aria-hidden="true"><i /><i /><i /></div>
@@ -610,7 +615,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
                         </div>
                         {isHover && h.count > 0 && (
                           <div className="ta-tip" role="tooltip">
-                            <strong>{hourLabel(h.h)}</strong>
+                            <strong>{hourText(h.h)}</strong>
                             <span>{money(h.total)}</span>
                             <em>{billsText(h.count)}</em>
                           </div>
@@ -619,7 +624,7 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
                     )
                   })}
                 </div>
-                <HourAxis hours={hours} />
+                <HourAxis hours={hours} hourText={hourText} />
               </div>
             </div>
           ) : (
@@ -641,16 +646,16 @@ export function TodayAnalytics({ user, variant = "compact", isRestaurant = false
                 const share = topTotal > 0 ? Math.round((amt / topTotal) * 100) : 0
                 return (
                   <li key={`${it.name}-${i}`} className={`ta-rank-row ${i === 0 ? "first" : ""}`}>
-                    <span className="ta-rank-no">{i + 1}</span>
+                    <span className="ta-rank-no">{formatNum(i + 1)}</span>
                     <div className="ta-rank-main">
                       <div className="ta-rank-line">
-                        <span className="ta-rank-name" title={it.name}>{it.name}</span>
+                        <span className="ta-rank-name" title={tDb(it.name)}>{tDb(it.name)}</span>
                         <span className="ta-rank-amt">{money(amt)}</span>
                       </div>
                       <div className="ta-rank-bar"><i style={{ width: `${topMax > 0 ? Math.max(3, (amt / topMax) * 100) : 0}%` }} /></div>
                       <div className="ta-rank-meta">
                         <span>{t("todayStats.qtySold", "{{n}} sold", { n: Number(it.qty || 0) })}</span>
-                        <span>{share}%</span>
+                        <span>{formatNum(share)}%</span>
                       </div>
                     </div>
                   </li>

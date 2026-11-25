@@ -3,7 +3,8 @@ import { createPortal } from "react-dom"
 import { X, Plus, Minus, PackagePlus, PackageMinus, ClipboardCheck, History, Boxes, AlertTriangle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { call, invalidateApiCache, stockInfo, formatQty, updateItemStockInStorageAndCache } from "../../lib/utils"
-import { formatQtyUnit, unitLabel } from "../../lib/units"
+import { formatStockQty, unitLabel } from "../../lib/units"
+import { StockQtyInput } from "./StockQtyInput"
 import { ButtonLoader, Spinner } from "./Skeleton"
 import "../../styles/Stock.css"
 
@@ -26,7 +27,7 @@ const fmtDate = (iso) => {
 export function StockModal({ item, isOpen, onClose, onSaved }) {
   // loose items (kg, litre, ...) show their unit next to every count
   const uLabel = unitLabel(item?.unit)
-  const fq = (n) => formatQtyUnit(n, item?.unit)
+  const fq = (n) => formatStockQty(n, item?.unit)
   const { t } = useTranslation()
   const info = stockInfo(item)
   const [mode, setMode] = useState("add")
@@ -222,16 +223,13 @@ export function StockModal({ item, isOpen, onClose, onSaved }) {
           </label>
           <div className="stock-qty-row">
             <button type="button" className="stock-step" onClick={() => bump(-1)} disabled={saving} aria-label="-1"><Minus size={16} /></button>
-            <input
+            <StockQtyInput
+              unit={item?.unit}
               id="stock-qty"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="any"
               className="stock-qty-input"
               placeholder="0"
               value={qty}
-              onChange={(e) => { setQty(e.target.value); setError("") }}
+              onChange={(v) => { setQty(v); setError("") }}
               autoFocus
             />
             <button type="button" className="stock-step" onClick={() => bump(1)} disabled={saving} aria-label="+1"><Plus size={16} /></button>
@@ -260,15 +258,12 @@ export function StockModal({ item, isOpen, onClose, onSaved }) {
             </div>
             <div className="stock-field">
               <label className="stock-label" htmlFor="stock-alert">{t("stock.alertLabel", "Low-stock alert at")}</label>
-              <input
+              <StockQtyInput
+                unit={item?.unit}
                 id="stock-alert"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="any"
                 className="stock-input"
                 value={alertQty}
-                onChange={(e) => { setAlertQty(e.target.value); setError("") }}
+                onChange={(v) => { setAlertQty(v); setError("") }}
                 disabled={saving}
               />
             </div>
@@ -338,8 +333,8 @@ export function StockBadge({ item, compact = false, onClick }) {
     : info.level === "out"
       ? t("stock.outOfStock", "Out of stock")
       : info.level === "low"
-        ? t("stock.lowCount", "Low: {{n}} left", { n: formatQtyUnit(info.qty, item?.unit) })
-        : t("stock.countShort", "{{n}} in stock", { n: formatQtyUnit(info.qty, item?.unit) })
+        ? t("stock.lowCount", "Low: {{n}} left", { n: formatStockQty(info.qty, item?.unit) })
+        : t("stock.countShort", "{{n}} in stock", { n: formatStockQty(info.qty, item?.unit) })
   const Tag = onClick ? "button" : "span"
   return (
     <Tag

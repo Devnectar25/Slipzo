@@ -554,72 +554,205 @@
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0.75rem 1rem 1.5rem;
   box-sizing: border-box;
 }
 
-.table-billing-header {
+.tb-top-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 0.85rem 1.25rem;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
-.table-billing-header-left {
+.tb-toolbar-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
-.table-billing-header-summary {
-  font-size: 0.85rem;
-  color: #64748b;
+.tb-toolbar-search {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1 1 320px;
+  min-width: 0;
+  margin-bottom: 0 !important;
+}
+
+.tb-editing-pill {
+  font-size: 0.72rem;
   font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
   white-space: nowrap;
 }
 
 .table-billing-back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  background: #f1f5f9;
+  gap: 0.4rem;
+  background: #ffffff;
   color: #334155;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  padding: 0.5rem 0.85rem;
+  border: 1px solid #d5e0eb;
+  border-radius: 12px;
+  height: 48px;
+  padding: 0 0.9rem;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .table-billing-back-btn:hover {
-  background: #e2e8f0;
+  background: #f8fafc;
+  border-color: #94a3b8;
   color: #0f172a;
 }
 
 .table-billing-title-box {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-wrap: nowrap;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .table-billing-title {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
   margin: 0;
   white-space: nowrap;
+}
+
+.tb-menu-card-header {
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+}
+
+/* the table, its status and "My Menu Items" on one line (it wraps only when there is no room) */
+.tb-menu-card-titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  min-width: 0;
+}
+
+.tb-menu-card-titles .tb-menu-card-title-group {
+  padding-left: 0.9rem;
+  border-left: 1px solid #d5e0eb;
+}
+
+.tb-menu-card-titles .nb-menu-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* no room for one line (tablets, phones): the table and "Add More Items" first, "My Menu Items" below */
+@media (max-width: 1150px) {
+  .tb-menu-card-titles {
+    display: contents;
+  }
+
+  .tb-menu-card-titles .tb-menu-card-title-group {
+    order: 1;
+    width: 100%;
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+.tb-menu-card-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tb-add-more-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  border-radius: 9px;
+  padding: 0.38rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tb-add-more-inline-btn:hover {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #0369a1;
+}
+
+.tb-bill-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 0.75rem;
+}
+
+.tb-bill-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.tb-bill-back-btn {
+  height: 36px;
+  padding: 0 0.7rem;
+  border-radius: 9px;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.tb-bill-title-wrap {
+  min-width: 0;
+}
+
+.tb-bill-title-line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.tb-bill-card-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0C1F41;
+  margin: 0;
+}
+
+.tb-bill-table-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
 }
 
 .table-scan-barcode-btn {
@@ -1453,13 +1586,12 @@
   }
 
   .table-billing-workspace {
-    padding: 0.5rem 0.35rem 0;
+    padding: 0.5rem 0.35rem 1rem;
   }
 
-  .table-billing-header {
-    padding: 0.65rem 0.75rem;
-    border-radius: 12px;
-    gap: 0.5rem;
+  .tb-top-toolbar {
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
   }
 
   .table-billing-title {
@@ -1606,29 +1738,30 @@
     padding: 0.35rem 0.25rem 0;
   }
 
-  .table-billing-header {
-    padding: 0.6rem 0.65rem;
-    border-radius: 12px;
-    margin-bottom: 0.65rem;
-    gap: 0.4rem;
+  .tb-top-toolbar {
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
   }
 
-  .table-billing-header-left {
-    width: 100%;
-    justify-content: space-between;
-    gap: 0.4rem;
+  /* back button and search on one line */
+  .tb-top-toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .tb-toolbar-search {
+    flex: 1 1 0;
   }
 
   .table-billing-back-btn {
-    padding: 0.38rem 0.6rem;
-    font-size: 0.76rem;
-    border-radius: 8px;
+    height: 36px;
+    padding: 0 0.65rem;
+    font-size: 0.78rem;
+    border-radius: 9px;
     gap: 0.3rem;
   }
 
   .table-billing-title-box {
     gap: 0.4rem;
-    flex-wrap: nowrap;
   }
 
   .table-billing-title {
@@ -1642,13 +1775,22 @@
     white-space: nowrap;
   }
 
-  .table-billing-header-summary {
-    width: 100%;
-    font-size: 0.78rem;
-    padding-top: 0.3rem;
-    border-top: 1px dashed #e2e8f0;
-    display: flex;
-    justify-content: space-between;
+  /* first line: the table and "Add More Items"; second line: "My Menu Items" */
+  .tb-menu-card-header {
+    gap: 0.4rem;
+  }
+
+  .tb-add-more-inline-btn {
+    margin-left: auto;
+    padding: 0.32rem 0.5rem;
+    min-height: 36px !important;
+    font-size: 0.74rem;
+    border-radius: 8px;
+  }
+
+  .tb-bill-card-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .table-menu-search-row {
@@ -1697,10 +1839,6 @@
   .table-cat-chip {
     padding: 0.32rem 0.65rem;
     font-size: 0.74rem;
-  }
-
-  .nb-desktop-layout {
-    margin-top: 0.4rem !important;
   }
 
   .nb-menu-card-container {

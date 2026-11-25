@@ -37,7 +37,7 @@ import {
   Barcode as BarcodeIcon,
   Percent
 } from "lucide-react"
-import { call, money, getCachedData, setCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, updateItemStockInStorageAndCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo, formatQty } from "../lib/utils"
+import { call, money, shortMoney, getCachedData, setCachedData, getStoredMenuItems, saveStoredMenuItems, clearStoredMenuItems, getCurrentUserKey, invalidateApiCache, updateItemStockInStorageAndCache, isMenuCategory, DEFAULT_SHOP_MENU_ITEMS, DEFAULT_KIRANA_MENU_ITEMS, getFallbackCatalogForCategory, isInventoryShop, stockInfo, formatQty } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { Spinner, ButtonLoader, CardSkeleton } from "./common/Skeleton"
 import { useTranslation } from "react-i18next"
@@ -52,9 +52,10 @@ import { StockModal, StockBadge, InventorySummary } from "./common/StockModal"
 import Swal from "sweetalert2"
 import "../styles/Menu.css"
 import { LooseUnitPicker } from "./common/LooseUnitPicker"
+import { StockQtyInput } from "./common/StockQtyInput"
 import { GstPicker } from "./common/GstPicker"
 import { shopUsesGst, normalizeGstRate, withGst } from "../lib/gst"
-import { unitLabel, formatQtyUnit, isLooseItem } from "../lib/units"
+import { unitLabel, formatStockQty, isLooseItem } from "../lib/units"
 
 const getCustomItemCategoryIcon = (category) => {
   const c = String(category || "").toLowerCase()
@@ -1210,7 +1211,7 @@ export function Menu({ setView, requireAuth, user }) {
       }
 
       toastSuccess(stockFields
-        ? t("menu.toastUpdatedStock", "Updated \"{{name}}\": {{n}} in stock", { name: trimmedName, n: formatQtyUnit(stockFields.stock_qty, editUnit) })
+        ? t("menu.toastUpdatedStock", "Updated \"{{name}}\": {{n}} in stock", { name: trimmedName, n: formatStockQty(stockFields.stock_qty, editUnit) })
         : t("menu.toastUpdated", "Updated \"{{name}}\"", { name: trimmedName }))
       handleCloseEditModal()
     } catch (err) {
@@ -1498,7 +1499,7 @@ export function Menu({ setView, requireAuth, user }) {
                             {tDb(item.category || "General")}
                           </span>
                           <div className="mob-item-price-status">
-                            <span className="mob-item-price">{money(usesGst ? withGst(item.price, item.gst_rate) : item.price)}{item.unit && <span className="loose-per-unit">/ {unitLabel(item.unit)}</span>}</span>
+                            <span className="mob-item-price">{shortMoney(usesGst ? withGst(item.price, item.gst_rate) : item.price)}{item.unit && <span className="loose-per-unit">/ {unitLabel(item.unit)}</span>}</span>
                             {isItemActive && (
                               <span className="mob-item-active-status">
                                 <span className="mob-status-dot" /> {t("menu.statusActive", "Active")}
@@ -1696,7 +1697,7 @@ export function Menu({ setView, requireAuth, user }) {
                   )}
                 </div>
 
-                <div className="menu-cards-grid">
+                <div className={`menu-cards-grid ${isInventory ? "compact-boxes" : ""}`}>
                   {paginatedCatalogItems.map((catItem) => {
                     const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
                     const isFav = favorites?.has?.(catItem.id)
@@ -1720,7 +1721,6 @@ export function Menu({ setView, requireAuth, user }) {
                               {getItemPlaceholderIcon(catItem.category, 26)}
                             </div>
                           )}
-                          <span className="menu-card-overlay-cat">{tDb(catItem.category || "General")}</span>
                           {showBarcode && catItem.barcode && (
                             <span className="menu-card-barcode-badge">
                               <BarcodeIcon size={10} /> {catItem.barcode}
@@ -1732,8 +1732,9 @@ export function Menu({ setView, requireAuth, user }) {
                           <h4 className="menu-card-item-name" title={catItem.name}>
                             {tDb(catItem.name)}
                           </h4>
+                          <span className="menu-card-cat">{tDb(catItem.category || "General")}</span>
                           <div className="menu-card-price-row">
-                            <span className="catalog-card-base-price">{money(catItem.price)}</span>
+                            <span className="catalog-card-base-price" style={{ "--len": shortMoney(catItem.price).length }}>{shortMoney(catItem.price)}</span>
                           </div>
                         </div>
 
@@ -1973,7 +1974,7 @@ export function Menu({ setView, requireAuth, user }) {
                 ) : (
 
               <>
-                <div className="menu-cards-grid">
+                <div className={`menu-cards-grid ${isInventory ? "compact-boxes" : ""}`}>
                   {paginatedUserItems.map((item) => {
                     const isItemActive = item.is_active !== undefined ? Boolean(item.is_active) : true
                     return (
@@ -1993,7 +1994,6 @@ export function Menu({ setView, requireAuth, user }) {
                               {getItemPlaceholderIcon(item.category, 28)}
                             </div>
                           )}
-                          <span className="menu-card-overlay-cat">{tDb(item.category || "General")}</span>
                           <span className={`menu-card-status-pill ${isItemActive ? "active" : "inactive"}`}>
                             <span className={`menu-card-status-dot ${isItemActive ? "active" : "inactive"}`} />
                             {isItemActive ? t("menu.active", "Active") : t("menu.deactive", "Deactive")}
@@ -2004,8 +2004,9 @@ export function Menu({ setView, requireAuth, user }) {
                           <h4 className="menu-card-item-name" title={item.name}>
                             {tDb(item.name)}
                           </h4>
+                          <span className="menu-card-cat">{tDb(item.category || "General")}</span>
                           <div className="menu-card-price-row">
-                            <span className="menu-card-selling-price">{money(usesGst ? withGst(item.price, item.gst_rate) : item.price)}{item.unit && <span className="loose-per-unit">/ {unitLabel(item.unit)}</span>}</span>
+                            <span className="menu-card-selling-price">{shortMoney(usesGst ? withGst(item.price, item.gst_rate) : item.price)}{item.unit && <span className="loose-per-unit">/ {unitLabel(item.unit)}</span>}</span>
                           </div>
                           {isInventory && (
                             <div className="menu-card-stock-row">
@@ -2186,7 +2187,7 @@ export function Menu({ setView, requireAuth, user }) {
             </div>
           ) : (
             <>
-              <div className="menu-cards-grid">
+              <div className={`menu-cards-grid ${isInventory ? "compact-boxes" : ""}`}>
                 {paginatedCatalogItems.map((catItem) => {
                   const isAlreadyAdded = catItem.is_added || addedMenuItemIds.has(catItem.id)
                   return (
@@ -2209,7 +2210,6 @@ export function Menu({ setView, requireAuth, user }) {
                             {getItemPlaceholderIcon(catItem.category, 26)}
                           </div>
                         )}
-                        <span className="menu-card-overlay-cat">{tDb(catItem.category || "General")}</span>
                         {showBarcode && catItem.barcode && (
                           <span className="menu-card-barcode-badge">
                             <BarcodeIcon size={10} /> {catItem.barcode}
@@ -2221,8 +2221,9 @@ export function Menu({ setView, requireAuth, user }) {
                         <h4 className="menu-card-item-name" title={catItem.name}>
                           {tDb(catItem.name)}
                         </h4>
+                        <span className="menu-card-cat">{tDb(catItem.category || "General")}</span>
                         <div className="menu-card-price-row">
-                          <span className="catalog-card-base-price">{money(catItem.price)}</span>
+                          <span className="catalog-card-base-price" style={{ "--len": shortMoney(catItem.price).length }}>{shortMoney(catItem.price)}</span>
                         </div>
                       </div>
 
@@ -2490,36 +2491,28 @@ export function Menu({ setView, requireAuth, user }) {
                   <div className="stock-open-row">
                     <div>
                       <label className="menu-modal-label" htmlFor="amm-stock">
-                        {addUnit
-                          ? t("loose.openingRequired", "Opening stock ({{unit}}) *", { unit: unitLabel(addUnit) })
-                          : t("stock.openingRequired", "Opening stock *")}
+                        {t("stock.openingRequired", "Opening stock *")}
                       </label>
-                      <input
+                      <StockQtyInput
+                        unit={addUnit}
                         id="amm-stock"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="any"
                         required
                         className="menu-modal-input"
                         placeholder={addUnit
-                          ? t("loose.openingPlaceholder", "e.g. 100 {{unit}}", { unit: unitLabel(addUnit) })
+                          ? "100"
                           : t("stock.openingPlaceholder", "Pieces you have")}
                         value={addStockQty}
-                        onChange={(e) => setAddStockQty(e.target.value)}
+                        onChange={(v) => setAddStockQty(v)}
                       />
                     </div>
                     <div>
-                      <label className="menu-modal-label" htmlFor="amm-alert">{t("stock.alertLabel", "Low-stock alert at")}{addUnit ? ` (${unitLabel(addUnit)})` : ""}</label>
-                      <input
+                      <label className="menu-modal-label" htmlFor="amm-alert">{t("stock.alertLabel", "Low-stock alert at")}</label>
+                      <StockQtyInput
+                        unit={addUnit}
                         id="amm-alert"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="any"
                         className="menu-modal-input"
                         value={addLowAlert}
-                        onChange={(e) => setAddLowAlert(e.target.value)}
+                        onChange={(v) => setAddLowAlert(v)}
                       />
                     </div>
                   </div>
@@ -2776,8 +2769,8 @@ export function Menu({ setView, requireAuth, user }) {
                   const bumpQty = (d) => { setEditAddQty(formatQty(Math.max(0, add + d))); setEditFormError("") }
                   const chip = {
                     none: [t("stock.notTracked", "Stock not tracked"), "#f1f5f9", "#475569"],
-                    ok: [t("stock.countShort", "{{n}} in stock", { n: formatQtyUnit(s.qty, editUnit) }), "#dcfce7", "#15803d"],
-                    low: [t("stock.lowCount", "Low: {{n}} left", { n: formatQtyUnit(s.qty, editUnit) }), "#fef3c7", "#b45309"],
+                    ok: [t("stock.countShort", "{{n}} in stock", { n: formatStockQty(s.qty, editUnit) }), "#dcfce7", "#15803d"],
+                    low: [t("stock.lowCount", "Low: {{n}} left", { n: formatStockQty(s.qty, editUnit) }), "#fef3c7", "#b45309"],
                     out: [t("stock.outOfStock", "Out of stock"), "#fee2e2", "#b91c1c"]
                   }[s.level]
                   return (
@@ -2792,16 +2785,13 @@ export function Menu({ setView, requireAuth, user }) {
                       </div>
                       <div className="edit-stock-row">
                         <button type="button" className="edit-stock-step" onClick={() => bumpQty(-1)} disabled={isUpdatingPrice} aria-label="-1"><Minus size={16} /></button>
-                        <input
+                        <StockQtyInput
+                          unit={editUnit}
                           id="edit-add-qty"
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="any"
                           className="edit-stock-input"
                           placeholder="0"
                           value={editAddQty}
-                          onChange={(e) => { setEditAddQty(e.target.value); setEditFormError("") }}
+                          onChange={(v) => { setEditAddQty(v); setEditFormError("") }}
                           disabled={isUpdatingPrice}
                         />
                         <button type="button" className="edit-stock-step" onClick={() => bumpQty(1)} disabled={isUpdatingPrice} aria-label="+1"><Plus size={16} /></button>
@@ -2814,7 +2804,7 @@ export function Menu({ setView, requireAuth, user }) {
                       {add > 0 && (
                         <div className="edit-stock-preview">
                           <span>{t("stock.newStock", "New stock")}</span>
-                          <strong>{formatQtyUnit(current, editUnit)} → {formatQtyUnit(current + add, editUnit)}</strong>
+                          <strong>{formatStockQty(current, editUnit)} → {formatStockQty(current + add, editUnit)}</strong>
                         </div>
                       )}
                     </div>
@@ -3191,36 +3181,28 @@ export function Menu({ setView, requireAuth, user }) {
                   <div className="stock-open-row">
                     <div>
                       <label className="menu-modal-label" htmlFor="cp-stock">
-                        {customUnit
-                          ? t("loose.openingRequired", "Opening stock ({{unit}}) *", { unit: unitLabel(customUnit) })
-                          : t("stock.openingRequired", "Opening stock *")}
+                        {t("stock.openingRequired", "Opening stock *")}
                       </label>
-                      <input
+                      <StockQtyInput
+                        unit={customUnit}
                         id="cp-stock"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="any"
                         required
                         className="menu-modal-input"
                         placeholder={customUnit
-                          ? t("loose.openingPlaceholder", "e.g. 100 {{unit}}", { unit: unitLabel(customUnit) })
+                          ? "100"
                           : t("stock.openingPlaceholder", "Pieces you have")}
                         value={customStockQty}
-                        onChange={(e) => setCustomStockQty(e.target.value)}
+                        onChange={(v) => setCustomStockQty(v)}
                       />
                     </div>
                     <div>
-                      <label className="menu-modal-label" htmlFor="cp-alert">{t("stock.alertLabel", "Low-stock alert at")}{customUnit ? ` (${unitLabel(customUnit)})` : ""}</label>
-                      <input
+                      <label className="menu-modal-label" htmlFor="cp-alert">{t("stock.alertLabel", "Low-stock alert at")}</label>
+                      <StockQtyInput
+                        unit={customUnit}
                         id="cp-alert"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="any"
                         className="menu-modal-input"
                         value={customLowAlert}
-                        onChange={(e) => setCustomLowAlert(e.target.value)}
+                        onChange={(v) => setCustomLowAlert(v)}
                       />
                     </div>
                   </div>

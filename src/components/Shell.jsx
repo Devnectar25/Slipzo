@@ -589,7 +589,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
               </div>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <b style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {user?.name || "User"}
+                  {user?.name || t("shell.user", "User")}
                 </b>
                 <small style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px' }}>
                   {user?.staff_of ? `${t("profile.staffOf", "Staff at")} ${user.staff_of.shop_name}` : (user?.email || (user?.phone ? `+91 ${user.phone}` : ""))}
@@ -742,7 +742,7 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
                   <div className="shell-profile-head">
                     <span className="shell-profile-avatar lg">{(user?.name || "S").trim().charAt(0).toUpperCase()}</span>
                     <div className="shell-profile-who">
-                      <b>{user?.name || "User"}</b>
+                      <b>{user?.name || t("shell.user", "User")}</b>
                       <small>{user?.staff_of ? `${t("profile.staffOf", "Staff at")} ${user.staff_of.shop_name}` : (user?.email || (user?.phone ? `+91 ${user.phone}` : ""))}</small>
                     </div>
                   </div>

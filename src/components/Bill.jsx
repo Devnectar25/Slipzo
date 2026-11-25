@@ -14,7 +14,6 @@ import {
   Plus,
   Printer,
   Trash2,
-  CheckCircle2,
   X,
   Search,
   Check,
@@ -46,6 +45,7 @@ import {
 import {
   call,
   money,
+  shortMoney,
   getItemRate,
   findTemplateMatch,
   canPrintFree,
@@ -81,7 +81,7 @@ import { LooseQtyModal } from "./common/LooseQtyModal"
 import { shopPaymentModes, shopDefaultPaymentMode } from "../lib/paymentModes"
 import { UpiPayCard } from "./common/UpiQr"
 import { shopUsesGst, shopShowsGstOnBill, itemGstRate, menuItemRate, gstSummary } from "../lib/gst"
-import { isLooseItem, normalizeUnit, unitLabel, formatQtyUnit, roundQty } from "../lib/units"
+import { isLooseItem, normalizeUnit, unitLabel, formatQtyUnit, formatStockQty, roundQty } from "../lib/units"
 import { EmptyMenuGuide } from "./common/EmptyMenuGuide"
 import { productGroupOf, productGroupChips, productGroupLabel, shopKindOf } from "../lib/productGroups"
 
@@ -604,7 +604,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
   // Pagination for My Menu Items on New Bill page
   const [menuPage, setMenuPage] = useState(1)
-  const menuPageSize = 6
+  const menuPageSize = 12 // full rows with 2, 3, 4 or 6 product boxes per row
 
   // Reset page when search or category filter changes
   useEffect(() => {
@@ -666,7 +666,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
     playScanErrorBeep()
     toastError(max <= 0
       ? t("stock.warnOut", "\"{{name}}\" is out of stock", { name: menuItem.name })
-      : t("stock.warnShort", "Only {{n}} of \"{{name}}\" left in stock", { n: formatQtyUnit(max, menuItem.unit), name: menuItem.name }))
+      : t("stock.warnShort", "Only {{n}} of \"{{name}}\" left in stock", { n: formatStockQty(max, menuItem.unit), name: menuItem.name }))
     return true
   }
   // after a bill is saved the server has taken the sold pieces out of stock: show the new counts
@@ -1549,7 +1549,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
           return (
             <div className="nbd-success-wrapper fade-in" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1.25rem", width: "100%", maxWidth: "960px", margin: "12px auto 40px", padding: "0 1rem", boxSizing: "border-box" }}>
               <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: "1.5rem", width: "100%", alignItems: "flex-start" }}>
-                {/* 1. Payment Collected Confirmation Card */}
+                {/* 1. The bill: amount, paper size, print */}
                 <div className={`nbd ${printed ? "is-printed" : "is-saved"}`} style={{ flex: "1 1 420px", maxWidth: "460px", margin: 0, position: "relative" }} data-testid="bill-done">
                   {!printed && (
                     <button
@@ -1563,24 +1563,15 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                     </button>
                   )}
                   <div className="nbd-hero">
-                    <span className="nbd-badge" style={{ background: "#16a34a", boxShadow: "0 0 0 8px #dcfce7, 0 10px 24px rgba(22, 163, 74, 0.2)" }}>
-                      <CheckCircle2 size={34} color="#ffffff" strokeWidth={2.5} />
-                    </span>
-                    <span className="nbd-status" style={{ background: "#dcfce7", color: "#15803d", borderColor: "#bbf7d0" }}>
-                      ✓ {t("bills.paymentCollected", "Payment Collected")}
-                    </span>
-                    <h2 className="nbd-title" style={{ color: "#0f172a" }}>
-                      {printed ? t("bills.donePrinted", "Bill printed") : t("bills.paymentCollectedSuccess", "Payment Collected Successfully")}
-                    </h2>
-                    <div className="nbd-amount" style={{ color: "#15803d" }}>{money(total)}</div>
+                    {printed && <h2 className="nbd-title">{t("bills.donePrinted", "Bill printed")}</h2>}
+                    <div className="nbd-amount">{money(total)}</div>
                     <div className="nbd-meta">
                       {billNo && <span className="nbd-chip">#{billNo}</span>}
-                      <span className="nbd-chip" style={{ background: "#f0fdf4", color: "#166534", borderColor: "#bbf7d0" }}>
-                        {t("bills.paidVia", "Paid via {{mode}}", { mode: tDb(payment) })}
+                      <span className="nbd-meta-line">
+                        {formatNum(doneItems.length)} {doneItems.length === 1 ? t("bills.item", "item") : t("bills.items", "items")}
+                        <span className="nbd-dot" aria-hidden="true" />
+                        {formattedDate}
                       </span>
-                      <span>{t("bills.itemsCount", "{{n}} items", { n: doneItems.length })}</span>
-                      <span className="nbd-dot" aria-hidden="true" />
-                      <span>{formattedDate}</span>
                     </div>
                   </div>
 
@@ -1935,7 +1926,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                 ) : (
                   <>
                     {/* Menu Item Cards List */}
-                    <div className="nb-menu-items-list">
+                    <div className={`nb-menu-items-list ${isInventory ? "nb-compact-boxes" : ""}`}>
                       {paginatedMenuItems.map((menuItem) => {
                         const nameKey = (menuItem.name || "").trim().toLowerCase()
                         const addedItem = addedItemMap.get(nameKey)
@@ -1967,8 +1958,15 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
                               <div className="nb-item-info">
                                 <h4 className="nb-item-name" title={menuItem.name}>{tDb(menuItem.name)}</h4>
                                 <span className="nb-item-category">{tDb(menuItem.category || "General")}</span>
-                                <div className="nb-item-price nb-item-price-desktop">
-                                  {money(menuItemRate(menuItem, shop))}
+                                <div
+                                  className="nb-item-price nb-item-price-desktop"
+                                  style={{
+                                    "--len":
+                                      shortMoney(menuItemRate(menuItem, shop)).length +
+                                      (isLooseItem(menuItem) ? Math.ceil((unitLabel(menuItem.unit).length + 2) * 0.72) : 0),
+                                  }}
+                                >
+                                  {shortMoney(menuItemRate(menuItem, shop))}
                                   {isLooseItem(menuItem) && <span className="loose-per-unit">/ {unitLabel(menuItem.unit)}</span>}
                                 </div>
                                 {isInventory && stockInfo(menuItem).tracked && (
@@ -1981,7 +1979,7 @@ export function Bill({ user, requireAuth, setView, setSelectedBillId, shop: init
 
                             <div className="nb-item-actions-wrapper">
                               <div className="nb-item-price nb-item-price-mobile">
-                                {money(menuItemRate(menuItem, shop))}
+                                {shortMoney(menuItemRate(menuItem, shop))}
                                 {isLooseItem(menuItem) && <span className="loose-per-unit">/ {unitLabel(menuItem.unit)}</span>}
                               </div>
 

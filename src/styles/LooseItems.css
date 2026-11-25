@@ -248,8 +248,11 @@
   min-width: 0;
   height: 100%;
   padding: 0 14px;
-  border: none;
-  background: transparent;
+  /* !important: the app's general field styles draw a second border inside this one */
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
   font-size: 1.35rem;
   font-weight: 800;
   color: #0c1f41;
@@ -261,6 +264,43 @@
   font-size: 1rem;
   font-weight: 800;
   color: #0284c7;
+}
+/* unit list: kg / g, L / ml */
+.loose-qty-unit {
+  position: relative;
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  border-left: 1.5px solid #e2e8f0;
+  color: #0284c7;
+}
+.loose-qty-unit select {
+  width: auto !important;
+  min-width: 76px;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 34px 0 16px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: 1rem !important;
+  font-weight: 800;
+  color: #0284c7 !important;
+  cursor: pointer;
+  outline: none;
+}
+.loose-qty-unit select:focus-visible { background: #e0f2fe !important; }
+.loose-qty-unit option { color: #0c1f41; background: #ffffff; }
+.loose-qty-unit svg {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
 }
 .loose-qty-presets {
   display: flex;
@@ -306,6 +346,7 @@
   color: #334155;
 }
 .loose-qty-total strong { font-size: 1.15rem; color: #0284c7; }
+.loose-qty-own { margin-left: 8px; font-size: 0.78rem; font-weight: 600; color: #64748b; }
 .loose-qty-actions {
   display: flex;
   gap: 10px;
@@ -323,3 +364,67 @@
 .loose-qty-cancel:hover { background: #f8fafc; }
 .loose-qty-confirm { border: none; background: #0284c7; color: #ffffff; }
 .loose-qty-confirm:hover { background: #0369a1; }
+
+/* ============ Stock amount with its unit list (kg / g, L / ml) ============ */
+.stock-unit-field {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+.stock-unit-field > input {
+  width: 100% !important;
+  box-sizing: border-box;
+  padding-right: 64px !important;
+}
+/* the up/down arrows would sit under the unit list */
+.stock-unit-field > input::-webkit-inner-spin-button,
+.stock-unit-field > input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.stock-unit-field > input { -moz-appearance: textfield; appearance: textfield; }
+.stock-unit-pick {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: auto;
+  display: flex;
+  align-items: center;
+  height: calc(100% - 2px);
+  color: #0284c7;
+}
+.stock-unit-field:has(.stock-unit-own) .stock-unit-pick { height: calc(100% - 22px); }
+.stock-unit-pick select {
+  width: 60px !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 22px 0 10px !important;
+  border: none !important;
+  border-left: 1px solid #dbe6f1 !important;
+  border-radius: 0 10px 10px 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: 0.88rem !important;
+  font-weight: 700;
+  color: #0284c7 !important;
+  cursor: pointer;
+  outline: none;
+}
+.stock-unit-pick select:focus-visible { background: #e0f2fe !important; }
+.stock-unit-pick option { color: #0c1f41; background: #ffffff; }
+.stock-unit-pick svg { position: absolute; right: 7px; pointer-events: none; }
+.stock-unit-own {
+  display: block;
+  height: 20px;
+  padding-top: 3px;
+  box-sizing: border-box;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 17px;
+  text-align: left;
+  color: #15803d;
+}

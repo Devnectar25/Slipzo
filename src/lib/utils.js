@@ -520,6 +520,9 @@ export const money = (n, customLang) => {
   return `₹${formatted}`
 }
 
+/** A price without the zeros nobody needs: ₹168.00 → ₹168 (₹35.70 stays ₹35.70) */
+export const shortMoney = (n, customLang) => money(n, customLang).replace(/\.(00|००)$/, "")
+
 export const now = () => new Date().toISOString()
 
 // A worker's balance, items and tables are the shop's, not those of their own account: kept under a key of their own
