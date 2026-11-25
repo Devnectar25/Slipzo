@@ -76,11 +76,12 @@ i18n.on('languageChanged', (lng) => {
 
 export const changeAppLanguage = async (languageCode) => {
   if (!['en', 'hi', 'mr'].includes(languageCode)) return;
-  await i18n.changeLanguage(languageCode);
+  // saved first: prices read it from here, and the page draws itself again as soon as the language changes
   if (typeof window !== 'undefined') {
     localStorage.setItem('slipzo_language', languageCode);
     localStorage.setItem('i18nextLng', languageCode);
   }
+  await i18n.changeLanguage(languageCode);
   return languageCode;
 };
 

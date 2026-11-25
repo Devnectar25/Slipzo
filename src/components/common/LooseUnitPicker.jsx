@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next"
 import { Scale } from "lucide-react"
-import { LOOSE_UNITS, normalizeUnit } from "../../lib/units"
+import { OFFERED_UNITS, normalizeUnit } from "../../lib/units"
 import "../../styles/LooseItems.css"
 
 /**
  * "Loose item" switch for the add / edit item forms. Off = counted in pieces (unit "").
- * On = sold by a measuring unit (kg, g, L, ml, m, dozen); stock and bills then use that unit.
+ * On = sold by a measuring unit (kg, g, L, ml); stock and bills then use that unit.
  */
 export function LooseUnitPicker({ unit, onChange, disabled = false }) {
   const { t } = useTranslation()
@@ -35,7 +35,7 @@ export function LooseUnitPicker({ unit, onChange, disabled = false }) {
         <div className="loose-units" role="radiogroup" aria-label={t("loose.measureIn", "Measure in")}>
           <span className="loose-units-label">{t("loose.measureIn", "Measure in")}</span>
           <div className="loose-units-chips">
-            {LOOSE_UNITS.map((u) => (
+            {OFFERED_UNITS.map((u) => (
               <button
                 key={u.id}
                 type="button"

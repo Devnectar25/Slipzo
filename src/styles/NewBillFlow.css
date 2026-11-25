@@ -455,9 +455,8 @@
   color: #74788A;
 }
 
-/* items: always two per row. When the list is narrow the cards stack vertically (see the @container nb-items rules) */
+/* the items: see "Product boxes" below for the columns and the boxes */
 .nb-menu-items-list {
-  container: nb-items / inline-size;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;
@@ -1912,7 +1911,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 30px 24px 22px;
+  padding: 28px 24px 4px;
   background:
     radial-gradient(360px 160px at 50% 0%, var(--nbd-soft), transparent 70%),
     #ffffff;
@@ -1972,13 +1971,24 @@
 
 .nbd-meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6px 8px;
-  margin-top: 8px;
-  font-size: 0.84rem;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.86rem;
   color: #64748b;
+}
+
+/* items and date stay together on one line */
+.nbd-meta-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.nbd-meta-line .nbd-dot {
+  margin: 0 5px;
 }
 
 .nbd-chip {
@@ -2150,407 +2160,339 @@
   }
 }
 
-/* ============ New Bill item cards: compact grid layout (tablets and desktop) ============
-   picture on the left; on the right the name (full width), then price + category, then stock + Add on one line.
-   The Add button no longer takes its own column, so names get the room and the card has no empty space. */
-@media (min-width: 681px) {
-  .nb-menu-items-list .nb-item-card {
-    display: grid;
-    grid-template-columns: 88px auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      "img name  name  name"
-      "img price cat   cat"
-      "img stock stock actions";
-    align-items: center;
-    column-gap: 12px;
-    row-gap: 4px;
-    padding: 10px 12px;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-left,
-  .nb-menu-items-list .nb-item-card .nb-item-info {
-    display: contents;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-thumb,
-  .nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder {
-    grid-area: img;
-    align-self: center;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-name {
-    grid-area: name;
-    align-self: end;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-price-desktop {
-    grid-area: price;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-category {
-    grid-area: cat;
-    align-self: center;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-stock {
-    grid-area: stock;
-    align-self: center;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-actions-wrapper {
-    grid-area: actions;
-    justify-self: end;
-    margin-left: 0;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-add-btn {
-    height: 36px;
-    padding: 0 14px;
-    font-size: 0.84rem;
-    border-radius: 9px;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-qty-btn,
-  .nb-menu-items-list .nb-item-card .nb-item-del-btn {
-    width: 30px;
-    height: 30px;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-qty-controls-group {
-    gap: 6px;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-stock .stock-badge {
-    white-space: nowrap;
-  }
-
-  /* item already on the bill: the quantity controls (- 1 + delete) are too wide to share the stock line,
-     so they get their own line under it, on the right */
-  .nb-menu-items-list .nb-item-card:has(.nb-qty-controls-group) {
-    grid-template-areas:
-      "img name    name    name"
-      "img price   cat     cat"
-      "img stock   stock   stock"
-      "img actions actions actions";
-  }
-
-  /* no stock tracking: no empty line above the controls */
-  .nb-menu-items-list .nb-item-card:has(.nb-qty-controls-group):not(:has(.nb-item-stock)) {
-    grid-template-areas:
-      "img name    name    name"
-      "img price   cat     cat"
-      "img actions actions actions";
-  }
+/* ============ Product boxes (New Bill and table billing) ============
+   One box per product: the picture on top; under it, centered, the price and ADD on one line, then the name,
+   the category and the stock.
+   As many per row as fit: two on a phone, more on wider lists. */
+.nb-menu-items-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(138px, 44%), 1fr));
+  gap: 12px;
 }
 
-/* ============ Compact item list (phones, tablets, or a side panel taking room): two product cards per row ============
-   Shared look first; the layout then depends on how wide each card is:
-   - roomy cards (list 480–659px): square picture on the left, details on the right
-   - narrow cards (list under 480px, phones): picture on top, details below
-   No labels are drawn over the picture, so photos stay clean and every text is easy to read. */
-@container nb-items (max-width: 659px) {
-  .nb-menu-items-list {
-    gap: 10px;
-  }
+.nb-menu-items-list .nb-item-card,
+.nb-menu-items-list .nb-item-card:hover,
+.nb-menu-items-list .nb-item-card:active {
+  border: 1px solid #dbe6f1 !important;
+  box-shadow: 0 1px 3px rgba(12, 31, 65, 0.05) !important;
+  transform: none !important;
+}
 
-  .nb-menu-items-list .nb-item-card {
-    display: grid;
-    align-items: center;
-    gap: 0;
-    padding: 0;
-    overflow: hidden;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    background: #ffffff;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px -8px rgba(15, 23, 42, 0.1);
-  }
+.nb-menu-items-list .nb-item-card:hover {
+  border-color: #7dd3fc !important;
+}
 
-  .nb-menu-items-list .nb-item-card:hover {
-    border-color: #bae6fd !important;
-  }
+/* The price and the button share one line: the button has a fixed width (--btn) and the price takes the size that fits
+   beside it (--len = how many characters it has). Only a price too long even at the smallest size wraps. */
+.nb-menu-items-list .nb-item-card {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 0 10px;
+  padding: 0 4px 12px;
+  overflow: hidden;
+  --btn: 66px;
+  container: nb-box / inline-size;
+  border-radius: 14px;
+  background: #ffffff;
+  text-align: center;
+}
 
+.nb-menu-items-list .nb-item-card .nb-item-left,
+.nb-menu-items-list .nb-item-card .nb-item-info {
+  display: contents;
+}
+
+/* picture */
+.nb-menu-items-list .nb-item-card .nb-item-thumb,
+.nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder {
+  order: 1;
+  /* edge to edge, over the box's side padding */
+  flex: 0 0 calc(100% + 8px);
+  width: calc(100% + 8px);
+  max-width: none;
+  margin: 0 -4px;
+  height: auto;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  border: none;
+  border-bottom: 1px solid #edf2f7;
+  border-radius: 0;
+  background: #f5f8ff;
+}
+
+/* !important: the app's general rules zoom pictures on hover, which would push this one over its box */
+.nb-menu-items-list .nb-item-card .nb-item-thumb {
+  object-fit: cover;
+  transform: none !important;
+}
+
+.nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder {
+  color: #7dd3fc;
+}
+
+.nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder svg {
+  width: 34px;
+  height: 34px;
+}
+
+/* ADD, or the quantity once the item is on the bill: on the price's line */
+.nb-menu-items-list .nb-item-card .nb-item-actions-wrapper {
+  order: 3;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+  margin: 8px 0 0;
+  padding: 0;
+  border: none;
+}
+
+.nb-menu-items-list .nb-item-card .nb-add-btn {
+  justify-content: center;
+  height: 32px;
+  min-height: 32px !important;
+  /* as wide as the stepper that takes its place, so nothing moves when an item is added */
+  width: var(--btn);
+  min-width: 0;
+  padding: 0 8px;
+  border: 1.5px solid #0284c7;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #0284c7;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-transform: uppercase;
+  /* !important: the app's general button glow and lift would push it off the price's line */
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.nb-menu-items-list .nb-item-card .nb-add-btn svg {
+  display: none;
+}
+
+.nb-menu-items-list .nb-item-card .nb-add-btn:hover,
+.nb-menu-items-list .nb-item-card .nb-add-btn:active {
+  background: #e0f2fe;
+}
+
+/* out of stock */
+.nb-menu-items-list .nb-item-card .nb-add-btn-restock,
+.nb-menu-items-list .nb-item-card .nb-add-btn-out {
+  padding: 0 3px;
+  font-size: 0.68rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+}
+
+.nb-menu-items-list .nb-item-card .nb-qty-controls-group {
+  gap: 0;
+  width: var(--btn);
+  height: 32px;
+  padding: 2px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  background: #0284c7;
+}
+
+.nb-menu-items-list .nb-item-card .nb-qty-btn,
+.nb-menu-items-list .nb-item-card .nb-item-del-btn {
+  flex: 1 1 0;
+  width: auto;
+  height: 28px;
+  min-width: 0 !important;
+  min-height: 28px !important;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+}
+
+.nb-menu-items-list .nb-item-card .nb-qty-btn {
+  background: transparent;
+  color: #ffffff;
+  font-size: 1.05rem;
+}
+
+.nb-menu-items-list .nb-item-card .nb-qty-btn:hover { background: rgba(255, 255, 255, 0.18); }
+
+.nb-menu-items-list .nb-item-card .nb-qty-value {
+  flex: 0 0 auto;
+  min-width: 12px;
+  color: #ffffff;
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+.nb-menu-items-list .nb-item-card .nb-item-del-btn {
+  background: #ffffff;
+  color: #dc2626;
+}
+
+/* "−" on the last piece takes the item off, so the stepper needs no delete button (loose items keep theirs) */
+.nb-menu-items-list .nb-item-card .nb-qty-controls-group:has(.nb-qty-btn) .nb-item-del-btn {
+  display: none;
+}
+
+/* a loose item on the bill: "2.5 kg" */
+.nb-menu-items-list .nb-item-card:has(.loose-line-qty) .nb-item-left,
+.nb-menu-items-list .nb-item-card:has(.loose-line-qty) .nb-item-actions-wrapper {
+  --btn: 80px;
+}
+
+.nb-menu-items-list .nb-item-card .nb-qty-controls-group:has(.loose-line-qty) .nb-item-del-btn {
+  flex: 0 0 22px;
+}
+
+.nb-menu-items-list .nb-item-card .loose-line-qty {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  min-height: 28px !important;
+  padding: 0 2px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #ffffff;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nb-menu-items-list .nb-item-card .loose-line-qty:hover { background: rgba(255, 255, 255, 0.18); }
+
+/* price (a digit is at most 0.64 of the font size wide) */
+.nb-menu-items-list .nb-item-card .nb-item-price-desktop {
+  order: 2;
+  flex: 0 1 auto;
+  display: flex !important;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  min-height: 0;
+  max-width: 100%;
+  margin: 8px 0 0;
+  padding: 0;
+  color: #0284c7;
+  font-size: 1rem;
+  font-size: clamp(10.5px, calc((100cqw - var(--btn) - 11px) / (var(--len, 5) * 0.64)), 1rem);
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* "/ kg" inline next to the price on the same line */
+.nb-menu-items-list .nb-item-card .nb-item-price-desktop .loose-per-unit {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@container nb-box (max-width: 145px) {
   .nb-menu-items-list .nb-item-card .nb-item-left,
-  .nb-menu-items-list .nb-item-card .nb-item-info {
-    display: contents;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-thumb,
-  .nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder {
-    grid-area: img;
-    border: none;
-    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder {
-    color: #38bdf8;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-name {
-    grid-area: name;
-    align-self: end;
-    margin: 0;
-    font-size: 0.84rem;
-    font-weight: 700;
-    line-height: 1.3;
-    color: #0c1f41;
-  }
-
-  /* category: plain small text under the name */
-  .nb-menu-items-list .nb-item-card .nb-item-category {
-    grid-area: cat;
-    align-self: center;
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-stock {
-    grid-area: stock;
-    align-self: center;
-    min-width: 0;
-    margin: 0;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-stock .stock-badge {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.66rem;
-    padding: 2px 7px;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-price-desktop {
-    grid-area: price;
-    align-self: center;
-    display: block !important;
-    min-width: 0;
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 800;
-    line-height: 1.2;
-    color: #0c1f41;
-    white-space: nowrap;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-price-mobile {
-    display: none !important;
-  }
-
   .nb-menu-items-list .nb-item-card .nb-item-actions-wrapper {
-    grid-area: actions;
-    justify-self: end;
-    align-self: center;
-    width: auto;
-    margin: 0;
-    padding: 0;
-    border: none;
+    --btn: 58px;
   }
 
-  /* ADD: solid, clearly a button */
-  .nb-menu-items-list .nb-item-card .nb-add-btn {
-    height: 32px;
-    padding: 0 14px;
-    gap: 4px;
-    border: none;
-    border-radius: 9px;
-    background: #0284c7;
-    color: #ffffff;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0;
-    text-transform: none;
-    box-shadow: 0 2px 6px -1px rgba(2, 132, 199, 0.35);
+  .nb-menu-items-list .nb-item-card:has(.loose-line-qty) .nb-item-left,
+  .nb-menu-items-list .nb-item-card:has(.loose-line-qty) .nb-item-actions-wrapper {
+    --btn: 64px;
   }
 
-  .nb-menu-items-list .nb-item-card .nb-add-btn:hover,
-  .nb-menu-items-list .nb-item-card .nb-add-btn:active {
-    background: #0369a1;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-add-btn-restock {
-    border: 1.5px solid #f59e0b;
-    background: #fffbeb;
-    color: #b45309;
-    box-shadow: none;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-add-btn-out {
-    background: #f1f5f9;
-    color: #94a3b8;
-    box-shadow: none;
-  }
-
-  /* item already on the bill: a filled stepper in the same spot */
-  .nb-menu-items-list .nb-item-card .nb-qty-controls-group {
-    gap: 2px;
-    padding: 3px;
-    border-radius: 9px;
-    background: #0284c7;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-qty-btn {
-    width: 26px;
-    height: 26px;
-    border: none;
-    border-radius: 7px;
-    background: transparent;
-    color: #ffffff;
-    font-size: 1rem;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-qty-btn:hover { background: rgba(255, 255, 255, 0.18); }
-
-  .nb-menu-items-list .nb-item-card .nb-qty-value {
-    min-width: 18px;
-    color: #ffffff;
-    font-size: 0.82rem;
-    font-weight: 800;
-    text-align: center;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-del-btn {
-    width: 26px;
-    height: 26px;
-    margin-left: 2px;
-    border: none;
-    border-radius: 7px;
-    background: rgba(255, 255, 255, 0.95);
-    color: #dc2626;
-  }
-
-  /* loose item on the bill: "2.5 kg" inside the stepper */
   .nb-menu-items-list .nb-item-card .loose-line-qty {
-    height: 26px;
-    padding: 0 8px;
-    border: none;
-    border-radius: 7px;
-    background: transparent;
-    color: #ffffff;
-    font-size: 0.8rem;
-  }
-
-  .nb-menu-items-list .nb-item-card .loose-line-qty:hover { background: rgba(255, 255, 255, 0.18); }
-}
-
-/* roomy cards: square picture on the left, name / category + stock / price + ADD on the right */
-@container nb-items (min-width: 480px) and (max-width: 659px) {
-  .nb-menu-items-list .nb-item-card {
-    grid-template-columns: 84px auto minmax(0, 1fr) auto;
-    grid-template-rows: 1fr auto auto;
-    grid-template-areas:
-      "img name  name  name"
-      "img cat   stock stock"
-      "img price price actions";
-    column-gap: 8px;
-    row-gap: 5px;
-    padding: 10px;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-thumb,
-  .nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder {
-    width: 84px;
-    height: 84px;
-    border-radius: 10px;
-    align-self: center;
-    margin-right: 4px;
-  }
-
-  .nb-menu-items-list .nb-item-card .nb-item-price-desktop {
-    margin-top: 2px;
-  }
-
-  /* on the bill the stepper takes the whole last line */
-  .nb-menu-items-list .nb-item-card:has(.nb-qty-controls-group) {
-    grid-template-rows: 1fr auto auto auto;
-    grid-template-areas:
-      "img name    name    name"
-      "img cat     stock   stock"
-      "img price   price   price"
-      "img actions actions actions";
+    font-size: 0.7rem;
   }
 }
 
-/* smaller roomy cards: the price and the button would collide on one line, so the button gets its own */
-@container nb-items (min-width: 480px) and (max-width: 639px) {
-  .nb-menu-items-list .nb-item-card {
-    grid-template-rows: 1fr auto auto auto;
-    grid-template-areas:
-      "img name    name    name"
-      "img cat     stock   stock"
-      "img price   price   price"
-      "img actions actions actions";
-  }
+.nb-menu-items-list .nb-item-card .nb-item-price-mobile {
+  display: none !important;
 }
 
-/* narrow cards (phones): picture on top, then the details */
-@container nb-items (max-width: 479px) {
-  .nb-menu-items-list .nb-item-card {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto 1fr auto auto auto auto;
-    grid-template-areas:
-      "img   img"
-      "name  name"
-      "cat   cat"
-      "stock stock"
-      "price price"
-      "actions actions";
-  }
+.nb-menu-items-list .nb-item-card .nb-item-name {
+  order: 4;
+  flex: 0 0 100%;
+  margin: 7px 0 0;
+  padding: 0 4px;
+  box-sizing: border-box;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #0f172a;
+  -webkit-line-clamp: 3;
+}
 
-  .nb-menu-items-list .nb-item-card .nb-item-thumb,
-  .nb-menu-items-list .nb-item-card .nb-item-thumb-placeholder {
-    width: 100%;
-    height: 96px;
-    border-radius: 0;
-  }
+.nb-menu-items-list .nb-item-card .nb-item-category {
+  order: 5;
+  flex: 0 0 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin: 4px 0 0;
+  padding: 0;
+  background: none;
+  font-size: 0.77rem;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  .nb-menu-items-list .nb-item-card .nb-item-name {
-    align-self: start;
-    margin: 8px 10px 2px;
-    font-size: 0.8rem;
-  }
+.nb-menu-items-list .nb-item-card .nb-item-stock {
+  order: 6;
+  flex: 0 0 100%;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  margin: 7px 0 0;
+}
 
-  .nb-menu-items-list .nb-item-card .nb-item-category {
-    margin: 0 10px 4px;
-  }
+.nb-menu-items-list .nb-item-card .nb-item-stock .stock-badge {
+  max-width: 100%;
+  white-space: normal;
+}
 
-  .nb-menu-items-list .nb-item-card .nb-item-stock {
-    justify-self: start;
-    margin: 0 10px 6px;
-  }
+/* grocery and clothing: a stock line more, so the box is kept short */
+.nb-menu-items-list.nb-compact-boxes .nb-item-card {
+  padding-bottom: 9px;
+}
 
-  .nb-menu-items-list .nb-item-card .nb-item-price-desktop {
-    margin: 2px 10px 6px;
-    font-size: 0.92rem;
-    white-space: normal;
-  }
+.nb-menu-items-list.nb-compact-boxes .nb-item-card .nb-item-thumb,
+.nb-menu-items-list.nb-compact-boxes .nb-item-card .nb-item-thumb-placeholder {
+  aspect-ratio: 3 / 2;
+}
 
-  /* the price and the button do not fit side by side in a card this narrow: the button gets the whole bottom line */
-  .nb-menu-items-list .nb-item-card .nb-item-actions-wrapper {
-    justify-self: stretch;
-    margin: 0 10px 10px;
-  }
+.nb-menu-items-list.nb-compact-boxes .nb-item-card .nb-item-actions-wrapper,
+.nb-menu-items-list.nb-compact-boxes .nb-item-card .nb-item-price-desktop {
+  margin-top: 7px;
+}
 
-  /* !important: the general mobile rule in App.css makes every button 44px tall */
-  .nb-menu-items-list .nb-item-card .nb-add-btn {
-    justify-content: center;
-    width: 100%;
-    height: 38px;
-    min-height: 38px !important;
-    padding: 0 8px;
-  }
+.nb-menu-items-list.nb-compact-boxes .nb-item-card .nb-item-name {
+  margin-top: 5px;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  -webkit-line-clamp: 2;
+}
 
-  .nb-menu-items-list .nb-item-card .nb-qty-controls-group {
-    justify-content: space-between;
-    width: 100%;
-  }
+.nb-menu-items-list.nb-compact-boxes .nb-item-card .nb-item-category {
+  margin-top: 2px;
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+.nb-menu-items-list.nb-compact-boxes .nb-item-card .nb-item-stock {
+  margin-top: 5px;
 }
 
 /* ============ Product group filter chips (New Bill and table billing) ============ */
@@ -2685,26 +2627,33 @@
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
+/* the amount starts below "Back to bill", never beside it */
+.nbd-back-btn ~ .nbd-hero { padding-top: 60px; }
 .nbd-back-btn:hover { border-color: #93c5fd; color: #0284c7; background: #ffffff; }
 .nbd-back-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* phones: "Back to bill" has its own line, so it never covers the tick; buttons grow with large text */
+/* phones: "Back to bill" has its own line above the amount; buttons grow with large text */
 @media (max-width: 480px) {
   .nbd-back-btn {
-    position: static;
-    margin: 12px 0 0 12px;
+    top: 12px;
+    left: 12px;
     height: auto;
     min-height: 38px !important;
   }
+
+  .nbd-back-btn ~ .nbd-hero { padding-top: 64px; }
+
+  /* the three sizes fill the row */
+  .nbd-paper-size .nb-paper-size-options { display: flex; width: 100%; box-sizing: border-box; }
+  .nbd-paper-size .nb-paper-size-btn { flex: 1; min-width: 0; padding: 0 4px; }
+
+  .nbd-row .nbd-btn { font-size: 0.86rem; gap: 5px; padding: 8px 6px; }
+  .nbd-row { grid-template-columns: 3fr 2fr; }
 
   .nbd-btn {
     height: auto;
     min-height: 46px !important;
     padding: 8px 10px;
     line-height: 1.2;
-  }
-
-  .nbd-back-btn + .nbd-hero {
-    padding-top: 12px;
   }
 }

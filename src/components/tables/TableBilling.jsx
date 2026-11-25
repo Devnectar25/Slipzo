@@ -16,7 +16,6 @@ import {
   CreditCard,
   Check,
   X,
-  FileText,
   Barcode as BarcodeIcon,
   Tag,
   Percent
@@ -26,6 +25,7 @@ import { useDbTranslation } from "../../lib/translator"
 import {
   call,
   money,
+  shortMoney,
   getCachedData,
   findTemplateMatch,
   getItemRate,
@@ -982,47 +982,21 @@ export function TableBilling({
 
   return (
     <div className={`table-billing-workspace fade-in ${step === "order" && items.length > 0 ? "has-order-bar" : ""}`} ref={workspaceRef}>
-      {/* Top Header */}
-      <div className="table-billing-header">
-        <div className="table-billing-header-left">
-          <button
-            type="button"
-            className="table-billing-back-btn"
-            onClick={step === "bill" ? () => setStep("order") : handleBackClick}
-            disabled={step === "bill" && isSaving}
-          >
-            <ArrowLeft size={16} />
-            <span>{step === "bill" ? t("tables.backToItems", "Items") : t("tables.backToTables", "Tables")}</span>
-          </button>
-
-          <div className="table-billing-title-box">
-            <h2 className="table-billing-title">
-              {getTableDisplayName(table, t, formatNum)}
-            </h2>
-            <span className={`table-status-badge ${isOccupied ? "badge-occupied" : "badge-available"}`}>
-              <span className="status-dot" />
-              {isOccupied ? t("tables.occupied", "Occupied") : t("tables.available", "Available")}
-            </span>
-            {table.editing_bill_number && (
-              <span style={{ fontSize: "0.72rem", fontWeight: "700", padding: "2px 8px", borderRadius: "6px", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", marginLeft: "6px" }}>
-                ✏️ Editing Bill #{table.editing_bill_number}
-              </span>
-            )}
+      {/* Borderless Top Bar for Item Selection Step */}
+      {step === "order" && (
+        <div className="tb-top-toolbar">
+          <div className="tb-toolbar-left">
+            <button
+              type="button"
+              className="table-billing-back-btn"
+              onClick={handleBackClick}
+            >
+              <ArrowLeft size={16} />
+              <span>{t("tables.backToTables", "Tables")}</span>
+            </button>
           </div>
-        </div>
 
-        <div className="table-billing-header-summary">
-          {totalItemsCount} {totalItemsCount === 1 ? t("history.item", "item") : t("history.items", "items")} • {money(total)}
-        </div>
-      </div>
-
-      {/* Main Split Layout */}
-      <div className={step === "bill" ? "tb-bill-step" : "nb-desktop-layout"} style={{ marginTop: "1rem" }}>
-        {/* LEFT COLUMN: Menu Items */}
-        {step === "order" && (
-        <div className="nb-left-col">
-          {/* Search & Inputs */}
-          <div className="table-menu-search-row">
+          <div className="table-menu-search-row tb-toolbar-search">
             <div className="table-menu-search-input">
               <Search size={16} color="#64748b" className="table-search-icon" />
               <input
@@ -1059,14 +1033,52 @@ export function TableBilling({
               </button>
             )}
           </div>
+        </div>
+      )}
 
+      {/* Main Split Layout */}
+      <div className={step === "bill" ? "tb-bill-step" : "nb-desktop-layout"}>
+        {/* LEFT COLUMN: Menu Items */}
+        {step === "order" && (
+        <div className="nb-left-col">
           {/* My Menu Items Container */}
           <div className="nb-menu-card-container">
-            <div className="nb-menu-card-header">
-              <h3 className="nb-menu-card-title">{t("bills.myMenuItems", "My Menu Items")}</h3>
-              <span className="nb-menu-items-count">
-                {formatNum(filteredMenuItems.length)} {filteredMenuItems.length === 1 ? t("bills.item", "item") : t("bills.items", "items")}
-              </span>
+            <div className="nb-menu-card-header tb-menu-card-header">
+              <div className="tb-menu-card-titles">
+                <div className="table-billing-title-box">
+                  <h2 className="table-billing-title">
+                    {getTableDisplayName(table, t, formatNum)}
+                  </h2>
+                  <span className={`table-status-badge ${isOccupied ? "badge-occupied" : "badge-available"}`}>
+                    <span className="status-dot" />
+                    {isOccupied ? t("tables.occupied", "Occupied") : t("tables.available", "Available")}
+                  </span>
+                  {table.editing_bill_number && (
+                    <span className="tb-editing-pill">
+                      ✏️ Editing Bill #{table.editing_bill_number}
+                    </span>
+                  )}
+                </div>
+                <div className="tb-menu-card-title-group">
+                  <h3 className="nb-menu-card-title">{t("bills.myMenuItems", "My Menu Items")}</h3>
+                  <span className="nb-menu-items-count">
+                    {formatNum(filteredMenuItems.length)} {filteredMenuItems.length === 1 ? t("bills.item", "item") : t("bills.items", "items")}
+                  </span>
+                </div>
+              </div>
+              {userMenuItems.length > 0 && (
+                <button
+                  type="button"
+                  className="tb-add-more-inline-btn"
+                  onClick={() => {
+                    sessionStorage.setItem("slipzo_menu_initial_tab", "add_items")
+                    setView?.("menu")
+                  }}
+                >
+                  <Plus size={14} />
+                  <span>{t("bills.addMoreItems", "Add More Items")}</span>
+                </button>
+              )}
             </div>
 
             {/* Product group filter chips */}
@@ -1153,15 +1165,15 @@ export function TableBilling({
                         <div className="nb-item-info">
                           <h4 className="nb-item-name" title={item.name}>{tDb(item.name)}</h4>
                           <span className="nb-item-category">{tDb(item.category || "General")}</span>
-                          <div className="nb-item-price nb-item-price-desktop">
-                            {money(price)}
+                          <div className="nb-item-price nb-item-price-desktop" style={{ "--len": shortMoney(price).length }}>
+                            {shortMoney(price)}
                           </div>
                         </div>
                       </div>
 
                       <div className="nb-item-actions-wrapper">
                         <div className="nb-item-price nb-item-price-mobile">
-                          {money(price)}
+                          {shortMoney(price)}
                         </div>
 
                         {currentQty > 0 ? (
@@ -1219,21 +1231,12 @@ export function TableBilling({
         {/* RIGHT COLUMN, step 1: the items added to this table, with their quantity only */}
         {step === "order" && (
         <div className="nb-right-col tb-order-col">
-          <button
-            type="button"
-            className="nb-add-more-items-summary-btn"
-            onClick={() => {
-              sessionStorage.setItem("slipzo_menu_initial_tab", "add_items")
-              setView?.("menu")
-            }}
-          >
-            <Plus size={16} /> {t("bills.addMoreItems", "Add More Items")}
-          </button>
-
           <div className="nb-summary-card tb-order-card">
             <div className="tb-order-head">
               <h4>{t("tables.addedItems", "Added Items")}</h4>
-              <span className="tb-order-count">{t("bills.itemsCount", "{{n}} items", { n: formatNum(items.length) })}</span>
+              <span className="tb-order-count">
+                {formatNum(totalItemsCount)} {totalItemsCount === 1 ? t("history.item", "item") : t("history.items", "items")} • {money(total)}
+              </span>
             </div>
 
             <div className="tb-order-list" ref={orderListRef}>
@@ -1274,22 +1277,37 @@ export function TableBilling({
             </div>
 
             {/* Bill Summary Header */}
-            <div className="nb-summary-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.65rem", borderBottom: "1px solid #e2e8f0", marginBottom: "0.65rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "#f0f9ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#0284c7" }}>
-                  <FileText size={17} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: "0.98rem", fontWeight: 800, color: "#0C1F41", margin: 0 }}>
-                    {t("bills.billSummary", "Bill Summary")}
-                  </h4>
-                  <span style={{ fontSize: "0.72rem", color: "#64748b" }}>
-                    {getTableDisplayName(table, t, formatNum)}
-                  </span>
+            <div className="nb-summary-header-row tb-bill-card-header">
+              <div className="tb-bill-card-header-left">
+                <button
+                  type="button"
+                  className="table-billing-back-btn tb-bill-back-btn"
+                  onClick={() => setStep("order")}
+                  disabled={isSaving}
+                >
+                  <ArrowLeft size={15} />
+                  <span>{t("tables.backToItems", "Items")}</span>
+                </button>
+                <div className="tb-bill-title-wrap">
+                  <div className="tb-bill-title-line">
+                    <h4 className="tb-bill-card-title">{t("bills.billSummary", "Bill Summary")}</h4>
+                    {table.editing_bill_number && (
+                      <span className="tb-editing-pill">
+                        ✏️ #{table.editing_bill_number}
+                      </span>
+                    )}
+                  </div>
+                  <div className="tb-bill-table-sub">
+                    <span>{getTableDisplayName(table, t, formatNum)}</span>
+                    <span className={`table-status-badge ${isOccupied ? "badge-occupied" : "badge-available"}`}>
+                      <span className="status-dot" />
+                      {isOccupied ? t("tables.occupied", "Occupied") : t("tables.available", "Available")}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <span style={{ background: "#e0f2fe", color: "#0369a1", fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.55rem", borderRadius: "20px" }}>
-                {t("bills.itemsCount", "{{n}} items", { n: items.length })}
+              <span className="tb-order-count">
+                {formatNum(totalItemsCount)} {totalItemsCount === 1 ? t("history.item", "item") : t("history.items", "items")}
               </span>
             </div>
 
@@ -1599,7 +1617,9 @@ export function TableBilling({
       {/* Phones: the added items are below the menu, so this bar shows the count and opens the bill */}
       {step === "order" && items.length > 0 && createPortal(
         <button type="button" className="tb-order-bar" ref={orderBarRef} onClick={showBill}>
-          <span className="tb-order-bar-count">{t("bills.itemsCount", "{{n}} items", { n: formatNum(items.length) })}</span>
+          <span className="tb-order-bar-count">
+            {formatNum(totalItemsCount)} {totalItemsCount === 1 ? t("history.item", "item") : t("history.items", "items")} • {money(total)}
+          </span>
           <span className="tb-order-bar-go">{t("tables.viewBill", "View Bill")} <ArrowRight size={16} /></span>
         </button>,
         document.body
