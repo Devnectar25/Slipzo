@@ -136,9 +136,12 @@ export function OtpVerify({ phone, purpose, initial = null, initialError = null,
     }
   }
 
+  const demoCode = info?.demo_code || (info?.demo ? "123456" : null)
+
   const fillDemo = () => {
-    if (!info?.demo_code) return
-    const next = info.demo_code.split("").slice(0, LENGTH)
+    const codeToUse = demoCode
+    if (!codeToUse) return
+    const next = codeToUse.split("").slice(0, LENGTH)
     setDigits(next)
     verify(next.join(""))
   }
@@ -155,12 +158,12 @@ export function OtpVerify({ phone, purpose, initial = null, initialError = null,
         </p>
       </div>
 
-      {info?.demo_code && (
+      {demoCode && (
         <div className="otp-demo" data-testid="otp-demo">
           <KeyRound size={16} />
           <div className="otp-demo-text">
             <span className="otp-demo-label">{t("otp.demoLabel", "Demo mode: no SMS is sent. Your code is")}</span>
-            <b className="otp-demo-code" data-testid="otp-demo-code">{info.demo_code}</b>
+            <b className="otp-demo-code" data-testid="otp-demo-code">{demoCode}</b>
           </div>
           <button type="button" className="otp-demo-fill" onClick={fillDemo} disabled={checking || codeDead}>
             {t("otp.fillCode", "Fill code")}

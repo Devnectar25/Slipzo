@@ -1227,32 +1227,42 @@
   border: 1px solid #bae6fd;
 }
 
+.otp-demo,
 .auth-overlay .otp-demo {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.6rem 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: 12px;
   background: #fffbeb;
-  border: 1px dashed #f59e0b;
+  border: 1.5px dashed #f59e0b;
   color: #92400e;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+  margin-bottom: 0.25rem;
 }
-.auth-overlay .otp-demo-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.auth-overlay .otp-demo-label { font-size: 0.74rem; font-weight: 600; }
-.auth-overlay .otp-demo-code { font-size: 1.15rem; letter-spacing: 0.3em; color: #78350f; font-variant-numeric: tabular-nums; }
+.otp-demo-text,
+.auth-overlay .otp-demo-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.otp-demo-label,
+.auth-overlay .otp-demo-label { font-size: 0.75rem; font-weight: 600; color: #b45309; }
+.otp-demo-code,
+.auth-overlay .otp-demo-code { font-size: 1.25rem; letter-spacing: 0.25em; color: #78350f; font-variant-numeric: tabular-nums; font-weight: 800; }
+.otp-demo-fill,
 .auth-overlay .otp-demo-fill {
   flex: none;
-  height: 32px;
-  padding: 0 0.8rem;
+  height: 34px;
+  padding: 0 1rem;
   border-radius: 999px;
   border: 1px solid #f59e0b;
   background: #ffffff;
   color: #92400e;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
-.auth-overlay .otp-demo-fill:hover:not(:disabled) { background: #fef3c7; }
+.otp-demo-fill:hover:not(:disabled),
+.auth-overlay .otp-demo-fill:hover:not(:disabled) { background: #fef3c7; border-color: #d97706; }
+.otp-demo-fill:disabled,
 .auth-overlay .otp-demo-fill:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .auth-overlay .otp-boxes { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
