@@ -844,13 +844,16 @@ export function Shell({ user, shop: parentShop, view, setView, onLogout, childre
             </div>
           )}
           {children}
-          <footer className="shell-legal-footer" data-testid="app-legal-footer">
-            <div className="pp-legal-left">
-              <span>© {new Date().getFullYear()} Slipzen</span>
-              <PoweredBy />
-            </div>
-            <PolicyLinks onOpen={setView} />
-          </footer>
+          {/* not in the Android app: no page footer there (the policies are in the menu and on Contact us) */}
+          {!isNativeApp && (
+            <footer className="shell-legal-footer" data-testid="app-legal-footer">
+              <div className="pp-legal-left">
+                <span>© {new Date().getFullYear()} Slipzen</span>
+                <PoweredBy />
+              </div>
+              <PolicyLinks onOpen={setView} />
+            </footer>
+          )}
         </div>
       </div>
 

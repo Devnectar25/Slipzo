@@ -342,11 +342,13 @@ export function AdminMenuManagement({ getAdminHeaders }) {
   const handleDeleteItem = async (item) => {
     const confirm = await Swal.fire({
       title: `Delete "${item.name}"?`,
-      text: "If this item is assigned in active user menus, it will be safely deactivated instead of deleted to protect user billing records.",
+      text: "It is removed from the catalog. Shops that already added it keep it on their past bills.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
-      confirmButtonText: "Yes, Delete / Deactivate"
+      confirmButtonText: "Yes, delete",
+      cancelButtonText: "Cancel",
+      reverseButtons: true
     })
 
     if (!confirm.isConfirmed) return
@@ -358,25 +360,16 @@ export function AdminMenuManagement({ getAdminHeaders }) {
         headers
       })
 
-      if (res?.softDeleted) {
-        setMenuItems((prev) =>
-          prev.map((it) => (it.id === item.id ? { ...it, is_available: false } : it))
-        )
-        Swal.fire({
-          title: "Deactivated",
-          text: res.detail || "Item was deactivated to protect existing user menu assignments.",
-          icon: "info",
-          confirmButtonColor: "#0284c7"
-        })
-      } else {
-        setMenuItems((prev) => prev.filter((it) => it.id !== item.id))
-        Swal.fire({
-          title: "Deleted!",
-          text: `"${item.name}" has been removed from the master catalog.`,
-          icon: "success",
-          confirmButtonColor: "#0284c7"
-        })
-      }
+      // deleted either way: it leaves the catalog (shops that had already added it keep it on their past bills)
+      setMenuItems((prev) => prev.filter((it) => it.id !== item.id))
+      Swal.fire({
+        title: "Deleted!",
+        text: res?.softDeleted
+          ? res.detail || `"${item.name}" has been removed from the catalog.`
+          : `"${item.name}" has been removed from the master catalog.`,
+        icon: "success",
+        confirmButtonColor: "#0284c7"
+      })
     } catch (err) {
       console.error("Failed to delete item:", err)
       Swal.fire("Error", err.detail || err.message || "Failed to delete item", "error")

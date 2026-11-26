@@ -5,6 +5,10 @@ import './i18n/i18n.js'
 import App from './App.jsx'
 import { isNativeApp } from './lib/utils.js'
 import { installPopupScrollLock } from './lib/scrollLock.js'
+import { installErrorMonitor } from './lib/errorMonitor.js'
+
+// errors on this device go to the admin panel's Error Monitor (grouped there with a count)
+installErrorMonitor()
 
 // The page behind a popup must not scroll while the popup is open
 installPopupScrollLock()

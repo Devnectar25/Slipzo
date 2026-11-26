@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef, lazy, Suspense } from "react"
+import { useEffect, useLayoutEffect, useState, useRef, lazy, Suspense } from "react"
+import { scrollPageToTop } from "./lib/scrollTop"
 import { App as CapApp } from "@capacitor/app"
 import Swal from "sweetalert2"
 import { Shell } from "./components/Shell"
@@ -392,7 +393,9 @@ function AppContent() {
     })
     if (typeof window !== "undefined") {
       const targetPath = viewToPath(newView)
-      if (targetPath && window.location.pathname !== targetPath) {
+      // an admin page link (/admin/users, /admin/errors…) stays as it is: the dashboard opens that page
+      const onAdminPage = newView === "admin_dashboard" && /^\/admin\/(?!login\b)[a-z-]+/i.test(window.location.pathname)
+      if (targetPath && !onAdminPage && window.location.pathname !== targetPath) {
         window.history.pushState({ view: newView }, "", targetPath + window.location.search)
       }
     }
@@ -631,6 +634,8 @@ function AppContent() {
 
     const handleUnauthorized = () => {
       setUser(null)
+      // an admin whose access was removed or turned off goes back to the admin sign-in
+      if (window.location.pathname.startsWith("/admin")) setAdminUser(null)
       localStorage.removeItem("slipzo_user_info")
       localStorage.removeItem("slipzo_token")
     }
@@ -880,8 +885,10 @@ function AppContent() {
     }
   }, [])
 
+  // every page opens at its top (also when the page's own box is what scrolls), before it is drawn
+  useLayoutEffect(() => { scrollPageToTop() }, [view])
+
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' })
     if (view === "customers") {
       setView("dashboard")
     }
@@ -1135,6 +1142,15 @@ function AppContent() {
     window.history.pushState({}, "", "/admin")
   }
 
+  const handleAdminUpdated = (updatedAdmin, newToken) => {
+    if (updatedAdmin) setAdminUser(updatedAdmin)
+    if (newToken) {
+      localStorage.setItem("slipzo_token", newToken)
+      localStorage.setItem("slipzo_admin_token", newToken)
+      setAdminToken(newToken)
+    }
+  }
+
   const handleAdminLogout = async () => {
     try {
       await call("/admin/logout", { method: "POST" })
@@ -1153,7 +1169,7 @@ function AppContent() {
     if (adminUser && adminToken) {
       return (
         <Suspense fallback={<PageLoader />}>
-          <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
+          <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} onAdminUpdated={handleAdminUpdated} />
         </Suspense>
       )
     }
@@ -1167,7 +1183,7 @@ function AppContent() {
   if (view === "admin_dashboard") {
     return (
       <Suspense fallback={<PageLoader />}>
-        <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} />
+        <AdminDashboard admin={adminUser} onLogout={handleAdminLogout} onAdminUpdated={handleAdminUpdated} />
       </Suspense>
     )
   }

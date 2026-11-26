@@ -1,13 +1,12 @@
 import { useState } from "react"
 import { ButtonLoader } from "../common/Skeleton"
-import { ShieldCheck, Lock, Mail, KeyRound, Eye, EyeOff, ArrowRight, AlertTriangle } from "lucide-react"
+import { ShieldCheck, Lock, Mail, Eye, EyeOff, ArrowRight, AlertTriangle } from "lucide-react"
 import { call } from "../../lib/utils"
 import "../../styles/Admin.css"
 
 export function AdminLogin({ onLoginSuccess, onCancel }) {
-  const [email, setEmail] = useState("admin@slipzo.com")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [securityCode, setSecurityCode] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -22,8 +21,7 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
         method: "POST",
         body: JSON.stringify({
           email,
-          password,
-          securityCode
+          password
         })
       })
 
@@ -40,7 +38,7 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
       }
     } catch (err) {
       console.error("Admin login error:", err)
-      setError(err.message || "Invalid Admin credentials or security code.")
+      setError(err.message || "Invalid Admin credentials.")
     } finally {
       setLoading(false)
     }
@@ -80,7 +78,7 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
               <input
                 type="text"
                 className="admin-input"
-                placeholder="admin@slipzo.com"
+                placeholder="Enter email or username (e.g. admin)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -113,23 +111,6 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
             </div>
           </div>
 
-          <div className="admin-form-group">
-            <label className="admin-label">
-              <KeyRound size={14} /> Admin Security Code
-            </label>
-            <div className="admin-input-wrapper">
-              <KeyRound size={16} className="admin-input-icon" />
-              <input
-                type="password"
-                className="admin-input"
-                placeholder="Enter security code"
-                value={securityCode}
-                onChange={(e) => setSecurityCode(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
           <button
             type="submit"
             className="admin-btn-primary"
@@ -147,29 +128,6 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
               type="button"
               className="admin-btn-back"
               onClick={onCancel}
-              style={{
-                width: "100%",
-                marginTop: "10px",
-                background: "transparent",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                color: "#94a3b8",
-                padding: "10px 14px",
-                borderRadius: "10px",
-                fontSize: "0.88rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.15s ease"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#ffffff"
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.4)"
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#94a3b8"
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)"
-                e.currentTarget.style.background = "transparent"
-              }}
             >
               ← Back to Dashboard
             </button>
@@ -177,7 +135,7 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
         </form>
 
         <div className="admin-hint-box">
-          Default Dev Admin: <code>admin@slipzo.com</code> | <code>Admin@12345</code> | Code: <code>SLIPZO_ADMIN_2026</code>
+          Default Dev Admin: <code>admin@slipzo.com</code> | <code>Admin@12345</code>
         </div>
       </div>
     </div>

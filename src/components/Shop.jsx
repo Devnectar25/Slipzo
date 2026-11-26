@@ -39,7 +39,7 @@ const PAYMENT_MODE_ICONS = { Cash: Banknote, UPI: QrCode, Card: CreditCard, Cred
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { SUPPORTED_LANGUAGES, changeAppLanguage } from "../i18n/i18n"
-import { call, getCachedData, setCachedData, getActivePlanDetails, getCurrentUserKey, findTemplateMatch, isHotelRestaurant, getDateLocale } from "../lib/utils"
+import { call, getCachedData, setCachedData, getActivePlanDetails, getCurrentUserKey, findTemplateMatch, isHotelRestaurant, getDateLocale, isNativeApp } from "../lib/utils"
 import { useToast } from "./common/Toast"
 import { BUILTIN_TEMPLATES } from "./Templates"
 import { RealisticReceiptView } from "./RealisticReceiptView"
@@ -3020,11 +3020,13 @@ export function Shop({ user, setView } = {}) {
         }}
       />
 
-      {/* Powered by DevNectar Footer */}
-      <footer style={{ marginTop: '2.5rem', padding: '1.5rem 1rem 2rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-        <PoweredBy />
-        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Slipzen POS & Billing System</span>
-      </footer>
+      {/* Powered by DevNectar footer: website only, the Android app has no page footers */}
+      {!isNativeApp && (
+        <footer style={{ marginTop: '2.5rem', padding: '1.5rem 1rem 2rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <PoweredBy />
+          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Slipzen POS & Billing System</span>
+        </footer>
+      )}
     </div>
   )
 }
