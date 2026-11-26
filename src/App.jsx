@@ -1134,8 +1134,8 @@ function AppContent() {
 
   const handleAdminLoginSuccess = (adminData, token) => {
     if (token) {
-      localStorage.setItem("slipzo_token", token)
       localStorage.setItem("slipzo_admin_token", token)
+      setAdminToken(token)
     }
     setAdminUser(adminData)
     setView("admin_dashboard")
@@ -1145,7 +1145,6 @@ function AppContent() {
   const handleAdminUpdated = (updatedAdmin, newToken) => {
     if (updatedAdmin) setAdminUser(updatedAdmin)
     if (newToken) {
-      localStorage.setItem("slipzo_token", newToken)
       localStorage.setItem("slipzo_admin_token", newToken)
       setAdminToken(newToken)
     }

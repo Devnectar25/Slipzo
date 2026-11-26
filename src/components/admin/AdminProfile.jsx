@@ -196,8 +196,8 @@ export function AdminProfile({ admin, onAdminUpdated }) {
       setPassError("Please enter your current password.")
       return
     }
-    if (passForm.newPassword.length < 6) {
-      setPassError("New password must be at least 6 characters long.")
+    if (passForm.newPassword.length < 8 || !/[A-Za-z]/.test(passForm.newPassword) || !/\d/.test(passForm.newPassword)) {
+      setPassError("New password must be at least 8 characters with letters and numbers.")
       return
     }
     if (passForm.newPassword !== passForm.confirmPassword) {
@@ -220,6 +220,10 @@ export function AdminProfile({ admin, onAdminUpdated }) {
           confirmPassword: passForm.confirmPassword
         })
       })
+      if (res?.token) {
+        localStorage.setItem("slipzo_admin_token", res.token)
+        onAdminUpdated?.(res.admin || profile, res.token)
+      }
       setPassForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
       setShowPass({ current: false, next: false, confirm: false })
       setPassSuccess(res?.detail || "Password changed successfully.")

@@ -35,7 +35,7 @@ import {
   UserCircle,
   Bug
 } from "lucide-react"
-import { call, invalidateApiCache } from "../../lib/utils"
+import { call, invalidateApiCache, escapeHtml, safeExternalUrl } from "../../lib/utils"
 import Swal from "sweetalert2"
 import { ButtonLoader, MetricSkeleton, TableSkeleton } from "../common/Skeleton"
 import "../../styles/Admin.css"
@@ -626,7 +626,7 @@ export function AdminDashboard({ admin, onLogout, onAdminUpdated }) {
       html: `
         <div style="text-align: left; font-size: 0.9rem;">
           <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Template Name</label>
-          <input id="swal-edit-template-name" class="swal2-input" value="${template.name || ''}" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+          <input id="swal-edit-template-name" class="swal2-input" value="${escapeHtml(template.name || '')}" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
           
           <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Category</label>
           <select id="swal-edit-template-cat" class="swal2-input" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;">
@@ -815,19 +815,19 @@ export function AdminDashboard({ admin, onLogout, onAdminUpdated }) {
       html: `
         <div style="text-align: left; font-size: 0.875rem;">
           <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Product Name</label>
-          <input id="swal-edit-prod-name" class="swal2-input" value="${(product.name || '').replace(/"/g, '&quot;')}" placeholder="Product Name" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+          <input id="swal-edit-prod-name" class="swal2-input" value="${escapeHtml(product.name || '')}" placeholder="Product Name" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
 
           <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Category</label>
-          <input id="swal-edit-prod-cat" class="swal2-input" value="${(product.category || 'Hardware').replace(/"/g, '&quot;')}" placeholder="e.g. Hardware, POS Accessories" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+          <input id="swal-edit-prod-cat" class="swal2-input" value="${escapeHtml(product.category || 'Hardware')}" placeholder="e.g. Hardware, POS Accessories" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
 
           <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Price (₹)</label>
-          <input id="swal-edit-prod-price" type="number" step="any" min="0" class="swal2-input" value="${product.price || 0}" placeholder="Price" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+          <input id="swal-edit-prod-price" type="number" step="any" min="0" class="swal2-input" value="${escapeHtml(product.price ?? 0)}" placeholder="Price" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
 
           <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Product Link (Buy Now URL)</label>
-          <input id="swal-edit-prod-link" type="url" class="swal2-input" value="${(product.product_link || '').replace(/"/g, '&quot;')}" placeholder="https://example.com/product" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
+          <input id="swal-edit-prod-link" type="url" class="swal2-input" value="${escapeHtml(product.product_link || '')}" placeholder="https://example.com/product" style="width: 100%; margin: 0 0 12px 0; box-sizing: border-box;" />
 
           <label style="font-weight: 600; display: block; margin-bottom: 4px; color: #0C1F41;">Product Description</label>
-          <textarea id="swal-edit-prod-desc" class="swal2-textarea" placeholder="e.g. ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals" style="width: 100%; margin: 0; box-sizing: border-box; font-size: 0.85rem; height: 75px; resize: vertical; padding: 0.5rem 0.75rem; border: 1px solid #d9dde4; border-radius: 8px;">${(product.description || '').replace(/"/g, '&quot;')}</textarea>
+          <textarea id="swal-edit-prod-desc" class="swal2-textarea" placeholder="e.g. ATPOS premium smooth thermal paper rolls, jam-free dark printing for POS terminals" style="width: 100%; margin: 0; box-sizing: border-box; font-size: 0.85rem; height: 75px; resize: vertical; padding: 0.5rem 0.75rem; border: 1px solid #d9dde4; border-radius: 8px;">${escapeHtml(product.description || '')}</textarea>
         </div>
       `,
       focusConfirm: false,
@@ -2140,9 +2140,9 @@ export function AdminDashboard({ admin, onLogout, onAdminUpdated }) {
 
                         {/* 5. Product Link */}
                         <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                          {p.product_link ? (
+                          {safeExternalUrl(p.product_link) ? (
                             <a
-                              href={p.product_link}
+                              href={safeExternalUrl(p.product_link)}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
@@ -2155,7 +2155,7 @@ export function AdminDashboard({ admin, onLogout, onAdminUpdated }) {
                                 fontWeight: 600,
                                 textDecoration: 'none'
                               }}
-                              title={p.product_link}
+                              title={safeExternalUrl(p.product_link)}
                             >
                               <ExternalLink size={12} /> Link
                             </a>

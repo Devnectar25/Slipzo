@@ -6,7 +6,31 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs))
 }
 
-let customApi = typeof window !== 'undefined' ? localStorage.getItem('slipzo_custom_api_url') : null
+export const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]))
+
+export const safeExternalUrl = (raw) => {
+  const value = String(raw || "").trim()
+  if (!value) return ""
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value) && !/^https?:/i.test(value)) {
+    return ""
+  }
+  try {
+    const parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`)
+    if ((parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname.includes(".")) {
+      return parsed.href
+    }
+  } catch (_) {}
+  return ""
+}
+
+let customApi = import.meta.env.DEV && typeof window !== 'undefined' ? localStorage.getItem('slipzo_custom_api_url') : null
 let envApi = (import.meta.env.VITE_API_URL || '').trim()
 
 // Detect if running inside Capacitor Android/iOS Native Webview
@@ -337,8 +361,11 @@ const performFetch = async (cleanPath, options = {}) => {
   const method = (options.method || 'GET').toUpperCase()
   const isGet = method === 'GET'
 
+  const isAdminPath = cleanPath === '/admin' || cleanPath.startsWith('/admin/') || cleanPath === '/subscriptions/all'
   const token = typeof window !== 'undefined'
-    ? (localStorage.getItem('slipzo_admin_token') || localStorage.getItem('slipzo_token'))
+    ? (isAdminPath
+        ? (localStorage.getItem('slipzo_admin_token') || localStorage.getItem('slipzo_token'))
+        : localStorage.getItem('slipzo_token'))
     : null
 
   const { headers: customHeaders, ...restOptions } = options
@@ -421,14 +448,18 @@ const performFetch = async (cleanPath, options = {}) => {
 
     if (data && data.token) {
       try {
-        if (cleanPath.startsWith('/auth/login') || cleanPath.startsWith('/auth/register')) {
-          clearApiCache()
-          if (data.id || data.email) {
-            const { token: _ignoredToken, ...userWithoutToken } = data
-            localStorage.setItem('slipzo_user_info', JSON.stringify(userWithoutToken))
+        if (cleanPath.startsWith('/admin')) {
+          localStorage.setItem('slipzo_admin_token', data.token)
+        } else {
+          if (cleanPath.startsWith('/auth/login') || cleanPath.startsWith('/auth/register')) {
+            clearApiCache()
+            if (data.id || data.email) {
+              const { token: _ignoredToken, ...userWithoutToken } = data
+              localStorage.setItem('slipzo_user_info', JSON.stringify(userWithoutToken))
+            }
           }
+          localStorage.setItem('slipzo_token', data.token)
         }
-        localStorage.setItem('slipzo_token', data.token)
       } catch (e) { }
     }
 
