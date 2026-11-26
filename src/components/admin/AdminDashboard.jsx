@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useLayoutEffect, useRef } from "react"
 import {
   ShieldCheck,
   Users,
@@ -9,7 +9,6 @@ import {
   LogOut,
   Search,
   Activity,
-  Server,
   Package,
   Calendar,
   CheckCircle,
@@ -31,7 +30,10 @@ import {
   ExternalLink,
   Utensils,
   CreditCard,
-  Bell
+  Bell,
+  UserCog,
+  UserCircle,
+  Bug
 } from "lucide-react"
 import { call, invalidateApiCache } from "../../lib/utils"
 import Swal from "sweetalert2"
@@ -39,6 +41,11 @@ import { ButtonLoader, MetricSkeleton, TableSkeleton } from "../common/Skeleton"
 import "../../styles/Admin.css"
 import { AdminMenuManagement } from "./AdminMenuManagement"
 import { AdminPushNotifications } from "./AdminPushNotifications"
+import { AdminSubAdmins } from "./AdminSubAdmins"
+import { AdminAnalytics } from "./AdminAnalytics"
+import { AdminErrors } from "./AdminErrors"
+import { AdminProfile } from "./AdminProfile"
+import { scrollPageToTop } from "../../lib/scrollTop"
 
 const getInitialAdminTab = () => {
   if (typeof window === "undefined") return "overview"
@@ -51,8 +58,10 @@ const getInitialAdminTab = () => {
   if (cleanPath.includes("/admin/bill-history") || cleanPath.includes("/admin/bills")) return "bills"
   if (cleanPath.includes("/admin/support") || cleanPath.includes("/admin/contacts")) return "contacts"
   if (cleanPath.includes("/admin/notifications")) return "notifications"
+  if (cleanPath.includes("/admin/sub-admins")) return "sub_admins"
+  if (cleanPath.includes("/admin/profile")) return "profile"
   if (cleanPath.includes("/admin/users")) return "users"
-  if (cleanPath.includes("/admin/system") || cleanPath.includes("/admin/health")) return "system"
+  if (cleanPath.includes("/admin/errors") || cleanPath.includes("/admin/system") || cleanPath.includes("/admin/health")) return "errors"
   return "overview"
 }
 
@@ -68,13 +77,107 @@ const getAdminTabPath = (tab) => {
     case "contacts": return "/admin/support"
     case "notifications": return "/admin/notifications"
     case "users": return "/admin/users"
-    case "system": return "/admin/system"
+    case "errors": return "/admin/errors"
+    case "sub_admins": return "/admin/sub-admins"
+    case "profile": return "/admin/profile"
     default: return "/admin/overview"
   }
 }
 
-export function AdminDashboard({ admin, onLogout }) {
+const ALL_ADMIN_PAGES = ["overview", "users", "grant_credits", "plan_buyers", "plans", "products", "menu", "templates", "bills", "contacts", "notifications", "errors"]
+
+function PlanDescriptionCell({ plan }) {
+  const [expanded, setExpanded] = useState(false)
+  const [featuresOpen, setFeaturesOpen] = useState(false)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+  const descRef = useRef(null)
+
+  const description = (plan?.description || "").trim()
+  const features = Array.isArray(plan?.features) ? plan.features.filter(Boolean) : []
+
+  useEffect(() => {
+    const el = descRef.current
+    if (!el || expanded || !description) return
+    const check = () => {
+      setIsOverflowing(el.scrollHeight > el.clientHeight + 1)
+    }
+    check()
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(check)
+      ro.observe(el)
+      return () => ro.disconnect()
+    }
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
+  }, [description, expanded])
+
+  return (
+    <div className="admin-plan-desc-cell">
+      <div
+        ref={descRef}
+        className={`admin-plan-desc ${!expanded && description ? "clamped" : ""} ${!description ? "empty" : ""}`}
+      >
+        {description || "No description"}
+      </div>
+
+      {description && (isOverflowing || expanded) && (
+        <button
+          type="button"
+          className="admin-plan-readmore-btn"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Show less" : "Read more"}
+        </button>
+      )}
+
+      {features.length > 0 && (
+        <div>
+          <button
+            type="button"
+            className="admin-plan-features-badge"
+            onClick={() => setFeaturesOpen((v) => !v)}
+            title={featuresOpen ? "Hide features" : "View included features"}
+          >
+            <span>{features.length} features included</span>
+            <span aria-hidden="true">{featuresOpen ? "▴" : "▾"}</span>
+          </button>
+          {featuresOpen && (
+            <ul className="admin-plan-features-list">
+              {features.map((feat, idx) => (
+                <li key={idx}>{feat}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function AdminDashboard({ admin, onLogout, onAdminUpdated }) {
+  const [activeAdmin, setActiveAdmin] = useState(admin)
+  useEffect(() => {
+    setActiveAdmin(admin)
+  }, [admin])
+
+  const handleProfileUpdated = (updatedAdmin, newToken) => {
+    if (updatedAdmin) setActiveAdmin(updatedAdmin)
+    onAdminUpdated?.(updatedAdmin, newToken)
+  }
+
+  // a sub-admin opens only the pages the super admin gave them (an older server sends no list: everything)
+  const isSuper = activeAdmin?.isSuper !== false
+  const allowedPages = Array.isArray(activeAdmin?.permissions) ? activeAdmin.permissions.map((p) => (p === "system" ? "errors" : p)) : ALL_ADMIN_PAGES
+  const can = (page) => (page === "profile" ? true : page === "sub_admins" ? isSuper : isSuper || allowedPages.includes(page))
+  const firstPage = ["overview", "users", "plan_buyers", "plans", "products", "menu", "templates", "bills", "contacts", "notifications", "errors"].find(can) || "none"
   const [activeTab, setActiveTabState] = useState(() => getInitialAdminTab())
+  // every admin page opens at its top, not where the previous page was scrolled to
+  useLayoutEffect(() => { scrollPageToTop() }, [activeTab])
+  // a page this admin may not open (an old link, or access just taken away) shows their first page instead
+  useEffect(() => {
+    if (activeTab !== "none" && !can(activeTab)) setActiveTabState(firstPage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, firstPage])
 
   const setActiveTab = (tab) => {
     setActiveTabState(tab)
@@ -151,42 +254,43 @@ export function AdminDashboard({ admin, onLogout }) {
     }
 
     try {
-      const statsRes = await call("/admin/stats", opts).catch(() => null)
+      const skip = Promise.resolve(null)
+      const statsRes = await (can("overview") ? call("/admin/stats", opts).catch(() => null) : skip)
       if (statsRes && (statsRes.stats || statsRes.totalUsers !== undefined)) {
         setStatsData(statsRes)
       }
 
-      const usersRes = await call("/admin/users", opts).catch(() => null)
+      const usersRes = await (can("users") ? call("/admin/users", opts).catch(() => null) : skip)
       if (usersRes && (usersRes.users || Array.isArray(usersRes))) {
         setUsersList(usersRes.users || (Array.isArray(usersRes) ? usersRes : []))
       }
 
-      const billsRes = await call("/admin/bills", opts).catch(() => null)
+      const billsRes = await (can("bills") ? call("/admin/bills", opts).catch(() => null) : skip)
       if (billsRes && (billsRes.bills || Array.isArray(billsRes))) {
         setBillsList(billsRes.bills || (Array.isArray(billsRes) ? billsRes : []))
       }
 
-      const contactsRes = await call("/admin/contacts", opts).catch(() => null)
+      const contactsRes = await (can("contacts") ? call("/admin/contacts", opts).catch(() => null) : skip)
       if (contactsRes && (contactsRes.contacts || Array.isArray(contactsRes))) {
         setContactsList(contactsRes.contacts || (Array.isArray(contactsRes) ? contactsRes : []))
       }
 
-      const templatesRes = await call("/admin/templates", opts).catch(() => null)
+      const templatesRes = await (can("templates") ? call("/admin/templates", opts).catch(() => null) : skip)
       if (templatesRes && (templatesRes.templates || Array.isArray(templatesRes))) {
         setTemplatesList(templatesRes.templates || (Array.isArray(templatesRes) ? templatesRes : []))
       }
 
-      const productsRes = await call("/admin/products", opts).catch(() => null)
+      const productsRes = await (can("products") ? call("/admin/products", opts).catch(() => null) : skip)
       if (productsRes && (productsRes.products || Array.isArray(productsRes))) {
         setProductsList(productsRes.products || (Array.isArray(productsRes) ? productsRes : []))
       }
 
-      const buyersRes = await call("/admin/plan-buyers", opts).catch(() => null)
+      const buyersRes = await (can("plan_buyers") ? call("/admin/plan-buyers", opts).catch(() => null) : skip)
       if (buyersRes && (buyersRes.planBuyers || Array.isArray(buyersRes))) {
         setPlanBuyersList(buyersRes.planBuyers || (Array.isArray(buyersRes) ? buyersRes : []))
       }
 
-      const plansRes = await call("/admin/plans", opts).catch(() => null)
+      const plansRes = await (can("plans") ? call("/admin/plans", opts).catch(() => null) : skip)
       if (plansRes && (plansRes.plans || Array.isArray(plansRes))) {
         setPlansList(plansRes.plans || (Array.isArray(plansRes) ? plansRes : []))
         if (plansRes.stats) {
@@ -1090,107 +1194,176 @@ export function AdminDashboard({ admin, onLogout }) {
       {/* Admin Sidebar */}
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
-          <img src="/logo.png" alt="Slipzen Admin" className="admin-sidebar-logo" />
-          <div style={{ marginTop: "0.5rem" }}>
-            <span className="admin-tag admin-tag-blue">
-              <ShieldCheck size={12} /> Super Admin
-            </span>
+          <div className="admin-sidebar-brand-row">
+            <img src="/logo.png" alt="Slipzen Admin" className="admin-sidebar-logo" />
+            <div className="admin-sidebar-badges">
+              <div className="admin-role-badge">
+                <span className={`admin-role-pill ${isSuper ? "super" : "sub"}`}>
+                  <ShieldCheck size={12} /> {isSuper ? "Super Admin" : "Sub-admin"}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="admin-mobile-logout-btn"
+                title="Logout Admin"
+                aria-label="Logout Admin"
+                onClick={async () => {
+                  const answer = await Swal.fire({
+                    title: "Log out of the admin panel?",
+                    text: "You will need to log in again to continue.",
+                    icon: "question",
+                    showCancelButton: true,
+                    confirmButtonText: "Logout",
+                    cancelButtonText: "Cancel",
+                    confirmButtonColor: "#ef4444",
+                    reverseButtons: true,
+                    focusCancel: true
+                  })
+                  if (answer.isConfirmed) onLogout()
+                }}
+              >
+                <LogOut size={14} />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <nav className="admin-nav">
-          <button
+          {(can("overview") || can("users") || can("plan_buyers")) && (
+            <div className="admin-nav-section">Overview &amp; Growth</div>
+          )}
+          {can("overview") && (<button
             className={`admin-nav-item ${activeTab === "overview" ? "active" : ""}`}
+            title="Overview Stats"
             onClick={() => { setActiveTab("overview"); setSearchQuery(""); }}
           >
             <Activity size={18} />
             <span>Overview Stats</span>
-          </button>
+          </button>)}
 
-          <button
+          {can("users") && (<button
             className={`admin-nav-item ${activeTab === "users" ? "active" : ""}`}
+            title="Users &amp; Shops"
             onClick={() => { setActiveTab("users"); setSearchQuery(""); }}
           >
             <Users size={18} />
             <span>Users & Shops</span>
-          </button>
+          </button>)}
 
-          <button
+          {can("plan_buyers") && (<button
             className={`admin-nav-item ${activeTab === "plan_buyers" ? "active" : ""}`}
+            title="Plan Buyer Users"
             onClick={() => { setActiveTab("plan_buyers"); setSearchQuery(""); }}
           >
             <Crown size={18} />
             <span>Plan Buyer Users</span>
-          </button>
+          </button>)}
 
-          <button
+          {(can("plans") || can("products") || can("menu") || can("templates")) && (
+            <div className="admin-nav-section">Catalog &amp; Pricing</div>
+          )}
+          {can("plans") && (<button
             className={`admin-nav-item ${activeTab === "plans" ? "active" : ""}`}
+            title="Pricing Plans"
             onClick={() => { setActiveTab("plans"); setSearchQuery(""); }}
           >
             <CreditCard size={18} />
             <span>Pricing Plans</span>
-          </button>
+          </button>)}
 
-          <button
+          {can("products") && (<button
             className={`admin-nav-item ${activeTab === "products" ? "active" : ""}`}
+            title="Product Catalog"
             onClick={() => { setActiveTab("products"); setSearchQuery(""); }}
           >
             <Package size={18} />
             <span>Product Catalog</span>
-          </button>
+          </button>)}
 
-          <button
+          {can("menu") && (<button
             className={`admin-nav-item ${activeTab === "menu" ? "active" : ""}`}
+            title="Menu Catalog"
             onClick={() => { setActiveTab("menu"); setSearchQuery(""); }}
           >
             <Utensils size={18} />
             <span>Menu Catalog</span>
-          </button>
+          </button>)}
 
-          <button
+          {can("templates") && (<button
             className={`admin-nav-item ${activeTab === "templates" ? "active" : ""}`}
+            title="Manage Templates"
             onClick={() => { setActiveTab("templates"); setSearchQuery(""); }}
           >
             <LayoutTemplate size={18} />
             <span>Manage Templates</span>
-          </button>
+          </button>)}
 
-          <button
+          {(can("bills") || can("contacts") || can("notifications") || can("errors") || isSuper) && (
+            <div className="admin-nav-section">Operations &amp; System</div>
+          )}
+          {can("bills") && (<button
             className={`admin-nav-item ${activeTab === "bills" ? "active" : ""}`}
+            title="Bill History"
             onClick={() => { setActiveTab("bills"); setSearchQuery(""); }}
           >
             <Receipt size={18} />
             <span>Bill History</span>
-          </button>
+          </button>)}
 
-          <button
+          {can("contacts") && (<button
             className={`admin-nav-item ${activeTab === "contacts" ? "active" : ""}`}
+            title="Support Messages"
             onClick={() => { setActiveTab("contacts"); setSearchQuery(""); }}
           >
             <Mail size={18} />
             <span>Support Messages</span>
-          </button>
+          </button>)}
 
-          <button
+          {can("notifications") && (<button
             className={`admin-nav-item ${activeTab === "notifications" ? "active" : ""}`}
+            title="Push Notifications"
             onClick={() => { setActiveTab("notifications"); setSearchQuery(""); }}
           >
             <Bell size={18} />
             <span>Push Notifications</span>
-          </button>
+          </button>)}
 
-          <button
-            className={`admin-nav-item ${activeTab === "system" ? "active" : ""}`}
-            onClick={() => { setActiveTab("system"); setSearchQuery(""); }}
+          {can("errors") && (<button
+            className={`admin-nav-item ${activeTab === "errors" ? "active" : ""}`}
+            title="Error Monitor"
+            onClick={() => { setActiveTab("errors"); setSearchQuery(""); }}
+            data-testid="admin-nav-errors"
           >
-            <Server size={18} />
-            <span>System Health</span>
+            <Bug size={18} />
+            <span>Error Monitor</span>
+          </button>)}
+          {isSuper && (
+            <button
+              className={`admin-nav-item ${activeTab === "sub_admins" ? "active" : ""}`}
+              title="Sub-admins"
+              onClick={() => { setActiveTab("sub_admins"); setSearchQuery(""); }}
+              data-testid="admin-nav-sub-admins"
+            >
+              <UserCog size={18} />
+              <span>Sub-admins</span>
+            </button>
+          )}
+          <button
+            className={`admin-nav-item ${activeTab === "profile" ? "active" : ""}`}
+            title="My Profile"
+            onClick={() => { setActiveTab("profile"); setSearchQuery(""); }}
+            data-testid="admin-nav-profile"
+          >
+            <UserCircle size={18} />
+            <span>My Profile</span>
           </button>
         </nav>
 
         <div className="admin-sidebar-footer">
           <button
             className="admin-logout-btn"
+            title="Logout Admin"
             onClick={async () => {
               const answer = await Swal.fire({
                 title: "Log out of the admin panel?",
@@ -1206,7 +1379,7 @@ export function AdminDashboard({ admin, onLogout }) {
               if (answer.isConfirmed) onLogout()
             }}
           >
-            <LogOut size={16} /> Logout Admin
+            <LogOut size={16} /> <span>Sign Out</span>
           </button>
         </div>
       </aside>
@@ -1214,32 +1387,50 @@ export function AdminDashboard({ admin, onLogout }) {
       {/* Admin Main Content */}
       <main className="admin-main-content">
         <header className="admin-topbar">
-          <h2 className="admin-topbar-title">
-            {activeTab === "overview" && "System Dashboard Overview"}
-            {activeTab === "users" && "User & Shop Directory"}
-            {activeTab === "plan_buyers" && "Plan Buyer Users & Print Quotas"}
-            {activeTab === "plans" && "Pricing Plans Management (Time & Print Plans)"}
-            {activeTab === "products" && "System Product Catalog Management"}
-            {activeTab === "menu" && "Master Menu Catalog Management"}
-            {activeTab === "templates" && "Manage Bill Templates"}
-            {activeTab === "bills" && "System Bill Logs"}
-            {activeTab === "contacts" && "Customer Support Inquiries"}
-            {activeTab === "notifications" && "Push Notifications to the App"}
-            {activeTab === "system" && "Server Diagnostics & Environment"}
-          </h2>
+          <div className="admin-topbar-left">
+            <h2 className="admin-topbar-title">
+              {activeTab === "overview" && "System Dashboard Overview"}
+              {activeTab === "users" && "User & Shop Directory"}
+              {activeTab === "plan_buyers" && "Plan Buyer Users & Print Quotas"}
+              {activeTab === "plans" && "Pricing Plans Management"}
+              {activeTab === "products" && "System Product Catalog"}
+              {activeTab === "menu" && "Master Menu Catalog"}
+              {activeTab === "templates" && "Manage Bill Templates"}
+              {activeTab === "bills" && "System Bill Logs"}
+              {activeTab === "contacts" && "Customer Support Inquiries"}
+              {activeTab === "notifications" && "Push Notifications"}
+              {activeTab === "errors" && "Error Monitor"}
+              {activeTab === "sub_admins" && "Sub-admins & Page Access"}
+              {activeTab === "profile" && "Admin Profile & Security"}
+              {activeTab === "none" && "No pages yet"}
+            </h2>
+          </div>
 
           <div className="admin-topbar-actions">
             <button className="admin-refresh-btn" onClick={() => loadAdminData(true)} disabled={loading}>
-              <RefreshCw size={14} className={loading ? "spin" : ""} /> {loading ? "Refreshing..." : "Refresh"}
+              <RefreshCw size={14} className={loading ? "spin" : ""} /> <span>{loading ? "Refreshing..." : "Refresh"}</span>
             </button>
-            <span style={{ fontSize: "0.85rem", color: "#74788A" }}>
-              {admin?.email || "admin@slipzo.com"}
-            </span>
+            <button
+              type="button"
+              className={`admin-user-chip ${activeTab === "profile" ? "active" : ""}`}
+              onClick={() => { setActiveTab("profile"); setSearchQuery(""); }}
+              title="Open Admin Profile & Security"
+            >
+              <span className="admin-user-avatar">
+                {(activeAdmin?.name || activeAdmin?.username || activeAdmin?.email || "A").trim().charAt(0).toUpperCase()}
+              </span>
+              <div className="admin-user-chip-info">
+                <span className="admin-user-chip-name">{activeAdmin?.name || (isSuper ? "Super Admin" : "Sub-admin")}</span>
+                <span className="admin-user-chip-email">{activeAdmin?.username ? `@${activeAdmin.username}` : (activeAdmin?.email || "admin@slipzo.com")}</span>
+              </div>
+            </button>
           </div>
         </header>
 
         <div className="admin-body">
-          {loading && !statsData ? (
+          {activeTab === "profile" ? (
+            <AdminProfile admin={activeAdmin} onAdminUpdated={handleProfileUpdated} />
+          ) : loading && !statsData ? (
             <div role="status" aria-label="Loading dashboard">
               <MetricSkeleton count={4} />
               <div style={{ marginTop: "1.25rem" }}><TableSkeleton rows={6} cols={4} /></div>
@@ -1250,45 +1441,47 @@ export function AdminDashboard({ admin, onLogout }) {
             <>
               <div className="admin-stats-grid">
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
-                    <Users size={24} />
+                  <div className="admin-stat-icon tone-blue">
+                    <Users size={22} />
                   </div>
                   <div>
-                    <h3 className="admin-stat-val">{statsData?.stats?.totalUsers || 0}</h3>
+                    <h3 className="admin-stat-val">{Number(statsData?.stats?.totalUsers || 0).toLocaleString("en-IN")}</h3>
                     <p className="admin-stat-lbl">Registered Users</p>
                   </div>
                 </div>
 
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
-                    <Store size={24} />
+                  <div className="admin-stat-icon tone-indigo">
+                    <Store size={22} />
                   </div>
                   <div>
-                    <h3 className="admin-stat-val">{statsData?.stats?.totalShops || 0}</h3>
+                    <h3 className="admin-stat-val">{Number(statsData?.stats?.totalShops || 0).toLocaleString("en-IN")}</h3>
                     <p className="admin-stat-lbl">Shops Setup</p>
                   </div>
                 </div>
 
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
-                    <Receipt size={24} />
+                  <div className="admin-stat-icon tone-emerald">
+                    <Receipt size={22} />
                   </div>
                   <div>
-                    <h3 className="admin-stat-val">{statsData?.stats?.totalBills || 0}</h3>
+                    <h3 className="admin-stat-val">{Number(statsData?.stats?.totalBills || 0).toLocaleString("en-IN")}</h3>
                     <p className="admin-stat-lbl">Total Bills Generated</p>
                   </div>
                 </div>
 
                 <div className="admin-stat-card">
-                  <div className="admin-stat-icon" style={{ background: "#f0f9ff", color: "#0284c7" }}>
-                    <Package size={24} />
+                  <div className="admin-stat-icon tone-amber">
+                    <Package size={22} />
                   </div>
                   <div>
-                    <h3 className="admin-stat-val">{statsData?.stats?.totalProducts || 0}</h3>
+                    <h3 className="admin-stat-val">{Number(statsData?.stats?.totalProducts || 0).toLocaleString("en-IN")}</h3>
                     <p className="admin-stat-lbl">Catalog Products</p>
                   </div>
                 </div>
               </div>
+
+              <AdminAnalytics />
 
               <div className="admin-table-container" style={{ marginBottom: "2rem" }}>
                 <div className="admin-table-header">
@@ -1302,7 +1495,7 @@ export function AdminDashboard({ admin, onLogout }) {
                   <thead>
                     <tr>
                       <th>User Name</th>
-                      <th>Email</th>
+                      <th>Phone / Email</th>
                       <th>Shop Name</th>
                       <th>Joined Date</th>
                     </tr>
@@ -1311,7 +1504,7 @@ export function AdminDashboard({ admin, onLogout }) {
                     {statsData?.recentUsers?.map((u) => (
                       <tr key={u.id}>
                         <td style={{ fontWeight: 600, color: "#0C1F41" }}>{u.name}</td>
-                        <td>{u.email}</td>
+                        <td>{/@phone\.slipzo\.invalid$/i.test(u.email || "") ? `+91 ${u.email.split("@")[0]}` : u.email}</td>
                         <td>{u.shop_name || <span style={{ color: "#74788A" }}>No Shop Yet</span>}</td>
                         <td>{u.created_at ? new Date(u.created_at).toLocaleDateString() : "N/A"}</td>
                       </tr>
@@ -1343,14 +1536,11 @@ export function AdminDashboard({ admin, onLogout }) {
                 />
               </div>
               <div className="admin-table-wrapper">
-                <table className="admin-table">
+                <table className="admin-table admin-users-table">
                   <thead>
                     <tr>
                       <th>User</th>
-                      <th>Email</th>
-                      <th>Shop Profile</th>
-                      <th>Shop Name</th>
-                      <th>Phone</th>
+                      <th>Shop</th>
                       <th>Credits</th>
                       <th>Bills</th>
                       <th>Products</th>
@@ -1359,60 +1549,44 @@ export function AdminDashboard({ admin, onLogout }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedUsers.map((u) => (
+                    {paginatedUsers.map((u) => {
+                      // accounts made with a mobile number carry an internal address: the number is shown instead
+                      const realEmail = u.email && !/@phone\.slipzo\.invalid$/i.test(u.email) ? u.email : ""
+                      const loginPhone = u.phone || (u.email && /@phone\.slipzo\.invalid$/i.test(u.email) ? u.email.split("@")[0] : "")
+                      const logo = u.shop_profile || u.shop_logo_url
+                      return (
                       <tr key={u.id}>
                         <td>
-                          <div style={{ fontWeight: 600, color: "#0C1F41" }}>{u.name}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#74788A" }}>@{u.username || "user"}</div>
-                        </td>
-                        <td>{u.email}</td>
-                        <td>
-                          {u.shop_profile || u.shop_logo_url ? (
-                            <img
-                              src={u.shop_profile || u.shop_logo_url}
-                              alt={u.shop_name || "Shop Profile"}
-                              style={{
-                                width: "38px",
-                                height: "38px",
-                                borderRadius: "8px",
-                                objectFit: "cover",
-                                border: "1.5px solid #e2e8f0",
-                                display: "block",
-                                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
-                              }}
-                              onError={(e) => {
-                                e.target.style.display = "none"
-                                if (e.target.nextSibling) e.target.nextSibling.style.display = "flex"
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            style={{
-                              display: (u.shop_profile || u.shop_logo_url) ? "none" : "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              width: "38px",
-                              height: "38px",
-                              borderRadius: "8px",
-                              background: "#f0f9ff",
-                              border: "1.5px solid #bae6fd",
-                              color: "#0284c7",
-                              fontWeight: 700,
-                              fontSize: "0.88rem"
-                            }}
-                            title={u.shop_name ? `${u.shop_name} (Initial fallback)` : "No profile logo"}
-                          >
-                            {u.shop_name ? u.shop_name.trim().charAt(0).toUpperCase() : <Store size={16} />}
+                          <div className="admin-user-cell">
+                            <span className="admin-user-logo">
+                              {logo ? (
+                                <img
+                                  src={logo}
+                                  alt=""
+                                  onError={(e) => { e.target.style.display = "none"; if (e.target.nextSibling) e.target.nextSibling.style.display = "flex" }}
+                                />
+                              ) : null}
+                              <span style={{ display: logo ? "none" : "flex" }}>
+                                {(u.shop_name || u.name || "?").trim().charAt(0).toUpperCase()}
+                              </span>
+                            </span>
+                            <span className="admin-user-text">
+                              <b title={u.name}>{u.name}</b>
+                              {loginPhone && <small>+91 {loginPhone}</small>}
+                              {realEmail && <small title={realEmail}>{realEmail}</small>}
+                            </span>
                           </div>
                         </td>
                         <td>
                           {u.shop_name ? (
-                            <span className="admin-tag admin-tag-blue">{u.shop_name}</span>
+                            <span className="admin-tag admin-tag-blue admin-shop-tag" title={u.shop_name}>{u.shop_name}</span>
                           ) : (
                             <span style={{ color: "#74788A" }}>Pending</span>
                           )}
+                          {u.shop_phone && u.shop_phone !== loginPhone && (
+                            <div className="admin-sub-line">{u.shop_phone}</div>
+                          )}
                         </td>
-                        <td>{u.shop_phone || "N/A"}</td>
                         <td>
                           <div style={{ fontWeight: 800, color: Number(u.prints_remaining || 0) > 0 ? "#0284c7" : "#dc2626", whiteSpace: "nowrap" }}>
                             {Number(u.prints_remaining || 0).toLocaleString("en-IN")} left
@@ -1422,25 +1596,26 @@ export function AdminDashboard({ admin, onLogout }) {
                           </div>
                         </td>
                         <td>
-                          <span className="admin-tag admin-tag-green">{u.bill_count || 0} bills</span>
+                          <span className="admin-tag admin-tag-green" style={{ whiteSpace: "nowrap" }}>{u.bill_count || 0} bills</span>
                         </td>
                         <td>{u.product_count || 0}</td>
-                        <td>{u.created_at ? new Date(u.created_at).toLocaleDateString() : "N/A"}</td>
+                        <td style={{ whiteSpace: "nowrap" }}>{u.created_at ? new Date(u.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "N/A"}</td>
                         <td>
-                          <button
+                          {can("grant_credits") ? <button
                             className="admin-refresh-btn"
-                            style={{ background: "#f0f9ff", color: "#0284c7", border: "1px solid #bae6fd" }}
+                            style={{ background: "#f0f9ff", color: "#0284c7", border: "1px solid #bae6fd", whiteSpace: "nowrap" }}
                             onClick={() => handleGrantCredits(u)}
                             title="Grant Print Credits"
                           >
-                            <Plus size={13} /> Grant Credits
-                          </button>
+                            <Plus size={13} /> Credits
+                          </button> : <span className="admin-sub-line">View only</span>}
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                     {filteredUsers.length === 0 && (
                       <tr>
-                        <td colSpan={9} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
+                        <td colSpan={7} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
                           No matching users found.
                         </td>
                       </tr>
@@ -1521,53 +1696,67 @@ export function AdminDashboard({ admin, onLogout }) {
                 />
               </div>
               <div className="admin-table-wrapper">
-                <table className="admin-table">
+                <table className="admin-table admin-users-table">
                   <thead>
                     <tr>
-                      <th>User Name</th>
-                      <th>Email</th>
-                      <th>Shop Name</th>
-                      <th>Purchased Plan</th>
-                      <th>Amount Paid</th>
+                      <th>User</th>
+                      <th>Shop</th>
+                      <th>Plan</th>
+                      <th>Amount</th>
                       <th>Payment ID</th>
                       <th>Date</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedPlanBuyers.map((b, idx) => (
+                    {paginatedPlanBuyers.map((b, idx) => {
+                      // accounts made with a mobile number carry an internal address: the number is shown instead
+                      const phoneLogin = b.user_email && /@phone\.slipzo\.invalid$/i.test(b.user_email) ? b.user_email.split("@")[0] : ""
+                      const realEmail = b.user_email && !phoneLogin ? b.user_email : ""
+                      return (
                       <tr key={b.subscription_id || b.user_id || idx}>
-                        <td style={{ fontWeight: 600, color: "#0C1F41" }}>{b.user_name}</td>
-                        <td>{b.user_email}</td>
-                        <td>{b.shop_name || <span style={{ color: "#74788A" }}>Standard Shop</span>}</td>
                         <td>
-                          <span className="admin-tag admin-tag-purple">
-                            <Crown size={12} /> {b.plan_name || "Pro Plan"}
+                          <span className="admin-user-text">
+                            <b title={b.user_name}>{b.user_name}</b>
+                            {phoneLogin && <small>+91 {phoneLogin}</small>}
+                            {realEmail && <small title={realEmail}>{realEmail}</small>}
                           </span>
                         </td>
-                        <td style={{ fontWeight: 700, color: "#0284c7" }}>
-                          ₹{b.amount ? Number(b.amount).toFixed(2) : "0.00"}
+                        <td>
+                          {b.shop_name
+                            ? <span className="admin-cell-clip" title={b.shop_name}>{b.shop_name}</span>
+                            : <span style={{ color: "#74788A" }}>Standard Shop</span>}
                         </td>
                         <td>
-                          <code style={{ fontSize: "0.75rem", background: "#f0f9ff", padding: "2px 6px", borderRadius: "4px", color: "#0284c7" }}>
+                          <span className="admin-tag admin-tag-purple admin-plan-tag" title={b.plan_name || "Pro Plan"}>
+                            <Crown size={12} /> <span className="admin-plan-name">{b.plan_name || "Pro Plan"}</span>
+                          </span>
+                        </td>
+                        <td style={{ fontWeight: 700, color: "#0284c7", whiteSpace: "nowrap" }}>
+                          ₹{b.amount ? Number(b.amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0.00"}
+                        </td>
+                        <td>
+                          <code className="admin-payment-id" title={b.payment_id || ""}>
                             {b.payment_id || "N/A"}
                           </code>
                         </td>
-                        <td>{b.created_at ? new Date(b.created_at).toLocaleDateString() : "Recently"}</td>
+                        <td style={{ whiteSpace: "nowrap" }}>{b.created_at ? new Date(b.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Recently"}</td>
                         <td>
-                          <button
+                          {can("grant_credits") ? <button
                             className="admin-refresh-btn"
-                            style={{ background: "#f0f9ff", color: "#0284c7", border: "1px solid #bae6fd" }}
+                            style={{ background: "#f0f9ff", color: "#0284c7", border: "1px solid #bae6fd", whiteSpace: "nowrap" }}
                             onClick={() => handleGrantCredits(b)}
+                            title="Grant Print Credits"
                           >
-                            <Plus size={13} /> Grant Credits
-                          </button>
+                            <Plus size={13} /> Credits
+                          </button> : <span className="admin-sub-line">View only</span>}
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                     {filteredPlanBuyers.length === 0 && (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
+                        <td colSpan={7} style={{ textAlign: "center", color: "#74788A", padding: "2rem" }}>
                           No plan buyer records found.
                         </td>
                       </tr>
@@ -1807,14 +1996,7 @@ export function AdminDashboard({ admin, onLogout }) {
 
                           {/* 5. Description & Features */}
                           <td>
-                            <div style={{ fontSize: "0.8rem", color: "#334155", lineHeight: 1.35, maxHeight: "45px", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {plan.description || "No description"}
-                            </div>
-                            {Array.isArray(plan.features) && plan.features.length > 0 && (
-                              <div style={{ fontSize: "0.72rem", color: "#0284c7", marginTop: "2px" }}>
-                                {plan.features.length} features included
-                              </div>
-                            )}
+                            <PlanDescriptionCell plan={plan} />
                           </td>
 
                           {/* 6. Status Toggle */}
@@ -2195,6 +2377,12 @@ export function AdminDashboard({ admin, onLogout }) {
           )}
 
           {activeTab === "notifications" && <AdminPushNotifications />}
+          {activeTab === "sub_admins" && isSuper && <AdminSubAdmins />}
+          {activeTab === "none" && (
+            <div className="admin-table-container" style={{ padding: "2.5rem 1.5rem", textAlign: "center", color: "#64748b" }}>
+              No admin pages have been given to your account yet. Please ask the super admin.
+            </div>
+          )}
 
           {activeTab === "contacts" && (
             <div className="admin-table-container">
@@ -2248,37 +2436,7 @@ export function AdminDashboard({ admin, onLogout }) {
             </div>
           )}
 
-          {activeTab === "system" && (
-            <div style={{ display: "grid", gap: "1.5rem" }}>
-              <div className="admin-table-container" style={{ padding: "1.5rem" }}>
-                <h4 className="admin-table-title" style={{ marginBottom: "1rem" }}>
-                  <Server size={18} style={{ verticalAlign: "middle", marginRight: "0.5rem" }} /> System Diagnostics
-                </h4>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-                  <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "1rem", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Server Status</div>
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#16a34a", marginTop: "0.25rem" }}>
-                      <CheckCircle size={16} style={{ verticalAlign: "middle", marginRight: "0.25rem" }} /> Online & Healthy
-                    </div>
-                  </div>
-
-                  <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "1rem", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Node Runtime</div>
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#0284c7", marginTop: "0.25rem" }}>
-                      {statsData?.systemHealth?.nodeVersion || "v20.x"}
-                    </div>
-                  </div>
-
-                  <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "1rem", borderRadius: "10px" }}>
-                    <div style={{ fontSize: "0.8rem", color: "#74788A" }}>Server Uptime</div>
-                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#9333ea", marginTop: "0.25rem" }}>
-                      {statsData?.systemHealth?.uptime ? `${Math.floor(statsData.systemHealth.uptime / 60)} mins` : "Active"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === "errors" && <AdminErrors />}
           </>
           )}
         </div>

@@ -617,11 +617,13 @@ export function Contact({ setView, setShowAuth, user }) {
         </div>
       </section>
 
-      {/* Powered by DevNectar Footer */}
-      <footer style={{ marginTop: '2rem', padding: '1.5rem 1rem 1rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-        <PoweredBy />
-        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Slipzen • All rights reserved</span>
-      </footer>
+      {/* Powered by DevNectar footer: website only, the Android app has no page footers */}
+      {!isNativeApp && (
+        <footer style={{ marginTop: '2rem', padding: '1.5rem 1rem 1rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <PoweredBy />
+          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Slipzen • All rights reserved</span>
+        </footer>
+      )}
     </div>
   )
 }
