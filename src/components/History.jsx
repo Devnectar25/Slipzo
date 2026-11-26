@@ -22,7 +22,7 @@ import {
   CreditCard,
   Send
 } from "lucide-react"
-import { call, money, getTableDisplayName } from "../lib/utils"
+import { call, money, getTableDisplayName, escapeHtml } from "../lib/utils"
 import { appSpeechLanguage } from "../hooks/useSpeechInput"
 import { TableSkeleton, Spinner } from "./common/Skeleton"
 import { useToast } from "./common/Toast"
@@ -269,10 +269,10 @@ export function History({ setView, setSelectedBillId, user }) {
     const result = await Swal.fire({
       title: t("history.deleteTitle", "Delete this bill?"),
       html: `<div style="font-size: 0.95rem; color: #575B6B; margin-top: 0.35rem;">
-        ${t("history.deleteConfirm", "Are you sure you want to delete bill")} <b style="color: #0C1F41;">${bill.number}</b> (${money(bill.total ?? bill.total_amount ?? bill.amount)})?
+        ${escapeHtml(t("history.deleteConfirm", "Are you sure you want to delete bill"))} <b style="color: #0C1F41;">${escapeHtml(bill.number)}</b> (${escapeHtml(money(bill.total ?? bill.total_amount ?? bill.amount))})?
       </div>
       <div style="font-size: 0.82rem; color: #ef4444; margin-top: 0.5rem; font-weight: 600;">
-        ${t("history.deleteWarning", "This action cannot be undone.")}
+        ${escapeHtml(t("history.deleteWarning", "This action cannot be undone."))}
       </div>`,
       icon: "warning",
       showCancelButton: true,

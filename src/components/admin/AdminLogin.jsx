@@ -26,7 +26,6 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
       })
 
       if (res && res.token) {
-        localStorage.setItem("slipzo_token", res.token)
         localStorage.setItem("slipzo_admin_token", res.token)
         if (onLoginSuccess) {
           onLoginSuccess(res.admin, res.token)
@@ -133,10 +132,6 @@ export function AdminLogin({ onLoginSuccess, onCancel }) {
             </button>
           )}
         </form>
-
-        <div className="admin-hint-box">
-          Default Dev Admin: <code>admin@slipzo.com</code> | <code>Admin@12345</code>
-        </div>
       </div>
     </div>
   )

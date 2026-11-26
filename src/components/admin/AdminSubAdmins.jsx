@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { UserCog, Plus, Edit2, Trash2, X, Eye, EyeOff, ShieldCheck, Power } from "lucide-react"
 import Swal from "sweetalert2"
-import { call } from "../../lib/utils"
+import { call, escapeHtml } from "../../lib/utils"
 import "../../styles/AdminSubAdmins.css"
 
 /** The admin pages a sub-admin can be given, in the order of the menu */
@@ -90,7 +90,7 @@ export function AdminSubAdmins() {
         icon: "success",
         title: creating ? "Sub-admin created" : "Changes saved",
         html: creating
-          ? `They sign in to the admin panel with <b>${form.email.trim().toLowerCase()}</b> and the password you chose. They do not need the security code.`
+          ? `They sign in to the admin panel with <b>${escapeHtml(form.email.trim().toLowerCase())}</b> and the password you chose. They do not need the security code.`
           : "Their new pages apply within a minute.",
         confirmButtonColor: "#0284c7"
       })

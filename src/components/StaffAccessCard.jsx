@@ -138,10 +138,14 @@ export function StaffAccessCard({ user }) {
       if (res?.not_registered || res?.requires_registration) {
         const p = res.phone || phoneNum || normalizeMobile(entered) || entered.replace(/\D/g, "").slice(-10)
         setUnregisteredPhone(p)
+        const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+        const rnd = new Uint8Array(8)
+        crypto.getRandomValues(rnd)
+        const tempPass = "Slp" + Array.from(rnd, (b) => charset[b % charset.length]).join("") + "9"
         setRegisterForm({
           phone: p,
           name: "",
-          password: p ? p.slice(-6) : ""
+          password: tempPass
         })
         setRegisterError("")
         setEmailError("")
@@ -171,10 +175,14 @@ export function StaffAccessCard({ user }) {
       if (isUnregistered && (phoneNum || entered)) {
         const p = phoneNum || err?.data?.phone || normalizeMobile(entered) || entered.replace(/\D/g, "").slice(-10)
         setUnregisteredPhone(p)
+        const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+        const rnd = new Uint8Array(8)
+        crypto.getRandomValues(rnd)
+        const tempPass = "Slp" + Array.from(rnd, (b) => charset[b % charset.length]).join("") + "9"
         setRegisterForm({
           phone: p,
           name: "",
-          password: p ? p.slice(-6) : ""
+          password: tempPass
         })
         setRegisterError("")
         setShowRegisterModal(true)
@@ -191,8 +199,8 @@ export function StaffAccessCard({ user }) {
       return setRegisterError(t("profile.staffNameRequired", "Please enter the staff member's name."))
     }
     const password = String(registerForm.password || "").trim()
-    if (!password || password.length < 4) {
-      return setRegisterError(t("profile.staffPassLength", "Password must be at least 4 characters."))
+    if (!password || password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      return setRegisterError(t("profile.staffPassLengthStrong", "Password must be at least 8 characters and include letters and numbers."))
     }
     setRegistering(true)
     setRegisterError("")
@@ -727,11 +735,11 @@ export function StaffAccessCard({ user }) {
 
               <div>
                 <label style={{ display: "block", fontSize: "0.74rem", fontWeight: 700, color: "#334155", marginBottom: "3px" }}>
-                  {t("profile.staffPassLabel", "Staff Login Password / PIN")} *
+                  {t("profile.staffPassLabel", "Staff Login Password")} *
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. 123456"
+                  placeholder="Min. 8 chars (letters & numbers)"
                   value={registerForm.password}
                   onChange={(e) => {
                     setRegisterForm(prev => ({ ...prev, password: e.target.value }))

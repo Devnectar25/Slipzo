@@ -419,7 +419,16 @@ export async function startPrintPurchase({ planId, planName, amountInRupees, pri
     if (handled !== null) return handled
   }
 
-  const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_SIPp9QznVVM48W"
+  const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || (import.meta.env.PROD ? "" : "rzp_test_SIPp9QznVVM48W")
+  if (!razorpayKey) {
+    Swal.fire({
+      title: tr("pay.configError", "Payment Unavailable"),
+      text: tr("pay.missingKey", "Payment gateway key is not configured."),
+      icon: "error",
+      confirmButtonColor: "#ef4444"
+    })
+    return false
+  }
 
   const isLoaded = await loadRazorpay()
   if (!isLoaded) {

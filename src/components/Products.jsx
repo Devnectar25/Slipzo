@@ -8,7 +8,7 @@ import {
 import { useTranslation } from "react-i18next"
 import { useDbTranslation } from "../lib/translator"
 import { matchesItemFuzzy, cleanVoiceQuery } from "../lib/fuzzySearch"
-import { call, getCachedData } from "../lib/utils"
+import { call, getCachedData, safeExternalUrl } from "../lib/utils"
 import { appSpeechLanguage } from "../hooks/useSpeechInput"
 import { useToast } from "./common/Toast"
 import Swal from "sweetalert2"
@@ -413,26 +413,13 @@ export function Products({ setView, requireAuth, user }) {
   const handleBuyNow = (product) => {
     if (!product) return
 
-    const rawLink = product.product_link ? String(product.product_link).trim() : ""
-    if (!rawLink) {
+    const safeUrl = safeExternalUrl(product.product_link)
+    if (!safeUrl) {
       handleOpenBuy(product)
       return
     }
 
-    try {
-      const parsedUrl = new URL(rawLink)
-      if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
-        window.open(rawLink, "_blank", "noopener,noreferrer")
-      } else {
-        window.open(`https://${rawLink}`, "_blank", "noopener,noreferrer")
-      }
-    } catch (_) {
-      if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(rawLink)) {
-        window.open(`https://${rawLink}`, "_blank", "noopener,noreferrer")
-      } else {
-        handleOpenBuy(product)
-      }
-    }
+    window.open(safeUrl, "_blank", "noopener,noreferrer")
     handleOpenBuy(product)
   }
 
@@ -461,7 +448,12 @@ export function Products({ setView, requireAuth, user }) {
 
     if (paymentMethod === "Razorpay" || paymentMethod === "UPI") {
       setPlacingOrder(true)
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SIPp9QznVVM48W'
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || (import.meta.env.PROD ? '' : 'rzp_test_SIPp9QznVVM48W')
+      if (!razorpayKey) {
+        toast?.show("Payment gateway key is not configured.", "error")
+        setPlacingOrder(false)
+        return
+      }
 
       const loadRazorpay = () => {
         return new Promise((resolve) => {
